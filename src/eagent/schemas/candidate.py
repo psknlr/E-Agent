@@ -15,7 +15,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..provenance import sequence_hash
-from .chem import CofactorSpec, CofactorState, Stereochemistry
+from .chem import CofactorSpec, CofactorState, LigandSource, Stereochemistry
 from .record import EvidenceRef, EvidenceStrength
 from .templates import GeometryConstraint
 
@@ -161,6 +161,7 @@ class StructureRecord(BaseModel):
     bound_ligands: list[str] = Field(default_factory=list)
     cofactor_in_structure: str | None = None
     cofactor_state_in_structure: CofactorState = CofactorState.UNKNOWN
+    ligand_source: LigandSource = LigandSource.UNKNOWN
     mean_plddt: float | None = None
     pocket_plddt: float | None = None
     numbering_offset: int = 0
@@ -191,6 +192,8 @@ class ComplexPose(BaseModel):
     substrate_present: bool = True
     cofactor_present: bool = False
     cofactor_state: CofactorState = CofactorState.UNKNOWN
+    substrate_source: LigandSource = LigandSource.UNKNOWN
+    cofactor_source: LigandSource = LigandSource.UNKNOWN
     metals_present: list[str] = Field(default_factory=list)
     docking_score: float | None = None
     docking_score_function: str | None = None

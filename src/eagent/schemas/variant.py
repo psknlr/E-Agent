@@ -8,11 +8,59 @@ difference interpretable.
 
 from __future__ import annotations
 
+import enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .candidate import ConfidenceLevel
+
+
+class PerformanceAxis(str, enum.Enum):
+    """The three things a substitution can move, kept apart on purpose.
+
+    A variant that binds the substrate better, turns over worse and expresses
+    poorly has moved all three axes in different directions. Compressing that
+    into one "mutation quality" number destroys exactly the information a
+    second round needs, so there is no combined score anywhere in this model.
+    """
+
+    SUBSTRATE_FIT = "substrate_fit"
+    CATALYTIC_FUNCTION = "catalytic_function"
+    STABILITY_EXPRESSION_RISK = "stability_expression_risk"
+
+    def question(self) -> str:
+        return {
+            PerformanceAxis.SUBSTRATE_FIT:
+                "does the target substrate bind in a productive orientation",
+            PerformanceAxis.CATALYTIC_FUNCTION:
+                "is the chemistry still performed, and with the target selectivity",
+            PerformanceAxis.STABILITY_EXPRESSION_RISK:
+                "does the protein still fold, express solubly and survive the conditions",
+        }[self]
+
+
+class EffectDirection(str, enum.Enum):
+    IMPROVE = "improve"
+    DEGRADE = "degrade"
+    NEUTRAL = "neutral"
+    UNKNOWN = "unknown"
+
+
+class AxisExpectation(BaseModel):
+    """What one substitution is expected to do to one axis, stated before testing.
+
+    Recorded in advance so a result can confirm or refute a specific expectation
+    rather than being narrated after the fact.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    axis: PerformanceAxis
+    direction: EffectDirection = EffectDirection.UNKNOWN
+    rationale: str = ""
+    evidence: list[str] = Field(default_factory=list)
+    confidence: ConfidenceLevel = ConfidenceLevel.WEAK
 
 
 class Mutation(BaseModel):
@@ -98,6 +146,11 @@ class MutationProposal(BaseModel):
         default_factory=list,
         description="Single-mutant proposal ids needed to attribute a combination's effect",
     )
+    axis_expectations: list[AxisExpectation] = Field(
+        default_factory=list,
+        description="Pre-stated effect per performance axis. Reported separately; "
+                    "there is deliberately no method that combines them.",
+    )
 
     @property
     def is_combination(self) -> bool:
@@ -119,6 +172,17 @@ class MutationProposal(BaseModel):
 
     def label(self) -> str:
         return "/".join(str(m) for m in self.mutations)
+
+    def axes_summary(self) -> dict[str, str]:
+        """Per-axis expectation. Returns three entries, never a total."""
+        out = {a.value: EffectDirection.UNKNOWN.value for a in PerformanceAxis}
+        for e in self.axis_expectations:
+            out[e.axis.value] = e.direction.value
+        return out
+
+    @property
+    def axes_declared(self) -> int:
+        return len({e.axis for e in self.axis_expectations})
 
     def apply_to(self, parent_sequence: str) -> str:
         """Build the variant sequence, verifying every wild-type letter first."""

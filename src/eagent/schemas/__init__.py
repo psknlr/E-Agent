@@ -2,7 +2,7 @@
 
 from .chem import (
     Stereochemistry, SubstrateSpec, ProductSpec, CofactorSpec, CofactorState,
-    AtomRef, ReactiveAtoms, cofactor_state_from_ligand_code,
+    AtomRef, ReactiveAtoms, cofactor_state_from_ligand_code, LigandSource,
 )
 from .reaction import (
     ReactionClass, ReactionSpec, Conditions, Budget, Objectives, Approval,
@@ -10,14 +10,17 @@ from .reaction import (
 )
 from .record import (
     OutcomeClass, EvidenceStrength, EvidenceRef, Detection, ExperimentRecord,
-    ee_target,
+    ee_target, ReactionDirection,
 )
 from .candidate import (
     SequenceRecord, FamilyAnnotation, CatalyticMapping, Candidate,
     StructureRecord, ComplexPose, GeometryReport, StereoCall,
     ScoreDimension, ConfidenceLevel, SCORE_DIMENSIONS,
 )
-from .variant import MutationProposal, Mutation, SiteEvidence
+from .variant import (
+    MutationProposal, Mutation, SiteEvidence, PerformanceAxis,
+    EffectDirection, AxisExpectation,
+)
 from .batch import BatchMember, BatchRole, ControlItem, BatchPlan
 from .templates import (
     ReactionTemplate, FamilyTemplate, CatalyticTemplate, EngineeringTemplate,

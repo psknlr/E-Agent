@@ -31,11 +31,16 @@ class OutcomeClass(str, enum.Enum):
     EXPRESSION_OR_SOLUBILITY_FAILURE = "expression_or_solubility_failure"
     OTHER_PRODUCT_OR_WRONG_CONFIGURATION = "other_product_or_wrong_configuration"
     NOT_TESTED = "not_tested"
+    COMPUTATIONAL_FAILURE = "computational_failure"
     COMPUTATIONAL_NEGATIVE = "computational_negative"
 
     @property
     def is_experimental(self) -> bool:
-        return self not in (OutcomeClass.NOT_TESTED, OutcomeClass.COMPUTATIONAL_NEGATIVE)
+        return self not in (
+            OutcomeClass.NOT_TESTED,
+            OutcomeClass.COMPUTATIONAL_FAILURE,
+            OutcomeClass.COMPUTATIONAL_NEGATIVE,
+        )
 
     @property
     def is_positive(self) -> bool:
@@ -64,9 +69,31 @@ _CLAIMS: dict[OutcomeClass, str] = {
     OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION:
         "turnover occurred but does not meet the target reaction requirement",
     OutcomeClass.NOT_TESTED: "unknown",
+    OutcomeClass.COMPUTATIONAL_FAILURE:
+        "modelling or tooling produced no usable result; says nothing about the enzyme",
     OutcomeClass.COMPUTATIONAL_NEGATIVE:
         "model training label only; not an experimental negative",
 }
+
+
+class ReactionDirection(str, enum.Enum):
+    """Which way the measured reaction ran.
+
+    A record of alcohol oxidation is not evidence that the same enzyme performs
+    the reduction under the target conditions. Many curated resources store a
+    reference direction that differs from the direction actually assayed, so the
+    direction travels with the record rather than being inferred from a label.
+    """
+
+    FORWARD_AS_TARGET = "forward_as_target"
+    REVERSE_OF_TARGET = "reverse_of_target"
+    REVERSIBLE_BOTH_SHOWN = "reversible_both_shown"
+    UNSPECIFIED = "unspecified"
+
+    @property
+    def supports_target_direction(self) -> bool:
+        return self in (ReactionDirection.FORWARD_AS_TARGET,
+                        ReactionDirection.REVERSIBLE_BOTH_SHOWN)
 
 
 class EvidenceStrength(str, enum.Enum):
@@ -112,6 +139,22 @@ class EvidenceRef(BaseModel):
     quote: str | None = None
     retrieved_at: str | None = None
     database_version: str | None = None
+    source_doi: str | None = None
+    source_record_id: str | None = None
+    license: str | None = Field(
+        None, description="Licence of the source record, carried so redistribution "
+                          "terms travel with the data rather than being looked up later."
+    )
+    upstream_sources: list[str] = Field(
+        default_factory=list,
+        description="Resources this record was re-integrated from. Four databases "
+                    "carrying one re-curated measurement are one piece of evidence, "
+                    "not four, and the lineage layer uses this to say so.",
+    )
+    experiment_activity_id: str | None = Field(
+        None, description="Identifier of the measurement campaign, used to group "
+                          "records that are not independent."
+    )
 
     @model_validator(mode="after")
     def _model_extraction_needs_review(self) -> "EvidenceRef":
@@ -158,10 +201,17 @@ class ExperimentRecord(BaseModel):
     construct_description: str | None = Field(
         None, description="Tags, truncations and fusions actually expressed"
     )
+    construct_sequence: str | None = Field(
+        None, description="The sequence actually expressed. An engineered enzyme "
+                          "often has no accession, so a database identifier cannot "
+                          "serve as its identity."
+    )
     # -- chemistry
     substrate: SubstrateSpec = Field(default_factory=SubstrateSpec)
     product_observed: ProductSpec | None = None
     reaction_class: ReactionClass = ReactionClass.OTHER
+    reaction_direction: ReactionDirection = ReactionDirection.UNSPECIFIED
+    reaction_id: str | None = Field(None, description="e.g. a Rhea identifier")
     cofactor: CofactorSpec | None = None
     conditions: Conditions = Field(default_factory=Conditions)
     # -- outcome
@@ -175,6 +225,13 @@ class ExperimentRecord(BaseModel):
     )
     specific_activity: float | None = None
     specific_activity_unit: str | None = None
+    measurement_type: str | None = Field(
+        None, description="What was actually measured: conversion, initial rate, "
+                          "specific activity, growth, binding. Endpoints differ and "
+                          "must not be pooled onto one numeric scale."
+    )
+    measurement_value: float | None = None
+    measurement_unit: str | None = None
     kcat_s: float | None = None
     km_mM: float | None = None
     soluble_expression: bool | None = None

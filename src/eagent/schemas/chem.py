@@ -24,6 +24,41 @@ class Stereochemistry(str, enum.Enum):
     UNSPECIFIED = "unspecified"    # not yet decided by the operator
 
 
+class LigandSource(str, enum.Enum):
+    """How a ligand came to sit where it sits.
+
+    These four origins carry completely different authority, and collapsing them
+    into "binding site confirmed" is how a computational placement becomes a
+    reported fact. A cofactor transplanted from a homologue is a hypothesis worth
+    checking, not a measurement of this enzyme.
+    """
+
+    EXPERIMENTAL_OBSERVED = "experimental_observed"
+    HOMOLOGY_TRANSPLANTED = "homology_transplanted"
+    DOCKING_PREDICTED = "docking_predicted"
+    JOINT_STRUCTURE_PREDICTION = "joint_structure_prediction"
+    MANUAL_PLACEMENT = "manual_placement"
+    UNKNOWN = "unknown"
+
+    @property
+    def is_experimental(self) -> bool:
+        return self is LigandSource.EXPERIMENTAL_OBSERVED
+
+    def claim(self) -> str:
+        return {
+            LigandSource.EXPERIMENTAL_OBSERVED:
+                "observed in an experimental structure",
+            LigandSource.HOMOLOGY_TRANSPLANTED:
+                "inferred by transfer from a homologous structure; not measured here",
+            LigandSource.DOCKING_PREDICTED:
+                "a docking pose; a hypothesis about placement",
+            LigandSource.JOINT_STRUCTURE_PREDICTION:
+                "a co-folded prediction; a hypothesis about placement",
+            LigandSource.MANUAL_PLACEMENT: "placed by hand",
+            LigandSource.UNKNOWN: "origin not recorded",
+        }[self]
+
+
 class CofactorState(str, enum.Enum):
     """Oxidation state matters: NAD(P)+ in a template is not NAD(P)H."""
 
@@ -137,6 +172,7 @@ class CofactorSpec(BaseModel):
     )
     stoichiometry: float | None = None
     recycling_system: str | None = None
+    source: LigandSource = LigandSource.UNKNOWN
     evidence: str = ""
 
     @property

@@ -1,0 +1,401 @@
+# Layer 1 -- reaction and chemistry.
+#
+# HONESTY RULE FOR THIS DIRECTORY: no endpoint URL, record count, version
+# string or licence term in these files was verified in this environment.
+# Anything not known with confidence is null with needs_curation: true and a
+# note saying what a curator must confirm. Every entry carries
+# connectivity_verified: false. Capability flags describe what a resource is
+# documented to offer, not what has been proven to work.
+
+layer: reaction_and_chemistry
+layer_question: >-
+  What is the substrate, which bond changes, and what is the product
+  configuration?
+agent_stages:
+  - task normalisation
+  - reaction search
+notes: >-
+  This layer defines the transformation. Nothing in it is evidence that any
+  particular protein catalyses that transformation; that is the enzymology
+  evidence layer, and the two must not be merged on an EC number.
+
+sources:
+  - id: rhea
+    display_name: Rhea
+    layers: [reaction_and_chemistry]
+    good_for:
+      - Reaction-level definition of a transformation with participants given as
+        ChEBI entries, so the substrate and product are structures rather than names.
+      - Stable reaction identifiers usable as an explicit join key between the
+        reaction layer and sequence annotation that cross-references them.
+      - Preserves reaction direction as a modelled property (a directional entry
+        and its bidirectional parent), which is what lets a record state which
+        way the measured reaction ran.
+      - Mapping between EC classes and specific balanced reactions, useful for
+        turning a prose task description into a defined transformation.
+    not_good_for:
+      - Not evidence that any specific sequence catalyses the reaction; a Rhea
+        identifier attached to a protein entry is an annotation, not a measurement.
+      - The reference direction of an entry is a curatorial convention. Citing a
+        Rhea id does not record which direction was assayed, and an
+        oxidation-direction record must never be ingested as reduction evidence
+        for the target reaction.
+      - Participants are defined at a chosen protonation state and may differ
+        from the material actually used in an assay (salt form, charge, purity).
+      - No kinetics, no reaction conditions, no enantioselectivity; a reaction
+        entry cannot answer "which enantiomer".
+    access_modes: [rest_api, sparql, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the current programmatic routes and record exact base URLs for
+         the REST and SPARQL services; both are left null here rather than guessed."
+      - "Confirm the licence and whether derived records may be redistributed."
+      - "Record the release string used for a run so the reaction definitions can
+         be pinned in the manifest."
+      - "Confirm how the directional and bidirectional entries are related in the
+         current data model before any direction logic is written against them."
+    notes: >-
+      Primary identifier source for the reaction layer. The direction caveat is
+      the one that matters for the pilot task: a ketone/alcohol pair is one
+      reaction entry read in two directions.
+
+  - id: chebi
+    display_name: ChEBI
+    layers: [reaction_and_chemistry]
+    good_for:
+      - Stable chemical identifiers for reaction participants, used as a join key
+        with Rhea and with literature annotation corpora.
+      - An explicit ontology (is_a, has_role, conjugate acid/base) that makes the
+        difference between a chemical class and a specific compound machine-readable.
+      - Curated structures and cross-references for well-defined small molecules.
+    not_good_for:
+      - A class entry (for example a generic "ketone" or "secondary alcohol"
+        class) covers many compounds and must never be used as the assay
+        substrate; resolving a task substrate to a class entry silently widens
+        the task.
+      - The protonation and charge state of an entry is a curatorial choice, not
+        the state of the compound in the reaction vessel.
+      - Carries no supplier, purity, salt form or enantiomeric composition.
+      - Carries no activity evidence of any kind.
+    access_modes: [rest_api, soap, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm which programmatic interfaces are current (a SOAP service and
+         bulk downloads have historically been offered) and record their base
+         URLs; all are null here rather than guessed."
+      - "Confirm the licence and redistribution terms."
+      - "Record the monthly release identifier used in a run."
+      - "Decide and document the project rule for class-versus-instance entries:
+         a class entry must fail task normalisation rather than be accepted."
+    notes: >-
+      The class/instance distinction is the whole reason this resource is
+      registered separately from PubChem.
+
+  - id: pubchem
+    display_name: PubChem
+    layers: [reaction_and_chemistry]
+    good_for:
+      - Normalising a trivial, catalogue or paper-prose compound name to a CID
+        and then to SMILES/InChI, at a scale no curated resource matches.
+      - Synonym coverage, which is what makes extraction from literature text
+        resolvable at all.
+      - Scripted normalisation of many names in one pass during task setup.
+    not_good_for:
+      - Name resolution routinely returns the wrong stereoisomer, a salt, or a
+        different charge state. Chirality, salt form and protonation must be
+        re-verified after every lookup; for an asymmetric reduction task this is
+        the difference between the right and the wrong experiment.
+      - Depositor-contributed records vary in quality and can disagree with each
+        other for the same compound.
+      - BioAssay content is heterogeneous screening data and is not
+        enzyme-substrate activity evidence for this project.
+      - A CID identifies a compound, not a reaction, and carries no direction.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: unknown
+      chemical_structure_query: supported
+      bulk_snapshot: supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
+    citations:
+      - "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest"
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "The PUG REST base URL recorded here is from general knowledge and has
+         NOT been called from this environment; confirm it, together with the
+         current request-rate policy, before the first automated call."
+      - "Confirm whether a stable release or snapshot identifier can be recorded
+         for provenance; version_information is marked unknown because this
+         project has not established one."
+      - "Confirm licence and redistribution terms for derived records."
+      - "Write the post-resolution chirality/salt/charge check before this source
+         is used in task normalisation, not after."
+    notes: >-
+      Registered as a name-resolution service with a mandatory verification step,
+      not as a source of chemical truth.
+
+  - id: metanetx
+    display_name: MetaNetX / MNXref
+    layers: [reaction_and_chemistry]
+    good_for:
+      - Reconciling compound and reaction identifiers across several chemical and
+        metabolic resources through one namespace, so that two resources can be
+        recognised as describing the same transformation.
+      - Finding the identifier a given resource uses for a compound already
+        identified in another resource, which is the practical blocker in
+        cross-database assembly.
+    not_good_for:
+      - A mapping edge is a reconciliation decision, not a statement of chemical
+        identity. Mapped entities may differ from the upstream ones in
+        protonation, stereochemistry or cofactor specificity, so one mapping edge
+        does not license merging all chemical states of a compound.
+      - Not an evidence source at all -- it contains no measurements and no
+        conditions.
+      - Mapping decisions change between versions, so a join made through it must
+        record the version or it is not reproducible.
+      - Because it re-integrates other resources, agreement between MetaNetX and
+        an upstream resource is not corroboration.
+    access_modes: [bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [rhea, chebi]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "The upstream list recorded here (Rhea, ChEBI) is partial: MNXref
+         reconciles several further resources. A curator must complete
+         derived_from before MetaNetX is counted as independent of anything."
+      - "Confirm whether any programmatic interface is offered; only bulk
+         download is registered, and no endpoint is recorded."
+      - "Record the MNXref version used for any join made through it."
+      - "Confirm licence and redistribution terms."
+    notes: >-
+      Registered as a mapping aid whose edges must be re-checked, never as a
+      merge authority.
+
+  - id: enzymemap
+    display_name: EnzymeMap
+    layers: [reaction_and_chemistry]
+    good_for:
+      - Curated and atom-mapped enzymatic reactions, which make the bond that
+        changes explicit instead of leaving it to be inferred from two SMILES.
+      - Supplying the reactive-atom assignment the geometry layer needs
+        (electrophilic carbon, stabilised oxygen, prochiral centre).
+      - Extracting reaction templates with a traceable origin.
+    not_good_for:
+      - Reaction-level resource. An entry is NOT a claim that each associated
+        sequence was experimentally validated on that substrate, and must not be
+        ingested as sequence-level activity evidence.
+      - Atom mapping is computed; for unusual or multi-step chemistry it can be
+        wrong, and a wrong mapping produces a confidently wrong reactive atom.
+      - It re-curates an upstream enzymology corpus, so agreement with that corpus
+        is not independent confirmation.
+      - Contains no conditions, no detection method and no stereochemical outcome.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [brenda]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "derived_from records BRENDA as an upstream corpus; a curator must confirm
+         the full upstream set and the release used, because this determines
+         whether EnzymeMap can count as independent of the enzymology layer."
+      - "Confirm the distribution location, licence and citation; no DOI is
+         recorded here because none was verified."
+      - "Confirm how atom-mapping confidence is expressed per reaction, so
+         low-confidence mappings can be rejected rather than silently used."
+    notes: >-
+      Valued for atom mapping, not for evidence. Its records enter the reaction
+      layer only.
+
+  - id: retrorules
+    display_name: RetroRules
+    layers: [reaction_and_chemistry]
+    good_for:
+      - Reaction rules at several reaction-centre diameters, usable to enumerate
+        candidate transformations for a substrate that has no exact precedent.
+      - Keeping each rule's provenance, so an enumerated transformation can be
+        traced back to the reactions it was generalised from.
+    not_good_for:
+      - A rule firing is an enumeration, not a demonstrated enzymatic reaction,
+        and must never be recorded as an observed transformation.
+      - Rules generalise across substrates by construction, so rule coverage is
+        not substrate scope and says nothing about rate or selectivity.
+      - Rules of organic-chemistry origin are not demonstrated enzymatic
+        reactions; their provenance must be kept and surfaced wherever a
+        candidate transformation derived from them is shown.
+      - Rules generally do not preserve the stereochemical outcome that the pilot
+        task is about.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: computational_construct
+    derived_from: [metanetx, rhea]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the upstream reaction sets each rule was derived from; the list
+         here is partial and is marked incomplete."
+      - "Confirm distribution location, version and licence."
+      - "Define the project rule that any candidate reached only through a rule is
+         labelled computational_construct and never promoted without an experiment."
+    notes: >-
+      Stage 3. Useful only once the exact-precedent search has been exhausted,
+      and then only as a hypothesis generator.
+
+  - id: enzyme_explorenz
+    display_name: ENZYME / ExplorEnz (IUBMB enzyme nomenclature)
+    layers: [reaction_and_chemistry]
+    good_for:
+      - Authoritative EC nomenclature -- accepted and systematic names, the
+        official reaction, and the class hierarchy.
+      - Detecting transferred and deleted EC numbers, which silently corrupt any
+        pipeline that keys on EC.
+      - Translating a prose enzyme-class description into a defined reaction class.
+    not_good_for:
+      - An EC number is a reaction-class label and is not sufficient evidence of
+        specificity for a given substrate; two enzymes sharing an EC number may
+        have no overlap in substrate scope.
+      - EC assignments in sequence databases are frequently propagated by
+        similarity, so an EC match is not an experimental result.
+      - Carries no sequence-level evidence, no conditions, no cofactor preference
+        and no stereo-preference.
+    access_modes: [bulk_download, manual_review_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the current distribution route for the nomenclature flat file and
+         record it; no endpoint is recorded here."
+      - "Confirm licence and redistribution terms."
+      - "Record the release date of the nomenclature snapshot used, so transferred
+         and deleted EC numbers can be detected between runs."
+    notes: >-
+      Registered to normalise EC strings and to detect EC drift, not to supply
+      evidence.

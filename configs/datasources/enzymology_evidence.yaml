@@ -1,0 +1,360 @@
+# Layer 2 -- enzymology evidence.
+#
+# HONESTY RULE: no endpoint URL, record count, version string or licence term in
+# this file was verified in this environment. Unknown specifics are null with
+# needs_curation: true. connectivity_verified is false everywhere. Capability
+# flags describe documented capability, not proven behaviour.
+
+layer: enzymology_evidence
+layer_question: >-
+  Which enzymes actually catalysed this or a near substrate, and under what
+  conditions?
+agent_stages:
+  - seed selection
+  - activity evidence
+notes: >-
+  This is the only layer that can supply a measurement. Its central risk is the
+  opposite of the sequence layer's: records here are real but are often attached
+  to an EC number and an organism rather than to a specific sequence, so the
+  evidence ceiling is set at ec_species_mapped for most entries and promotion
+  requires a human to establish the sequence.
+
+sources:
+  - id: brenda
+    display_name: BRENDA
+    layers: [enzymology_evidence]
+    good_for:
+      - The broadest curated coverage of enzyme activity, substrate ranges,
+        kinetic parameters, inhibitors, pH and temperature behaviour, with
+        literature references attached.
+      - Finding which enzyme classes have ever been reported to act on a
+        substrate resembling the target, which is how a seed set starts.
+      - Organism and EC-level breadth that no sequence-level resource matches.
+    not_good_for:
+      - A record is frequently tied to an EC number and an organism rather than
+        to a specific sequence, so it must not be ingested as sequence-level
+        evidence; each record needs checking that it maps to one specific
+        sequence before any sequence-level claim is made.
+      - Values are extracted from heterogeneous papers under different assays, so
+        kinetic numbers from different references must not be pooled onto one scale.
+      - Substrate strings are often prose names without stereochemistry, which is
+        fatal for an asymmetric reduction task unless re-resolved to a structure.
+      - Reaction direction is often implicit, so a reported activity may be an
+        oxidation measurement in a resource read as reduction evidence.
+    access_modes: [soap, bulk_download, manual_review_import]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: "CC BY 4.0"
+    license_source: >-
+      Stated by the project owner as their current information in the brief for
+      this registry. NOT independently verified against the resource's own terms,
+      which is why needs_legal_review stays true and redistribution_allowed stays
+      unknown.
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Verify the licence independently. The recorded CC BY 4.0 is the project
+         owner's statement, not a checked fact, and the registry must not be read
+         as having confirmed it."
+      - "Confirm the current programmatic access route and credentials policy; a
+         SOAP service and a downloadable text release have historically been
+         offered, and no endpoint is recorded here."
+      - "Record the release string of the snapshot used in a run."
+      - "Define the per-record sequence-resolution step that must run before any
+         BRENDA record is promoted above ec_species_mapped."
+    notes: >-
+      Breadth-first seed source. Treated as a pointer into the literature rather
+      than as a measurement store.
+
+  - id: oed
+    display_name: OED (Open Enzyme Database)
+    layers: [enzymology_evidence]
+    good_for:
+      - Programmatic integration of enzymology records that otherwise have to be
+        assembled by hand from several resources.
+      - A convenient single entry point for a first pass over enzyme activity and
+        kinetics during seed selection.
+    not_good_for:
+      - NOT an independent source. It re-integrates BRENDA and SABIO-RK, so a
+        record found both here and in either upstream is one piece of evidence,
+        not two, and counting hits across them overstates support.
+      - Re-integration can drop or reshape the original assay context, so a value
+        taken from here must be traced to its upstream record before use.
+      - Inherits every substrate-naming and direction ambiguity of its upstreams.
+    access_modes: [unknown]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: [brenda, sabio_rk]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "The access route is recorded as unknown on purpose. The resource is
+         described as offering programmatic integration, but whether that is a
+         hosted API, an installable package or a download has not been
+         established here and must not be guessed as a REST endpoint."
+      - "Confirm the full upstream set and the upstream releases re-integrated;
+         derived_from is marked incomplete."
+      - "Confirm licence and redistribution terms."
+      - "Confirm whether upstream record identifiers are preserved, since without
+         them the de-duplication against BRENDA and SABIO-RK cannot be done."
+    notes: >-
+      Registered primarily so that independence accounting is correct. Its value
+      is convenience, not corroboration.
+
+  - id: sabio_rk
+    display_name: SABIO-RK
+    layers: [enzymology_evidence]
+    good_for:
+      - Kinetic parameters recorded with their assay context -- buffer, pH,
+        temperature and the measured entity -- which is what makes a kinetic
+        number interpretable at all.
+      - Records that frequently carry an organism and a database cross-reference
+        for the protein, allowing a sequence to be established per record.
+      - Explicit reaction participants, so the measured transformation can be
+        matched to the reaction layer rather than guessed from an enzyme name.
+    not_good_for:
+      - Coverage is narrower than a breadth-first enzymology resource; absence
+        here is not evidence that an activity was never measured.
+      - Parameters from different publications are measured by different methods
+        and must not be pooled onto one scale.
+      - A kinetic constant for the natural substrate says nothing about the
+        target substrate, and is routinely over-read as general activity.
+      - Not a sequence database; the protein cross-reference still has to be
+        resolved to the construct actually assayed.
+    access_modes: [rest_api, manual_review_import]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Endpoint deliberately left null. The deployment and base URL of the web
+         service must be checked separately before any call is written, and this
+         registry asserts nothing about where it currently lives."
+      - "Confirm licence and redistribution terms."
+      - "Confirm whether a snapshot or release identifier is available for
+         provenance."
+      - "Confirm which cross-reference field carries the protein identity, so the
+         sequence-resolution step can be automated rather than manual."
+    notes: >-
+      The best-contextualised kinetics source registered here, and for that
+      reason the preferred one when a number has to be defensible.
+
+  - id: retrobiocat_db
+    display_name: RetroBioCat database
+    layers: [enzymology_evidence]
+    good_for:
+      - Biocatalytic transformations organised by reaction type, including the
+        enzyme classes used for ketone reduction, which maps directly onto the
+        pilot task.
+      - Substrate-scope information taken from the biocatalysis literature, which
+        is exactly the evidence a substrate-directed search needs and which
+        general enzymology resources record poorly.
+      - Retrosynthetic framing that connects a target molecule to candidate
+        enzymatic steps.
+    not_good_for:
+      - The open-source code ships only example specificity data. Having the code
+        is not having the database, and a pipeline built against the example data
+        must not be described as covering the published substrate scope.
+      - Scope entries summarise what a paper reported and inherit its reporting
+        bias; absence of a substrate is not a tested negative.
+      - Enzyme identity in a scope table is often a name or a strain, not a
+        sequence, so sequence-level claims require resolution per record.
+    access_modes: [manual_review_import, local_package]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "Establish what data is actually obtainable. Confirm separately whether
+         the full specificity dataset is distributed, or only the example data
+         bundled with the code."
+      - "Confirm licence and redistribution terms for both the code and the data,
+         which may differ."
+      - "Confirm whether any programmatic route exists; none is recorded and no
+         endpoint is asserted."
+    notes: >-
+      Highly relevant to the pilot reaction, which is exactly why the
+      code-is-not-the-database caveat is recorded in not_good_for rather than in
+      a comment.
+
+  - id: enzengdb
+    display_name: EnzEngDB (enzyme engineering database)
+    layers: [enzymology_evidence, mutation_and_performance]
+    good_for:
+      - Engineered parents and their variants with the reported performance of
+        each, including yields, total turnover numbers, selectivity and screening
+        outcomes, which is the record shape this project's own batches produce.
+      - Campaign-level context that shows which positions were varied and what
+        was screened, useful as a prior for local design.
+      - Distribution as downloadable CSV and CIF per its publication, so a pinned
+        snapshot can be imported without a live service.
+    not_good_for:
+      - Coverage is limited to certain scaffolds and non-natural reactions;
+        absence of an enzyme or reaction here means nothing about the literature.
+      - Metrics from different campaigns were measured under different assays and
+        at different scales, and must not be pooled onto one numeric scale or
+        ranked against each other.
+      - Variants are usually given as a parent plus mutations, so the construct
+        sequence has to be reconstructed and the numbering confirmed before any
+        sequence-level claim.
+      - A reported yield is a process result and is not a kinetic parameter.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: homolog_experimental
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the download location, file format and licence of the CSV and
+         CIF distribution; no URL is recorded here."
+      - "Confirm the citation for the publication that describes the release used."
+      - "Confirm which parent accession and numbering convention each campaign
+         uses, since promotion above homolog_experimental depends on
+         reconstructing the construct sequence correctly."
+      - "Record per-campaign assay descriptions so the no-pooling rule can be
+         enforced mechanically rather than remembered."
+    notes: >-
+      Serves two layers and is defined once here; the mutation and performance
+      file cross-references it rather than redefining it.
+
+  - id: strenda_db
+    display_name: STRENDA DB
+    layers: [enzymology_evidence]
+    good_for:
+      - Enzymology records captured against a reporting standard, so the protein,
+        the assay conditions and the measured quantity are present together
+        rather than scattered across a paper's methods section.
+      - Records that can carry the actual construct sequence, which is the only
+        thing that makes a measurement attributable to one sequence.
+      - A reporting checklist this project can adopt for its own experimental
+        output, which makes internal records comparable with external ones.
+    not_good_for:
+      - Do not assume sequence-database-scale coverage. The number of fully
+        contextualised records is small compared with a breadth-first enzymology
+        resource, and absence here is not evidence of anything.
+      - Standard compliance is about completeness of reporting, not about the
+        quality of the underlying experiment.
+      - A record that does not in fact carry the construct sequence cannot be
+        treated as sequence-level evidence just because the resource usually does.
+    access_modes: [manual_review_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: sequence_level_experimental
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "The ceiling is sequence_level_experimental only for records that
+         actually carry the measured construct's sequence. A record lacking it
+         must be downgraded to ec_species_mapped on ingest, and that check must
+         be implemented before this ceiling is relied on."
+      - "Confirm whether any programmatic access or export route exists; the
+         registry records manual review import and asserts no endpoint."
+      - "Confirm licence and redistribution terms for the records."
+      - "Confirm the reporting-standard version adopted for this project's own
+         records, so internal and external records stay comparable."
+    notes: >-
+      Small but high-quality. Registered as the model for what a good internal
+      record looks like, as much as for its content.

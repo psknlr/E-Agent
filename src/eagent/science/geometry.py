@@ -322,6 +322,8 @@ class ClashPair:
         return self.sum_radii_A - self.distance_A
 
     def describe(self) -> str:
+        """Report line carrying both atoms and both numbers, so a reader can
+        re-derive the verdict instead of trusting the word "clash"."""
         return (
             f"{self.atom_a.label()} -- {self.atom_b.label()}: "
             f"{self.distance_A:.2f} A vs vdW sum {self.sum_radii_A:.2f} A "
@@ -536,6 +538,8 @@ class ResolvedAtom:
 
     @property
     def found(self) -> bool:
+        """Whether coordinates were obtained. False carries a ``reason``, and
+        a constraint naming an unfound role is unevaluated, not failed."""
         return self.coords is not None
 
     def require(self) -> Point:
@@ -656,6 +660,8 @@ class RoleResolver:
         self._cache: dict[str, ResolvedAtom] = {}
 
     def resolve(self, token: str) -> ResolvedAtom:
+        """Look a role token up once and remember the outcome, so repeated
+        constraints stay consistent and the unresolved list stays complete."""
         hit = self._cache.get(token)
         if hit is None:
             hit = resolve_role(token, self.context)

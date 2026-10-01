@@ -37,7 +37,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Sequence
+from typing import Any, Iterable, Sequence
 
 from ..errors import EAgentError
 
@@ -165,6 +165,8 @@ class Atom:
 
     @property
     def is_water(self) -> bool:
+        """Bulk solvent, by residue name. Waters are parsed and kept, but
+        they are not ligands and must not be counted as a cofactor."""
         return self.resname.strip().upper() in WATER_RESNAMES
 
     def label(self) -> str:
@@ -197,6 +199,8 @@ class Residue:
 
     @property
     def key(self) -> tuple[str, int, str, str]:
+        """Full identity including the component name, so that a ligand and a
+        residue that share an author position cannot be confused."""
         return (self.chain, self.resseq, self.icode, self.resname)
 
     @property
@@ -207,9 +211,13 @@ class Residue:
 
     @property
     def is_water(self) -> bool:
+        """Bulk solvent. Excluded from ligands and from mutation shells."""
         return self.resname.strip().upper() in WATER_RESNAMES
 
     def heavy_atoms(self) -> list[Atom]:
+        """Non-hydrogen atoms -- the only ones most deposited structures have,
+        so shells and contacts are defined on these to mean the same thing for
+        a crystal structure and for a predicted model."""
         return [a for a in self.atoms if a.is_heavy]
 
     def atom(self, name: str, altloc: str | None = None) -> Atom | None:
@@ -229,6 +237,9 @@ class Residue:
         return None
 
     def has_altloc(self) -> bool:
+        """Whether any atom is modelled in more than one place. A geometry
+        measurement on such a residue is ambiguous until a conformer is
+        chosen, which is why this is surfaced rather than averaged away."""
         return any(a.altloc.strip() for a in self.atoms)
 
     def __str__(self) -> str:
@@ -254,12 +265,15 @@ class Chain:
     residues: list[Residue] = field(default_factory=list)
 
     def residue(self, resseq: int, icode: str = "") -> Residue | None:
+        """Residue by author number, or ``None``. The insertion code is part
+        of the lookup: 100 and 100A are different residues."""
         for r in self.residues:
             if r.resseq == resseq and r.icode.strip() == icode.strip():
                 return r
         return None
 
     def atoms(self) -> list[Atom]:
+        """Every atom of this chain, in file order."""
         return [a for r in self.residues for a in r.atoms]
 
     def polymer_residues(self) -> list[Residue]:
@@ -290,21 +304,31 @@ class Structure:
 
     # -- access ------------------------------------------------------------
     def chain(self, chain_id: str) -> Chain | None:
+        """Chain by author identifier, or ``None`` if this file has no such
+        chain -- which is usually a sign the wrong entry or the wrong assembly
+        was picked, so callers should check rather than fall through."""
         for c in self.chains:
             if c.chain_id == chain_id:
                 return c
         return None
 
     def atoms(self) -> list[Atom]:
+        """Every atom of the selected model, in file order."""
         return [a for c in self.chains for r in c.residues for a in r.atoms]
 
     def residues(self) -> list[Residue]:
+        """Every residue of the selected model, polymer and HETATM alike."""
         return [r for c in self.chains for r in c.residues]
 
     def n_atoms(self) -> int:
+        """Atom count of the selected model. Compare it against the source
+        file when a reader change is being reviewed: a drop means atoms were
+        lost, which is the failure this module is built to prevent."""
         return sum(len(r.atoms) for c in self.chains for r in c.residues)
 
     def waters(self) -> list[Residue]:
+        """Solvent residues, kept separate from :meth:`ligands` because an
+        ordered active-site water can matter while bulk solvent never does."""
         return [r for r in self.residues() if r.is_water]
 
     def ligands(self) -> list[Residue]:

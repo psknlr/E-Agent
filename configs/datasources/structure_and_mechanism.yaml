@@ -1,0 +1,344 @@
+# Layer 4 -- structure and mechanism.
+#
+# HONESTY RULE: no endpoint URL, record count, version string or licence term in
+# this file was verified in this environment. Unknown specifics are null with
+# needs_curation: true. connectivity_verified is false everywhere. Capability
+# flags describe documented capability, not proven behaviour.
+
+layer: structure_and_mechanism
+layer_question: >-
+  Can the substrate, the cofactor and the catalytic residues form a sensible
+  arrangement?
+agent_stages:
+  - complex modelling
+  - geometry
+notes: >-
+  Two base dependencies live in this layer -- the residue-level mapping between
+  sequence and structure numbering, and the chemical component dictionary that
+  defines ligand atom names. Without both, every geometric criterion in the
+  project is measured between atoms nobody can name reproducibly. Ligand origin
+  is recorded per structure with the LigandSource enum from the data model, and
+  a transplanted or docked ligand is never recorded as an observed one.
+
+sources:
+  - id: rcsb_pdb
+    display_name: RCSB PDB
+    layers: [structure_and_mechanism]
+    good_for:
+      - Experimentally determined structures, including enzyme complexes with
+        cofactor and substrate analogues, which are the only observed evidence of
+        an active-site arrangement.
+      - Rich search over entry metadata, polymer entities, ligands and assemblies.
+      - The deposited construct and its modifications, which is what was actually
+        crystallised rather than the canonical database sequence.
+    not_good_for:
+      - Search results can include computed structure models alongside
+        experimental entries; the two must be separated explicitly, because a
+        predicted model returned by a structure search looks like a measurement.
+      - The deposited construct frequently differs from the wild-type sequence --
+        tags, truncations, point mutations introduced for crystallisation -- and
+        the actual construct must be checked before any residue claim.
+      - Resolution, occupancy and B-factors mean an atom position may be poorly
+        determined; a coordinate is not automatically a fact.
+      - A ligand present in a structure is not necessarily the substrate, and its
+        presence proves binding, not turnover.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm the data and search API base URLs before
+         the first call; none has been tested from this environment."
+      - "Confirm which field distinguishes an experimental entry from a computed
+         structure model in the current search response, and implement that
+         filter before any structure is used as observed evidence."
+      - "Confirm licence and redistribution terms for coordinates and metadata."
+      - "Record the weekly release or entry revision used for a run."
+    notes: >-
+      The only registered source of observed active-site geometry. Every claim
+      taken from it is qualified by the construct actually deposited.
+
+  - id: alphafold_db
+    display_name: AlphaFold Protein Structure Database
+    layers: [structure_and_mechanism]
+    good_for:
+      - Reusable predicted monomer structures for sequences with no experimental
+        entry, which is most mined candidates.
+      - Per-residue confidence estimates, which let low-confidence regions be
+        excluded from geometric criteria instead of silently used.
+      - A cheap first-pass fold check before any expensive complex prediction.
+    not_good_for:
+      - Retrieving a stored model and running a complex prediction are different
+        capabilities; this resource provides the first and not the second, and a
+        plan that assumes it supplies holo complexes is wrong.
+      - Models are apo and contain no cofactor, no substrate and no ions, so an
+        active site taken from here is incomplete by construction.
+      - A confident backbone does not imply correct side-chain rotamers in the
+        active site, which is exactly where the geometry matters.
+      - A predicted structure is never experimental evidence and must not be
+        recorded as an observed arrangement.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: computational_construct
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm the API base URL and the accession form it
+         expects before the first call."
+      - "Confirm the database version and the model version it was produced with,
+         and record both; a model is not reproducible without them."
+      - "Confirm licence and redistribution terms for the models."
+      - "Confirm which confidence fields are returned so the geometry step can
+         reject low-confidence active-site residues automatically."
+    notes: >-
+      Registered as a model store, explicitly not as a prediction service.
+
+  - id: sifts
+    display_name: SIFTS (structure-sequence residue mapping)
+    layers: [structure_and_mechanism]
+    good_for:
+      - Residue-level mapping between a sequence database entry and a structure
+        chain, which is the only correct way to carry a position between the
+        sequence and structure layers.
+      - Making author numbering, label numbering and sequence numbering
+        reconcilable, so a mutation position means the same thing everywhere.
+      - Supporting the composite join key used by this project for structural
+        positions.
+    not_good_for:
+      - It is a mapping, not evidence; it says nothing about function, binding or
+        activity.
+      - A mapping can be partial where a construct differs from the database
+        sequence, and the gap must be surfaced rather than interpolated.
+      - It cannot repair a position reported in a paper without a stated
+        numbering convention.
+    access_modes: [bulk_download, rest_api]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [rcsb_pdb, uniprotkb]
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm how the current mapping files are
+         distributed and accessed."
+      - "Confirm licence and redistribution terms."
+      - "Record the mapping release together with the structure and sequence
+         releases, since a mapping is only valid for the pair it was built from."
+    notes: >-
+      A base dependency. Nothing in the mutation layer is trustworthy without it,
+      which is why it is stage 1 despite producing no evidence of its own.
+
+  - id: wwpdb_ccd
+    display_name: wwPDB Chemical Component Dictionary
+    layers: [structure_and_mechanism]
+    good_for:
+      - Canonical atom names, bonding and chemical identity for every ligand and
+        cofactor that appears in a structure, which is what makes an atom-level
+        geometric criterion reproducible.
+      - Distinguishing cofactor oxidation states that prose labels conflate,
+        since the oxidised and reduced nicotinamide cofactors are different
+        component identifiers.
+      - Supplying the component plus atom-name pair used as a join key for ligand
+        atoms.
+    not_good_for:
+      - It defines chemistry, not occupancy or geometry; a component entry says
+        nothing about whether that ligand is present in any particular structure.
+      - A component identifier is not a substrate assignment -- many entries are
+        buffer components, cryoprotectants and crystallisation additives.
+      - It carries no activity or binding evidence.
+    access_modes: [bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the current distribution location and update cadence of the
+         dictionary; no URL is recorded here."
+      - "Confirm licence and redistribution terms."
+      - "Record the dictionary version used, because atom naming changes are
+         silent breakages for every stored geometric criterion."
+    notes: >-
+      A base dependency, like SIFTS. It is the authority behind the cofactor
+      oxidation-state check in the chemistry schema.
+
+  - id: mcsa
+    display_name: M-CSA (Mechanism and Catalytic Site Atlas)
+    layers: [structure_and_mechanism]
+    good_for:
+      - Literature-sourced catalytic residues with their assigned roles, which is
+        what a catalytic template needs and what cannot be inferred from a fold.
+      - Stepwise mechanism descriptions that make the role of a cofactor and of
+        each residue explicit.
+      - Reference entries that can anchor a family template with a citation
+        rather than an assumption.
+    not_good_for:
+      - Coverage is partial. Most enzymes have no entry, and absence is not
+        evidence that catalytic residues are unknown.
+      - An entry is evidenced for its reference enzyme; transferring residue roles
+        to a homologue is inference and must be recorded as such, through an
+        explicit residue mapping rather than by alignment position alone.
+      - It describes mechanism, not substrate scope, rate or stereopreference.
+    access_modes: [rest_api, bulk_download, manual_review_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm which programmatic and download routes are
+         current before any automated use."
+      - "derived_from is marked incomplete -- entries reference structures and
+         sequence entries registered separately here, and a curator must decide
+         whether those make M-CSA dependent on them for independence accounting."
+      - "Confirm licence and redistribution terms."
+      - "Confirm that every imported residue role keeps its source citation; a
+         catalytic template without a citation is unusable under this project's
+         template rules."
+    notes: >-
+      Small, high-value, and the preferred source for catalytic templates when an
+      entry exists for the family.
+
+  - id: alphafill
+    display_name: AlphaFill
+    layers: [structure_and_mechanism]
+    good_for:
+      - Transferring cofactors, ligands and ions into predicted structures from
+        homologous experimental structures, which turns an unusable apo model
+        into a testable hypothesis about the holo active site.
+      - Supplying a starting cofactor placement for the complex-modelling step
+        where no experimental complex exists for the candidate.
+      - Transfer metrics that indicate how similar the donor environment was,
+        allowing weak transplants to be rejected.
+    not_good_for:
+      - Every placement is computational inference from a homologue and must be
+        recorded with the homology-transplanted ligand source, never as an
+        observed ligand; this is the single most likely place for a predicted
+        arrangement to be reported as a fact.
+      - A transplanted cofactor can be geometrically plausible and chemically
+        wrong, including in oxidation state, which the transfer does not check.
+      - Transfer quality degrades with donor distance, and a successful transfer
+        is not evidence that the candidate binds the cofactor.
+      - It is not a substrate-docking service and says nothing about the substrate.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: computational_construct
+    derived_from: [alphafold_db, rcsb_pdb]
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm the API base URL and the download route."
+      - "Confirm which transfer-quality metrics are returned per transplanted
+         ligand, and set the rejection threshold explicitly rather than
+         accepting every transplant."
+      - "Confirm licence and redistribution terms, and record the version used
+         together with the versions of the two upstream resources."
+      - "Confirm that the component identifier of each transplanted ligand is
+         kept, so the cofactor oxidation-state check can run on it."
+    notes: >-
+      Because it re-integrates predicted models and experimental structures, it
+      does not independently corroborate either of them.

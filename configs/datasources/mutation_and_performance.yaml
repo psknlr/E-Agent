@@ -1,0 +1,501 @@
+# Layer 5 -- mutation and performance.
+#
+# HONESTY RULE: no endpoint URL, record count, version string or licence term in
+# this file was verified in this environment. Unknown specifics are null with
+# needs_curation: true. connectivity_verified is false everywhere. Capability
+# flags describe documented capability, not proven behaviour.
+
+layer: mutation_and_performance
+layer_question: >-
+  Which positions should change, and what might that change cost?
+agent_stages:
+  - local design
+  - directed evolution
+notes: >-
+  The recurring failure in this layer is endpoint substitution. A variant-effect
+  dataset measuring growth, a stability dataset measuring melting temperature and
+  a benchmark measuring correlation across many proteins all produce a number per
+  mutation, and none of them is a measurement of activity on the target
+  substrate. Every record ingested here keeps its measurement type, and the
+  no-pooling rule applies across campaigns and across resources.
+
+# EnzEngDB serves this layer as well and is defined once in the enzymology
+# evidence file. It is cross-referenced rather than redefined, because two
+# definitions of one id would break lineage and independence accounting.
+cross_layer_refs:
+  - enzengdb
+
+sources:
+  - id: mavedb
+    display_name: MaveDB
+    layers: [mutation_and_performance]
+    good_for:
+      - Multiplexed variant-effect datasets covering many positions in one
+        protein, which is the densest available prior on which positions tolerate
+        substitution.
+      - Scores that are attached to specific variants of a specific sequence, so
+        a record can be bound to a sequence hash rather than to a protein name.
+      - Identifying positions that are intolerant across the whole assayed range,
+        a useful veto list for local design.
+    not_good_for:
+      - The measured endpoint is frequently growth, abundance, display or
+        binding rather than catalysis. The measurement type must be preserved on
+        every record, and such a record is not evidence about ketone-reduction
+        activity however strong the signal is.
+      - Scores are normalised within an experiment and are not comparable between
+        experiments or proteins.
+      - Selection pressure in a multiplexed assay is not the objective this
+        project optimises, so a tolerated position is not necessarily a useful one.
+      - Coverage is protein-by-protein; a family of interest may be entirely absent.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: sequence_level_experimental
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm the API base URL and the bulk download
+         route before any automated use."
+      - "The ceiling is sequence-level because the score does bind to a specific
+         variant sequence. It is NOT a licence to treat the score as activity
+         evidence -- the ingest must refuse any record whose measurement type is
+         not catalytic when the claim is about catalysis."
+      - "Confirm licence and redistribution terms per dataset, which may differ
+         between depositors."
+      - "Confirm which field carries the target sequence, so variants resolve to
+         a construct rather than to a label."
+    notes: >-
+      Registered as a position-tolerance prior, not as an activity source.
+
+  - id: fireprotdb
+    display_name: FireProtDB
+    layers: [mutation_and_performance]
+    good_for:
+      - Experimental stability measurements for single-point mutants, which is
+        the cost side of any local design decision.
+      - Flagging substitutions already known to destabilise a related scaffold
+        before they are proposed again.
+      - Records tied to specific mutations with their experimental conditions.
+    not_good_for:
+      - A stability gain is not a specificity gain and not an activity gain;
+        stabilising substitutions frequently reduce turnover, and the two
+        objectives trade off.
+      - Stability values are condition-dependent and measured by different
+        methods, so they must not be pooled onto a single scale.
+      - Coverage is biased toward well-studied model proteins, so absence says
+        nothing.
+      - Says nothing about expression yield or solubility in this project's host.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: sequence_level_experimental
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm the access route before use."
+      - "derived_from marked incomplete -- the database aggregates measurements
+         from the literature and from other stability collections, and a curator
+         must record which, or stability records will be double-counted."
+      - "Confirm licence and redistribution terms."
+      - "Confirm the measurement type and units per record so the stability axis
+         is never mixed with an activity axis."
+    notes: >-
+      Used as a cost model for proposed mutations. Never as support for a
+      selectivity claim.
+
+  - id: protabank
+    display_name: ProtaBank
+    layers: [mutation_and_performance]
+    good_for:
+      - Supplementary protein engineering datasets spanning several measured
+        properties, useful for widening a sparse prior.
+      - Campaign-style data where both the designed variants and their outcomes
+        are reported together.
+    not_good_for:
+      - Heterogeneous property definitions, so two datasets reporting activity
+        may be measuring different things and must not be combined.
+      - The interface and the terms of use need re-checking before any automated
+        ingest; nothing about its current availability is asserted here.
+      - Dataset-level provenance can be thin, which makes de-duplication against
+        other engineering collections unreliable.
+    access_modes: [unknown]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: homolog_experimental
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "Access mode is recorded as unknown deliberately. Confirm whether the
+         resource is currently reachable, and by what route, before any
+         integration work is scheduled."
+      - "Confirm the terms of use, which must be re-checked rather than assumed
+         from an earlier publication."
+      - "Confirm overlap with the other engineering collections registered here,
+         so the same campaign is not counted twice."
+    notes: >-
+      Registered as supplementary and staged last, because its availability and
+      terms are the least established of the entries in this layer.
+
+  - id: proteingym
+    display_name: ProteinGym
+    layers: [mutation_and_performance]
+    good_for:
+      - A standardised benchmark for comparing variant-effect predictors, useful
+        for deciding which predictor this project should trust at all.
+      - Harmonised splits that make a model comparison reproducible.
+      - A sanity check on whether a scoring model generalises beyond the proteins
+        it was tuned on.
+    not_good_for:
+      - It is a benchmark across many proteins, not a ketone-reduction activity
+        set; strong benchmark performance says nothing about this task's family
+        or endpoint.
+      - Scores are re-scaled and harmonised for comparability, so they are not
+        the original measurements and must not be re-used as experimental values.
+      - It overlaps with published variant-effect datasets registered separately,
+         so hits in both are not independent.
+      - Using it to select candidates rather than to evaluate models is a
+        category error.
+    access_modes: [bulk_download, local_package]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [mavedb]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "derived_from records an assumed overlap with the multiplexed
+         variant-effect database, deliberately in the conservative direction. A
+         curator must confirm the per-version dataset overlap; treating them as
+         independent would overstate support."
+      - "No endpoint recorded. Confirm the distribution route and version."
+      - "Confirm licence and redistribution terms per constituent dataset."
+      - "Record which benchmark version a model claim was measured on."
+    notes: >-
+      Belongs to the evaluation side of the project, not the candidate-selection
+      side.
+
+  - id: skid
+    display_name: SKiD (sequence, kinetics, structure links)
+    layers: [mutation_and_performance]
+    good_for:
+      - Linking a sequence, a kinetic measurement and a structure in one record,
+         which is the join this project otherwise has to make by hand.
+      - A starting point for structure-aware analysis of kinetic variation within
+        a family.
+    not_good_for:
+      - It contains modelled complexes alongside experimental ones. A modelled
+        complex must be recorded with its computational ligand source and must
+        never be treated as an observed structure.
+      - It is derived in part from existing enzymology resources, so its records
+        do not corroborate those resources.
+      - Links are made per record and must be re-checked per record; a link is
+        not a guarantee that the kinetic measurement was made on the sequence the
+        structure represents.
+      - Kinetic values inherit all the assay heterogeneity of their sources.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "derived_from is empty and marked INCOMPLETE on purpose. The resource is
+         described as derived in part from existing enzymology resources, but the
+         exact upstream set is not known here. Until a curator fills it in, SKiD
+         must not be counted as independent corroboration of any enzymology record."
+      - "Confirm the distribution route, version and licence; no URL is recorded."
+      - "Confirm which field distinguishes a modelled complex from an
+         experimental one, and reject the import if no such field exists."
+    notes: >-
+      The modelled-versus-experimental distinction is the gate for this source.
+
+  - id: intenzydb
+    display_name: IntEnzyDB
+    layers: [mutation_and_performance]
+    good_for:
+      - Structure and kinetics associated in one place, usable to look for
+        structural correlates of kinetic differences within a family.
+      - A flattened representation that is easier to query than the original
+        heterogeneous sources.
+    not_good_for:
+      - Each record requires per-record alignment between the structure, the
+        sequence and the measurement before it can be used; the association in
+        the table is not itself a verified correspondence.
+      - Flattening discards assay context, so values must be traced back before
+        any comparison.
+      - It re-integrates existing enzymology data and therefore does not
+        corroborate it.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "derived_from is empty and marked incomplete; the upstream enzymology and
+         structure resources must be identified before independence is claimed."
+      - "Confirm the distribution route, version, citation and licence."
+      - "Define the per-record alignment check that must pass before a record is
+         usable, since the resource's own association is not sufficient."
+    notes: >-
+      Convenient shape, unverified correspondence. Registered with a mandatory
+      per-record check.
+
+  - id: catpred_db
+    display_name: CatPred-DB
+    layers: [mutation_and_performance]
+    good_for:
+      - Assembled kinetic parameter data in a form suitable for training and
+        evaluating kinetic prediction, with consistent field definitions.
+      - A convenient view over kinetics that would otherwise need assembling from
+        two enzymology resources.
+    not_good_for:
+      - It is a dataset, not the prediction model that shares its name, and the
+        two must not be conflated in provenance or in a results narrative.
+      - It is derived from BRENDA and SABIO-RK, so a value found here and in
+        either upstream is one measurement, not two, and it provides no
+        independent confirmation of them.
+      - Dataset assembly applies filters and unit conversions that can change a
+        value's meaning; the upstream record must be consulted before a number is
+        quoted.
+      - Training-set membership is not experimental validation.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: [brenda, sabio_rk]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the upstream releases used, and whether any further source was
+         included; derived_from is marked incomplete for that reason."
+      - "Confirm the distribution route, version and licence; no URL is recorded."
+      - "Confirm whether upstream record identifiers are retained, since
+         de-duplication against the enzymology layer depends on them."
+      - "Record the unit conventions applied during assembly, so converted values
+         are not compared with raw upstream ones."
+    notes: >-
+      Registered chiefly so the independence accounting puts it in the same group
+      as its upstreams.
+
+  - id: esibank
+    display_name: ESIBank
+    layers: [mutation_and_performance]
+    good_for:
+      - Assembled enzyme-substrate interaction data at a scale useful for
+        training and for prioritising which pairs are worth testing.
+      - A substrate-centred view, which is closer to this project's question than
+        an EC-centred one.
+    not_good_for:
+      - It is the data resource associated with a specificity model, not the
+        model itself; keeping that distinction is required in provenance, and a
+        model prediction must never be stored as a database record.
+      - Pairs arrive with varying original evidence strength. That strength must
+        be preserved per pair, and no pair may be promoted to a verified
+        sequence-level label just because it appears in the collection.
+      - Absence of a pair is not a tested negative.
+      - Assembly decisions and filters can change what a pair means, so the
+        original record must remain reachable.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "derived_from is empty and marked incomplete -- an assembled pair
+         collection necessarily has upstream sources, and they must be recorded
+         before it counts as independent of the enzymology layer."
+      - "Confirm the distribution route, version, citation and licence."
+      - "Confirm which field carries the original evidence strength per pair; if
+         there is none, every pair must enter at the lowest strength rather than
+         at the ceiling."
+    notes: >-
+      The model-versus-dataset distinction is the reason this entry exists
+      separately from any predictor registered as a tool.
+
+  - id: reactzyme
+    display_name: ReactZyme
+    layers: [mutation_and_performance]
+    good_for:
+      - Evaluating enzyme-reaction retrieval, which is the shape of this
+        project's own search problem, so it can measure whether the retrieval
+        step works at all.
+      - Standardised splits for comparing retrieval approaches.
+    not_good_for:
+      - It contains positives. An absent enzyme-reaction pair is not an
+        experimental negative, and training or evaluating as though absence means
+        inactivity will manufacture false confidence.
+      - It is a benchmark, not an evidence source; a retrieved pair is not a
+        measurement.
+      - Pairs derive from public annotation, so a hit here and an annotation in
+        the upstream resources are not independent.
+      - Reaction granularity may not match the stereochemical precision this task
+        requires.
+    access_modes: [bulk_download, local_package]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [rhea, uniprotkb]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "derived_from records the reaction and sequence resources it is believed
+         to be assembled from, deliberately in the conservative direction, and is
+         marked incomplete. A curator must confirm the actual construction."
+      - "Confirm the distribution route, version, citation and licence."
+      - "Record explicitly, in any evaluation built on it, that negatives are
+         unobserved pairs rather than tested ones."
+    notes: >-
+      Evaluation only. Registered here because the retrieval it measures is the
+      step that feeds this layer.

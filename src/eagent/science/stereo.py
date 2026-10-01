@@ -383,7 +383,10 @@ def cip_from_template(
 
     raw = dict(block)
     declared_source = raw.pop("source", None)
-    incoming = raw.pop("incoming_group_rank", raw.pop("incoming_group", None))
+    incoming = raw.pop("incoming_group_rank", None)
+    alias = raw.pop("incoming_group", None)
+    if incoming is None:
+        incoming = alias
     if not raw:
         raise TemplateError(
             f"{label}: CIP priority block '{key}' carries no ligand ranks"

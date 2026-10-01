@@ -1,0 +1,603 @@
+# Layer 3 -- sequence, family and evolution.
+#
+# HONESTY RULE: no endpoint URL, record count, version string or licence term in
+# this file was verified in this environment. Unknown specifics are null with
+# needs_curation: true. connectivity_verified is false everywhere. Capability
+# flags describe documented capability, not proven behaviour.
+
+layer: sequence_family_evolution
+layer_question: >-
+  Which sequences are worth expanding, and which belong to the same mechanism
+  family?
+agent_stages:
+  - mining
+  - clustering
+  - diversity selection
+notes: >-
+  Everything in this layer is about relatedness. Nothing in it is about activity
+  on the target substrate. The layer exists to widen a candidate set and to keep
+  it diverse, and its records are joined to the evidence layer only through a
+  sequence hash or an accession with its database release, never through a
+  similarity score.
+
+sources:
+  - id: uniprotkb
+    display_name: UniProtKB (Swiss-Prot and TrEMBL)
+    layers: [sequence_family_evolution]
+    good_for:
+      - The reference sequence record for most candidates, with cross-references
+        that let a sequence be joined to structures, families and reactions.
+      - Annotation evidence codes, which distinguish a statement supported by an
+        experiment on that entry from one propagated by similarity or by rule.
+      - Reviewed entries that summarise the published function of well-studied
+        enzymes, useful as seeds.
+      - Organism, taxonomy and sequence-version history needed for reproducible
+        joins.
+    not_good_for:
+      - Not every functional statement is an experimental result for that
+        sequence. The evidence code must be kept and surfaced, because an
+        inferred catalytic activity annotation reads identically to a measured one.
+      - An EC number or catalytic activity line is an annotation, not a
+        substrate-scope measurement, and never establishes activity on the target
+        substrate.
+      - Entries are merged, demerged and re-annotated between releases, so an
+        accession without its release is not a stable identity.
+      - The canonical sequence is not the construct anyone expressed.
+    access_modes: [rest_api, sparql, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: "https://rest.uniprot.org"
+    citations:
+      - "https://www.uniprot.org/help/api"
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "The REST base URL recorded here is from general knowledge and has NOT
+         been called from this environment. Confirm it, and confirm the SPARQL
+         endpoint separately -- no SPARQL URL is recorded."
+      - "Confirm the licence and whether derived records may be redistributed."
+      - "Record the release identifier used in each run so accessions resolve to
+         the same entries later."
+      - "Confirm which evidence codes the project will accept as experimental,
+         and implement that filter before UniProt annotation reaches a candidate
+         score."
+    notes: >-
+      The hub of the sequence layer. Its annotation is a pointer to evidence, not
+      evidence, and the ceiling is set accordingly.
+
+  - id: uniparc
+    display_name: UniParc
+    layers: [sequence_family_evolution]
+    good_for:
+      - A non-redundant archive of sequences with their history, which answers
+        whether two differently named records are literally the same sequence.
+      - Recovering a sequence that has been removed from or merged within an
+        active database, which otherwise breaks a historical record.
+      - Stable sequence-level identity independent of annotation churn.
+    not_good_for:
+      - No annotation and no function; it answers identity questions only.
+      - Presence in the archive says nothing about whether a protein exists,
+        expresses, or has any measured activity.
+      - It aggregates sequences from many upstream databases, so its content is
+        not independent of them.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: supported
+      sequence_query: supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "derived_from is empty but marked incomplete on purpose -- UniParc
+         aggregates sequences from many source databases, and a curator must
+         record which of them matter for this project's independence accounting."
+      - "No endpoint recorded. Confirm the access route before use."
+      - "Confirm licence and redistribution terms."
+    notes: >-
+      Registered separately from UniRef because sequence identity and history is
+      a different job from clustering.
+
+  - id: uniref
+    display_name: UniRef (50 / 90 / 100 clusters)
+    layers: [sequence_family_evolution]
+    good_for:
+      - Ready-made clustering at fixed identity thresholds, used to deduplicate a
+        candidate set and to control redundancy in a selection.
+      - A cheap first pass at diversity selection before any alignment is run.
+      - Cluster representatives that make a large search space tractable.
+    not_good_for:
+      - Cluster co-membership is a computed grouping, not an identity and not a
+        shared function; two members of one cluster can differ in substrate scope
+        and in stereopreference.
+      - Cluster membership must never be used to transfer an activity record from
+        one member to another; that is a similarity join wearing a cluster id.
+      - Thresholds are arbitrary with respect to mechanism, so the right identity
+        cut for one family is wrong for another.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: supported
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: computational_construct
+    derived_from: [uniprotkb, uniparc]
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded; confirm the access route before use."
+      - "Record the release used, because cluster composition changes between
+         releases and a diversity selection is not reproducible without it."
+      - "Confirm licence and redistribution terms."
+    notes: >-
+      The ceiling is computational_construct because a cluster is a computed
+      object, however convenient it is.
+
+  - id: interpro
+    display_name: InterPro
+    layers: [sequence_family_evolution]
+    good_for:
+      - Integrated family, domain and site annotation that constrains which
+        candidates share an architecture with the seeds.
+      - Detecting that a candidate is missing a domain the mechanism requires,
+        which is a cheap and decisive rejection.
+      - A stable family vocabulary to group a mined set before any expensive
+        modelling.
+    not_good_for:
+      - A single short motif or site match does not establish activity on a given
+        substrate; motifs are shared across enzymes with different scopes.
+      - Family membership is a constraint, not evidence, and must never be
+        recorded as experimental support.
+      - Member-database signatures differ in specificity, so two hits are not
+        equally informative.
+      - It integrates several member databases, so a hit from InterPro and a hit
+        from one of those members are not two independent observations.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [pfam]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "derived_from lists Pfam only and is marked incomplete -- InterPro
+         integrates several member databases, and a curator must list the ones
+         this project also queries so they are not counted as independent."
+      - "No endpoint recorded. Confirm the API base URL before use."
+      - "Scanning a new sequence against the signatures is done with separate
+         software rather than by the database; sequence_query is therefore
+         unknown here and the scanner must be registered as a tool, not as a
+         database capability."
+      - "Confirm licence and redistribution terms, and record the release used."
+    notes: >-
+      Used as a filter on a mined set, never as a reason to advance a candidate.
+
+  - id: pfam
+    display_name: Pfam
+    layers: [sequence_family_evolution]
+    good_for:
+      - Domain definitions and curated alignments, which give the position
+        numbering a family-wide design discussion needs.
+      - Family-level hidden Markov models that make membership decisions explicit
+        and reproducible.
+      - Identifying the catalytic domain inside a multi-domain candidate.
+    not_good_for:
+      - A domain assignment is not a function assignment, and a family can
+        contain members with opposite stereopreference.
+      - Alignment columns are not active-site equivalences; transferring a
+        position between members requires a structure-based mapping.
+      - Now distributed as part of an integrated resource, so a Pfam hit and an
+        InterPro hit are not independent observations.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded; confirm how Pfam models and alignments are
+         currently distributed and accessed."
+      - "Confirm licence and redistribution terms, and record the release used."
+      - "Confirm the relationship between the Pfam release and the integrated
+         resource release so the two are not mixed in one run."
+    notes: >-
+      Registered for its alignments and models, which the design layer needs for
+      position numbering.
+
+  - id: ncbi_protein
+    display_name: NCBI Protein (RefSeq, GenBank, Identical Protein Groups)
+    layers: [sequence_family_evolution]
+    good_for:
+      - Expanding a candidate set beyond curated entries, including sequences
+        that never reach a reviewed database.
+      - Nucleotide traceback from a protein record, which is what a synthesis
+        order actually needs -- codon context, source organism and the coding
+        sequence.
+      - Identical protein groupings that collapse the same sequence submitted
+        many times, preventing a candidate list that is one protein repeated.
+      - Taxonomic breadth for diversity selection.
+    not_good_for:
+      - Annotation quality varies widely, and a protein name is frequently
+        propagated from a distant homologue; a name is not a function.
+      - Predicted records from automated annotation pipelines are hypotheses, not
+        observed proteins.
+      - No activity, conditions or stereochemistry of any kind.
+      - Records are revised and suppressed, so a bare accession without its
+        version is not a stable identity.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+    citations:
+      - "https://www.ncbi.nlm.nih.gov/books/NBK25501/"
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "The E-utilities base URL recorded here is from general knowledge and has
+         NOT been called from this environment. Confirm it, together with the
+         current API-key and request-rate policy, before the first automated call."
+      - "Sequence similarity search is a separate service from record retrieval;
+         sequence_query is left unknown rather than assumed, and a similarity hit
+         is in any case never a join."
+      - "Confirm licence and redistribution terms for each of the sub-resources,
+         which may differ."
+      - "Record accession.version for every sequence pulled, not the bare accession."
+    notes: >-
+      The breadth source for mining, and the only registered route to the
+      nucleotide sequence a synthesis order needs.
+
+  - id: cath_funfam
+    display_name: CATH and FunFams
+    layers: [sequence_family_evolution]
+    good_for:
+      - Structural classification of domains, which groups candidates by fold
+        rather than by sequence similarity alone.
+      - Functional families within a superfamily, a finer grouping than fold and
+        often closer to mechanism.
+      - Recognising that two low-identity candidates share an architecture.
+    not_good_for:
+      - A shared fold is compatible with completely different chemistry; fold is
+        not mechanism and certainly not substrate scope.
+      - Functional family assignment is computational and inherits the errors of
+        the classification pipeline.
+      - Not an evidence source; nothing here was measured on a substrate.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded; confirm the current access routes before use."
+      - "derived_from is marked incomplete because the classification is built on
+         experimental structures and on sequence databases that are registered
+         separately here."
+      - "Confirm licence, redistribution terms and the release used."
+    notes: >-
+      Useful for diversity selection across folds; never a reason to claim shared
+      function.
+
+  - id: eggnog
+    display_name: eggNOG
+    layers: [sequence_family_evolution]
+    good_for:
+      - Orthology groups and taxonomic context, which help decide whether a
+        candidate is a plausible functional counterpart in another organism.
+      - Phylogenetic breadth when a seed family is narrow.
+    not_good_for:
+      - Orthology is an evolutionary relationship, not an activity label, and
+        orthologues routinely differ in substrate preference.
+      - Group assignments are computed and change between releases.
+      - No conditions, no kinetics, no stereochemistry.
+    access_modes: [bulk_download, manual_review_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded; confirm the distribution and any programmatic route."
+      - "derived_from marked incomplete -- the orthology groups are computed over
+         genome and proteome sets that a curator must identify."
+      - "Confirm licence, redistribution terms and the release used."
+    notes: >-
+      Stage 3. Context for interpretation, not a source of candidates to order.
+
+  - id: sdred
+    display_name: SDRED (short-chain dehydrogenase/reductase engineering database)
+    layers: [sequence_family_evolution]
+    good_for:
+      - Subfamily grouping within the short-chain dehydrogenase/reductase
+        superfamily, which is directly the family of the pilot ketone-reduction task.
+      - A unified position numbering across the family, which is the single thing
+        that makes mutation positions comparable between papers; without it a
+        reported position number is meaningless outside its own construct.
+      - Conserved structural and sequence features of the family, usable as a
+        sanity check on a candidate before any modelling.
+      - Cross-subfamily comparison of mutations, which lets an engineering result
+        in one subfamily be considered for another without pretending it transfers.
+    not_good_for:
+      - Family classification is not activity; membership says nothing about the
+        target substrate or the product configuration.
+      - A position that is conserved is not thereby catalytic, and a position
+        mapped through the family numbering still needs a structure-based check
+        before it is mutated.
+      - No stable public programmatic interface has been verified, so it is
+        registered for human import; a pipeline must not be written as though it
+        can be queried during a run.
+      - Coverage is bounded by what the family curation includes, and is not a
+        census of all short-chain dehydrogenases.
+    access_modes: [manual_review_import, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "Registered as a manual or offline import because no stable public REST
+         API has been verified. Confirm whether any programmatic route exists; do
+         not assume one, and do not record a base URL that has not been checked."
+      - "Confirm how the standardised position numbering is published and whether
+         it can be imported as a mapping table, since that table is the main
+         reason this resource is registered."
+      - "Confirm licence and redistribution terms before any numbering table is
+         copied into this project."
+      - "derived_from marked incomplete -- the classification is built over
+         sequence and structure databases registered separately here."
+    notes: >-
+      Directly on-target for the pilot family. Its value is the unified numbering
+      and the subfamily split, not record volume.
+
+  - id: akr_superfamily
+    display_name: AKR Superfamily database (aldo-keto reductases)
+    layers: [sequence_family_evolution]
+    good_for:
+      - Authoritative nomenclature for aldo-keto reductases, the second major
+        family relevant to asymmetric ketone reduction, where naming in the
+        literature is otherwise inconsistent.
+      - Curated sequences, alignments and phylogeny for the superfamily, usable
+        to seed a family-aware expansion.
+      - Resolving which published name corresponds to which sequence, a frequent
+        blocker when mining older biocatalysis papers.
+    not_good_for:
+      - Nomenclature and phylogeny are not activity data; no substrate scope,
+        kinetics or enantioselectivity is implied by membership.
+      - No stable public programmatic interface has been verified, so it is
+        registered for human import rather than as a queryable service.
+      - Coverage follows the curators' nomenclature decisions and is not a
+        complete census of the superfamily.
+    access_modes: [manual_review_import, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "Same access caveat as the SDR engineering database -- no stable public
+         REST API has been verified. Confirm the access route; record no URL
+         until it has been checked."
+      - "Confirm whether alignments and phylogenies can be downloaded, and under
+         what terms."
+      - "Confirm how superfamily names map to database accessions, since that
+         mapping is the main reason this resource is registered."
+      - "derived_from marked incomplete -- sequences are drawn from sequence
+         databases registered separately here."
+    notes: >-
+      Registered alongside SDRED so that both major ketone-reductase families
+      have a nomenclature anchor.
+
+  - id: mgnify_proteins
+    display_name: MGnify Proteins
+    layers: [sequence_family_evolution]
+    good_for:
+      - Metagenome-derived sequences that are absent from cultured-organism
+        databases, which is where genuinely novel candidates come from.
+      - Very large sequence space for family expansion once the seeds and family
+        models are already established.
+      - Quality and completeness flags that let obviously fragmentary predictions
+        be rejected before they consume modelling time.
+    not_good_for:
+      - Sequences are predicted from assemblies, so a record may be a fragment, a
+        chimera or an assembly artefact rather than a real protein.
+      - No organism in hand, so expression host, codon usage and solubility are
+        all unknown at the point of selection.
+      - Novelty alone must not buy a synthesis slot; a candidate from here needs
+        at least family-model and geometric support before it competes with a
+        sequence that has literature behind it.
+      - No annotation evidence of any kind, and no activity data.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: unknown
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: computational_construct
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded; confirm the API base URL and the bulk distribution
+         before use."
+      - "Confirm which quality and completeness flags are available per sequence,
+         because the staging rule depends on being able to keep them."
+      - "Confirm licence and redistribution terms, and record the catalogue
+         version used."
+      - "Define and record the gate that a metagenomic candidate must pass before
+         it may enter a synthesis batch."
+    notes: >-
+      Staged after seeds and family models exist, on purpose. Ordering novelty
+      first is how a batch comes back entirely negative with nothing learned.

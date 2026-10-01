@@ -28,8 +28,7 @@ from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass, field
-from types import MappingProxyType
+from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Sequence
 
 from ..errors import CircularEvidenceError

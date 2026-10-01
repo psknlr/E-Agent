@@ -1602,6 +1602,10 @@ class NoveltyBudgetVerdict:
     over_by: int
     offending_ids: tuple[str, ...]
     reasons: tuple[str, ...]
+    #: Members whose origin source could not be read. Counted as exploratory
+    #: and charged against the allowance: a candidate with no provenance is
+    #: the least likely to have functional evidence, not the most.
+    unknown_origin_ids: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -1612,8 +1616,14 @@ class NoveltyBudgetVerdict:
             "within_budget": self.within_budget,
             "over_by": self.over_by,
             "offending_ids": list(self.offending_ids),
+            "unknown_origin_ids": list(self.unknown_origin_ids),
+            "n_unknown_origin": self.n_unknown_origin,
             "reasons": list(self.reasons),
         }
+
+    @property
+    def n_unknown_origin(self) -> int:
+        return len(self.unknown_origin_ids)
 
     def describe(self) -> str:
         head = ("within the exploration budget" if self.within_budget
@@ -1681,6 +1691,13 @@ def check_novelty_budget(
     cheap assays cannot tell them apart -- so the round costs a full cycle and
     produces no information to plan the next one with.
 
+    A member whose origin source cannot be read is counted as exploratory with
+    unknown origin and charged against the allowance, and named in the
+    reasons. It is not the same case as a member from a known, non-exploratory
+    source: no provenance is the weakest position a candidate can be in, and
+    passing it through as known traffic produces a clean verdict on a round
+    nobody can account for.
+
     Returns a verdict rather than raising, because the operator may knowingly
     spend the round that way; what must not happen is spending it without the
     cost being stated.
@@ -1692,26 +1709,44 @@ def check_novelty_budget(
     n = len(batch)
     allowance = pol.allowance(n)
     offenders: list[str] = []
+    unknown_origin: list[str] = []
     n_exploratory = 0
     n_without = 0
 
     for i, item in enumerate(batch):
         src = _origin_source(item)
-        if src is None or src not in exploratory:
+        mid = _item_id(item, f"member{i}")
+        if src is None:
+            # Not the same case as "from a known, non-exploratory source".
+            # A member whose origin cannot be read has no provenance at all,
+            # which is the weakest position a candidate can be in, and
+            # treating it as known traffic is how an unaccountable round
+            # passes the budget check with a clean verdict.
+            unknown_origin.append(mid)
+        elif src not in exploratory:
             continue
         n_exploratory += 1
         if not evidence_fn(item):
             n_without += 1
-            offenders.append(_item_id(item, f"member{i}"))
+            offenders.append(mid)
 
     over_by = max(0, n_without - allowance)
     reasons = [
         f"round size {n}; exploration allowance {allowance} slot(s) "
         f"(policy: {pol.max_fraction:.0%} of the round, at most {pol.max_count}, "
         f"and none below a round of {pol.min_round_size_for_exploration})",
-        f"{n_exploratory} member(s) come from an exploratory source, "
-        f"{n_without} of them with no functional evidence",
+        f"{n_exploratory} member(s) come from an exploratory source or have "
+        f"no readable origin, {n_without} of them with no functional evidence",
     ]
+    if unknown_origin:
+        shown = ", ".join(unknown_origin[:10])
+        if len(unknown_origin) > 10:
+            shown += f", ... (+{len(unknown_origin) - 10} more)"
+        reasons.append(
+            f"{len(unknown_origin)} member(s) record no origin source and are "
+            f"counted as exploratory with unknown origin, charged against the "
+            f"allowance: {shown}. Record where each came from; a candidate "
+            f"nobody can trace is not a known candidate")
     if over_by:
         reasons.append(MGNIFY_EARLY_ENTRY_RULE)
         reasons.append(
@@ -1731,5 +1766,6 @@ def check_novelty_budget(
         within_budget=over_by == 0,
         over_by=over_by,
         offending_ids=tuple(offenders),
+        unknown_origin_ids=tuple(unknown_origin),
         reasons=tuple(reasons),
     )

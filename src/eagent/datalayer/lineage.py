@@ -19,11 +19,16 @@ What this module deliberately does **not** do
 ---------------------------------------------
 It never invents a link and never invents a separation. Two rows are declared
 the same measurement only when an identifier or a complete assay fingerprint
-says so. Rows that carry no usable identity at all are returned as
-*unlinkable*: they are neither merged nor counted as corroboration, and they
-are named in the report so a curator can resolve them. Under-counting
-independence is the safe direction; over-counting it is the dangerous one, so
-every ambiguous case resolves toward "fewer independent measurements".
+says so, and every such union is put to
+:func:`eagent.datalayer.identity.assert_merge_allowed` first, so the merge
+policy is enforced here rather than merely documented elsewhere. Rows that
+carry no usable identity at all are returned as *unlinkable*: they are neither
+merged nor counted as corroboration, they are **not** counted as independent
+measurements, and they are named in the report so a curator can resolve them.
+An unlinkable row is not evidence of independence; it is evidence of missing
+provenance. Under-counting independence is the safe direction; over-counting it
+is the dangerous one, so every ambiguous case resolves toward "fewer
+independent measurements".
 """
 
 from __future__ import annotations
@@ -33,7 +38,12 @@ from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from ..provenance import sha256_text
 from ..schemas.candidate import ConfidenceLevel
-from ..schemas.record import EvidenceRef, EvidenceStrength, OutcomeClass
+from ..schemas.record import (
+    EvidenceRef, EvidenceStrength, OutcomeClass, ReactionDirection,
+)
+from .identity import (
+    MergeDecision, MergeGround, MergeRefusedError, assert_merge_allowed,
+)
 
 __all__ = [
     "EvidenceNode",
@@ -49,7 +59,11 @@ __all__ = [
     "identity_tokens",
     "independent_evidence_groups",
     "count_independent",
+    "count_unlinkable",
     "corroboration_level",
+    "DIRECTION_SUPPORTS",
+    "DIRECTION_REVERSE",
+    "DIRECTION_UNSPECIFIED",
     "grouping_key",
     "leakage_safe_groups",
     "split_leakage",
@@ -71,9 +85,13 @@ def normalise_doi(raw: str | None) -> str | None:
     """Reduce any DOI spelling to one comparable string, or ``None``.
 
     Prevents the commonest false *separation*: the same paper recorded as
-    ``10.1021/acscatal.0c00001`` in one resource and
-    ``https://doi.org/10.1021/ACSCATAL.0c00001`` in another would otherwise be
-    counted as two independent publications, inflating corroboration.
+    ``10.5555/example-doi-do-not-cite`` in one resource and
+    ``https://doi.org/10.5555/EXAMPLE-DOI-DO-NOT-CITE`` in another would
+    otherwise be counted as two independent publications, inflating
+    corroboration. The example uses the reserved ``10.5555`` test prefix and a
+    suffix that cannot be mistaken for a title, because a plausible-looking DOI
+    in a docstring is copied into fixtures and documentation and eventually
+    read as a citation to a paper that does not exist.
     Returns ``None`` for anything that is not DOI-shaped rather than guessing,
     because a wrong normalisation merges two genuinely distinct papers.
     """
@@ -181,13 +199,32 @@ def _sequence_identity(obj: Any) -> str | None:
 
 
 def _substrate_identity(obj: Any) -> str | None:
+    """Structural identity of the substrate, or ``None``.
+
+    The prose name is deliberately **not** in the fallback chain. Merging two
+    rows because both say "4-chloroacetophenone" is the ground
+    :data:`~eagent.datalayer.identity.MergeGround.SUBSTRATE_NAME_SIMILARITY`
+    declares inadmissible: one character separates it from
+    "2-chloroacetophenone", and an "(R)-" that should read "(S)-" is the whole
+    objective of an asymmetric reduction. With no structural identifier there
+    is no honest answer, so this returns ``None``; :func:`assay_fingerprint`
+    then yields an unlinkable group, which is the correct outcome -- a curation
+    gap reported, rather than a merge invented.
+
+    The identifier kind is kept in the returned token so an InChIKey can never
+    collide with a SMILES string, and the InChIKey is upper-cased because it is
+    case-insensitive by construction. SMILES case is *not* folded: ``C`` and
+    ``c`` are different atoms.
+    """
     sub = getattr(obj, "substrate", None)
     if sub is None:
         return None
-    for attr in ("inchikey", "isomeric_smiles", "name"):
-        v = getattr(sub, attr, None)
-        if v:
-            return str(v)
+    key = getattr(sub, "inchikey", None)
+    if key:
+        return "inchikey:" + "".join(str(key).split()).upper()
+    smiles = getattr(sub, "isomeric_smiles", None)
+    if smiles:
+        return "smiles:" + "".join(str(smiles).split())
     return None
 
 
@@ -626,6 +663,39 @@ def _strength_of(obj: Any) -> EvidenceStrength:
     return best
 
 
+#: Which merge ground each identity-token kind rests on, and how many
+#: colon-separated segments of the token are scheme rather than value.
+_TOKEN_GROUNDS: tuple[tuple[str, MergeGround, int], ...] = (
+    ("activity:", MergeGround.EXPERIMENT_ACTIVITY_ID_EQUAL, 1),
+    ("doi:", MergeGround.PUBLICATION_IDENTIFIER_EQUAL, 1),
+    ("pub:", MergeGround.PUBLICATION_IDENTIFIER_EQUAL, 2),
+    ("assay:", MergeGround.ASSAY_FINGERPRINT_EQUAL, 1),
+)
+
+
+def _merge_ground_for_token(token: str) -> tuple[MergeGround, str]:
+    """The merge ground a shared identity token rests on, and the shared value.
+
+    Every union this module performs must be able to name the ground that
+    justifies it. A token whose kind is not in :data:`_TOKEN_GROUNDS` names no
+    ground, so it merges nothing: the refusal is raised rather than returned,
+    because a new token kind added without a ground is exactly how a
+    resemblance sneaks into the primary key.
+    """
+    for prefix, ground, scheme_parts in _TOKEN_GROUNDS:
+        if token.startswith(prefix):
+            parts = token.split(":", scheme_parts)
+            return ground, parts[-1] if len(parts) > scheme_parts else ""
+    raise MergeRefusedError(MergeDecision(
+        may_merge=False, ground=None,
+        reason=(f"identity token {token!r} names no merge ground, so it may "
+                f"not be used to union two rows"),
+        question=("Which admissible ground does this token kind rest on? "
+                  "Add it to _TOKEN_GROUNDS or stop emitting the token."),
+        needs_curation=True,
+    ), context="lineage grouping")
+
+
 def _outcome_value(obj: Any) -> str:
     o = getattr(obj, "outcome", None)
     return str(getattr(o, "value", o)) if o is not None else "unknown"
@@ -665,6 +735,7 @@ def independent_evidence_groups(
     row_keys: list[str] = []
     row_tokens: list[list[str]] = []
     row_tiers: list[str] = []
+    token_rows: dict[str, list[int]] = {}
 
     for i, r in enumerate(recs):
         rid = _record_id(r, f"row{i}")
@@ -675,8 +746,24 @@ def independent_evidence_groups(
         row_tokens.append(tokens)
         row_tiers.append(tier)
         for t in tokens:
-            ds.add(t)
-            ds.union(row_key, t)
+            token_rows.setdefault(t, []).append(i)
+
+    # Every row-to-row union is put to the merge policy first, naming the
+    # ground that justifies it. The grounds this module can produce are all
+    # identifier-based, so the guard should never fire; it is here because an
+    # unenforced policy is decoration, and because a future token kind that
+    # rests on resemblance must fail loudly instead of merging quietly.
+    for token in sorted(token_rows):
+        idxs = token_rows[token]
+        ground, shared = _merge_ground_for_token(token)
+        first = idxs[0]
+        for other in idxs[1:]:
+            assert_merge_allowed(
+                recs[first], recs[other], ground, observed=shared,
+                context=f"grouping rows on {token}")
+        for i in idxs:
+            ds.add(token)
+            ds.union(row_keys[i], token)
 
     graph = graph if graph is not None else ProvenanceGraph.from_records(recs)
 
@@ -767,8 +854,180 @@ def count_independent(records: Sequence[Any], *, link_across_tiers: bool = True)
 
     This is the number to quote, never ``len(records)``. Four rows re-curated
     from one paper return 1.
+
+    Only **linkable** groups are counted. A row carrying no activity id, no
+    publication identifier and no assay fingerprint comes back as its own
+    one-row ``unlinkable`` group, and counting those would say that four rows
+    with no identity whatsoever are four independent measurements -- the precise
+    claim this module exists to prevent. An unlinkable row is not evidence of
+    independence; it is evidence of missing provenance. Four such rows return
+    0 here, and :class:`LineageReport` reports them separately under
+    ``n_unlinkable`` with their record ids, so they stay visible instead of
+    being silently dropped.
     """
-    return len(independent_evidence_groups(records, link_across_tiers=link_across_tiers))
+    groups = independent_evidence_groups(records,
+                                         link_across_tiers=link_across_tiers)
+    return sum(1 for g in groups if g.is_linkable)
+
+
+def count_unlinkable(records: Sequence[Any], *,
+                     link_across_tiers: bool = True) -> int:
+    """How many rows carry no identity at all, and so support no claim.
+
+    The companion to :func:`count_independent`: the rows it refuses to count.
+    Reported rather than discarded, because each one is a question for a
+    curator -- what measurement is this? -- and a question nobody can see is a
+    question nobody answers.
+    """
+    groups = independent_evidence_groups(records,
+                                         link_across_tiers=link_across_tiers)
+    return sum(g.n_rows for g in groups if not g.is_linkable)
+
+
+#: A group's stance on the target reaction direction.
+DIRECTION_SUPPORTS = "supports_target_direction"
+DIRECTION_REVERSE = "reverse_of_target_only"
+DIRECTION_UNSPECIFIED = "direction_unrecorded"
+
+
+def _row_direction(obj: Any) -> ReactionDirection | None:
+    """The direction a row was measured in, or ``None`` when unreadable."""
+    raw = getattr(obj, "reaction_direction", None)
+    if raw is None:
+        return None
+    if isinstance(raw, ReactionDirection):
+        return raw
+    try:
+        return ReactionDirection(getattr(raw, "value", raw))
+    except (ValueError, TypeError):
+        return None
+
+
+def _group_direction(rows: Sequence[Any]) -> str:
+    """Whether any row in a group was measured in the target direction.
+
+    A group supports the target direction when at least one of its rows was
+    measured ``forward_as_target`` or ``reversible_both_shown``. A group whose
+    rows are all ``reverse_of_target`` measured the other reaction; a group
+    whose rows all say ``unspecified`` (or carry no direction field at all)
+    recorded nothing, which is a curation gap and not a quiet "yes".
+    """
+    saw_reverse = False
+    for r in rows:
+        d = _row_direction(r)
+        if d is not None and d.supports_target_direction:
+            return DIRECTION_SUPPORTS
+        if d is ReactionDirection.REVERSE_OF_TARGET:
+            saw_reverse = True
+    return DIRECTION_REVERSE if saw_reverse else DIRECTION_UNSPECIFIED
+
+
+def _target_reaction_label(target: Any) -> str:
+    """A short name for the target reaction, for refusals and notes."""
+    if target is None:
+        return "the target reaction"
+    for attr in ("rhea_id", "reaction_class", "reaction_id", "name", "label"):
+        v = getattr(target, attr, None)
+        if v:
+            return f"target reaction '{getattr(v, 'value', v)}'"
+    v = getattr(target, "value", target)
+    return f"target reaction '{v}'"
+
+
+def _direction_reason(verdict: str, label: str) -> str:
+    if verdict == DIRECTION_REVERSE:
+        return (f"every row in this group measured the reverse of {label}; a "
+                f"reverse-direction measurement is not evidence that the enzyme "
+                f"performs the target direction under the target conditions")
+    return (f"no row in this group records which direction was measured, so "
+            f"the group cannot be counted as evidence for {label}")
+
+
+@dataclass(frozen=True)
+class _Corroboration:
+    """Internal result of one corroboration assessment."""
+
+    level: ConfidenceLevel
+    contributing: tuple[tuple[EvidenceGroup, str], ...]
+    direction_excluded: tuple[tuple[EvidenceGroup, str], ...]
+    notes: tuple[str, ...]
+
+
+def _assess_corroboration(
+    records: Sequence[Any],
+    groups: Sequence[EvidenceGroup],
+    *,
+    require_experimental: bool,
+    target_reaction: Any,
+) -> _Corroboration:
+    """Score the groups, and say which were excluded and why.
+
+    Shared by :func:`corroboration_level` and :meth:`LineageReport.build` so
+    the level and the report's exclusion list can never disagree.
+    """
+    by_id = {_record_id(r, f"row{i}"): r for i, r in enumerate(records)}
+    label = _target_reaction_label(target_reaction)
+
+    contributing: list[tuple[EvidenceGroup, str]] = []
+    excluded: list[tuple[EvidenceGroup, str]] = []
+    notes: list[str] = []
+
+    for g in groups:
+        if not g.is_linkable:
+            continue
+        rows = [by_id[rid] for rid in g.record_ids if rid in by_id]
+        if require_experimental:
+            ok = any(
+                getattr(getattr(r, "outcome", None), "informs_catalytic_ability", False)
+                for r in rows
+            )
+            if not ok:
+                continue
+        verdict = _group_direction(rows)
+        if target_reaction is not None and verdict != DIRECTION_SUPPORTS:
+            excluded.append((g, _direction_reason(verdict, label)))
+            continue
+        contributing.append((g, verdict))
+        if verdict != DIRECTION_SUPPORTS:
+            notes.append(
+                f"{g.group_id}: {_direction_reason(verdict, label)}; it is not "
+                f"counted toward the strongest corroboration level"
+            )
+
+    if not contributing:
+        return _Corroboration(ConfidenceLevel.INSUFFICIENT, (),
+                              tuple(excluded), tuple(notes))
+
+    positive = {OutcomeClass.CONFIRMED_TARGET_PRODUCT.value}
+    negative = {OutcomeClass.NO_TARGET_PRODUCT_DETECTED.value,
+                OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION.value}
+    saw_pos = any(set(g.outcomes) & positive for g, _ in contributing)
+    saw_neg = any(set(g.outcomes) & negative for g, _ in contributing)
+    if (saw_pos and saw_neg) or any(g.has_internal_conflict
+                                    for g, _ in contributing):
+        return _Corroboration(ConfidenceLevel.CONTRADICTORY, tuple(contributing),
+                              tuple(excluded), tuple(notes))
+
+    n_seq_directional = sum(
+        1 for g, v in contributing
+        if g.strongest_strength.is_sequence_level and v == DIRECTION_SUPPORTS)
+    n_seq = sum(1 for g, _ in contributing
+                if g.strongest_strength.is_sequence_level)
+    n_exp = sum(1 for g, _ in contributing
+                if g.strongest_strength.rank >= EvidenceStrength.HOMOLOG_EXPERIMENTAL.rank)
+    n_mapped = sum(1 for g, _ in contributing
+                   if g.strongest_strength.rank >= EvidenceStrength.EC_SPECIES_MAPPED.rank)
+
+    if n_seq_directional >= 2:
+        level = ConfidenceLevel.STRONG
+    elif n_seq >= 1 or n_exp >= 2:
+        level = ConfidenceLevel.MODERATE
+    elif n_exp == 1 or n_mapped >= 1:
+        level = ConfidenceLevel.WEAK
+    else:
+        level = ConfidenceLevel.INSUFFICIENT
+    return _Corroboration(level, tuple(contributing), tuple(excluded),
+                          tuple(notes))
 
 
 def corroboration_level(
@@ -776,6 +1035,7 @@ def corroboration_level(
     *,
     require_experimental: bool = True,
     groups: Sequence[EvidenceGroup] | None = None,
+    target_reaction: Any | None = None,
 ) -> ConfidenceLevel:
     """Ordinal confidence that rises only with genuinely independent groups.
 
@@ -795,50 +1055,29 @@ def corroboration_level(
     Groups that disagree about the outcome return ``CONTRADICTORY`` rather than
     a majority vote: a conflict between independent experiments is information
     for a human, not noise to be averaged.
+
+    Unlinkable groups never contribute: a row with no identity cannot be shown
+    to be independent of anything, and counting it as corroboration is the
+    overstatement this module exists to prevent.
+
+    **Reaction direction gates the count.** A measurement of the reverse
+    reaction is not evidence that the enzyme performs the target direction, and
+    before this gate existed two reverse-direction records returned ``STRONG``.
+    Pass ``target_reaction`` -- a :class:`~eagent.schemas.reaction.ReactionSpec`,
+    a reaction class, or any object naming the reaction -- and every group whose
+    rows are all non-supporting by direction is excluded entirely;
+    :meth:`LineageReport.build` records each exclusion in its ``discounted``
+    list with the reason. With no target supplied, a group whose rows are
+    entirely ``UNSPECIFIED`` (or entirely reverse) still counts toward the
+    lower levels but can never reach ``STRONG``, because "nobody recorded the
+    direction" must not read as "measured in the right direction". The gate
+    checks direction only; it does not decide whether the row's chemistry is
+    the target chemistry.
     """
     gs = list(groups) if groups is not None else independent_evidence_groups(records)
-    by_id = {}
-    for i, r in enumerate(records):
-        by_id[_record_id(r, f"row{i}")] = r
-
-    contributing: list[EvidenceGroup] = []
-    for g in gs:
-        if not g.is_linkable:
-            continue
-        rows = [by_id[rid] for rid in g.record_ids if rid in by_id]
-        if require_experimental:
-            ok = any(
-                getattr(getattr(r, "outcome", None), "informs_catalytic_ability", False)
-                for r in rows
-            )
-            if not ok:
-                continue
-        contributing.append(g)
-
-    if not contributing:
-        return ConfidenceLevel.INSUFFICIENT
-
-    positive = {OutcomeClass.CONFIRMED_TARGET_PRODUCT.value}
-    negative = {OutcomeClass.NO_TARGET_PRODUCT_DETECTED.value,
-                OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION.value}
-    saw_pos = any(set(g.outcomes) & positive for g in contributing)
-    saw_neg = any(set(g.outcomes) & negative for g in contributing)
-    if (saw_pos and saw_neg) or any(g.has_internal_conflict for g in contributing):
-        return ConfidenceLevel.CONTRADICTORY
-
-    n_seq = sum(1 for g in contributing if g.strongest_strength.is_sequence_level)
-    n_exp = sum(1 for g in contributing
-                if g.strongest_strength.rank >= EvidenceStrength.HOMOLOG_EXPERIMENTAL.rank)
-    n_mapped = sum(1 for g in contributing
-                   if g.strongest_strength.rank >= EvidenceStrength.EC_SPECIES_MAPPED.rank)
-
-    if n_seq >= 2:
-        return ConfidenceLevel.STRONG
-    if n_seq == 1 or n_exp >= 2:
-        return ConfidenceLevel.MODERATE
-    if n_exp == 1 or n_mapped >= 1:
-        return ConfidenceLevel.WEAK
-    return ConfidenceLevel.INSUFFICIENT
+    return _assess_corroboration(
+        records, gs, require_experimental=require_experimental,
+        target_reaction=target_reaction).level
 
 
 # ---------------------------------------------------------------------------
@@ -1011,12 +1250,24 @@ class LineageReport:
     produced without the accompanying "which are M independent measurements,
     tracing to these resources, with these K rows discounted because they are
     copies". A reviewer months later can check the arithmetic.
+
+    ``n_independent`` counts linkable groups only. Rows with no identity are
+    counted in ``n_unlinkable`` and named in ``unlinkable_record_ids``, because
+    a row that cannot be linked to anything is not an independent measurement:
+    it is not evidence of independence, it is evidence of missing provenance,
+    and the two numbers must never be added together.
     """
 
     claim: str
     n_rows: int
     n_independent: int
     corroboration: ConfidenceLevel
+    #: Rows that carry no identity at all, and so support no claim either way.
+    #: Kept beside ``n_independent`` rather than folded into it: an unlinkable
+    #: row is not evidence of independence, it is evidence of missing
+    #: provenance, and the ids are listed in ``unlinkable_record_ids`` so a
+    #: curator can resolve them.
+    n_unlinkable: int = 0
     groups: list[EvidenceGroup] = field(default_factory=list)
     upstream_resources: list[str] = field(default_factory=list)
     discounted: list[DiscountedRow] = field(default_factory=list)
@@ -1031,19 +1282,30 @@ class LineageReport:
         records: Sequence[Any],
         *,
         require_experimental: bool = True,
+        target_reaction: Any | None = None,
     ) -> "LineageReport":
-        """Assemble the report, deriving every number from the same grouping."""
+        """Assemble the report, deriving every number from the same grouping.
+
+        ``target_reaction`` turns on the direction gate described in
+        :func:`corroboration_level`: groups whose rows are all non-supporting by
+        direction are excluded from corroboration, and every excluded row lands
+        in ``discounted`` with the reason, so an exclusion is visible rather
+        than being a number that quietly went down.
+        """
         recs = list(records)
         graph = ProvenanceGraph.from_records(recs)
         groups = independent_evidence_groups(recs, graph=graph)
-        level = corroboration_level(recs, require_experimental=require_experimental,
-                                    groups=groups)
+        assessment = _assess_corroboration(
+            recs, groups, require_experimental=require_experimental,
+            target_reaction=target_reaction)
+        level = assessment.level
         by_id = {_record_id(r, f"row{i}"): r for i, r in enumerate(recs)}
 
         discounted: list[DiscountedRow] = []
         unlinkable: list[str] = []
         conflicts: list[str] = []
         resources: set[str] = set()
+        notes: list[str] = list(assessment.notes)
 
         for g in groups:
             resources.update(g.upstream_resources)
@@ -1074,26 +1336,40 @@ class LineageReport:
                     f"counted once through {g.representative_record_id}",
                 ))
 
+        already = {d.record_id for d in discounted}
+        for g, reason in assessment.direction_excluded:
+            notes.append(f"{g.group_id} excluded from corroboration: {reason}")
+            for rid in g.record_ids:
+                if rid in already:
+                    continue
+                discounted.append(DiscountedRow(rid, g.group_id, reason))
+                already.add(rid)
+
+        unlinkable_ids = sorted(set(unlinkable))
         return cls(
             claim=claim,
             n_rows=len(recs),
-            n_independent=len(groups),
+            n_independent=sum(1 for g in groups if g.is_linkable),
             corroboration=level,
+            n_unlinkable=len(unlinkable_ids),
             groups=groups,
             upstream_resources=sorted(resources),
             discounted=discounted,
-            unlinkable_record_ids=sorted(set(unlinkable)),
+            unlinkable_record_ids=unlinkable_ids,
             conflicts=conflicts,
+            notes=notes,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Plain-data form keeping the row count and the independent count side by
-        side, so neither number can be quoted without the other.
+        """Plain-data form keeping the row count, the independent count and the
+        unlinkable count side by side, so no one of them can be quoted without
+        the others.
         """
         return {
             "claim": self.claim,
             "n_rows": self.n_rows,
             "n_independent": self.n_independent,
+            "n_unlinkable": self.n_unlinkable,
             "corroboration": self.corroboration.value,
             "groups": [g.to_dict() for g in self.groups],
             "upstream_resources": list(self.upstream_resources),
@@ -1109,6 +1385,7 @@ class LineageReport:
             f"claim: {self.claim}",
             f"rows retrieved:           {self.n_rows}",
             f"independent measurements: {self.n_independent}",
+            f"unlinkable rows:          {self.n_unlinkable}",
             f"corroboration:            {self.corroboration.value}",
         ]
         lines.append("upstream resources:       "
@@ -1129,8 +1406,10 @@ class LineageReport:
         else:
             lines.append("discounted rows: none")
         if self.unlinkable_record_ids:
-            lines.append("unlinkable rows (no identity to check): "
-                         + ", ".join(self.unlinkable_record_ids))
+            lines.append(
+                "unlinkable rows (no identity to check, not counted as "
+                "independent measurements): "
+                + ", ".join(self.unlinkable_record_ids))
         for c in self.conflicts:
             lines.append(f"CONFLICT {c}")
         for n in self.notes:

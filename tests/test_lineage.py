@@ -10,8 +10,17 @@ the test rather than redefining it.
 
 from __future__ import annotations
 
+import inspect
+import re
 import unittest
+from unittest import mock
 
+from eagent.datalayer import lineage as lineage_module
+from eagent.datalayer.identity import (
+    EntityMergePolicy,
+    MergeGround,
+    MergeRefusedError,
+)
 from eagent.datalayer.lineage import (
     DiscountedRow,
     EvidenceGroup,
@@ -20,6 +29,7 @@ from eagent.datalayer.lineage import (
     assay_fingerprint,
     corroboration_level,
     count_independent,
+    count_unlinkable,
     grouping_key,
     identity_tokens,
     independent_evidence_groups,
@@ -44,8 +54,13 @@ PARENT_SEQ = "MKAVVLSGFGGLDNVKLEEVPKPTPGPGQVLVKVEAAGVCHSDLHLIDGDLP"
 VARIANT_SEQ = "MKAVVLSGFGGLDNVKLEEVPKPTPGPGQVLVKVEAAGVCHSDLHLIDGDLA"
 OTHER_SEQ = "MSTQLFKPLTIGSLELKNRIVMAPMTRSRAENGVPGELMAEYYAQRASAGLI"
 
-DOI_A = "10.1021/acscatal.0c00001"
-DOI_B = "10.1038/s41929-021-00001-2"
+#: Fixture DOIs. Both use the reserved ``10.5555`` test prefix and a suffix
+#: that cannot be read as a title, because a DOI that looks like a real journal
+#: article gets copied out of a fixture into a docstring, and out of a docstring
+#: into documentation, until something prints it as a citation to a paper that
+#: was never written.
+DOI_A = "10.5555/example-doi-do-not-cite"
+DOI_B = "10.5555/second-example-doi-do-not-cite"
 
 SUBSTRATE = SubstrateSpec(name="acetophenone", isomeric_smiles="CC(=O)c1ccccc1",
                           inchikey="KWOLFJPFCHCOCG-UHFFFAOYSA-N")
@@ -524,6 +539,354 @@ class TestReportSerialisation(unittest.TestCase):
             _ref(identifier="OED:1", doi=f"https://doi.org/{DOI_A.upper()}"),
         ])
         self.assertEqual(publication_ids(rec), [f"doi:{DOI_A}"])
+
+
+# ---------------------------------------------------------------------------
+# FINDING 2: an unlinkable row is missing provenance, not an independent
+# measurement.
+# ---------------------------------------------------------------------------
+
+def _no_identity(record_id: str, sequence: str = PARENT_SEQ) -> ExperimentRecord:
+    """A row with no activity id, no publication id and no fingerprint.
+
+    Untested, so :func:`assay_fingerprint` has no outcome and no number to
+    work from, and no evidence ref, so there is no citation either.
+    """
+    return ExperimentRecord(record_id=record_id, sequence=sequence)
+
+
+class TestUnlinkableRowsAreNotIndependentMeasurements(unittest.TestCase):
+    """Four rows with no identity are zero measurements, never four."""
+
+    def setUp(self) -> None:
+        self.blank = [_no_identity(f"rec-void-{i}",
+                                   PARENT_SEQ if i % 2 else OTHER_SEQ)
+                      for i in range(4)]
+        for r in self.blank:
+            self.assertIsNone(assay_fingerprint(r))
+
+    def test_four_rows_with_no_identity_are_zero_independent_measurements(self) -> None:
+        groups = independent_evidence_groups(self.blank)
+        self.assertEqual(len(groups), 4, "each row is its own unlinkable group")
+        self.assertTrue(all(not g.is_linkable for g in groups))
+        self.assertEqual(count_independent(self.blank), 0)
+
+    def test_the_rows_stay_visible_as_unlinkable(self) -> None:
+        """Not counting them must not mean dropping them."""
+        self.assertEqual(count_unlinkable(self.blank), 4)
+        report = LineageReport.build("four rows with no provenance", self.blank)
+        self.assertEqual(report.n_independent, 0)
+        self.assertEqual(report.n_unlinkable, 4)
+        self.assertEqual(sorted(report.unlinkable_record_ids),
+                         [f"rec-void-{i}" for i in range(4)])
+        self.assertEqual(report.to_dict()["n_unlinkable"], 4)
+
+    def test_the_rendered_report_never_claims_four_measurements(self) -> None:
+        rendered = LineageReport.build("four rows with no provenance",
+                                       self.blank).render()
+        self.assertIn("rows retrieved:           4", rendered)
+        self.assertIn("independent measurements: 0", rendered)
+        self.assertIn("unlinkable rows:          4", rendered)
+        self.assertNotIn("independent measurements: 4", rendered)
+
+    def test_unlinkable_rows_do_not_inflate_a_real_count(self) -> None:
+        """One real measurement plus three empty rows is one measurement."""
+        rows = _recuration_chain() + [_no_identity(f"rec-void-{i}")
+                                      for i in range(3)]
+        report = LineageReport.build("ADH-X reduces acetophenone", rows)
+        self.assertEqual(count_independent(rows), 1)
+        self.assertEqual(report.n_independent, 1)
+        self.assertEqual(report.n_unlinkable, 3)
+        self.assertEqual(report.n_rows, 7)
+
+    def test_the_docstrings_say_what_an_unlinkable_row_is(self) -> None:
+        """The number is only safe if the next reader knows why it is low."""
+        for doc in (count_independent.__doc__, LineageReport.__doc__):
+            flat = " ".join(doc.split())
+            self.assertIn("missing provenance", flat)
+            self.assertIn("not an independent measurement"
+                          if "not an independent measurement" in flat
+                          else "not evidence of independence", flat)
+
+
+# ---------------------------------------------------------------------------
+# FINDING 9: reaction direction gates corroboration.
+# ---------------------------------------------------------------------------
+
+def _directed(record_id: str, doi: str, direction: ReactionDirection,
+              strength: EvidenceStrength = EvidenceStrength.SEQUENCE_LEVEL_EXPERIMENTAL) \
+        -> ExperimentRecord:
+    rec = _record(record_id, evidence=[_ref(source_type="publication",
+                                            identifier=doi, doi=doi,
+                                            strength=strength)])
+    return rec.model_copy(update={"reaction_direction": direction})
+
+
+class _TargetReaction:
+    """Stand-in for the task's reaction spec: it only has to name itself."""
+
+    reaction_class = "ketone_to_secondary_alcohol"
+
+
+class TestReactionDirectionGatesCorroboration(unittest.TestCase):
+    """An alcohol oxidation is not evidence for the ketone reduction."""
+
+    def setUp(self) -> None:
+        self.target = _TargetReaction()
+        self.reverse = [
+            _directed("rec-rev-a", DOI_A, ReactionDirection.REVERSE_OF_TARGET),
+            _directed("rec-rev-b", DOI_B, ReactionDirection.REVERSE_OF_TARGET),
+        ]
+        self.forward = [
+            _directed("rec-fwd-a", DOI_A, ReactionDirection.FORWARD_AS_TARGET),
+            _directed("rec-fwd-b", DOI_B, ReactionDirection.FORWARD_AS_TARGET),
+        ]
+        self.unspecified = [
+            _directed("rec-uns-a", DOI_A, ReactionDirection.UNSPECIFIED),
+            _directed("rec-uns-b", DOI_B, ReactionDirection.UNSPECIFIED),
+        ]
+
+    def test_two_reverse_direction_records_are_never_strong(self) -> None:
+        self.assertEqual(count_independent(self.reverse), 2)
+        self.assertNotEqual(corroboration_level(self.reverse),
+                            ConfidenceLevel.STRONG)
+
+    def test_a_target_reaction_excludes_the_reverse_groups_entirely(self) -> None:
+        self.assertEqual(
+            corroboration_level(self.reverse, target_reaction=self.target),
+            ConfidenceLevel.INSUFFICIENT)
+
+    def test_each_exclusion_is_recorded_with_its_reason(self) -> None:
+        report = LineageReport.build("ADH-X reduces acetophenone", self.reverse,
+                                     target_reaction=self.target)
+        self.assertEqual(report.corroboration, ConfidenceLevel.INSUFFICIENT)
+        discounted = {d.record_id: d.reason for d in report.discounted}
+        self.assertEqual(set(discounted), {"rec-rev-a", "rec-rev-b"})
+        for reason in discounted.values():
+            self.assertIn("reverse", reason)
+        self.assertEqual(len(report.notes), 2)
+        for note in report.notes:
+            self.assertIn("excluded from corroboration", note)
+        rendered = report.render()
+        self.assertIn("reverse", rendered)
+
+    def test_unspecified_direction_cannot_reach_strong_and_says_so(self) -> None:
+        """Nobody recording the direction must not read as the right direction."""
+        level = corroboration_level(self.unspecified)
+        self.assertNotEqual(level, ConfidenceLevel.STRONG)
+        report = LineageReport.build("ADH-X reduces acetophenone",
+                                     self.unspecified)
+        self.assertEqual(len(report.notes), 2)
+        for note in report.notes:
+            self.assertIn("records which direction was measured", note)
+
+    def test_unspecified_direction_is_excluded_when_a_target_is_given(self) -> None:
+        self.assertEqual(
+            corroboration_level(self.unspecified, target_reaction=self.target),
+            ConfidenceLevel.INSUFFICIENT)
+
+    def test_forward_records_still_corroborate(self) -> None:
+        """The gate must not refuse the evidence it exists to protect."""
+        self.assertEqual(corroboration_level(self.forward),
+                         ConfidenceLevel.STRONG)
+        self.assertEqual(
+            corroboration_level(self.forward, target_reaction=self.target),
+            ConfidenceLevel.STRONG)
+        report = LineageReport.build("ADH-X reduces acetophenone", self.forward,
+                                     target_reaction=self.target)
+        self.assertEqual(report.corroboration, ConfidenceLevel.STRONG)
+        self.assertEqual(report.notes, [])
+        self.assertEqual(report.discounted, [])
+
+    def test_a_group_with_one_forward_row_still_counts(self) -> None:
+        """Only groups whose rows are *all* non-supporting are excluded."""
+        both = _record("rec-mixed-copy",
+                       evidence=[_ref(identifier="SKiD:1", doi=DOI_A,
+                                      upstream=("BRENDA",))])
+        mixed = [_directed("rec-mixed", DOI_A,
+                           ReactionDirection.REVERSE_OF_TARGET), both]
+        groups = independent_evidence_groups(mixed)
+        self.assertEqual(len(groups), 1, "both rows cite one paper")
+        self.assertEqual(
+            corroboration_level(mixed, groups=groups,
+                                target_reaction=self.target),
+            ConfidenceLevel.MODERATE)
+
+    def test_reversible_both_shown_supports_the_target(self) -> None:
+        rows = [
+            _directed("rec-rb-a", DOI_A, ReactionDirection.REVERSIBLE_BOTH_SHOWN),
+            _directed("rec-rb-b", DOI_B, ReactionDirection.REVERSIBLE_BOTH_SHOWN),
+        ]
+        self.assertEqual(
+            corroboration_level(rows, target_reaction=self.target),
+            ConfidenceLevel.STRONG)
+
+
+# ---------------------------------------------------------------------------
+# FINDING 20: a prose substrate name is not an identity.
+# ---------------------------------------------------------------------------
+
+class TestProseSubstrateNameNeverMerges(unittest.TestCase):
+    """The merge policy calls substrate-name similarity inadmissible. So does this."""
+
+    def _named_only(self, record_id: str, name: str) -> ExperimentRecord:
+        return ExperimentRecord(
+            record_id=record_id, sequence=PARENT_SEQ,
+            substrate=SubstrateSpec(name=name),
+            conditions=CONDITIONS, cofactor=NADPH,
+            reaction_class=ReactionClass.KETONE_TO_SECONDARY_ALCOHOL,
+            reaction_direction=ReactionDirection.FORWARD_AS_TARGET,
+            outcome=OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+            detection=POSITIVE_DETECTION, conversion_pct=92.0,
+        )
+
+    def test_two_rows_sharing_only_a_prose_name_are_not_one_measurement(self) -> None:
+        a = self._named_only("rec-prose-a", "4-chloroacetophenone")
+        b = self._named_only("rec-prose-b", "4-chloroacetophenone")
+        self.assertIsNone(assay_fingerprint(a))
+        self.assertIsNone(assay_fingerprint(b))
+        groups = independent_evidence_groups([a, b])
+        self.assertEqual(len(groups), 2)
+        self.assertTrue(all(g.key_kind == "unlinkable" for g in groups))
+        self.assertEqual(count_independent([a, b]), 0)
+        self.assertEqual(count_unlinkable([a, b]), 2)
+
+    def test_the_honest_answer_is_recorded_for_a_curator(self) -> None:
+        a = self._named_only("rec-prose-a", "4-chloroacetophenone")
+        report = LineageReport.build("ADH-X reduces the chloroketone", [a])
+        self.assertEqual(report.unlinkable_record_ids, ["rec-prose-a"])
+        self.assertEqual(report.n_independent, 0)
+
+    def test_a_structural_identifier_still_fingerprints(self) -> None:
+        """Dropping the name must not disable the fingerprint tier."""
+        a = _record("rec-fp-1", evidence=[])
+        b = _record("rec-fp-2", evidence=[])
+        self.assertIsNotNone(assay_fingerprint(a))
+        self.assertEqual(count_independent([a, b]), 1)
+
+    def test_smiles_only_rows_still_fingerprint(self) -> None:
+        smiles_only = SubstrateSpec(isomeric_smiles="CC(=O)c1ccccc1")
+        rows = [
+            ExperimentRecord(
+                record_id=f"rec-smiles-{i}", sequence=PARENT_SEQ,
+                substrate=smiles_only, conditions=CONDITIONS, cofactor=NADPH,
+                reaction_direction=ReactionDirection.FORWARD_AS_TARGET,
+                outcome=OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                detection=POSITIVE_DETECTION, conversion_pct=92.0)
+            for i in range(2)
+        ]
+        self.assertIsNotNone(assay_fingerprint(rows[0]))
+        self.assertEqual(count_independent(rows), 1)
+
+    def test_an_inchikey_never_collides_with_a_smiles_string(self) -> None:
+        """The identifier kind travels with the value, so two tiers cannot clash."""
+        from eagent.datalayer.lineage import _substrate_identity
+
+        by_key = _substrate_identity(_record("rec-k", evidence=[]))
+        self.assertTrue(by_key.startswith("inchikey:"))
+        smiles = SubstrateSpec(isomeric_smiles="C[C@H](O)c1ccccc1")
+        rec = ExperimentRecord(record_id="rec-s", sequence=PARENT_SEQ,
+                               substrate=smiles)
+        self.assertEqual(_substrate_identity(rec),
+                         "smiles:C[C@H](O)c1ccccc1")
+
+
+# ---------------------------------------------------------------------------
+# FINDING 16: no invented citation may stand in a docstring or a fixture.
+# ---------------------------------------------------------------------------
+
+class TestExampleIdentifiersAreUnmistakablePlaceholders(unittest.TestCase):
+    #: ``10.5555`` is the reserved DOI test prefix; ``10.1000`` is the prefix
+    #: used by the DOI handbook's own examples.
+    RESERVED_PREFIXES = ("10.5555/", "10.1000/")
+
+    def _dois_in(self, text: str) -> list[str]:
+        return re.findall(r"10\.\d{4,9}/[^\s`'\"),]+", text)
+
+    def test_the_module_quotes_no_plausible_real_doi(self) -> None:
+        found = self._dois_in(inspect.getsource(lineage_module))
+        self.assertTrue(found, "the example DOI should still be there")
+        for doi in found:
+            self.assertTrue(doi.startswith(self.RESERVED_PREFIXES),
+                            f"{doi} reads as a citation to a real paper")
+
+    def test_this_test_module_quotes_no_plausible_real_doi(self) -> None:
+        for doi in self._dois_in(inspect.getsource(inspect.getmodule(self))):
+            self.assertTrue(doi.startswith(self.RESERVED_PREFIXES),
+                            f"{doi} reads as a citation to a real paper")
+
+    def test_the_placeholder_still_normalises_as_a_doi(self) -> None:
+        """A placeholder nobody can mistake must still exercise the code."""
+        self.assertEqual(normalise_doi(f"https://doi.org/{DOI_A.upper()}"),
+                         DOI_A)
+
+
+# ---------------------------------------------------------------------------
+# FINDING 12: the merge policy is enforced, not decorative.
+# ---------------------------------------------------------------------------
+
+class TestEveryUnionGoesThroughTheMergePolicy(unittest.TestCase):
+    def test_each_token_kind_names_an_admissible_ground(self) -> None:
+        policy = EntityMergePolicy()
+        admissible = set(policy.admissible_grounds())
+        for prefix, ground, _parts in lineage_module._TOKEN_GROUNDS:
+            self.assertIn(ground, admissible,
+                          f"tokens {prefix!r} would union rows on an "
+                          f"inadmissible ground")
+
+    def test_a_token_that_names_no_ground_refuses_to_union(self) -> None:
+        """A new token kind must fail loudly, not merge quietly."""
+        with self.assertRaises(MergeRefusedError):
+            lineage_module._merge_ground_for_token("name:alcohol dehydrogenase")
+
+    def test_grouping_puts_every_union_to_the_policy(self) -> None:
+        records = _recuration_chain()
+        seen: list[tuple[str, str]] = []
+        real = lineage_module.assert_merge_allowed
+
+        def spy(a, b, ground, **kwargs):
+            seen.append((MergeGround(ground).value, kwargs.get("observed")))
+            return real(a, b, ground, **kwargs)
+
+        with mock.patch.object(lineage_module, "assert_merge_allowed", spy):
+            groups = independent_evidence_groups(records)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(len(seen), 3, "three rows joined the first one")
+        for value, observed in seen:
+            self.assertEqual(value,
+                             MergeGround.PUBLICATION_IDENTIFIER_EQUAL.value)
+            self.assertEqual(observed, DOI_A)
+
+    def test_a_refused_ground_stops_the_grouping_instead_of_merging(self) -> None:
+        """The guard is load-bearing: a refusal must propagate, not be swallowed."""
+        def refuse(a, b, ground, **kwargs):
+            raise MergeRefusedError(
+                lineage_module.MergeDecision(
+                    may_merge=False, ground=None,
+                    reason="refused by the test"))
+
+        with mock.patch.object(lineage_module, "assert_merge_allowed", refuse):
+            with self.assertRaises(MergeRefusedError):
+                independent_evidence_groups(_recuration_chain())
+
+    def test_a_row_joining_on_an_activity_id_is_checked_on_that_ground(self) -> None:
+        full = _record("rec-act-full", evidence=[_ref(identifier="BRENDA:1",
+                                                      activity="assay-1")])
+        copy = _record("rec-act-copy", evidence=[_ref(identifier="SKiD:1",
+                                                      activity="ASSAY-1")])
+        seen: list[str] = []
+        real = lineage_module.assert_merge_allowed
+
+        def spy(a, b, ground, **kwargs):
+            seen.append(MergeGround(ground).value)
+            return real(a, b, ground, **kwargs)
+
+        with mock.patch.object(lineage_module, "assert_merge_allowed", spy):
+            groups = independent_evidence_groups([full, copy])
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(seen,
+                         [MergeGround.EXPERIMENT_ACTIVITY_ID_EQUAL.value])
+
 
 
 if __name__ == "__main__":

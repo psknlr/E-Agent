@@ -28,7 +28,10 @@ upward an explicit human act:
 * :func:`normalise_outcome` -- messy source statements onto the six outcome
   classes, refusing to guess. ``n.d.`` means "not detected" in one paper and
   "not determined" in the next, so it resolves to ``NOT_TESTED`` with a
-  recorded uncertainty, never to a negative.
+  recorded uncertainty, never to a negative. Negation is read *structurally*,
+  from the position of a negator relative to the phrase it governs, because a
+  matcher that consumes phrases out of the text loses the negator and reads
+  "0% conversion observed" as a confirmed product.
 * :func:`direction_check` -- an alcohol oxidation measurement is not evidence
   for the ketone reduction, however good the enzyme looks.
 * :func:`coverage` -- how many records reach each tier and how many are fully
@@ -60,6 +63,7 @@ from .registry import SourceRegistry, UnknownSourceError
 __all__ = [
     "AuditEntry",
     "CoverageRequirement",
+    "DIRECTION_AXIS_UNASSESSED",
     "DirectionVerdict",
     "EvidenceTier",
     "ExtractionMethod",
@@ -84,6 +88,7 @@ __all__ = [
     "ingest",
     "normalise_outcome",
     "promote",
+    "requirements_for",
     "reverse_class_of",
 ]
 
@@ -539,16 +544,35 @@ def ingest(
     ``tier`` is never inferred from ``extraction_method``, and
     ``extraction_method`` is never inferred from ``tier``; a caller that cannot
     say which it has passes ``UNKNOWN`` and gets a curation flag.
+
+    A caller that passes no ``claimed_strength`` gets the *floor* --
+    ``annotation_only``, or ``computational_construct`` at the model-inferred
+    tier -- with an uncertainty recording that the connector said nothing. The
+    source and tier ceilings remain what they are, a cap on what may be
+    claimed; defaulting to a cap would stamp the strongest permitted label on
+    the rows that assert the least, which is a guess upward and the exact move
+    the rest of this module refuses.
     """
     source = registry.get(source_id)           # raises UnknownSourceError
     ceiling: EvidenceStrength = source.evidence_strength_ceiling
     tier_cap = tier.max_strength_on_ingest
 
+    assumed_strength_note: str | None = None
     if claimed_strength is None:
-        # Default to the lower of the two caps: never above what either the
-        # source or the tier can support, and never guessed upward.
-        claimed_strength = (ceiling if _strength_rank(ceiling) <= _strength_rank(tier_cap)
-                            else tier_cap)
+        # Default to the FLOOR, not to either cap. The caps bound what this
+        # source and tier are allowed to support; a row that states nothing
+        # supports nothing, and stamping the maximum it would be permitted is
+        # the upward guess this module exists to prevent. The ceiling stays the
+        # ceiling: it is checked below, exactly as for a stated claim.
+        claimed_strength = (EvidenceStrength.COMPUTATIONAL_CONSTRUCT
+                            if tier is EvidenceTier.MODEL_INFERRED
+                            else EvidenceStrength.ANNOTATION_ONLY)
+        assumed_strength_note = (
+            f"the connector stated no evidence strength for this row, so the "
+            f"weakest ({claimed_strength.value}) was assumed; the source "
+            f"ceiling ({ceiling.value}) and the tier ceiling "
+            f"({tier_cap.value}) are the most it could be raised to, and "
+            f"raising it requires promote() with a named human reviewer")
 
     if _strength_rank(claimed_strength) > _strength_rank(ceiling):
         raise SourceCeilingError(
@@ -577,6 +601,8 @@ def ingest(
 
     notes = list(uncertainties)
     needs_curation = bool(source.needs_curation)
+    if assumed_strength_note is not None:
+        notes.append(assumed_strength_note)
     if extraction_method is ExtractionMethod.UNKNOWN:
         notes.append("extraction method not recorded by the connector; a curator "
                      "must determine whether this row was read, exported or "
@@ -797,14 +823,20 @@ _OUTCOME_RULES: tuple[tuple[str, OutcomeClass | None, tuple[str, ...]], ...] = (
     )),
     ("positive", OutcomeClass.CONFIRMED_TARGET_PRODUCT, (
         "target product confirmed", "product confirmed", "product formed",
+        "product observed", "product detected", "product identified",
         "activity confirmed", "activity detected", "conversion observed",
         "active", "activity", "converted", "turnover observed", "positive",
     )),
+    # ``no`` is deliberately absent here. It is a *negator*, not an outcome
+    # token, and listing it as a phrase made its meaning depend on whether some
+    # other phrase happened to consume the words around it. It is scanned for
+    # position instead (:func:`_scan_negators`); a statement that is nothing but
+    # a bare negator still resolves to NOT_TESTED, with the same reason.
     ("known_ambiguous", None, (
         "nd", "na", "trace", "racemic", "no data", "not reported",
         "not determined", "not available", "unclear", "ambiguous", "unknown",
         "n r", "variable", "low", "weak", "some activity", "slight activity",
-        "poor", "marginal", "borderline", "yes", "no", "negative",
+        "poor", "marginal", "borderline", "yes", "negative",
     )),
 )
 
@@ -837,22 +869,353 @@ _AMBIGUITY_NOTES: Mapping[str, str] = {
     "borderline": "'borderline' is a magnitude, not an outcome class",
     "yes": "'yes' does not say what was observed, or that the product was "
            "identified rather than a cofactor signal",
-    "no": "'no' does not say whether the assay ran, whether the protein "
-          "expressed, or what the detection limit was",
     "negative": "'negative' is used for a failed assay, a failed expression and "
                 "a measured absence of product",
 }
 
 
-def _normalise_text(raw: str) -> str:
+# -- tokenisation and negation scope ----------------------------------------
+#
+# Matching runs over a *token list with positions*, not over a string that each
+# match deletes from. Negation is a question about position: "0% conversion
+# observed" and "conversion observed" contain the same positive phrase and mean
+# opposite things, and a matcher that consumes the longest phrase anywhere in
+# the string and throws the offsets away cannot tell them apart. The negator is
+# then left over as a stray token belonging to no rule, is discarded, and a row
+# with no conversion at all is stored as a confirmed product.
+
+#: Stands in for a clause boundary (punctuation or a contrastive conjunction).
+#: Negation does not cross one, so "no standard available, product observed"
+#: keeps its positive while "no product observed" does not.
+_CLAUSE_BREAK = "|"
+
+#: Words that begin a new clause. A negator before one of these governs the
+#: clause it is in, not the claim after it.
+_CLAUSE_CONJUNCTIONS: frozenset[str] = frozenset({
+    "but", "however", "although", "though", "whereas", "while", "yet",
+    "despite", "nevertheless", "nonetheless", "except",
+})
+
+#: Tokens that assert absence outright. A statement they govern is a negative,
+#: not a positive.
+_DEFINITE_NEGATORS: frozenset[str] = frozenset({
+    "no", "not", "non", "without", "absent", "absence", "undetectable",
+    "undetected", "nil", "none", "zero", "never", "neither", "nor", "lacking",
+})
+
+#: Tokens that put a statement at or near the noise floor. These resolve to
+#: neither a positive nor a negative: "trace" and "<1%" are a real small
+#: conversion in one paper and a blank-level artefact in the next, and choosing
+#: between them is the guess this module exists to refuse.
+_NEAR_ZERO_NEGATORS: frozenset[str] = frozenset({
+    "negligible", "trace", "traces", "barely", "insignificant", "minimal",
+    "nd", "borderline",
+})
+
+#: Comparison qualifiers. With a quantity or a limit noun after them they bound
+#: a statement from above, which is the "<1%" case.
+_QUANTITY_QUALIFIERS: frozenset[str] = frozenset({
+    "lessthan", "below", "under", "beneath",
+})
+
+#: Nouns that make a bare qualifier into a bound ("under the detection limit").
+_LIMIT_NOUNS: frozenset[str] = frozenset({
+    "detection", "limit", "limits", "lod", "loq", "background", "noise",
+    "baseline", "quantitation", "quantification",
+})
+
+#: Negators that may also govern a statement they *follow* ("activity nil").
+#: Determiners and prepositions are excluded: in "product formed without
+#: cofactor" the "without" takes the cofactor as its object, not the product.
+_TRAILING_ABSENCE: frozenset[str] = frozenset({
+    "nil", "none", "zero", "absent", "absence", "undetectable", "undetected",
+    "nd",
+})
+
+#: Tokens that carry a measurement but make no claim of their own, so a clause
+#: built only from these is a bare quantity ("conversion observed: 0%").
+_MEASUREMENT_WORDS: frozenset[str] = frozenset({
+    "percent", "pct", "ee", "conversion", "conv", "yield", "mm", "um", "nm",
+    "mg", "ml", "mol", "mmol", "min", "h", "s", "u", "the", "a", "of", "and",
+    "or", "was", "is", "were", "are", "at",
+})
+
+#: Prepositions that mark a trailing quantity as an experimental parameter
+#: rather than the measured outcome: "product formed with 0 mM NADPH" is a
+#: control, not a zero-conversion row.
+_PARAMETER_PREPOSITIONS: frozenset[str] = frozenset({
+    "with", "without", "in", "on", "using", "from", "per", "over", "after",
+    "containing", "against", "versus", "vs", "by", "into",
+})
+
+#: How many tokens may sit between a negator and the phrase it governs before
+#: the link stops being readable from the text alone.
+_NEGATION_WINDOW = 2
+
+
+#: Why a statement that is nothing but a negator or a quantity is refused.
+#: "no" and "0%" in an outcome column are each used for all three of "not
+#: detected", "not determined" and "not applicable", and nothing in the cell
+#: says which.
+_BARE_NEGATION_NOTE = (
+    "a bare negator or quantity does not say what was measured, whether the "
+    "assay ran, whether the protein expressed, or at what detection limit, so "
+    "it is not an outcome"
+)
+
+#: Internal spellings put back into readable form for the recorded reasons.
+_TOKEN_DISPLAY: Mapping[str, str] = {
+    "lessthan": "<", "greaterthan": ">", "nd": "n.d.",
+}
+
+
+def _display(token: str) -> str:
+    return _TOKEN_DISPLAY.get(token, token)
+
+
+def _tokenise(raw: str) -> list[str]:
+    """Normalise a source statement into tokens, keeping clause boundaries.
+
+    Punctuation becomes :data:`_CLAUSE_BREAK` rather than whitespace, because
+    the boundary is the thing that stops a negator in one clause reaching a
+    claim in the next. ``<`` and ``%`` survive as words, and a decimal point is
+    kept inside its number, so "<0.5%" is still readable as a bounded quantity
+    after the alphanumeric squeeze.
+    """
     s = str(raw).lower()
-    s = s.replace("‐", "-").replace("‑", "-").replace("‒", "-")
-    s = s.replace("–", "-").replace("—", "-").replace("−", "-")
-    s = re.sub(r"\bn\s*\.\s*d\s*\.?", " nd ", s)
+    for dash in ("‐", "‑", "‒", "–", "—", "−"):
+        s = s.replace(dash, "-")
     s = re.sub(r"\bn\s*/\s*a\b", " na ", s)
+    s = re.sub(r"\bn\s*\.\s*d\s*\.?", " nd ", s)
     s = re.sub(r"\bn\s*\.\s*r\s*\.?", " n r ", s)
-    s = re.sub(r"[^a-z0-9]+", " ", s)
-    return f" {' '.join(s.split())} "
+    s = re.sub(r"\b(?:less|fewer)\s+than\b", " lessthan ", s)
+    s = re.sub(r"(\d)\s*\.\s*(\d)", r"\1point\2", s)
+    for op in ("≤", "<="):
+        s = s.replace(op, " lessthan ")
+    s = s.replace("<", " lessthan ")
+    for op in ("≥", ">="):
+        s = s.replace(op, " greaterthan ")
+    s = s.replace(">", " greaterthan ")
+    s = s.replace("%", " percent ")
+    s = re.sub(r"[;:,.()\[\]{}/\\\n\r\t|]+", f" {_CLAUSE_BREAK} ", s)
+    s = re.sub(r"[^a-z0-9|]+", " ", s)
+
+    tokens: list[str] = []
+    for tok in s.split():
+        if tok in _CLAUSE_CONJUNCTIONS:
+            tok = _CLAUSE_BREAK
+        if tok == _CLAUSE_BREAK and (not tokens or tokens[-1] == _CLAUSE_BREAK):
+            continue
+        tokens.append(tok)
+    while tokens and tokens[-1] == _CLAUSE_BREAK:
+        tokens.pop()
+    return tokens
+
+
+def _clause_ids(tokens: Sequence[str]) -> list[int]:
+    """Clause number of each token; a break token keeps the clause it closes."""
+    out: list[int] = []
+    clause = 0
+    for tok in tokens:
+        out.append(clause)
+        if tok == _CLAUSE_BREAK:
+            clause += 1
+    return out
+
+
+def _number_value(tok: str) -> float | None:
+    """Numeric value of a token, or ``None``. ``0point5`` is ``0.5``."""
+    if not tok or not tok[0].isdigit():
+        return None
+    try:
+        return float(tok.replace("point", "."))
+    except ValueError:
+        return None
+
+
+@dataclass(frozen=True)
+class _PhraseMatch:
+    """One rule phrase found at a known position in the token list."""
+
+    rule: str
+    outcome: OutcomeClass | None
+    phrase: str
+    start: int
+    end: int
+
+
+def _build_phrase_index() -> tuple[tuple[tuple[str, ...], str, OutcomeClass | None, str], ...]:
+    index: list[tuple[tuple[str, ...], str, OutcomeClass | None, str]] = []
+    for rule_name, outcome, phrases in _OUTCOME_RULES:
+        for phrase in phrases:
+            toks = tuple(t for t in _tokenise(phrase) if t != _CLAUSE_BREAK)
+            if toks:
+                index.append((toks, rule_name, outcome, phrase))
+    index.sort(key=lambda e: (len(e[0]), len(e[3])), reverse=True)
+    return tuple(index)
+
+
+#: Rule phrases as token tuples, longest first.
+_PHRASE_INDEX = _build_phrase_index()
+
+
+def _match_phrases(tokens: Sequence[str]) -> list[_PhraseMatch]:
+    """Leftmost-longest, non-overlapping phrase matches, with their positions.
+
+    Longest-first at each position is what makes "not active" a negative rather
+    than a negative *and* a positive; leftmost rather than globally-longest is
+    what keeps the match positions meaningful, so a negator can be tested
+    against the span it actually governs.
+    """
+    out: list[_PhraseMatch] = []
+    i = 0
+    n = len(tokens)
+    while i < n:
+        if tokens[i] == _CLAUSE_BREAK:
+            i += 1
+            continue
+        hit: _PhraseMatch | None = None
+        for toks, rule_name, outcome, phrase in _PHRASE_INDEX:
+            k = len(toks)
+            if k > n - i:
+                continue
+            if tuple(tokens[i:i + k]) == toks:
+                hit = _PhraseMatch(rule_name, outcome, phrase, i, i + k)
+                break
+        if hit is None:
+            i += 1
+            continue
+        out.append(hit)
+        i = hit.end
+    return out
+
+
+@dataclass(frozen=True)
+class _Negator:
+    """A token that denies, or bounds to nothing, whatever it governs."""
+
+    index: int
+    token: str
+    kind: str          # "definite" | "near_zero"
+    may_trail: bool    # may it govern a statement it follows?
+    note: str
+
+
+def _scan_negators(tokens: Sequence[str]) -> list[_Negator]:
+    """Every negator and none-meaning quantity in the text, with its position.
+
+    Run before any phrase is consumed, so negation is structural rather than
+    whatever token happens to be left over once the phrase matcher has eaten
+    the rest of the sentence.
+    """
+    out: list[_Negator] = []
+    for i, tok in enumerate(tokens):
+        if tok == _CLAUSE_BREAK:
+            continue
+        value = _number_value(tok)
+        if value is not None:
+            if any(tokens[j] in _QUANTITY_QUALIFIERS
+                   for j in range(max(0, i - _NEGATION_WINDOW), i)):
+                continue                      # the qualifier is recorded instead
+            if value == 0.0:
+                out.append(_Negator(
+                    i, tok, "definite", True,
+                    f"the quantity '{_display(tok)}' is zero"))
+            continue
+        if tok in _QUANTITY_QUALIFIERS:
+            after = tokens[i + 1:i + 1 + _NEGATION_WINDOW + 1]
+            bounded = any(_number_value(t) is not None or t in _LIMIT_NOUNS
+                          for t in after)
+            out.append(_Negator(
+                i, tok, "near_zero", bounded,
+                f"'{_display(tok)}' bounds the statement from above rather "
+                f"than measuring it"))
+            continue
+        if tok in _DEFINITE_NEGATORS:
+            out.append(_Negator(
+                i, tok, "definite", tok in _TRAILING_ABSENCE,
+                f"'{_display(tok)}' denies what it governs"))
+        elif tok in _NEAR_ZERO_NEGATORS:
+            out.append(_Negator(
+                i, tok, "near_zero", tok in _TRAILING_ABSENCE,
+                f"'{_display(tok)}' places the statement at or near the noise "
+                f"floor"))
+    return out
+
+
+def _bare_quantity_clauses(
+    tokens: Sequence[str],
+    clauses: Sequence[int],
+    spans: Sequence[tuple[int, int]],
+) -> set[int]:
+    """Clauses that are only a quantity or a bare negator, e.g. ``": 0%"``.
+
+    Such a clause makes no claim of its own, so it qualifies the neighbouring
+    one: "conversion observed: 0%" is a zero-conversion row however the source
+    punctuated it, and treating the punctuation as a wall is how the negator
+    gets lost.
+    """
+    covered = {i for s, e in spans for i in range(s, e)}
+    content: dict[int, list[int]] = {}
+    for i, tok in enumerate(tokens):
+        if tok == _CLAUSE_BREAK:
+            continue
+        content.setdefault(clauses[i], []).append(i)
+    bare: set[int] = set()
+    for cid, idxs in content.items():
+        if any(i in covered for i in idxs):
+            continue
+        has_signal = False
+        ok = True
+        for i in idxs:
+            tok = tokens[i]
+            if _number_value(tok) is not None or tok in _DEFINITE_NEGATORS \
+                    or tok in _NEAR_ZERO_NEGATORS or tok in _QUANTITY_QUALIFIERS:
+                has_signal = True
+                continue
+            if tok in _MEASUREMENT_WORDS:
+                continue
+            ok = False
+            break
+        if ok and has_signal:
+            bare.add(cid)
+    return bare
+
+
+def _governance(
+    neg: _Negator,
+    start: int,
+    end: int,
+    tokens: Sequence[str],
+    clauses: Sequence[int],
+    bare: set[int],
+) -> str | None:
+    """Whether ``neg`` governs the span ``[start, end)``, and how closely.
+
+    ``"close"`` means the link is readable from the text: the negator sits
+    beside the statement, leads it as a quantity, or is the whole of an
+    adjoining clause. ``"far"`` means a negator is loose in the same clause but
+    not attached to this statement, which is not a reading, it is a reason to
+    stop and say so.
+    """
+    if start <= neg.index < end:
+        return None
+    if clauses[neg.index] == clauses[start]:
+        if neg.index < start:
+            gap = start - neg.index - 1
+            return "close" if gap <= _NEGATION_WINDOW else "far"
+        if not neg.may_trail:
+            return None
+        gap = neg.index - end
+        if gap > _NEGATION_WINDOW:
+            return None
+        if any(t in _PARAMETER_PREPOSITIONS for t in tokens[end:neg.index]):
+            return None                   # a reaction parameter, not the outcome
+        return "close"
+    if clauses[neg.index] in bare \
+            and abs(clauses[neg.index] - clauses[start]) == 1:
+        return "close"
+    return None
 
 
 @dataclass(frozen=True)
@@ -939,6 +1302,18 @@ def normalise_outcome(
     A positive is blocked the same way when ``detection`` does not identify the
     product: a cofactor absorbance change is consistent with turnover on an
     impurity.
+
+    *A negated positive is not a positive.* "0% conversion observed", "<1%
+    conversion observed" and "no conversion observed" all contain a positive
+    phrase, and a matcher that consumes the longest phrase and throws its
+    position away reads all three as confirmed product. Negators and
+    none-meaning quantities are therefore scanned first, with their positions,
+    and a positive whose span a negator governs is never stored as a positive:
+    a definite negator beside it makes it a negative (still subject to the
+    detection-limit rule above), and anything near-zero or out of reach makes
+    it ``NOT_TESTED`` with the reason recorded. "trace" and "<1%" are
+    deliberately in the second group: at the noise floor a real small
+    conversion and a blank are the same number.
     """
     if raw is None or not str(raw).strip():
         return OutcomeNormalisation(
@@ -951,35 +1326,115 @@ def normalise_outcome(
                            "a statement is not a measured absence of activity",),
         )
 
-    text = _normalise_text(raw)
-    matched: list[tuple[str, OutcomeClass | None, str]] = []
-
-    # Longest phrase first, consuming what matched, so "not active" is read as a
-    # negative instead of matching both "not active" and "active".
-    scored: list[tuple[int, str, OutcomeClass | None, str]] = []
-    for rule_name, outcome, phrases in _OUTCOME_RULES:
-        for phrase in phrases:
-            scored.append((len(phrase), rule_name, outcome, phrase))
-    for _, rule_name, outcome, phrase in sorted(scored, key=lambda t: -t[0]):
-        needle = f" {phrase} "
-        if needle in text:
-            matched.append((rule_name, outcome, phrase))
-            text = text.replace(needle, " ")
-
-    classes = {o for _, o, _ in matched if o is not None}
-    ambiguous_hits = [p for _, o, p in matched if o is None]
-    rules = tuple(dict.fromkeys(r for r, _, _ in matched))
+    tokens = _tokenise(raw)
+    clauses = _clause_ids(tokens)
+    matches = _match_phrases(tokens)
+    spans = [(m.start, m.end) for m in matches]
+    # A negator swallowed by a phrase ("no" inside "no product detected") is
+    # that phrase's own business; only the free ones can govern another span.
+    negators = [g for g in _scan_negators(tokens)
+                if not any(s <= g.index < e for s, e in spans)]
+    bare = _bare_quantity_clauses(tokens, clauses, spans)
 
     uncertainties: list[str] = []
 
-    if not matched:
-        uncertainties.append(
-            f"no rule matched the source statement {raw!r}; it was not mapped "
-            f"onto an outcome class, and a human must read it")
+    if not matches:
+        content_clauses = {clauses[i] for i, t in enumerate(tokens)
+                           if t != _CLAUSE_BREAK}
+        if negators and content_clauses and content_clauses <= bare:
+            uncertainties.append(
+                f"the source statement {raw!r} is a bare negator or quantity: "
+                f"{_BARE_NEGATION_NOTE}")
+        elif negators:
+            named = ", ".join(sorted({f"'{_display(g.token)}'" for g in negators}))
+            uncertainties.append(
+                f"no rule matched the source statement {raw!r}; it carries a "
+                f"negator or none-meaning quantity ({named}) but nothing this "
+                f"function recognises as a statement of what was measured, so "
+                f"it was not mapped onto an outcome class and a human must "
+                f"read it")
+        else:
+            uncertainties.append(
+                f"no rule matched the source statement {raw!r}; it was not mapped "
+                f"onto an outcome class, and a human must read it")
         return OutcomeNormalisation(
             raw=raw, outcome=OutcomeClass.NOT_TESTED, proposed_outcome=None,
-            confident=False, matched_rules=rules,
+            confident=False, matched_rules=(),
             uncertainties=tuple(uncertainties))
+
+    # -- negation scope ----------------------------------------------------
+    # Each matched class is tested against the negators that govern its span.
+    # A governed positive is never a positive: it is a negative when a definite
+    # negator sits on it, and not_tested when the sense cannot be read off the
+    # text. Nothing is decided by which token happened to survive the matcher.
+    kept: list[_PhraseMatch] = []
+    rule_names: list[str] = []
+    negation_notes: list[str] = []
+    negation_blocked: str | None = None
+
+    for m in matches:
+        if m.outcome is None:
+            kept.append(m)
+            rule_names.append(m.rule)
+            continue
+        governing = [(g, prox) for g, prox in
+                     ((g, _governance(g, m.start, m.end, tokens, clauses, bare))
+                      for g in negators) if prox]
+        if not governing:
+            kept.append(m)
+            rule_names.append(m.rule)
+            continue
+
+        tokens_named = ", ".join(
+            sorted({f"'{_display(g.token)}'" for g, _ in governing}))
+        near = [g for g, _ in governing if g.kind == "near_zero"]
+        definite_close = [g for g, prox in governing
+                          if g.kind == "definite" and prox == "close"]
+
+        if near:
+            rule_names.append("negation_ambiguous")
+            negation_notes.append(
+                f"{tokens_named} governs '{m.phrase}' in {raw!r}: a quantity "
+                f"at or near the noise floor is ambiguous between a small real "
+                f"conversion and background, so the statement is neither a "
+                f"positive nor a measured absence")
+            negation_blocked = (
+                "a near-zero or bounded quantity governs the statement; it "
+                "resolves to neither a positive nor a negative")
+        elif definite_close and m.outcome is OutcomeClass.CONFIRMED_TARGET_PRODUCT:
+            kept.append(_PhraseMatch(
+                rule="negated_positive",
+                outcome=OutcomeClass.NO_TARGET_PRODUCT_DETECTED,
+                phrase=m.phrase, start=m.start, end=m.end))
+            rule_names.append("negated_positive")
+            negation_notes.append(
+                f"{tokens_named} negates '{m.phrase}' in {raw!r}; the statement "
+                f"was read as an absence of the target product, never as the "
+                f"positive the phrase alone would suggest")
+        elif m.outcome is OutcomeClass.CONFIRMED_TARGET_PRODUCT:
+            rule_names.append("negation_unresolved")
+            negation_notes.append(
+                f"{tokens_named} appears in the same clause as '{m.phrase}' in "
+                f"{raw!r} but not beside it, so whether the positive is negated "
+                f"cannot be read off the text; a human must read the source")
+            negation_blocked = (
+                "a negator shares the clause with the positive statement and "
+                "the scope cannot be resolved by rule")
+        else:
+            rule_names.append("negation_unresolved")
+            negation_notes.append(
+                f"{tokens_named} governs '{m.phrase}' in {raw!r}, which is "
+                f"itself a {m.outcome.value} statement; a double negation is "
+                f"not resolved by rule")
+            negation_blocked = (
+                f"a negator governs a {m.outcome.value} statement; the double "
+                f"negation is not resolved by rule")
+
+    rules = tuple(dict.fromkeys(rule_names))
+    uncertainties.extend(negation_notes)
+
+    classes = {m.outcome for m in kept if m.outcome is not None}
+    ambiguous_hits = [m.phrase for m in kept if m.outcome is None]
 
     if len(classes) > 1:
         names = ", ".join(sorted(c.value for c in classes))
@@ -996,10 +1451,14 @@ def normalise_outcome(
         for phrase in ambiguous_hits:
             uncertainties.append(
                 f"{phrase!r}: {_AMBIGUITY_NOTES.get(phrase, 'meaning varies between sources')}")
+        if not ambiguous_hits and negation_blocked is None:
+            uncertainties.append(
+                f"no outcome class survived reading {raw!r}; a human must read it")
         return OutcomeNormalisation(
             raw=raw, outcome=OutcomeClass.NOT_TESTED, proposed_outcome=None,
             confident=False, matched_rules=rules,
-            uncertainties=tuple(uncertainties))
+            uncertainties=tuple(uncertainties),
+            blocked_reason=negation_blocked)
 
     proposed = next(iter(classes))
 
@@ -1016,6 +1475,15 @@ def normalise_outcome(
             uncertainties=tuple(uncertainties),
             blocked_reason=(f"the statement resolves to {proposed.value} only if "
                             f"an ambiguous token is ignored"))
+
+    # An unresolved negation elsewhere in the text cannot be ignored just
+    # because some other phrase did resolve.
+    if negation_blocked is not None:
+        return OutcomeNormalisation(
+            raw=raw, outcome=OutcomeClass.NOT_TESTED, proposed_outcome=proposed,
+            confident=False, matched_rules=rules,
+            uncertainties=tuple(uncertainties),
+            blocked_reason=negation_blocked)
 
     blocked: str | None = None
     outcome = proposed
@@ -1379,8 +1847,49 @@ def _has_substrate_structure(r: IntakeRecord) -> bool:
     return bool(getattr(sub, "inchikey", None) or getattr(sub, "isomeric_smiles", None))
 
 
-def _has_direction(r: IntakeRecord) -> bool:
+def _direction_recorded(r: IntakeRecord) -> bool:
+    """Whether a direction is written down at all. A *statistic*, not a check.
+
+    Kept because "how many rows say nothing about direction" is worth knowing,
+    and kept separate because presence is not support: a row declaring
+    ``reverse_of_target`` has a direction recorded and is still a measurement
+    of the opposite reaction.
+    """
     return r.record.reaction_direction is not ReactionDirection.UNSPECIFIED
+
+
+def _direction_requirement(target_reaction: Any = None) -> CoverageRequirement:
+    """The direction axis, bound to a target reaction when one is supplied.
+
+    With a target it asks :func:`direction_check` whether the row *supports*
+    that reaction. Without one it can only ask whether a direction is recorded,
+    which is why :func:`coverage` additionally reports that the axis went
+    unassessed: an oxidation measurement passes the presence test and the
+    requirement's own text says an oxidation measurement is not reduction
+    evidence.
+    """
+    if target_reaction is None:
+        return CoverageRequirement(
+            name="reaction_direction",
+            why="an oxidation measurement is not reduction evidence, and an "
+                "unrecorded direction cannot be assumed to be the target one; "
+                "with no target reaction supplied only the presence of a "
+                "direction could be checked, not whether it supports anything",
+            test=_direction_recorded)
+
+    def _supports(r: IntakeRecord, _target: Any = target_reaction) -> bool:
+        try:
+            return bool(direction_check(r.record, _target).supports)
+        except Exception:
+            return False
+
+    return CoverageRequirement(
+        name="reaction_direction",
+        why="an oxidation measurement is not reduction evidence, and an "
+            "unrecorded direction cannot be assumed to be the target one; the "
+            "row must be measured in a direction that supports the target "
+            "reaction, not merely carry a direction field",
+        test=_supports)
 
 
 def _has_conditions(r: IntakeRecord) -> bool:
@@ -1418,11 +1927,9 @@ FULL_SPECIFICATION_REQUIREMENTS: tuple[CoverageRequirement, ...] = (
         why="a substrate name is not a structure; two papers using the same "
             "trivial name routinely mean different compounds",
         test=_has_substrate_structure),
-    CoverageRequirement(
-        name="reaction_direction",
-        why="an oxidation measurement is not reduction evidence, and an "
-            "unrecorded direction cannot be assumed to be the target one",
-        test=_has_direction),
+    # Replaced by a target-bound version in requirements_for(); on its own it
+    # can only report that a direction was recorded.
+    _direction_requirement(None),
     CoverageRequirement(
         name="conditions",
         why="pH and temperature are part of the record key; an activity without "
@@ -1446,6 +1953,28 @@ FULL_SPECIFICATION_REQUIREMENTS: tuple[CoverageRequirement, ...] = (
 )
 
 
+def requirements_for(target_reaction: Any = None) -> tuple[CoverageRequirement, ...]:
+    """The full-specification checklist, with the direction axis bound.
+
+    :data:`FULL_SPECIFICATION_REQUIREMENTS` is the closed list of axes; this is
+    the list as it applies to a particular campaign. Only the direction axis
+    differs, and it differs in the only way that matters: with a target it
+    tests support, without one it can test nothing more than presence.
+    """
+    direction = _direction_requirement(target_reaction)
+    return tuple(direction if req.name == "reaction_direction" else req
+                 for req in FULL_SPECIFICATION_REQUIREMENTS)
+
+
+#: Said in the coverage report, and in the refusal to call such a report clean.
+DIRECTION_AXIS_UNASSESSED = (
+    "the direction axis could not be assessed: no target reaction was supplied, "
+    "so rows were only checked for carrying a direction at all. A record "
+    "declaring reverse_of_target passes that check and is a measurement of the "
+    "opposite reaction. Pass target_reaction= to assess it."
+)
+
+
 @dataclass(frozen=True)
 class IntakeCoverage:
     """Evidence or rows: how many records reach each tier and how many are usable.
@@ -1465,6 +1994,15 @@ class IntakeCoverage:
     missing_by_record: Mapping[str, tuple[str, ...]]
     direction_non_supporting_ids: tuple[str, ...]
     needs_curation_ids: tuple[str, ...]
+    #: Whether the direction axis was tested for *support* of a target
+    #: reaction. False means no target was supplied and the axis reports only
+    #: that a direction exists, which a reverse-direction row satisfies.
+    direction_axis_assessed: bool = False
+    #: Records carrying any direction at all. Kept apart from the axis above,
+    #: because presence is not support.
+    direction_recorded_ids: tuple[str, ...] = ()
+    #: Coverage-level caveats: things this report could not check.
+    notes: tuple[str, ...] = ()
 
     @property
     def n_fully_specified(self) -> int:
@@ -1472,9 +2010,21 @@ class IntakeCoverage:
         return len(self.fully_specified_ids)
 
     @property
+    def n_direction_recorded(self) -> int:
+        """How many rows record a direction at all, supporting or not."""
+        return len(self.direction_recorded_ids)
+
+    @property
     def has_evidence(self) -> bool:
-        """True only when at least one fully-specified, human-checked row exists."""
-        return (self.n_fully_specified > 0
+        """True only when at least one fully-specified, human-checked row exists.
+
+        False whenever the direction axis went unassessed, however good the
+        rest of the report looks. A corpus whose rows might all be measurements
+        of the reverse reaction is not a corpus with evidence in it, and a
+        report that cannot tell is not entitled to say otherwise.
+        """
+        return (self.direction_axis_assessed
+                and self.n_fully_specified > 0
                 and self.usable_as_label_by_tier.get(
                     EvidenceTier.EXPERT_VERIFIED_PRIMARY, 0) > 0)
 
@@ -1489,7 +2039,11 @@ class IntakeCoverage:
             "missing_by_requirement": dict(self.missing_by_requirement),
             "missing_by_record": {k: list(v) for k, v in self.missing_by_record.items()},
             "direction_non_supporting_ids": list(self.direction_non_supporting_ids),
+            "direction_axis_assessed": self.direction_axis_assessed,
+            "direction_recorded_ids": list(self.direction_recorded_ids),
+            "n_direction_recorded": self.n_direction_recorded,
             "needs_curation_ids": list(self.needs_curation_ids),
+            "notes": list(self.notes),
             "has_evidence": self.has_evidence,
         }
 
@@ -1505,14 +2059,23 @@ class IntakeCoverage:
             n = self.missing_by_requirement.get(req.name, 0)
             if n:
                 lines.append(f"    missing {req.name:<22} {n:>4}  ({req.why})")
+        lines.append(f"  direction recorded at all: {self.n_direction_recorded} "
+                     f"(a recorded direction is not a supporting one)")
         if self.direction_non_supporting_ids:
             lines.append(f"  measured in a non-supporting direction: "
                          f"{len(self.direction_non_supporting_ids)}")
         if self.needs_curation_ids:
             lines.append(f"  flagged needs_curation: {len(self.needs_curation_ids)}")
+        for note in self.notes:
+            lines.append(f"  NOT ASSESSED: {note}")
         if not self.has_evidence:
-            lines.append("  VERDICT: rows, not evidence -- no fully-specified, "
-                         "human-checked record is present")
+            if not self.direction_axis_assessed:
+                lines.append("  VERDICT: rows, not evidence -- the direction "
+                             "axis was not assessed, so no row can be called "
+                             "fully specified for a target reaction")
+            else:
+                lines.append("  VERDICT: rows, not evidence -- no fully-specified, "
+                             "human-checked record is present")
         return lines
 
     def describe(self) -> str:
@@ -1532,13 +2095,21 @@ def coverage(
     several databases. A campaign needs to know how many rows it can actually
     reason with, which is the size of the intersection, not the average.
 
-    Passing ``target_reaction`` additionally reports how many rows were measured
-    in a direction that does not support the target.
+    Passing ``target_reaction`` is what makes the direction axis assessable.
+    Without it the axis can only ask whether a direction is recorded -- which a
+    ``reverse_of_target`` row satisfies while being a measurement of the
+    opposite reaction -- so the report says the axis went unassessed and
+    refuses to call the corpus evidence. The weaker statistic, how many rows
+    record a direction at all, is reported separately and named as such.
     """
     items = list(records)
+    requirements = requirements_for(target_reaction)
+    assessed = target_reaction is not None
+    notes: list[str] = [] if assessed else [DIRECTION_AXIS_UNASSESSED]
+    direction_recorded: list[str] = []
     by_tier: dict[EvidenceTier, int] = {t: 0 for t in TIER_ORDER}
     usable: dict[EvidenceTier, int] = {t: 0 for t in TIER_ORDER}
-    missing_counts: dict[str, int] = {r.name: 0 for r in FULL_SPECIFICATION_REQUIREMENTS}
+    missing_counts: dict[str, int] = {r.name: 0 for r in requirements}
     missing_by_record: dict[str, tuple[str, ...]] = {}
     full: list[str] = []
     non_supporting: list[str] = []
@@ -1551,8 +2122,11 @@ def coverage(
         if item.needs_curation:
             needs_curation.append(item.intake_id)
 
+        if _direction_recorded(item):
+            direction_recorded.append(item.intake_id)
+
         missing: list[str] = []
-        for req in FULL_SPECIFICATION_REQUIREMENTS:
+        for req in requirements:
             try:
                 ok = bool(req.test(item))
             except Exception:
@@ -1578,4 +2152,7 @@ def coverage(
         missing_by_record=missing_by_record,
         direction_non_supporting_ids=tuple(non_supporting),
         needs_curation_ids=tuple(needs_curation),
+        direction_axis_assessed=assessed,
+        direction_recorded_ids=tuple(direction_recorded),
+        notes=tuple(notes),
     )

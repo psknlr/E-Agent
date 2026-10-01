@@ -73,7 +73,6 @@ import yaml
 
 from ..context import RunContext
 from ..envelope import Artifact, Provenance, Severity, Status, ToolResult
-from ..errors import TemplateError
 from ..provenance import sha256_file, sha256_obj
 from ..schemas import (
     AssayTemplate,
@@ -836,10 +835,20 @@ class SelectBatch(ScientificInterface):
             random_seed=ctx.seed_for(self.name),
         )
 
+        # A short batch is PARTIAL, not SUCCESS: the plan is usable and the
+        # arithmetic is honest, but the round it describes is not the round
+        # that was asked for, and the controller has to see that rather than
+        # read a green status and place the order.
         if result.blockers:
             result.status = Status.PARTIAL
             result.message = (
                 f"batch composed with {len(result.blockers)} blocking problem(s); "
+                f"{footprint.describe()}")
+        elif plan.is_short:
+            result.status = Status.PARTIAL
+            result.message = (
+                f"batch is short ({plan.n_candidates} of "
+                f"{plan.requested_slots} slot(s)) and was not padded; "
                 f"{footprint.describe()}")
         else:
             result.message = footprint.describe()

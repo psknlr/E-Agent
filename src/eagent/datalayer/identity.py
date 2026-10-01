@@ -35,6 +35,11 @@ So this module keeps identity **layered and explicit**:
   :func:`same_protein` answers only on hash equality.
 * :class:`EntityMergePolicy` is a documented, testable object that answers
   whether two records may be merged, and returns the reason when they may not.
+  :func:`assert_merge_allowed` is the enforcement point: every place in the
+  data layer that unions two rows calls it and gets a
+  :class:`MergeRefusedError`, not an ignorable ``False``, when the ground is
+  one the policy refuses. A policy consulted only when somebody remembers to
+  consult it is decoration.
 
 Nothing here computes chemistry. Structure comparisons are textual, because no
 cheminformatics toolkit is available in this environment; the module therefore
@@ -69,6 +74,7 @@ __all__ = [
     "CofactorStateUnknownError",
     "UnresolvedIdentityError",
     "SequenceHashUnavailableError",
+    "MergeRefusedError",
     # chemical ladder
     "IdentityRung",
     "RUNG_ORDER",
@@ -105,6 +111,7 @@ __all__ = [
     "RejectedGround",
     "MergeDecision",
     "EntityMergePolicy",
+    "assert_merge_allowed",
 ]
 
 
@@ -161,6 +168,26 @@ class SequenceHashUnavailableError(IdentityError):
     different normalisation silently fails to match identical proteins, which is
     worse than having no hash at all.
     """
+
+
+class MergeRefusedError(IdentityRefusedError):
+    """Two rows were about to be merged on a ground :class:`EntityMergePolicy` refuses.
+
+    Raised rather than returned, because a refusal that comes back as a value
+    is a refusal a caller can ignore, and a merge performed anyway puts the
+    error in the primary key where nothing downstream can recover it. The
+    :class:`MergeDecision` is carried on the exception so the caller can report
+    the policy's own words instead of inventing a reason.
+    """
+
+    def __init__(self, decision: "MergeDecision", context: str = "") -> None:
+        self.decision = decision
+        self.ground = getattr(decision, "ground", None)
+        self.rejected = tuple(getattr(decision, "rejected", ()) or ())
+        self.context = context
+        reason = getattr(decision, "reason", str(decision))
+        head = f"merge refused ({context})" if context else "merge refused"
+        super().__init__(f"{head}: {reason}")
 
 
 # ---------------------------------------------------------------------------
@@ -1869,6 +1896,23 @@ class MergeGround(str, enum.Enum):
         "ccd_component_equal", True, "identifier",
         "both records name the same chemical component dictionary entry, which "
         "fixes the ligand including its oxidation state")
+    EXPERIMENT_ACTIVITY_ID_EQUAL = (
+        "experiment_activity_id_equal", True, "identifier",
+        "both records cite the same experiment activity id, so they report one "
+        "measurement campaign. The activity id is the only identifier that "
+        "survives re-curation intact")
+    PUBLICATION_IDENTIFIER_EQUAL = (
+        "publication_identifier_equal", True, "identifier",
+        "both records cite the same publication identifier -- a normalised DOI, "
+        "or another publication id -- so the number was reported once and "
+        "copied, rather than measured twice")
+    ASSAY_FINGERPRINT_EQUAL = (
+        "assay_fingerprint_equal", True, "derived_identifier",
+        "both records carry the same complete assay fingerprint: same sequence "
+        "hash, same structurally identified substrate, same cofactor, same "
+        "conditions, same outcome and same measured value. Every component is "
+        "an identifier or a measured number -- a prose substrate name is "
+        "excluded -- so the match is a re-report, not a resemblance")
     NAME_SIMILARITY = (
         "name_similarity", False, "resemblance",
         "names resemble each other. Enzyme names are not identifiers: 'ADH', "
@@ -1994,7 +2038,8 @@ class EntityMergePolicy:
     the primary key and nothing downstream can recover it.
     """
 
-    #: Grounds the policy will accept, in the order it tries them.
+    #: Entity-identity grounds the policy will accept, in the order it tries
+    #: them when no ground is named.
     admissible_order: tuple[MergeGround, ...] = (
         MergeGround.SEQUENCE_SHA256_EQUAL,
         MergeGround.CONSTRUCT_SHA256_EQUAL,
@@ -2003,16 +2048,48 @@ class EntityMergePolicy:
         MergeGround.ACCESSION_WITH_VERSION_EQUAL,
     )
 
+    #: Grounds that establish two rows report the same *measurement* rather than
+    #: the same *entity*. They are admissible only when named explicitly -- the
+    #: lineage layer names them -- and are never tried by :meth:`evaluate`,
+    #: which asks whether two records describe one entity. Two rows from one
+    #: paper are one measurement and need not be one protein.
+    measurement_grounds: tuple[MergeGround, ...] = (
+        MergeGround.EXPERIMENT_ACTIVITY_ID_EQUAL,
+        MergeGround.PUBLICATION_IDENTIFIER_EQUAL,
+        MergeGround.ASSAY_FINGERPRINT_EQUAL,
+    )
+
     def __init__(self, *, allow_operator_override: bool = True) -> None:
         self.allow_operator_override = allow_operator_override
 
     # -- policy introspection ---------------------------------------------
     def admissible_grounds(self) -> tuple[MergeGround, ...]:
-        """Grounds this policy accepts, for documentation and tests."""
-        grounds = list(self.admissible_order)
+        """Every ground this policy accepts, for documentation and tests.
+
+        Includes the measurement grounds, which :meth:`evaluate` will not try on
+        its own but which :func:`assert_merge_allowed` accepts when a caller
+        names one.
+        """
+        grounds = list(self.admissible_order) + list(self.measurement_grounds)
         if self.allow_operator_override:
             grounds.append(MergeGround.OPERATOR_DECISION)
         return tuple(grounds)
+
+    def is_admissible(self, ground: MergeGround | str) -> bool:
+        """Whether this policy accepts ``ground`` at all, before looking at any
+        record. Public because the enforcement point needs to distinguish "the
+        ground is wrong" from "the ground is right but does not hold here".
+        """
+        return self._is_admissible(MergeGround(ground))
+
+    def ground_holds(self, a: Any, b: Any, ground: MergeGround | str) \
+            -> tuple[bool | None, str]:
+        """Whether a named ground holds on these two records.
+
+        ``True`` / ``False`` / ``None``, where ``None`` means the policy cannot
+        read the ground off these objects -- which is never a licence to merge.
+        """
+        return self._ground_holds(a, b, MergeGround(ground))
 
     def inadmissible_grounds(self) -> tuple[MergeGround, ...]:
         """Grounds this policy refuses, each with its reason attached."""
@@ -2121,6 +2198,20 @@ class EntityMergePolicy:
             MergeGround.CCD_COMPONENT_EQUAL: ("ccd_component_id", "ligand_code",
                                               "comp_id"),
         }.get(ground)
+        if ground is MergeGround.EXPERIMENT_ACTIVITY_ID_EQUAL:
+            acts_a, acts_b = _activity_ids(a), _activity_ids(b)
+            if not acts_a or not acts_b:
+                return None, ("at least one record records no experiment "
+                              "activity id")
+            shared = sorted(acts_a & acts_b)
+            return (True, f"experiment activity {shared[0]}") if shared else (
+                False, f"{sorted(acts_a)} vs {sorted(acts_b)}")
+        if ground in (MergeGround.PUBLICATION_IDENTIFIER_EQUAL,
+                      MergeGround.ASSAY_FINGERPRINT_EQUAL):
+            return None, (
+                f"{ground.value} is decided from the normalised identity tokens "
+                f"built by eagent.datalayer.lineage; this policy does not "
+                f"re-derive them, so the caller must name the shared value")
         if ground is MergeGround.ACCESSION_WITH_VERSION_EQUAL:
             acc_a, ver_a = _read(a, "accession"), _read(a, "database_version",
                                                         "accession_version")
@@ -2215,3 +2306,154 @@ def _names_resemble(a: str, b: str) -> bool:
     ta = {t for t in re.split(r"[^a-z0-9]+", na) if len(t) > 2}
     tb = {t for t in re.split(r"[^a-z0-9]+", nb) if len(t) > 2}
     return bool(ta & tb)
+
+
+# ---------------------------------------------------------------------------
+# Enforcement: the one entry point every merge path must go through
+# ---------------------------------------------------------------------------
+
+#: Fields that may carry an identifier, on a record or on one of its evidence
+#: refs. Used only to confirm that an attested shared identifier is really
+#: written on both records; never to derive one.
+_IDENTIFIER_FIELDS: tuple[str, ...] = (
+    "identifier", "source_doi", "source_record_id", "experiment_activity_id",
+    "accession", "record_id", "sequence_sha256", "construct_sha256",
+    "inchikey", "ccd_component_id", "ligand_code",
+)
+
+
+def _evidence_refs(record: Any) -> list[Any]:
+    """Evidence refs attached to a record, tolerating absence and odd types."""
+    refs = _read(record, "evidence")
+    if refs is None or isinstance(refs, (str, bytes, Mapping)):
+        return []
+    try:
+        return [r for r in refs if r is not None]
+    except TypeError:  # pragma: no cover - a non-iterable 'evidence' field
+        return []
+
+
+def _identifier_strings(record: Any) -> set[str]:
+    """Every identifier-ish string written on a record or its evidence refs."""
+    out: set[str] = set()
+    for holder in [record] + _evidence_refs(record):
+        for name in _IDENTIFIER_FIELDS:
+            value = _read(holder, name)
+            if value:
+                out.add(" ".join(str(value).split()).casefold())
+    return out
+
+
+def _carries_identifier(record: Any, value: str) -> bool:
+    """Whether ``value`` actually appears in one of the record's identifiers.
+
+    Deliberately a containment test on the normalised string, so a DOI recorded
+    as ``https://doi.org/10.XXXX/...`` still matches the normalised token. It
+    exists so a caller cannot merge two rows on an identifier that neither of
+    them carries.
+    """
+    needle = " ".join(str(value).split()).casefold()
+    return bool(needle) and any(needle in s for s in _identifier_strings(record))
+
+
+def _activity_ids(record: Any) -> set[str]:
+    """Experiment activity ids on a record and on its evidence refs."""
+    out: set[str] = set()
+    for holder in [record] + _evidence_refs(record):
+        value = _read(holder, "experiment_activity_id")
+        if value:
+            out.add(" ".join(str(value).split()).casefold())
+    return out
+
+
+#: One shared policy instance, so the default enforcement path is identical
+#: everywhere. Callers needing different settings pass their own.
+_DEFAULT_MERGE_POLICY = EntityMergePolicy()
+
+
+def assert_merge_allowed(
+    a: Any,
+    b: Any,
+    ground: MergeGround | str,
+    *,
+    observed: str | None = None,
+    policy: EntityMergePolicy | None = None,
+    context: str = "",
+) -> MergeDecision:
+    """Raise unless ``ground`` may be used to treat ``a`` and ``b`` as one row.
+
+    This is the enforcement point for :class:`EntityMergePolicy`, and the only
+    thing a merge path has to call. It refuses, by raising
+    :class:`MergeRefusedError`:
+
+    * an **inadmissible ground** -- name similarity, structural resemblance,
+      substrate-name similarity, a sequence-identity threshold, embedding
+      proximity, a shared EC-and-organism, an unversioned accession, a shared
+      PDB entry -- without looking at the records at all, because the ground is
+      wrong however strongly it holds;
+    * an admissible ground the policy can read off the records and finds
+      **false**, so a caller cannot claim a hash match that is not there;
+    * an admissible ground the policy **cannot** read, when the caller names no
+      shared value, or names one that neither record carries. A missing
+      identifier is a data gap, not a licence to merge.
+
+    ``observed`` is the shared value the caller matched on (a normalised DOI, an
+    activity id, an assay fingerprint). The normalisation that produces those
+    tokens lives in :mod:`eagent.datalayer.lineage` and is not duplicated here;
+    what this function checks is that the ground is one the policy accepts and
+    that the value is really written on both records. A fingerprint is derived
+    rather than stored, so for a ``derived_identifier`` ground the attested
+    value is recorded in the decision instead of being looked for.
+
+    Returns the allowing :class:`MergeDecision` so the caller can record *why*
+    the merge was permitted.
+    """
+    pol = policy if policy is not None else _DEFAULT_MERGE_POLICY
+    g = MergeGround(ground)
+
+    if not pol.is_admissible(g):
+        raise MergeRefusedError(pol.may_merge(a, b, g), context=context)
+
+    holds, detail = pol.ground_holds(a, b, g)
+    if holds is True:
+        return MergeDecision(may_merge=True, ground=g,
+                             reason=f"{g.reason} ({detail})")
+    if holds is False:
+        raise MergeRefusedError(MergeDecision(
+            may_merge=False, ground=None,
+            reason=f"'{g.value}' does not hold on these records: {detail}",
+            question=("Do these two records share any admissible identifier? "
+                      "If not, keep them separate."),
+        ), context=context)
+    if g is MergeGround.OPERATOR_DECISION:
+        return pol.may_merge(a, b, g)
+
+    value = " ".join(str(observed or "").split())
+    if not value:
+        raise MergeRefusedError(MergeDecision(
+            may_merge=False, ground=None,
+            reason=(f"'{g.value}' was named as the ground but no shared value "
+                    f"was given, and {detail}"),
+            question=("Name the identifier the two records share, or keep them "
+                      "separate."),
+            needs_curation=True,
+        ), context=context)
+
+    if getattr(g, "basis", "") == "identifier":
+        missing = [label for rec, label in ((a, "first"), (b, "second"))
+                   if not _carries_identifier(rec, value)]
+        if missing:
+            who = " and the ".join(missing)
+            plural = "s do" if len(missing) > 1 else " does"
+            raise MergeRefusedError(MergeDecision(
+                may_merge=False, ground=None,
+                reason=(f"{value!r} was given as the shared {g.value}, but the "
+                        f"{who} record{plural} not carry it"),
+                question=("Which identifier do these records actually share? "
+                          "An identifier present on only one of them merges "
+                          "nothing."),
+                needs_curation=True,
+            ), context=context)
+
+    return MergeDecision(may_merge=True, ground=g,
+                         reason=f"{g.reason} (shared value {value!r})")

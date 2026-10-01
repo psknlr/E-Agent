@@ -151,15 +151,34 @@ class TestNoAutomaticPromotion(unittest.TestCase):
         self.assertFalse(hasattr(IntakeRecord, "promote"))
         self.assertIn("named human reviewer", NO_AUTOMATIC_PROMOTION)
 
-    def test_ingest_does_not_raise_the_tier_it_was_given(self) -> None:
+    def test_ingest_defaults_to_the_floor_not_the_ceiling(self) -> None:
+        """A row that states no strength gets the weakest, not the strongest allowed.
+
+        Defaulting to the source's ceiling stamps every bulk row at the best
+        claim the source could ever support, which is a guess upward from a row
+        that said nothing at all.
+        """
         rec = ingest(_record(), tier=EvidenceTier.MACHINE_EXTRACTED_PENDING,
                      source_id="primary_db", registry=self.reg,
                      extraction_method=ExtractionMethod.MACHINE_EXTRACTION_LLM)
         self.assertIs(rec.tier, EvidenceTier.MACHINE_EXTRACTED_PENDING)
         self.assertIs(rec.review_state, ReviewState.NOT_REVIEWED)
-        # Even from a sequence-level source, machine extraction is capped.
-        self.assertIs(rec.claimed_strength, EvidenceStrength.EC_SPECIES_MAPPED)
+        self.assertIs(rec.claimed_strength, EvidenceStrength.ANNOTATION_ONLY)
         self.assertFalse(rec.is_usable_as_label)
+
+    def test_an_explicit_claim_above_the_ceiling_is_refused(self) -> None:
+        """Claiming past the ceiling raises rather than being quietly capped.
+
+        A silent cap would let a caller ask for sequence-level experimental
+        evidence and receive something weaker without noticing; the refusal
+        makes the disagreement visible at the call site.
+        """
+        from eagent.datalayer.intake import SourceCeilingError
+        with self.assertRaises(SourceCeilingError):
+            ingest(_record(), tier=EvidenceTier.MACHINE_EXTRACTED_PENDING,
+                   source_id="primary_db", registry=self.reg,
+                   extraction_method=ExtractionMethod.MACHINE_EXTRACTION_LLM,
+                   claimed_strength=EvidenceStrength.SEQUENCE_LEVEL_EXPERIMENTAL)
 
     def test_machine_extraction_cannot_be_ingested_above_its_tier(self) -> None:
         with self.assertRaises(TierPromotionError) as ctx:

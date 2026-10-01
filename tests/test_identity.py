@@ -24,8 +24,10 @@ from eagent.datalayer.identity import (
     CofactorSpecies,
     CofactorStateUnknownError,
     EntityMergePolicy,
+    IdentityRefusedError,
     IdentityRung,
     MergeGround,
+    MergeRefusedError,
     NameGuessRefusedError,
     NameResolver,
     ProteinIdentity,
@@ -40,6 +42,13 @@ from eagent.datalayer.identity import (
     same_protein,
     stereo_descriptors,
 )
+from eagent.datalayer.identity import assert_merge_allowed
+
+#: Fixture citations use the reserved ``10.5555`` DOI test prefix and a suffix
+#: that cannot be read as a title, so nothing here can be mistaken for a real
+#: paper if it is copied out of the test file.
+DOI_ONE = "10.5555/example-doi-do-not-cite"
+DOI_TWO = "10.5555/second-example-doi-do-not-cite"
 
 #: Fixture structures. The identifiers used below are synthetic placeholders,
 #: not real database keys: these tests check the resolver's behaviour, and a
@@ -398,6 +407,140 @@ class TestEntityMergePolicy(unittest.TestCase):
         for ground in self.policy.inadmissible_grounds():
             self.assertTrue(ground.reason.strip(),
                             f"{ground.value} must carry a reason")
+
+
+class TestMergePolicyIsEnforced(unittest.TestCase):
+    """The policy is only worth having if something actually calls it.
+
+    :func:`assert_merge_allowed` is that call. It raises rather than returning
+    a verdict, because a refusal returned as a value is a refusal the caller
+    can ignore, and a wrong merge lands in the primary key where nothing
+    downstream can undo it.
+    """
+
+    def setUp(self) -> None:
+        self.policy = EntityMergePolicy()
+        self.a = {"record_id": "rec-a", "name": "alcohol dehydrogenase A",
+                  "substrate_name": "4-chloroacetophenone",
+                  "accession": "P11111", "source_doi": DOI_ONE,
+                  "experiment_activity_id": "campaign-7"}
+        self.b = {"record_id": "rec-b", "name": "alcohol dehydrogenase A",
+                  "substrate_name": "4-chloroacetophenone",
+                  "accession": "Q22222",
+                  "identifier": f"https://doi.org/{DOI_ONE.upper()}",
+                  "experiment_activity_id": "CAMPAIGN-7"}
+
+    def test_a_name_similarity_union_raises(self) -> None:
+        """The headline case: two rows merged because the names matched."""
+        with self.assertRaises(MergeRefusedError) as caught:
+            assert_merge_allowed(self.a, self.b, MergeGround.NAME_SIMILARITY)
+        error = caught.exception
+        self.assertIn("not grounds for merging", str(error))
+        self.assertIn("not identifiers", str(error))
+        self.assertFalse(error.decision.may_merge)
+        self.assertEqual(error.rejected[0].ground, MergeGround.NAME_SIMILARITY)
+
+    def test_a_refusal_is_an_identity_refusal(self) -> None:
+        """So a caller that already handles identity refusals catches it."""
+        with self.assertRaises(IdentityRefusedError):
+            assert_merge_allowed(self.a, self.b, MergeGround.NAME_SIMILARITY)
+
+    def test_every_inadmissible_ground_raises(self) -> None:
+        for ground in self.policy.inadmissible_grounds():
+            with self.assertRaises(MergeRefusedError,
+                                   msg=f"{ground.value} must raise"):
+                assert_merge_allowed(self.a, self.b, ground,
+                                     observed="whatever the caller claims")
+
+    def test_a_legitimate_doi_union_succeeds(self) -> None:
+        decision = assert_merge_allowed(
+            self.a, self.b, MergeGround.PUBLICATION_IDENTIFIER_EQUAL,
+            observed=DOI_ONE)
+        self.assertTrue(decision)
+        self.assertIs(decision.ground, MergeGround.PUBLICATION_IDENTIFIER_EQUAL)
+
+    def test_a_legitimate_activity_id_union_succeeds(self) -> None:
+        decision = assert_merge_allowed(
+            self.a, self.b, MergeGround.EXPERIMENT_ACTIVITY_ID_EQUAL,
+            observed="campaign-7")
+        self.assertTrue(decision)
+        self.assertIn("campaign-7", decision.reason)
+
+    def test_different_activity_ids_are_refused_even_though_admissible(self) -> None:
+        """An admissible ground that does not hold is still a refusal."""
+        other = dict(self.b, experiment_activity_id="campaign-9")
+        with self.assertRaises(MergeRefusedError) as caught:
+            assert_merge_allowed(self.a, other,
+                                 MergeGround.EXPERIMENT_ACTIVITY_ID_EQUAL,
+                                 observed="campaign-7")
+        self.assertIn("does not hold", str(caught.exception))
+
+    def test_an_identifier_neither_record_carries_is_refused(self) -> None:
+        """A caller cannot invent the shared value that justifies the merge."""
+        with self.assertRaises(MergeRefusedError) as caught:
+            assert_merge_allowed(self.a, self.b,
+                                 MergeGround.PUBLICATION_IDENTIFIER_EQUAL,
+                                 observed=DOI_TWO)
+        self.assertIn("not carry it", str(caught.exception))
+        self.assertIn(DOI_TWO, str(caught.exception))
+
+    def test_an_unattested_merge_is_refused(self) -> None:
+        with self.assertRaises(MergeRefusedError) as caught:
+            assert_merge_allowed(self.a, self.b,
+                                 MergeGround.PUBLICATION_IDENTIFIER_EQUAL)
+        self.assertIn("no shared value", str(caught.exception))
+
+    def test_a_sequence_hash_union_needs_no_attestation(self) -> None:
+        a = {"sequence_sha256": "sha256:abc"}
+        b = {"sequence_sha256": "sha256:abc"}
+        decision = assert_merge_allowed(a, b,
+                                        MergeGround.SEQUENCE_SHA256_EQUAL)
+        self.assertTrue(decision)
+        self.assertIs(decision.ground, MergeGround.SEQUENCE_SHA256_EQUAL)
+
+    def test_a_claimed_hash_match_that_is_not_there_is_refused(self) -> None:
+        a = {"sequence_sha256": "sha256:abc"}
+        b = {"sequence_sha256": "sha256:def"}
+        with self.assertRaises(MergeRefusedError):
+            assert_merge_allowed(a, b, MergeGround.SEQUENCE_SHA256_EQUAL)
+
+    def test_an_operator_decision_is_attributable_and_allowed(self) -> None:
+        decision = assert_merge_allowed(self.a, self.b,
+                                        MergeGround.OPERATOR_DECISION)
+        self.assertTrue(decision)
+        self.assertTrue(decision.needs_curation)
+
+    def test_an_operator_override_can_be_switched_off(self) -> None:
+        strict = EntityMergePolicy(allow_operator_override=False)
+        with self.assertRaises(MergeRefusedError):
+            assert_merge_allowed(self.a, self.b,
+                                 MergeGround.OPERATOR_DECISION, policy=strict)
+
+    def test_measurement_grounds_are_never_tried_implicitly(self) -> None:
+        """Two rows from one paper are one measurement, not one protein."""
+        decision = self.policy.evaluate(self.a, self.b)
+        self.assertFalse(decision)
+        self.assertNotIn(MergeGround.PUBLICATION_IDENTIFIER_EQUAL,
+                         self.policy.admissible_order)
+        self.assertIn(MergeGround.PUBLICATION_IDENTIFIER_EQUAL,
+                      self.policy.admissible_grounds())
+
+    def test_evidence_refs_carry_the_identifiers_too(self) -> None:
+        """Real records keep the DOI on an evidence ref, not on the row."""
+        from types import SimpleNamespace
+
+        ref = SimpleNamespace(identifier="BRENDA:1", source_doi=DOI_ONE,
+                              experiment_activity_id="campaign-7")
+        a = SimpleNamespace(record_id="rec-a", evidence=[ref])
+        b = SimpleNamespace(record_id="rec-b", evidence=[
+            SimpleNamespace(identifier="OED:1", source_doi=DOI_ONE,
+                            experiment_activity_id=None)])
+        self.assertTrue(assert_merge_allowed(
+            a, b, MergeGround.PUBLICATION_IDENTIFIER_EQUAL, observed=DOI_ONE))
+        with self.assertRaises(MergeRefusedError):
+            assert_merge_allowed(a, b, MergeGround.SUBSTRATE_NAME_SIMILARITY,
+                                 observed="4-chloroacetophenone")
+
 
 
 if __name__ == "__main__":  # pragma: no cover - pytest may not be installed

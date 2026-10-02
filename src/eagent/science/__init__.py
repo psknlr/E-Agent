@@ -18,6 +18,14 @@ the submodule you need:
     from eagent.science.structure_io import read_mmcif
     from eagent.science.geometry import measure_all
     from eagent.science.numbering import build_map
+    from eagent.science.family_numbering import equivalent_position
+
+``family_numbering`` is the one place allowed to answer "is this position in
+enzyme A the same site as that position in enzyme B". It answers by aligning
+both to a sourced family reference and checking the family's conserved
+anchors, and it refuses across families, because author numbering carries no
+meaning between proteins and a mis-mapped position spends a synthesis slot on
+a different experiment from the one intended.
 """
 
 from __future__ import annotations

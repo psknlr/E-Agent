@@ -294,6 +294,37 @@ class PositiveCriterion:
                 reasons.append(
                     f"signed ee {value:+.1f}% >= {self.min_ee_target_pct:g}%")
 
+        if self.min_fold_over_empty_vector is not None:
+            fold = group.fold_over_empty_vector
+            if fold is None:
+                if group.empty_vector_baseline is None:
+                    undecidable.append(
+                        f"criterion needs >= "
+                        f"{self.min_fold_over_empty_vector:g}-fold over the "
+                        f"empty-vector control and no such control was run on "
+                        f"this plate under this cofactor condition")
+                elif group.empty_vector_baseline <= 0:
+                    undecidable.append(
+                        f"the empty-vector control read "
+                        f"{group.empty_vector_baseline:g}, so a fold change is "
+                        f"not defined; report the difference or raise the "
+                        f"detection limit instead")
+                else:
+                    undecidable.append(
+                        f"criterion needs >= "
+                        f"{self.min_fold_over_empty_vector:g}-fold over the "
+                        f"empty-vector control and this group reported no "
+                        f"measurement value")
+            elif fold < self.min_fold_over_empty_vector:
+                met = False
+                reasons.append(
+                    f"{fold:.2f}-fold over empty vector < "
+                    f"{self.min_fold_over_empty_vector:g}-fold")
+            else:
+                reasons.append(
+                    f"{fold:.2f}-fold over empty vector >= "
+                    f"{self.min_fold_over_empty_vector:g}-fold")
+
         if self.requires_authentic_standard and group.authentic_standard is not True:
             undecidable.append(
                 "criterion requires an authentic standard and the plate does "
@@ -310,7 +341,8 @@ class PositiveCriterion:
             return None, reasons + undecidable
         if not (self.min_conversion_pct is not None
                 or self.min_measurement_value is not None
-                or self.min_ee_target_pct is not None):
+                or self.min_ee_target_pct is not None
+                or self.min_fold_over_empty_vector is not None):
             return None, ["the criterion sets no numeric bar, so no well can "
                           "be decided against it"]
         return True, reasons
@@ -461,6 +493,13 @@ class MeasurementGroup:
     cofactor: str
     cofactor_state: str
     rows: list[AssayRow] = field(default_factory=list)
+    #: Median empty-vector signal for this group's plate and cofactor
+    #: condition, attached by :func:`attach_empty_vector_baselines`. ``None``
+    #: means no such control was run, which makes a fold-over-background bar
+    #: undecidable rather than satisfied.
+    empty_vector_baseline: float | None = None
+    #: Where that baseline came from, for the record.
+    empty_vector_basis: str = ""
 
     # -- derived ----------------------------------------------------------
     @property
@@ -550,6 +589,24 @@ class MeasurementGroup:
         return _median([r.measurement_value for r in self.rows])
 
     @property
+    def fold_over_empty_vector(self) -> float | None:
+        """Signal relative to the empty-vector control on the same plate.
+
+        ``None`` whenever it cannot be computed: no baseline was run, this
+        group reported no measurement, or the baseline is zero or negative so
+        a ratio would be meaningless. Each of those is a reason the bar cannot
+        be decided, never a reason to treat it as met.
+        """
+        if self.empty_vector_baseline is None:
+            return None
+        value = self.measurement_value
+        if value is None:
+            return None
+        if self.empty_vector_baseline <= 0:
+            return None
+        return value / self.empty_vector_baseline
+
+    @property
     def conversion_pct(self) -> float | None:
         return _median([r.conversion_pct for r in self.rows])
 
@@ -635,6 +692,78 @@ def group_rows(rows: Sequence[AssayRow]) -> list[MeasurementGroup]:
             groups[key] = group
         group.rows.append(row)
     return [groups[k] for k in sorted(groups)]
+
+
+#: Row ``kind``/``role`` tokens that identify an empty-vector control.
+EMPTY_VECTOR_TOKENS: frozenset[str] = frozenset({
+    "empty_vector", "empty-vector", "emptyvector", "vector_only", "no_insert",
+})
+
+
+def _is_empty_vector(row: AssayRow) -> bool:
+    tokens = {str(row.kind or "").strip().lower(),
+              str(row.role or "").strip().lower()}
+    return bool(tokens & EMPTY_VECTOR_TOKENS)
+
+
+def attach_empty_vector_baselines(
+    groups: Sequence[MeasurementGroup], rows: Sequence[AssayRow],
+) -> list[str]:
+    """Attach each group's empty-vector baseline, matched on plate and cofactor.
+
+    A fold-over-background bar compares a well with the control that shared
+    its plate and its cofactor condition. Borrowing a baseline from another
+    plate would silently compare against a different day's background, so a
+    group with no matching control gets no baseline and its bar becomes
+    undecidable. That is the honest outcome: the plate did not carry the
+    control the criterion needs.
+
+    Returns the notes describing what was and was not matched, for the record.
+    """
+    by_key: dict[tuple[str, str, str], list[float]] = {}
+    for row in rows:
+        if not _is_empty_vector(row):
+            continue
+        if row.measurement_value is None:
+            continue
+        key = (str(row.plate or ""), str(row.cofactor or ""),
+               str(row.cofactor_state or ""))
+        by_key.setdefault(key, []).append(float(row.measurement_value))
+
+    notes: list[str] = []
+    if not by_key:
+        notes.append(
+            "no empty-vector control carried a measurement value, so any "
+            "fold-over-background criterion is undecidable for every well")
+    unmatched: set[str] = set()
+    for group in groups:
+        plates = {str(r.plate or "") for r in group.rows}
+        matched: list[float] = []
+        used: list[str] = []
+        for plate in sorted(plates):
+            key = (plate, group.cofactor, group.cofactor_state)
+            values = by_key.get(key)
+            if values:
+                matched.extend(values)
+                used.append(plate)
+        if matched:
+            group.empty_vector_baseline = _median(matched)
+            group.empty_vector_basis = (
+                f"median of {len(matched)} empty-vector well(s) on plate(s) "
+                f"{', '.join(used)} under {group.cofactor}"
+                f"[{group.cofactor_state}]")
+        else:
+            group.empty_vector_basis = (
+                f"no empty-vector control on plate(s) "
+                f"{', '.join(sorted(plates)) or '-'} under {group.cofactor}"
+                f"[{group.cofactor_state}]")
+            unmatched.update(plates)
+    if unmatched:
+        notes.append(
+            f"plate(s) {', '.join(sorted(p for p in unmatched if p))} carried "
+            f"no matching empty-vector control; fold-over-background is "
+            f"undecidable there rather than assumed met")
+    return notes
 
 
 # ==========================================================================
@@ -1449,6 +1578,20 @@ class IngestResults(ScientificInterface):
         control_rows = [r for r in parsed if r.is_control]
         groups = group_rows(candidate_rows)
         control_groups = group_rows(control_rows)
+
+        # Attach the plate's own empty-vector background before anything is
+        # scored, so a fold-over-background criterion is evaluated against the
+        # control that shared the plate rather than quietly ignored.
+        baseline_notes = attach_empty_vector_baselines(groups, parsed)
+        for note in baseline_notes:
+            if criterion.min_fold_over_empty_vector is not None:
+                result.add_flag("empty_vector_baseline_missing",
+                                Severity.WARN, note, subject="controls")
+                result.add_uncertainty(
+                    "empty_vector_baseline_missing", note,
+                    affects=[g.candidate_id for g in groups
+                             if g.empty_vector_baseline is None],
+                    resolvable_by="run the empty-vector control on that plate")
 
         records: list[ExperimentRecord] = []
         unresolved: list[UnresolvedRow] = []

@@ -16,17 +16,31 @@ for every resource rather than for whichever one the author remembered:
   ``evidence_strength_ceiling``; :func:`~.base.resolve_strength` caps an ingest
   at it unless a named human reviewer takes responsibility.
 
-Concrete per-resource connectors (a UniProt client, a PDB client) are separate
-modules added as they are needed. Until one exists, the resource is wired as an
-:class:`~.base.OfflineConnector`, which is the honest description of a resource
-whose records enter through a curated import. :func:`offline_connectors` builds
-that default wiring for a whole run.
+Concrete per-resource connectors live in five topic modules (``chemistry``,
+``enzymology``, ``sequence``, ``structure``, ``literature``) and are reached
+through :mod:`eagent.connectors.catalog`, which maps a registered data source
+to the code that reads it. A source with no client and no curated importer
+falls back to an :class:`~.base.OfflineConnector` and is *named* as cache-only
+in the build report, so a run states what it can actually read instead of
+implying it reached everything registered. :func:`offline_connectors` builds
+the cache-only wiring for a whole run when no client is wanted at all.
 """
 
 from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from .catalog import (
+    CONCRETE_CONNECTORS,
+    CURATED_IMPORTERS,
+    AccessKind,
+    BuiltConnector,
+    ConnectorBuildReport,
+    build_connectors,
+    connector_class_for,
+    coverage_report,
+    importer_class_for,
+)
 from .base import (
     AMINO_ACID_ALPHABET,
     MIN_SEQUENCE_LIKE_DISTINCT_LETTERS,
@@ -60,6 +74,16 @@ from .base import (
 )
 
 __all__ = [
+    "CONCRETE_CONNECTORS",
+    "CURATED_IMPORTERS",
+    "AccessKind",
+    "BuiltConnector",
+    "ConnectorBuildReport",
+    "build_connectors",
+    "connector_class_for",
+    "coverage_report",
+    "importer_class_for",
+
     "AMINO_ACID_ALPHABET",
     "MIN_SEQUENCE_LIKE_DISTINCT_LETTERS",
     "MIN_SEQUENCE_LIKE_LENGTH",

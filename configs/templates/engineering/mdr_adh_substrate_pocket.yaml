@@ -1,0 +1,190 @@
+# Engineering template -- medium-chain / zinc-dependent ADH substrate pocket,
+# round 1.
+#
+# Validates against eagent.schemas.templates.EngineeringTemplate.
+#
+# WHAT THIS FILE IS. A statement of what may be changed in an MDR/ADH scaffold,
+# what is frozen, and what is already known to go wrong. It is NOT a list of
+# mutations to make: known_beneficial_mutations is empty, deliberately,
+# because no sourced precedent could be recorded in this environment and
+# propose_mutations excludes an entry with no evidence anyway.
+#
+# WHY THIS IS A SEPARATE FILE. This family differs from the other two
+# ketoreductase routes in the one way that matters most for engineering: the
+# chemistry runs through a catalytic zinc that polarises the carbonyl, so the
+# metal site is part of the catalytic machinery and the pocket is built around
+# it. An SDR has no metal and a Ser-Tyr-Lys-Asn arrangement; an AKR has no
+# metal and a Tyr-Lys-His-Asp tetrad on a barrel. A frozen-role list or a zone
+# selector written for either of those says nothing here, and applying one
+# would propose into the zinc site without noticing.
+#
+# THE SHELL BOUNDS ARE A SEARCH SCOPE, NOT A CATALYTIC CRITERION.
+
+template_id: eng.mdr_adh.substrate_pocket.v1
+family_name: MDR/ADH
+
+# Role labels from cat.mdr_adh.zn_nadh_carbonyl_reduction.v1. All five are
+# frozen in round 1. The three zinc ligands are frozen because losing the
+# catalytic metal does not produce a variant with different substrate
+# preference, it produces an apoenzyme; the proton-relay pair is frozen for
+# the same reason the catalytic residues of the other families are.
+frozen_roles:
+  - zinc_ligand_1
+  - zinc_ligand_2
+  - zinc_ligand_3
+  - proton_relay_ser
+  - proton_relay_his
+
+mutable_zones:
+  - name: first_shell_substrate_contact
+    selector: >-
+      Residues with at least one heavy atom within 4.5 A of any substrate heavy
+      atom in the modelled complex, EXCLUDING any residue coordinating the
+      catalytic zinc.
+    role: substrate_contact
+    min_angstrom: 0.0
+    max_angstrom: 4.5
+    excludes_metal_ligands: true
+    rationale: >-
+      The wall of the pocket. The exclusion matters more here than in the other
+      two families: a zinc ligand is by construction within contact distance of
+      a substrate bound to the metal, so a plain distance selector would place
+      the catalytic metal site inside the mutable zone. The frozen_roles list
+      catches that, and this selector states it as well so the intent survives
+      a change to either.
+  - name: second_shell_pocket_support
+    selector: >-
+      Residues in the default shell not already in the first shell, excluding
+      zinc ligands and their immediate hydrogen-bonding partners.
+    role: pocket_shell_member
+    rationale: >-
+      Second-shell positions reposition first-shell side chains without
+      touching the substrate. Bare membership of this shell is not a reason to
+      mutate.
+  - name: substrate_binding_cleft
+    selector: >-
+      Residues lining the cleft between the catalytic and cofactor-binding
+      domains. Boundaries come from an alignment to the project's reference,
+      not from a distance cut-off.
+    role: substrate_contact
+    rationale: >-
+      MDR/ADHs are two-domain enzymes whose substrate binds in the cleft
+      between the domains, and the cleft lining carries most of the difference
+      in substrate range. This is the zone a substrate-directed round targets.
+    needs_curation: true
+    curator_must_supply: >-
+      The cleft-lining residue list in the project's reference numbering, from
+      an alignment or from a cavity calculation, plus per-residue model
+      confidence.
+  - name: domain_hinge
+    selector: >-
+      The hinge connecting the catalytic and cofactor-binding domains.
+      Boundaries from an alignment to the project's reference.
+    role: conformational_control
+    rationale: >-
+      These enzymes close around the cofactor, and the hinge sets how readily.
+      Hinge substitutions change activity by changing the conformational
+      equilibrium rather than by changing what fits, so a gain or loss here is
+      evidence about domain closure and must not be read as evidence about
+      substrate recognition.
+    needs_curation: true
+    curator_must_supply: >-
+      The hinge residue range in the project's reference numbering. Without it
+      this zone cannot be distinguished from the second shell.
+  - name: substrate_entrance_channel
+    selector: >-
+      Residues lining the channel from bulk solvent into the cleft. Needs a
+      tunnel or cavity calculation, or a curator's reading of the structure;
+      measured in the default shell until one is supplied.
+    role: pocket_entrance
+    rationale: >-
+      Entrance residues control access of a bulky ketone and of the cosolvent.
+    needs_curation: true
+    curator_must_supply: >-
+      A channel definition for this scaffold.
+
+default_shell_min_angstrom: 4.0
+default_shell_max_angstrom: 8.0
+
+# EMPTY ON PURPOSE, for the same reason as the other two families: an
+# unsourced precedent would be adopted by the proposal step as experimental
+# evidence.
+known_beneficial_mutations: []
+
+known_failure_modes:
+  - >-
+    Substituting a zinc ligand does not yield a variant with different
+    substrate preference; it yields an enzyme that has lost its catalytic
+    metal. The result is uninformative about substrate fit, which is why the
+    three ligands are frozen for round 1.
+  - >-
+    Some members of this family carry a SECOND, structural zinc in addition to
+    the catalytic one. It has no role label in
+    cat.mdr_adh.zn_nadh_carbonyl_reduction.v1, so the proposal step cannot
+    currently protect it, and substituting one of its ligands typically
+    destabilises the protein and is read as a folding failure rather than as
+    the metal-site loss it is. A curator must identify the structural site per
+    scaffold.
+  - >-
+    Loss of activity in this family frequently reflects loss of the metal
+    rather than loss of binding. A variant assayed without checking metal
+    occupancy can be recorded as inactive when it is simply apo, so metal
+    content belongs in the characterisation of any variant that loses activity.
+  - >-
+    Activity depends on a domain-closure equilibrium. A substitution in or near
+    the hinge can change turnover without changing what the pocket accepts, so
+    attributing such a change to substrate fit is a misreading.
+  - >-
+    Enlarging the pocket to accept a bulkier ketone frequently destroys
+    enantioselectivity. Activity and selectivity are two outcomes of one
+    variant and must never be combined into a single figure of merit.
+  - >-
+    These enzymes are commonly dimeric or tetrameric and the pocket can be
+    completed across the subunit interface. A proposal made on a monomer model
+    can target a position that is not part of the real pocket, or miss the
+    interface position that is.
+  - >-
+    Cofactor preference in this family is set by residues reading the adenosine
+    ribose, and substitutions near them can switch NADH to NADPH preference. A
+    variant that appears dead may have switched to a cofactor the assay did not
+    supply, which is indistinguishable from a dead enzyme unless both are
+    tested.
+  - >-
+    Replacing buried hydrophobic pocket residues with polar or charged ones is
+    a common route to loss of soluble expression, indistinguishable in a lysate
+    screen from loss of activity unless soluble expression is measured per well.
+  - >-
+    Stacking several substitutions in round 1 makes an inactive variant
+    uninterpretable.
+
+max_simultaneous_mutations_round1: 2
+
+provenance:
+  source_type: mechanism_literature
+  identifiers:
+    - "textbook:mdr_adh_catalytic_zinc_polarises_the_carbonyl"
+    - "textbook:mdr_adh_two_domain_cleft_and_domain_closure"
+    - "textbook:mdr_adh_structural_zinc_site_in_some_members"
+    - "PFAM:PF08240"
+    - "PFAM:PF00107"
+  curated_by: "e-agent build (model-drafted from textbook biochemistry and general protein-engineering practice; NOT reviewed by a human curator)"
+  curated_at: "2026-10-02"
+  notes: >-
+    needs_curation: true.
+    A curator must supply: (1) sourced entries for known_beneficial_mutations
+    with PMIDs or DOIs, each stating whether the effect was measured on this
+    sequence or on a homologue; (2) the cleft-lining residue list and the hinge
+    range in the project's reference numbering; (3) a channel definition for
+    the entrance zone; (4) the STRUCTURAL zinc ligands for scaffolds that carry
+    a second site, and the cofactor-preference positions reading the adenosine
+    ribose. Neither has a role label in the catalytic template, so neither can
+    be named in frozen_roles yet and the proposal step can currently touch
+    both. That is a real gap in round-1 safety for this family, recorded rather
+    than papered over with an invented label.
+    .
+    The two Pfam accessions are the conventional GroES-like N-terminal and
+    zinc-binding dehydrogenase C-terminal domains of this architecture; a
+    curator should confirm both against the project's reference before they
+    are relied on for domain assignment.
+    .
+    The known_failure_modes list is qualitative on purpose.

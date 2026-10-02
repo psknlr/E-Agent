@@ -1402,11 +1402,11 @@ def _load_json_list(path: Path) -> list[Any]:
 @click.option("--candidates", "candidates_file",
               type=click.Path(exists=True, dir_okay=False, path_type=Path),
               default=None, help="Serialised candidates. Default: "
-                                 "<rundir>/candidates.json when it exists.")
+                                 "<rundir>/candidates.json, which no step writes: it is an operator-supplied file. The artifacts a run does produce are listed by `eagent status`.")
 @click.option("--claims", "claims_file",
               type=click.Path(exists=True, dir_okay=False, path_type=Path),
               default=None, help="Claims to check against the artifacts. "
-                                 "Default: <rundir>/claims.json when it exists.")
+                                 "Default: <rundir>/claims.json, which no step writes: it is an operator-supplied file. ingest_results writes experiment_records.jsonl, which is a different thing.")
 @click.option("--templates", "template_dir",
               type=click.Path(exists=True, file_okay=False, path_type=Path),
               default=None, help="Template library root.")
@@ -1808,6 +1808,51 @@ def sources_independence(directory: Path | None,
     out.line("The two numbers differ on purpose: a group holding a source "
              "whose lineage is admittedly incomplete has not been shown to be "
              "independent of anything, so it is not counted.")
+
+
+@sources_group.command("coverage")
+@click.option("--dir", "directory",
+              type=click.Path(exists=True, file_okay=False, path_type=Path),
+              default=None)
+def sources_coverage(directory: Path | None) -> None:
+    """Report which registered sources this build can actually read.
+
+    Registering a resource and being able to read it are different things.
+    This separates the sources with a client, the ones whose records arrive
+    through a curator's file, and the ones with no code yet, so a run states
+    its reach instead of implying it reached everything on the list.
+    """
+    from .connectors.catalog import AccessKind, build_connectors, coverage_report
+
+    out = Out()
+    registry = _load_sources(directory)
+    cov = coverage_report(registry)
+    labels = {
+        AccessKind.CONNECTOR: "with a client",
+        AccessKind.IMPORTER: "by curated import (no API exists)",
+        AccessKind.CACHE_ONLY: "cache-only (no client written yet)",
+    }
+    total = sum(len(v) for v in cov.values())
+    out.line(f"{total} registered source(s)")
+    out.line("")
+    for kind in (AccessKind.CONNECTOR, AccessKind.IMPORTER, AccessKind.CACHE_ONLY):
+        ids = cov[kind]
+        out.line(f"{labels[kind]} ({len(ids)})")
+        out.line("-" * len(labels[kind]))
+        for sid in ids:
+            out.line(f"  {sid}")
+        out.line("")
+
+    report = build_connectors([s.id for s in registry], registry=registry)
+    if report.failures:
+        out.line("could not be wired")
+        out.line("-------------------")
+        for sid, why in sorted(report.failures.items()):
+            out.line(f"  {sid}: {why}")
+        out.line("")
+    out.line("No source has been connectivity-tested from this environment, "
+             "and every registry endpoint is null, so a client here means code "
+             "exists to read the resource once a curator establishes its route.")
 
 
 if __name__ == "__main__":  # pragma: no cover - module entry point

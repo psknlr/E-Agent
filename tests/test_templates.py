@@ -23,6 +23,7 @@ rename here would only show up as "no catalytic template" at run time.
 from __future__ import annotations
 
 import tempfile
+import pathlib
 import unittest
 from pathlib import Path
 
@@ -420,8 +421,12 @@ class ShippedLibraryTests(unittest.TestCase):
     def test_default_dir_points_at_the_shipped_tree(self):
         self.assertEqual(default_template_dir().resolve(), SHIPPED.resolve())
 
-    def test_all_eleven_shipped_templates_load(self):
-        self.assertEqual(len(self.lib), 11)
+    def test_every_shipped_template_loads(self):
+        # Counted from disk so that adding a family does not break this test
+        # and tempt someone to bump a literal.
+        import pathlib
+        root = pathlib.Path(__file__).resolve().parent.parent / "configs" / "templates"
+        self.assertEqual(len(self.lib), len(sorted(root.rglob("*.yaml"))))
 
     def test_the_three_families_stay_three_hypotheses(self):
         self.assertEqual(self.lib.family_names(), ["AKR", "MDR/ADH", "SDR"])
@@ -443,10 +448,37 @@ class ShippedLibraryTests(unittest.TestCase):
         self.assertEqual(self.lib.theoretical_template_ids(), [])
 
     def test_integrity_problems_are_reported_not_raised(self):
-        problems = self.lib.integrity_problems()
-        self.assertTrue(any("engineering template" in p for p in problems),
-                        "AKR and MDR/ADH ship without one; the library must "
-                        "say so rather than fail at variant-proposal time")
+        """A gap is reported at load time, not raised at proposal time.
+
+        The fixture is synthetic on purpose. This test used to rely on AKR and
+        MDR/ADH genuinely shipping without an engineering template, so closing
+        that real gap broke a test about reporting behaviour. A test of how
+        gaps are surfaced must not depend on a particular gap existing.
+        """
+        import shutil
+        import tempfile
+
+        from eagent.harness.templates import TemplateLibrary
+
+        root = pathlib.Path(__file__).resolve().parent.parent / "configs" / "templates"
+        with tempfile.TemporaryDirectory() as tmp:
+            staged = pathlib.Path(tmp) / "templates"
+            shutil.copytree(root, staged)
+            removed = sorted((staged / "engineering").glob("*.yaml"))
+            self.assertTrue(removed, "fixture needs an engineering template to remove")
+            for path in removed:
+                path.unlink()
+
+            lib = TemplateLibrary.load(staged)      # must not raise
+            problems = lib.integrity_problems()
+            self.assertTrue(
+                any("engineering template" in p for p in problems),
+                "a family with no engineering template must be reported at "
+                "load time rather than failing at variant-proposal time")
+
+    def test_the_shipped_library_now_reports_no_integrity_gap(self):
+        """Every shipped family has the templates the pipeline needs."""
+        self.assertEqual(self.lib.integrity_problems(), [])
 
     def test_duck_typed_surface_the_interfaces_reach_for(self):
         from eagent.science.scorecard import _resolve_catalytic_template

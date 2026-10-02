@@ -1,0 +1,192 @@
+# Engineering template -- AKR substrate pocket, round 1.
+#
+# Validates against eagent.schemas.templates.EngineeringTemplate.
+#
+# WHAT THIS FILE IS. A statement of what may be changed in an aldo-keto
+# reductase scaffold, what is frozen, and what is already known to go wrong.
+# It is NOT a list of mutations to make: known_beneficial_mutations is empty,
+# deliberately, because no sourced precedent could be recorded in this
+# environment and propose_mutations excludes an entry with no evidence anyway.
+#
+# WHY THIS IS A SEPARATE FILE FROM THE SDR ONE. The two families reduce the
+# same carbonyl and share almost nothing structurally. An AKR is a
+# (beta/alpha)8 barrel whose catalytic machinery is a Tyr-Lys-His-Asp tetrad
+# and whose substrate pocket is built from the loops at the C-terminal face of
+# the barrel -- principally loops A, B and C. An SDR is a Rossmann fold with a
+# Ser-Tyr-Lys-Asn arrangement and a C-terminal substrate-binding loop. A zone
+# selector or a frozen-role list written for one is meaningless applied to the
+# other, so the templates are keyed separately and evaluate_catalysis refuses
+# a candidate whose family does not match the template it was handed.
+#
+# THE SHELL BOUNDS ARE A SEARCH SCOPE, NOT A CATALYTIC CRITERION. "Within
+# 4.5 A of the substrate" says where to look for positions to consider; it
+# says nothing about whether a position matters. The consuming code records
+# bare shell membership as scope and demands a separate reason -- a measured
+# contact, a clash, a sourced precedent -- before proposing on a position.
+
+template_id: eng.akr.substrate_pocket.v1
+family_name: AKR
+
+# Role labels from cat.akr.nadph_carbonyl_reduction.v1. The tetrad is frozen
+# in round 1 because changing any member tests "is this still an AKR" rather
+# than "does this enzyme accept the substrate", and a dead variant teaches
+# nothing about substrate fit.
+frozen_roles:
+  - tetrad_tyr
+  - tetrad_lys
+  - tetrad_his
+  - tetrad_asp
+
+mutable_zones:
+  - name: first_shell_substrate_contact
+    selector: >-
+      Residues with at least one heavy atom within 4.5 A of any substrate heavy
+      atom in the modelled complex.
+    role: substrate_contact
+    min_angstrom: 0.0
+    max_angstrom: 4.5
+    rationale: >-
+      The wall of the pocket. These positions set which ketone fits and which
+      prochiral face is presented, so they are where a substrate-directed
+      round-1 library belongs. 4.5 A is the conventional heavy-atom contact
+      cut-off defining a first coordination shell; it is a SCOPE for proposing,
+      not a threshold anything passes or fails.
+  - name: second_shell_pocket_support
+    selector: >-
+      Residues in the default shell (default_shell_min_angstrom to
+      default_shell_max_angstrom from the substrate) not already in the first
+      shell.
+    role: pocket_shell_member
+    rationale: >-
+      Second-shell positions reposition first-shell side chains without
+      touching the substrate, a recognised route to changing selectivity with
+      less loss of activity. Bare membership of this shell is explicitly NOT a
+      reason to mutate.
+  - name: barrel_loop_a
+    selector: >-
+      Loop A at the C-terminal face of the (beta/alpha)8 barrel. Its
+      boundaries differ between AKR subfamilies and must come from an
+      alignment to the project's reference, not from a distance cut-off.
+    role: orienting_loop
+    rationale: >-
+      In AKRs the external loops at the C-terminal face of the barrel, not the
+      barrel strands, form the substrate pocket and carry most of the
+      difference in substrate range between subfamilies. This is the structural
+      reason an AKR engineering campaign targets loops where an SDR campaign
+      targets a single C-terminal segment.
+    needs_curation: true
+    curator_must_supply: >-
+      The residue range of loop A in the project's reference numbering, from an
+      alignment, plus per-residue model confidence for each candidate.
+  - name: barrel_loop_b
+    selector: >-
+      Loop B at the C-terminal face of the barrel; boundaries from an alignment
+      to the project's reference.
+    role: orienting_loop
+    rationale: >-
+      Loop B contributes the opposite wall of the pocket in many AKRs and is a
+      frequent determinant of which face of a prochiral ketone is presented.
+    needs_curation: true
+    curator_must_supply: >-
+      The residue range of loop B in the project's reference numbering, plus
+      per-residue model confidence.
+  - name: barrel_loop_c
+    selector: >-
+      Loop C at the C-terminal face of the barrel; boundaries from an alignment
+      to the project's reference.
+    role: orienting_loop
+    rationale: >-
+      Loop C is the most variable of the three in length and sequence across
+      AKR subfamilies, which makes it both the most promising zone for changing
+      substrate range and the least reliably modelled.
+    needs_curation: true
+    curator_must_supply: >-
+      The residue range of loop C in the project's reference numbering, plus
+      per-residue model confidence. A proposal into a low-confidence loop
+      spends a construct slot on coordinates nobody trusts.
+  - name: substrate_entrance_channel
+    selector: >-
+      Residues lining the channel from bulk solvent into the pocket. This
+      cannot be derived from a distance alone -- it needs a tunnel or cavity
+      calculation, or a curator's reading of the structure -- so the zone is
+      measured in the default shell until one is supplied.
+    role: pocket_entrance
+    rationale: >-
+      Entrance residues control access of a bulky ketone and of the cosolvent,
+      and are a common site of activity gains that leave the tetrad untouched.
+    needs_curation: true
+    curator_must_supply: >-
+      A channel definition for this scaffold. Without it the zone is
+      indistinguishable from the second shell and will over-propose.
+
+default_shell_min_angstrom: 4.0
+default_shell_max_angstrom: 8.0
+
+# EMPTY ON PURPOSE. Every entry here would be an experimental precedent, and a
+# precedent needs a citation. propose_mutations excludes an entry whose
+# evidence field is blank and records the exclusion. A plausible but
+# unsourced precedent would be adopted by the proposal step as experimental
+# evidence, which is worse than an empty list.
+known_beneficial_mutations: []
+
+known_failure_modes:
+  - >-
+    Substituting any member of the Tyr-Lys-His-Asp tetrad abolishes or cripples
+    activity. They are frozen for round 1 for that reason; including them in a
+    library spends slots on a result that is already known.
+  - >-
+    AKR cofactor binding is dominated by a safety-belt loop that closes over
+    the nicotinamide, and cofactor release is frequently rate-limiting.
+    Substitutions near that loop can change the rate-limiting step rather than
+    substrate affinity, so an apparent activity change there may be about
+    cofactor exchange and not about the substrate at all.
+  - >-
+    Enlarging the pocket to accept a bulkier ketone frequently destroys
+    enantioselectivity, because the alternative substrate orientation becomes
+    sterically accessible at the same time. Activity and selectivity must be
+    read as two separate outcomes of the same variant.
+  - >-
+    The three barrel loops are the least well predicted part of an AKR model
+    and are often partly disordered in crystal structures. A proposal made into
+    a low-confidence loop may be targeting a conformation that does not exist.
+  - >-
+    Replacing buried hydrophobic pocket residues with polar or charged ones is
+    a common route to loss of soluble expression. In a lysate screen this is
+    indistinguishable from loss of activity unless soluble expression is
+    measured per well.
+  - >-
+    Many AKRs accept a broad range of carbonyl substrates, so a gain measured
+    on a surrogate ketone frequently does not transfer to the declared target.
+    The assay must use the declared substrate; a surrogate must be recorded as
+    an assumption.
+  - >-
+    Stacking several substitutions in round 1 makes an inactive variant
+    uninterpretable, because the responsible substitution cannot be identified.
+
+max_simultaneous_mutations_round1: 2
+
+provenance:
+  source_type: mechanism_literature
+  identifiers:
+    - "textbook:akr_tim_barrel_c_terminal_loops_determine_substrate_range"
+    - "textbook:akr_catalytic_tetrad_tyr_lys_his_asp"
+    - "textbook:akr_cofactor_safety_belt_and_rate_limiting_release"
+    - "PFAM:PF00248"
+  curated_by: "e-agent build (model-drafted from textbook biochemistry and general protein-engineering practice; NOT reviewed by a human curator)"
+  curated_at: "2026-10-02"
+  notes: >-
+    needs_curation: true.
+    A curator must supply: (1) sourced entries for known_beneficial_mutations,
+    each with a PMID or DOI and a statement of whether the effect was measured
+    on this sequence or on a homologue; (2) the residue ranges of loops A, B
+    and C in the project's reference numbering, from an alignment; (3) a
+    channel definition for the entrance zone; (4) the cofactor-anchoring
+    positions that should ALSO be frozen, including the safety-belt loop and
+    the residues reading the 2'-phosphate of NADP(H). Those have no role label
+    in cat.akr.nadph_carbonyl_reduction.v1, so they cannot be named in
+    frozen_roles yet and the proposal step can currently touch them. That is a
+    real gap in round-1 safety, recorded rather than papered over with an
+    invented label.
+    .
+    The known_failure_modes list is qualitative on purpose. Any quantitative
+    version of these statements would be a fabricated number.

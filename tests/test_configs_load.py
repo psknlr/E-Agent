@@ -150,7 +150,13 @@ class TestTemplatesLoad(unittest.TestCase):
     def test_every_file_validates(self) -> None:
         # Construction happened at import time; this asserts the inventory is
         # non-trivial so an empty directory cannot pass the suite silently.
-        self.assertEqual(len(ALL_TEMPLATES), 11)
+        # Counted from disk, not hard-coded: a fixed number here means
+        # adding a template breaks an unrelated test, and the natural fix is
+        # to bump the number, which is how an inventory check stops checking
+        # anything.
+        on_disk = sorted(TEMPLATE_DIR.rglob("*.yaml"))
+        self.assertEqual(len(ALL_TEMPLATES), len(on_disk),
+                         f"every YAML under {TEMPLATE_DIR} must load")
 
     def test_template_ids_are_unique(self) -> None:
         ids = [t.template_id for t in ALL_TEMPLATES.values()]

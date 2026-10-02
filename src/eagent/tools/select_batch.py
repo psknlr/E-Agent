@@ -92,6 +92,7 @@ from ..science.diversity import (
     reserve_control_slots,
 )
 from .base import ScientificInterface
+from .handoff import CANDIDATES_KEY, as_candidates, serialise_candidates
 
 __all__ = [
     "SYNTHESIS_GATE",
@@ -585,7 +586,8 @@ class SelectBatch(ScientificInterface):
         self,
         ctx: RunContext,
         *,
-        candidates: Sequence[Candidate] | None = None,
+        candidates: Sequence[Candidate] | Sequence[Mapping[str, Any]]
+        | Mapping[str, Any] | None = None,
         variant_proposals: Sequence[MutationProposal] = (),
         assay_template: AssayTemplate | None = None,
         controls: Sequence[ControlSpec] | None = None,
@@ -606,10 +608,17 @@ class SelectBatch(ScientificInterface):
         submit_to: str | None = None,
         **_: Any,
     ) -> ToolResult:
-        """Compose the batch and write the three artifacts."""
+        """Compose the batch and write the three artifacts.
+
+        ``candidates`` may arrive as models or as the serialised mapping an
+        earlier step published; it is coerced here so a dict never reaches
+        :func:`~eagent.science.diversity.compose_batch`, where it would fail
+        as a missing attribute with no indication of which step produced it.
+        """
         refusal = self._refuse_external_submission(ctx, submit_to)
         if refusal is not None:
             return refusal
+        candidates = as_candidates(candidates, source=self.name)
         if not candidates and not variant_proposals:
             return ToolResult.failure(
                 self.name,
@@ -752,6 +761,7 @@ class SelectBatch(ScientificInterface):
         ))
 
         result.data.update({
+            CANDIDATES_KEY: serialise_candidates(candidates),
             "plan": plan.model_dump(mode="json"),
             "footprint": footprint.to_dict(),
             "role_counts": plan.role_counts(),

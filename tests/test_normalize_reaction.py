@@ -362,5 +362,44 @@ class NormalizeReactionTests(unittest.TestCase):
         self.assertTrue(result.data["unresolved_for_gate"])
 
 
+class InterfaceRosterTests(unittest.TestCase):
+    """The declared roster of interfaces against the protocol's own list.
+
+    These two tables are written in different modules for good reasons --
+    ``eagent.tools`` must not import the harness to answer "what exists here",
+    and the harness must not depend on a package that may be half-written --
+    and that is exactly why they drift. They did: the tools table kept six
+    planning-era names no module implements, so ``available_interfaces()``
+    reported the roster as 4 of 10 and a planner reading it would have seen six
+    implemented steps as absent.
+    """
+
+    def test_the_declared_table_is_the_protocol_roster(self) -> None:
+        from eagent.harness.registry import PROTOCOL_INTERFACES
+        from eagent.tools import INTERFACE_MODULES
+
+        self.assertEqual(set(INTERFACE_MODULES), set(PROTOCOL_INTERFACES))
+
+    def test_the_declared_table_is_in_protocol_order(self) -> None:
+        from eagent.harness.registry import PROTOCOL_ORDER
+        from eagent.tools import INTERFACE_MODULES
+
+        self.assertEqual(list(INTERFACE_MODULES), list(PROTOCOL_ORDER))
+
+    def test_every_declared_module_is_actually_importable(self) -> None:
+        """A name in the table that names no module is a phantom gap."""
+        from eagent.tools import available_interfaces
+
+        available = available_interfaces()
+        self.assertEqual(10, len(available))
+        self.assertEqual([], sorted(n for n, ok in available.items() if not ok))
+
+    def test_a_bare_registry_reports_no_missing_steps(self) -> None:
+        from eagent.tools import build_registry
+
+        registry = build_registry()
+        self.assertEqual([], registry.missing_interfaces)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

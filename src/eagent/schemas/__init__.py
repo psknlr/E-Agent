@@ -3,10 +3,12 @@
 from .chem import (
     Stereochemistry, SubstrateSpec, ProductSpec, CofactorSpec, CofactorState,
     AtomRef, ReactiveAtoms, cofactor_state_from_ligand_code, LigandSource,
+    SubstrateKind, ResidueRef, ReactiveResidues, BiopolymerSubstrateSpec,
 )
 from .reaction import (
     ReactionClass, ReactionSpec, Conditions, Budget, Objectives, Approval,
     TaskMode, TaskSpec, Assumption, GATE_REQUIREMENTS,
+    BIOPOLYMER_GATE_REQUIREMENTS,
 )
 from .record import (
     OutcomeClass, EvidenceStrength, EvidenceRef, Detection, ExperimentRecord,

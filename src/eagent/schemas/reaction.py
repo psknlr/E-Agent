@@ -14,7 +14,10 @@ from typing import Any, Iterable
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..errors import FabricationGuardError, UnresolvedFieldError
-from .chem import CofactorSpec, ProductSpec, Stereochemistry, SubstrateSpec
+from .chem import (
+    BiopolymerSubstrateSpec, CofactorSpec, ProductSpec, Stereochemistry,
+    SubstrateKind, SubstrateSpec,
+)
 
 
 class ReactionClass(str, enum.Enum):
@@ -160,10 +163,23 @@ class ReactionSpec(BaseModel):
     reaction_class: ReactionClass = ReactionClass.OTHER
     atom_mapped_reaction_smiles: str | None = None
     substrate: SubstrateSpec = Field(default_factory=SubstrateSpec)
+    biopolymer_substrate: BiopolymerSubstrateSpec | None = Field(
+        None,
+        description="Set instead of `substrate` when the substrate is a "
+                    "peptide, protein or nucleic acid. Exactly one path is "
+                    "used; the gates follow whichever it is.",
+    )
     product: ProductSpec = Field(default_factory=ProductSpec)
     rhea_id: str | None = None
     ec_hint: str | None = None
     notes: str = ""
+
+    @property
+    def substrate_kind(self) -> SubstrateKind:
+        """Which substrate path this reaction uses."""
+        if self.biopolymer_substrate is not None:
+            return self.biopolymer_substrate.kind
+        return self.substrate.kind
 
     @property
     def target_stereochemistry(self) -> Stereochemistry:
@@ -177,7 +193,10 @@ class ReactionSpec(BaseModel):
         return out
 
 
-#: Fields that must be resolved before each gate opens.
+#: Fields that must be resolved before each gate opens, for a small-molecule
+#: substrate. A biopolymer task uses :data:`BIOPOLYMER_GATE_REQUIREMENTS`
+#: instead, because blocking it on a structure it can never have would leave
+#: the gate permanently shut for a perfectly well-specified task.
 GATE_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     "reaction_spec_confirmed": (
         "reaction.substrate.isomeric_smiles",
@@ -194,6 +213,28 @@ GATE_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     ),
     "functional_criteria_confirmed": (
         "reaction.product.isomeric_smiles",
+    ),
+}
+
+
+#: The same gates, asked of a peptide, protein or nucleic-acid substrate.
+#: A biopolymer is pinned down by its sequence and the residue the reaction
+#: touches, so those are what the gate demands; an atom-mapped reaction SMILES
+#: and an isomeric SMILES are not available and are not asked for.
+BIOPOLYMER_GATE_REQUIREMENTS: dict[str, tuple[str, ...]] = {
+    "reaction_spec_confirmed": (
+        "reaction.biopolymer_substrate.sequence",
+        "reaction.biopolymer_substrate.reactive_residues.modified",
+        "reaction.product.name",
+    ),
+    "synthesis_authorized": (
+        "reaction.biopolymer_substrate.sequence",
+        "conditions.pH",
+        "conditions.temperature_C",
+        "conditions.expression_host",
+    ),
+    "functional_criteria_confirmed": (
+        "reaction.product.name",
     ),
 }
 
@@ -236,9 +277,21 @@ class TaskSpec(BaseModel):
     assumptions: list[Assumption] = Field(default_factory=list)
 
     # -- unresolved-field discipline --------------------------------------
+    def gate_requirements(self, gate: str) -> tuple[str, ...]:
+        """The fields this gate needs, chosen by the substrate's kind."""
+        table = (BIOPOLYMER_GATE_REQUIREMENTS
+                 if self.reaction.substrate_kind.is_biopolymer
+                 else GATE_REQUIREMENTS)
+        return table.get(gate, ())
+
     def unresolved_for(self, gate: str) -> list[str]:
-        req = GATE_REQUIREMENTS.get(gate, ())
-        return [p for p in req if _get_path(self, p) is None]
+        out: list[str] = []
+        for path in self.gate_requirements(gate):
+            value = _get_path(self, path)
+            if value is None or (isinstance(value, (list, tuple, dict))
+                                 and len(value) == 0):
+                out.append(path)
+        return out
 
     def require(self, gate: str) -> None:
         missing = self.unresolved_for(gate)

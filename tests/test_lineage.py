@@ -516,6 +516,89 @@ class TestGroupingKeyForSplitting(unittest.TestCase):
         self.assertTrue(split_leakage([a], [c], lookup).ok)
 
 
+class TestMultiGenerationLineage(unittest.TestCase):
+    """A variant lineage deeper than one generation: P -> A -> B -> C.
+
+    Each row records only its immediate parent, which is all an experiment
+    record can honestly carry. The grouping key therefore has to emit *both*
+    ends of that link -- the row's own sequence and its parent's -- or the
+    chain is cut at every generation: the row for A and the row for B would
+    then share nothing, the closure would never fuse the family, and a parent
+    and its grandchild would land in different folds while the leakage audit
+    certified the split clean.
+
+    The sequences differ by one residue, as a real engineered lineage does, and
+    every row carries its own DOI and no cluster assignment, so the *only*
+    thing that can link these rows is the lineage facet.
+    """
+
+    def setUp(self) -> None:
+        from eagent.provenance import sequence_hash
+
+        self.seq_p = PARENT_SEQ
+        self.seq_a = VARIANT_SEQ
+        self.seq_b = PARENT_SEQ[:-1] + "V"
+        self.seq_c = PARENT_SEQ[:-1] + "G"
+        self.assertEqual(4, len({self.seq_p, self.seq_a, self.seq_b, self.seq_c}))
+        self.hash_of = {name: sequence_hash(seq) for name, seq in (
+            ("P", self.seq_p), ("A", self.seq_a),
+            ("B", self.seq_b), ("C", self.seq_c))}
+
+        self.p = _record("gen-p", sequence=self.seq_p, evidence=[
+            _ref(source_type="publication", identifier=DOI_A, doi=DOI_A)])
+        self.a = _record("gen-a", sequence=self.seq_a,
+                         parent=self.hash_of["P"], evidence=[
+                             _ref(source_type="publication", identifier=DOI_B,
+                                  doi=DOI_B)])
+        self.b = _record("gen-b", sequence=self.seq_b,
+                         parent=self.hash_of["A"], evidence=[
+                             _ref(source_type="publication",
+                                  identifier="10.5555/third-example-do-not-cite",
+                                  doi="10.5555/third-example-do-not-cite")])
+        self.c = _record("gen-c", sequence=self.seq_c,
+                         parent=self.hash_of["B"], evidence=[
+                             _ref(source_type="publication",
+                                  identifier="10.5555/fourth-example-do-not-cite",
+                                  doi="10.5555/fourth-example-do-not-cite")])
+        self.chain = [self.p, self.a, self.b, self.c]
+
+    def _lineage_facets(self, rec) -> set[str]:
+        return {f for f in grouping_key(rec) if f.startswith("lineage:")}
+
+    def test_a_row_emits_its_own_sequence_as_well_as_its_parents(self) -> None:
+        """The missing half of the link: a row recording a parent used to emit
+        only the parent, so nothing downstream could attach to it."""
+        self.assertEqual(self._lineage_facets(self.a),
+                         {f"lineage:{self.hash_of['A']}",
+                          f"lineage:{self.hash_of['P']}"})
+        self.assertEqual(self._lineage_facets(self.p),
+                         {f"lineage:{self.hash_of['P']}"})
+
+    def test_consecutive_generations_share_exactly_one_lineage_facet(self) -> None:
+        for child, parent in ((self.a, self.p), (self.b, self.a), (self.c, self.b)):
+            with self.subTest(child=child.record_id):
+                shared = self._lineage_facets(child) & self._lineage_facets(parent)
+                self.assertEqual(1, len(shared), shared)
+
+    def test_the_whole_chain_fuses_into_one_split_group(self) -> None:
+        assign = leakage_safe_groups(self.chain)
+        self.assertEqual(1, len({assign[r.record_id] for r in self.chain}),
+                         assign)
+
+    def test_a_split_that_cuts_the_chain_in_the_middle_is_reported(self) -> None:
+        """P and A in train, B and C in test: A is B's parent, so it leaks."""
+        leak = split_leakage([self.p, self.a], [self.b, self.c])
+        self.assertFalse(leak.ok, leak.render())
+        self.assertIn("gen-a", leak.train_record_ids)
+        self.assertIn("gen-b", leak.test_record_ids)
+
+    def test_the_two_ends_alone_are_not_linked(self) -> None:
+        """Nothing is invented: with A and B absent, P and C share no record of
+        a link, and the closure must not manufacture one."""
+        self.assertFalse(set(grouping_key(self.p)) & set(grouping_key(self.c)))
+        self.assertTrue(split_leakage([self.p], [self.c]).ok)
+
+
 class TestReportSerialisation(unittest.TestCase):
     def test_report_round_trips_to_plain_data(self) -> None:
         report = LineageReport.build("ADH-X reduces acetophenone", _recuration_chain())

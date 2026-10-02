@@ -22,9 +22,11 @@ from eagent.envelope import Status
 from eagent.errors import FabricationGuardError, TemplateError
 from eagent.provenance import RunManifest
 from eagent.schemas import (
-    Budget, CatalyticTemplate, CofactorState, ConfidenceLevel, FamilyTemplate,
-    SequenceRecord, TaskSpec, TemplateProvenance, TemplateSourceType,
+    Budget, Candidate, CatalyticTemplate, CofactorState, ConfidenceLevel,
+    FamilyTemplate, SequenceRecord, TaskSpec, TemplateProvenance,
+    TemplateSourceType,
 )
+from eagent.tools.handoff import CANDIDATES_KEY, as_candidates
 from eagent.tools.annotate_family import (
     AnnotateFamily,
     AnnotationPolicy,
@@ -699,6 +701,68 @@ class TestAnnotateFamilyInterface(unittest.TestCase):
         self.assertEqual(rows["sdrA"]["accession"], "P1")
         self.assertEqual(rows["sdrA"]["family_name"], "SDR")
         self.assertEqual(rows["mdr"]["family_name"], "MDR/ADH")
+
+
+# ---------------------------------------------------------------------------
+# the step-to-step hand-off
+# ---------------------------------------------------------------------------
+
+
+class TestCandidateHandoff(unittest.TestCase):
+    """The payload this step publishes is the one the next step can read.
+
+    ``result.data`` is serialised into the manifest, so the candidates leave
+    here as plain mappings while every consumer is typed against the model.
+    These tests pin the contract from the producing end: what is published is
+    JSON, and ``as_candidates`` turns exactly that back into models without
+    losing the family call or the catalytic mapping -- the two fields whose
+    silent loss would be scored as "this candidate has no family" rather than
+    "the family call did not survive the hand-off".
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.iface = AnnotateFamily()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _result(self):
+        ctx = _ctx(self.tmp)
+        return self.iface.run(
+            ctx,
+            sequences=[_record("sdrA", SDR_CAND_A), _record("mdr", MDR_CAND)],
+            hypotheses=_hypotheses(),
+            domain_hits={"sdrA": [DomainHit(accession="PF00106",
+                                            source="Pfam 36.0")]})
+
+    def test_candidates_are_published_as_json_under_the_agreed_key(self) -> None:
+        result = self._result()
+        published = result.data[CANDIDATES_KEY]
+        self.assertEqual(len(published), 2)
+        for item in published:
+            self.assertIsInstance(item, dict)
+            self.assertNotIsInstance(item, Candidate)
+        # JSON mode, not python mode: an enum left as an object would not
+        # survive the manifest and would come back as something else.
+        self.assertIsInstance(published[0]["family"]["confidence"], str)
+
+    def test_the_published_payload_round_trips_into_models(self) -> None:
+        result = self._result()
+        models = as_candidates(result.data, source="test")
+        self.assertEqual([c.candidate_id for c in models], ["sdrA", "mdr"])
+        self.assertTrue(all(isinstance(c, Candidate) for c in models))
+        by_id = {c.candidate_id: c for c in models}
+        self.assertEqual(by_id["sdrA"].family.family_name, "SDR")
+        self.assertEqual(by_id["sdrA"].catalytic_mapping.catalytic_template_id,
+                         "cat.sdr.v1")
+        self.assertEqual(by_id["mdr"].family.family_name, "MDR/ADH")
+        # The bare list is the same payload, read the same way.
+        self.assertEqual(
+            [c.candidate_id
+             for c in as_candidates(result.data[CANDIDATES_KEY], source="test")],
+            ["sdrA", "mdr"])
 
 
 if __name__ == "__main__":  # pragma: no cover - pytest may not be installed

@@ -236,6 +236,37 @@ class GeometryReport(BaseModel):
         return self.independent_satisfied / self.independent_total
 
 
+#: Share of the *minority* face at or above which a split pose set is reported
+#: as ``competing_poses`` instead of being resolved by majority vote.
+#:
+#: WHY THIS IS NAMED AND WHY THE DEFAULT IS 0.0
+#: --------------------------------------------
+#: This module's position is that a split pose set is **not** resolved by
+#: majority vote: pose counts are an artefact of how the sampler ran, not a
+#: Boltzmann population, so "seven re and one si" is not "87% towards the
+#: target", it is an ensemble that disagrees with itself. A bare literal cut
+#: buried in the comparison contradicted that position silently, because every
+#: split under the cut was reported as a clean ``favors_target`` with nothing
+#: in the record to say a minority pose had pointed the other way.
+#:
+#: The default of ``0.0`` therefore means: *any* genuine split -- at least one
+#: pose on each face -- is reported as ``competing_poses``. That is the
+#: conservative direction. The failure it prevents is a confident single-
+#: enantiomer prediction handed to a chemist who then runs a chiral assay
+#: against it; the cost of being conservative is only that a reviewer is asked
+#: to look at an ensemble that genuinely disagrees.
+#:
+#: NEEDS CALIBRATION BEFORE IT IS RAISED. A non-zero value is a claim that a
+#: minority below it is sampling noise rather than a second binding mode, and
+#: that claim belongs to a specific pose generator, pose count and clustering
+#: radius -- never to this file. Calibrate it against ensembles whose
+#: experimental ee is known, pass it explicitly through
+#: :meth:`StereoCall.from_counts` or
+#: :func:`eagent.science.stereo.call_stereochemistry`, and let it reach
+#: provenance so the reader knows which cut produced the call.
+DEFAULT_COMPETING_FACE_FRACTION: float = 0.0
+
+
 class StereoCall(BaseModel):
     """Direction of the predicted product configuration. Never a fake ee value."""
 
@@ -266,20 +297,62 @@ class StereoCall(BaseModel):
         return self
 
     @classmethod
-    def from_counts(cls, target: int, opposite: int, undetermined: int,
-                    basis: str = "") -> "StereoCall":
+    def from_counts(
+        cls,
+        target: int,
+        opposite: int,
+        undetermined: int,
+        basis: str = "",
+        *,
+        competing_face_fraction: float = DEFAULT_COMPETING_FACE_FRACTION,
+    ) -> "StereoCall":
+        """Direction from per-pose counts, reporting a split rather than voting.
+
+        ``competing_face_fraction`` is the minority share at or above which the
+        call is ``competing_poses``; see
+        :data:`DEFAULT_COMPETING_FACE_FRACTION` for why it defaults to 0.0 and
+        what calibrating it would mean. It is a parameter rather than a literal
+        so that the value which decided the call travels with the call, in
+        ``basis``, instead of living unnamed in this method.
+
+        Raises
+        ------
+        ValueError
+            When the cut is outside ``[0, 0.5]``. Above 0.5 the minority share
+            can never reach it, so ``competing_poses`` would become
+            unreachable -- a silent disabling of the split report rather than a
+            calibration of it.
+        """
+        if not (0.0 <= competing_face_fraction <= 0.5):
+            raise ValueError(
+                f"competing_face_fraction must lie in [0, 0.5], got "
+                f"{competing_face_fraction}; the minority share of a split can "
+                f"never exceed 0.5, so a larger cut would silently make "
+                f"'competing_poses' unreachable"
+            )
+        note = ""
         if target == 0 and opposite == 0:
             call = "insufficient_evidence"
         elif target > 0 and opposite > 0:
-            # Competing only when the minor face is not negligible.
-            call = "competing_poses" if min(target, opposite) / (target + opposite) >= 0.2 \
-                else ("favors_target" if target > opposite else "favors_opposite")
+            minority = min(target, opposite) / (target + opposite)
+            competing = minority >= competing_face_fraction
+            call = "competing_poses" if competing else (
+                "favors_target" if target > opposite else "favors_opposite")
+            note = (
+                f"split pose set: minority face share {minority:.3f} against a "
+                f"reporting cut of {competing_face_fraction:.3f}"
+                + ("" if competing else
+                   "; the minority was below the calibrated cut, so the majority "
+                   "face was reported -- the minority poses are still counted "
+                   "above and were not discarded")
+            )
         elif target > 0:
             call = "favors_target"
         else:
             call = "favors_opposite"
+        full_basis = f"{basis}; {note}" if (basis and note) else (basis or note)
         return cls(call=call, target_face_poses=target, opposite_face_poses=opposite,
-                   undetermined_poses=undetermined, basis=basis)
+                   undetermined_poses=undetermined, basis=full_basis)
 
 
 class ScoreDimension(BaseModel):
@@ -327,8 +400,12 @@ class Candidate(BaseModel):
     stereo: StereoCall = Field(default_factory=StereoCall)
     robustness_G: float | None = Field(
         None,
-        description="Fraction of valid poses meeting the mechanism conditions. "
-                    "A sampling statistic, not a probability of catalysis.",
+        description="Circularity-corrected robustness: of the decided poses that "
+                    "carried at least one gating constraint which was NOT "
+                    "restrained during modelling, the fraction whose independent "
+                    "gating constraints were all satisfied. None -- never 1.0 and "
+                    "never 0.0 -- when no pose carried independent evidence at "
+                    "all. A sampling statistic, not a probability of catalysis.",
     )
     scorecard: dict[str, ScoreDimension] = Field(default_factory=dict)
     evidence: list[EvidenceRef] = Field(default_factory=list)

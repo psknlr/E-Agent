@@ -141,6 +141,7 @@ from ..schemas import (
     MutationProposal,
     PerformanceAxis,
     SiteEvidence,
+    TaskSpec,
 )
 from ..science import geometry as geom
 from ..science.numbering import (
@@ -152,6 +153,7 @@ from ..science.numbering import (
 )
 from ..science.structure_io import Atom, Chain, Structure
 from .base import ScientificInterface
+from .handoff import CANDIDATES_KEY, as_candidates, serialise_candidates
 # The disclosure gate is named once, in mine_sequences, so the controller, the
 # manifest and every interface that could leak a sequence agree on the string.
 from .mine_sequences import EXTERNAL_SUBMISSION_GATE
@@ -179,7 +181,10 @@ __all__ = [
     "SiteCandidate",
     "ExcludedSite",
     "ParentConfirmation",
+    "ParentResolution",
     "confirm_parent",
+    "parent_identifiers",
+    "resolve_parent_enzymes",
     "frozen_indices",
     "derive_structural_observations",
     "ProposeMutations",
@@ -652,6 +657,159 @@ class ParentConfirmation:
         return not self.confirmed
 
 
+@dataclass(frozen=True)
+class ParentResolution:
+    """Which parents this round designs on, and on whose authority.
+
+    ``TaskSpec.parent_enzymes`` is the defining input of mode C
+    (``substrate_directed_engineering``): the operator already knows the
+    enzyme and wants it engineered for a new substrate. Until this type
+    existed the field was write-only -- the schema refused a mode C task
+    without it and then nothing read it -- so the one input that distinguishes
+    mode C never reached the step that acts on it, and a mode C run silently
+    behaved like a round-2 run with whatever parents the caller happened to
+    pass.
+    """
+
+    parents: tuple[Candidate, ...] = ()
+    #: ``argument`` when the caller passed parents, ``task.parent_enzymes``
+    #: when they were resolved from the task spec.
+    source: str = "argument"
+    declared: tuple[str, ...] = ()
+    #: ``(declared identifier, candidate_id)`` pairs, so a reviewer can see
+    #: which protein each entry in the task spec was taken to mean.
+    matched: tuple[tuple[str, str], ...] = ()
+    refusal_code: str = ""
+    refusal_reason: str = ""
+
+    @property
+    def refused(self) -> bool:
+        return bool(self.refusal_code)
+
+
+def parent_identifiers(candidate: Candidate) -> set[str]:
+    """Every string a task spec may legitimately use to name this parent.
+
+    ``parent_enzymes`` is documented as "accessions or sequence hashes", and
+    an engineered parent from the previous plate usually has no accession at
+    all, so the candidate id is accepted too. Case is folded because an
+    accession written ``p12345`` in a hand-edited YAML spec names the same
+    protein as ``P12345``, and a spelling difference must not read as "this
+    parent was never declared".
+    """
+    rec = candidate.sequence_record
+    raw = (candidate.candidate_id, rec.candidate_id, rec.accession,
+           rec.sequence_sha256)
+    return {str(v).strip().casefold() for v in raw if v and str(v).strip()}
+
+
+def resolve_parent_enzymes(
+    task: TaskSpec,
+    parents: Sequence[Candidate] = (),
+    pool: Sequence[Candidate] = (),
+) -> ParentResolution:
+    """Reconcile the parents passed in with the ones the task declares.
+
+    Three cases, deliberately kept apart:
+
+    * nothing declared -- the explicit argument is the whole answer, which is
+      the ordinary round-2 case;
+    * declared and nothing passed -- the declared accessions or sequence
+      hashes are looked up in ``pool``. An entry that matches nothing, or
+      matches more than one candidate, is a typed refusal: designing on "some
+      candidate" when the operator named a specific protein is fabrication,
+      and an empty pool is a missing input, not an empty result;
+    * declared *and* passed -- the two are cross-checked and any disagreement
+      refuses the step. Preferring one over the other silently would mean a
+      mode C run engineering a protein the task never named, or quietly
+      ignoring the protein it did.
+    """
+    declared = tuple(str(d).strip() for d in (task.parent_enzymes or ())
+                     if str(d).strip())
+    supplied = list(parents)
+    mode = task.task_mode.value
+
+    if not declared:
+        return ParentResolution(parents=tuple(supplied), source="argument")
+
+    if supplied:
+        matched: list[tuple[str, str]] = []
+        undeclared_keys = {d.casefold() for d in declared}
+        missing: list[str] = []
+        for ident in declared:
+            hits = [c for c in supplied
+                    if ident.casefold() in parent_identifiers(c)]
+            if hits:
+                matched.extend((ident, c.candidate_id) for c in hits)
+            else:
+                missing.append(ident)
+        extra = [c.candidate_id for c in supplied
+                 if not (parent_identifiers(c) & undeclared_keys)]
+        if missing or extra:
+            parts = []
+            if missing:
+                parts.append(
+                    f"declared but not passed: {', '.join(missing)}")
+            if extra:
+                parts.append(
+                    f"passed but not declared: {', '.join(sorted(extra))}")
+            return ParentResolution(
+                source="argument", declared=declared,
+                refusal_code="parent_enzymes_disagreement",
+                refusal_reason=(
+                    f"the parents passed to propose_mutations disagree with "
+                    f"TaskSpec.parent_enzymes ({', '.join(declared)}) in "
+                    f"task_mode={mode}: " + "; ".join(parts) + ". Refusing to "
+                    f"pick one of the two: engineering a protein the task "
+                    f"never named, or ignoring the one it did, is not a "
+                    f"difference a later artifact would record. Correct the "
+                    f"task spec or the call so they agree."),
+            )
+        return ParentResolution(parents=tuple(supplied), source="argument",
+                                declared=declared, matched=tuple(matched))
+
+    resolved: list[Candidate] = []
+    seen: set[str] = set()
+    matched = []
+    unresolved: list[str] = []
+    ambiguous: list[str] = []
+    for ident in declared:
+        hits = {c.candidate_id: c for c in pool
+                if ident.casefold() in parent_identifiers(c)}
+        if not hits:
+            unresolved.append(ident)
+        elif len(hits) > 1:
+            ambiguous.append(f"{ident} -> {', '.join(sorted(hits))}")
+        else:
+            cand = next(iter(hits.values()))
+            matched.append((ident, cand.candidate_id))
+            if cand.candidate_id not in seen:
+                seen.add(cand.candidate_id)
+                resolved.append(cand)
+    if unresolved or ambiguous:
+        parts = []
+        if unresolved:
+            parts.append(f"no candidate in the pool of {len(pool)} carries "
+                         f"the accession, sequence hash or candidate id "
+                         f"{', '.join(unresolved)}")
+        if ambiguous:
+            parts.append(f"ambiguous: {'; '.join(ambiguous)}")
+        return ParentResolution(
+            source="task.parent_enzymes", declared=declared,
+            refusal_code="parent_enzymes_unresolved",
+            refusal_reason=(
+                f"TaskSpec.parent_enzymes names the parent(s) this "
+                f"task_mode={mode} run exists to engineer, and they could not "
+                f"be resolved: " + "; ".join(parts) + ". Pass "
+                f"candidate_pool=[Candidate, ...] containing them, or "
+                f"parents=[Candidate, ...] directly; the step does not guess "
+                f"which protein was meant."),
+        )
+    return ParentResolution(parents=tuple(resolved),
+                            source="task.parent_enzymes", declared=declared,
+                            matched=tuple(matched))
+
+
 # ==========================================================================
 # Confirmation, freezing, and structural derivation
 # ==========================================================================
@@ -929,7 +1087,10 @@ class ProposeMutations(ScientificInterface):
         self,
         ctx: RunContext,
         *,
-        parents: Sequence[Candidate] | None = None,
+        parents: Sequence[Candidate] | Sequence[Mapping[str, Any]]
+        | Mapping[str, Any] | None = None,
+        candidate_pool: Sequence[Candidate] | Sequence[Mapping[str, Any]]
+        | Mapping[str, Any] | None = None,
         records: Sequence[ExperimentRecord] = (),
         engineering_template: EngineeringTemplate | Mapping[str, EngineeringTemplate] | None = None,
         residue_maps: Mapping[str, ResidueMap] | None = None,
@@ -947,7 +1108,19 @@ class ProposeMutations(ScientificInterface):
         submit_to: str | None = None,
         **_: Any,
     ) -> ToolResult:
-        """Propose variants for every supplied parent and write the tables.
+        """Propose variants for every resolved parent and write the tables.
+
+        ``parents`` and ``candidate_pool`` may arrive as models or as the
+        serialised mapping an earlier step published;
+        :func:`~eagent.tools.handoff.as_candidates` settles that here, at the
+        boundary, so a mapping never reaches ``parent.sequence_record`` and
+        fails as a missing attribute with no indication of which step produced
+        the payload.
+
+        In mode C the parents may also come from ``TaskSpec.parent_enzymes``,
+        which is the declared input of that mode; see
+        :func:`resolve_parent_enzymes` for how the declaration and the
+        argument are reconciled.
 
         ``structural_observations`` may be passed directly (the usual case
         when :func:`derive_structural_observations` was run by an earlier
@@ -957,11 +1130,34 @@ class ProposeMutations(ScientificInterface):
         if refusal is not None:
             return refusal
 
+        resolution = resolve_parent_enzymes(
+            ctx.task,
+            as_candidates(parents, source=f"{self.name}.parents"),
+            as_candidates(candidate_pool, source=f"{self.name}.candidate_pool"),
+        )
+        if resolution.refused:
+            failed = ToolResult.failure(self.name, resolution.refusal_reason,
+                                        code=resolution.refusal_code)
+            failed.data["parent_resolution"] = self._resolution_payload(
+                ctx, resolution)
+            if resolution.refusal_code == "parent_enzymes_disagreement":
+                failed.add_next(
+                    "reconcile_parent_enzymes",
+                    "The task spec and the call name different parents. A "
+                    "person has to say which is right; re-running reproduces "
+                    "the same contradiction.",
+                    {"declared": list(resolution.declared)},
+                    requires_human=True)
+            return failed
+        parents = list(resolution.parents)
+
         if not parents:
             return ToolResult.failure(
                 self.name,
                 "no parents supplied: pass parents=[Candidate, ...] that an "
-                "earlier round confirmed. This step does not mine candidates, "
+                "earlier round confirmed, or declare them in "
+                "TaskSpec.parent_enzymes with candidate_pool=[Candidate, ...] "
+                "to resolve them against. This step does not mine candidates, "
                 "and an empty library is not a design result.",
                 code="no_parents",
             )
@@ -1108,6 +1304,12 @@ class ProposeMutations(ScientificInterface):
         ))
 
         result.data.update({
+            # The resolved parent set, serialised the way every other step
+            # publishes candidates, so select_batch can be wired from this
+            # step's data mapping and so a mode C run records which proteins
+            # TaskSpec.parent_enzymes was actually taken to mean.
+            CANDIDATES_KEY: serialise_candidates(parents),
+            "parent_resolution": self._resolution_payload(ctx, resolution),
             "n_proposals": len(proposals),
             "n_singles": sum(1 for p in proposals if not p.is_combination),
             "n_combinations": sum(1 for p in proposals if p.is_combination),
@@ -1137,6 +1339,13 @@ class ProposeMutations(ScientificInterface):
             result.message = (
                 "no proposal survived the parent-confirmation, freeze and "
                 "wild-type verification checks; see excluded_sites.tsv")
+            # Some paths into this branch (every parent unconfirmed, every
+            # site excluded) already raised a blocker, but not all do. A
+            # failed status with no blocking code cannot be classified, and
+            # the controller stops the run as "unclassified" instead of
+            # routing it back to the inputs that were thin.
+            result.add_flag("no_viable_proposal", Severity.BLOCKER,
+                            result.message, subject="proposals")
         elif result.blockers or mpnn_state.get("degraded"):
             result.status = Status.PARTIAL
             result.message = (
@@ -1177,6 +1386,7 @@ class ProposeMutations(ScientificInterface):
             databases={},
             models={"ligandmpnn": str(mpnn_state.get("model_version") or "absent")},
             parameters={
+                "parent_resolution": self._resolution_payload(ctx, resolution),
                 "include_proximity_only": include_proximity_only,
                 "max_substitutions_per_site": max_substitutions_per_site,
                 "max_combinations_per_parent": max_combinations_per_parent,
@@ -1189,6 +1399,25 @@ class ProposeMutations(ScientificInterface):
             random_seed=ctx.seed_for(self.name),
         )
         return result
+
+    # -- parents -----------------------------------------------------------
+    @staticmethod
+    def _resolution_payload(ctx: RunContext,
+                            resolution: ParentResolution) -> dict[str, Any]:
+        """Record where the parents came from, so mode C is auditable.
+
+        Without this a reader cannot tell a run that engineered the enzyme the
+        operator named from one that engineered whatever the caller passed.
+        """
+        return {
+            "task_mode": ctx.task.task_mode.value,
+            "source": resolution.source,
+            "declared_parent_enzymes": list(resolution.declared),
+            "matched": [{"declared": d, "candidate_id": c}
+                        for d, c in resolution.matched],
+            "resolved_parent_ids": [c.candidate_id for c in resolution.parents],
+            "refusal_code": resolution.refusal_code,
+        }
 
     # -- guards ------------------------------------------------------------
     def _refuse_external_submission(

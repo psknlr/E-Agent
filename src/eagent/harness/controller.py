@@ -59,7 +59,7 @@ from typing import Any, Callable, Iterable, Mapping
 from pydantic import BaseModel
 
 from ..context import RunContext
-from ..envelope import NextAction, Status, ToolResult
+from ..envelope import NextAction, Severity, Status, ToolResult
 from ..errors import ApprovalRequiredError
 from ..provenance import canonical_json, sha256_obj, utc_now
 from ..tools.base import InterfaceRegistry, ScientificInterface
@@ -71,11 +71,13 @@ from .registry import build_interface_registry
 
 __all__ = [
     "Branch",
+    "CLASSIFIED_CODES",
     "ControllerHooks",
     "Escalation",
     "FailureKind",
     "INPUT_ERROR_CODES",
     "INSUFFICIENT_EVIDENCE_CODES",
+    "INTERNAL_ERROR_CODES",
     "LINEAR_SUCCESSOR",
     "NEEDS_HUMAN_CODES",
     "POLICY_BLOCKED_CODES",
@@ -88,7 +90,9 @@ __all__ = [
     "TERMINAL_STAGES",
     "TOOL_UNAVAILABLE_CODES",
     "TRANSITIONS",
+    "UNDIAGNOSED_CODES",
     "classify_failure",
+    "describe_failure",
 ]
 
 
@@ -100,7 +104,12 @@ __all__ = [
 #: repairable: a structure index that does not parse, a pool that arrived
 #: empty, a catalytic template that was never loaded. Taken from the codes the
 #: ten interfaces actually emit, so the classifier is matched to the envelopes
-#: it will see rather than to a vocabulary invented here.
+#: it will see rather than to a vocabulary invented here. That claim is not
+#: left to a comment: ``test_controller`` scans every
+#: ``add_flag(..., Severity.BLOCKER)`` and ``ToolResult.failure(code=...)``
+#: under ``src/eagent/tools/`` and fails when a code reaches none of these
+#: sets, because a code nobody classified becomes an escalation with no
+#: recovery route and the two halves drift apart silently.
 INPUT_ERROR_CODES: frozenset[str] = frozenset({
     "missing_input", "missing_input_artifact", "no_sequences", "no_seeds",
     "no_candidates", "no_parents", "no_members", "empty_pool", "no_database",
@@ -112,6 +121,31 @@ INPUT_ERROR_CODES: frozenset[str] = frozenset({
     "ligandmpnn_length_mismatch", "cofactor_wrong_identity",
     "cofactor_wrong_oxidation_state", "substrate_product_identical",
     "unresolved_subject_ids", "reaction_class_unset", "unresolvedfielderror",
+    # ``prepare_structures`` reports a candidate with no usable coordinate
+    # file here. A cache miss is routine, and leaving it unclassified turned
+    # an ordinary "fetch the structure" into a dead-ended run.
+    "no_usable_structure",
+    # The spec contradicts itself about the cofactor or the stereocentre. The
+    # operator edits one of the two declarations; nothing about the step is
+    # at fault, so this is a repairable input and not an escalation.
+    "cofactor_state_contradicts_ligand_code",
+    "stereo_target_without_stereocentre", "stereo_achiral_with_stereocentre",
+    # ``select_batch``: the declared control plan is not self-consistent, or
+    # does not fit the gene budget it was given. Both are the plate plan the
+    # operator supplied, and both are fixed by editing it.
+    "control_claim_problem", "control_budget_overflow",
+    # ``ingest_results``: the system control on the plate did not fire, so the
+    # detection chain -- an input to every verdict on that plate -- is not
+    # demonstrated. Re-reading the same file cannot fix it; a revalidated
+    # plate can, which is the repair branch rather than an escalation.
+    "assay_system_control_failed",
+    # ``propose_mutations``: the catalytic freeze could not be verified
+    # against this parent, or the designer returned a sequence that
+    # contradicts the parent it was given. Both mean the inputs to the design
+    # pass -- the residue map, the frozen set, the parent sequence -- do not
+    # line up, and both are repaired upstream rather than retried here.
+    "freeze_unverifiable", "ligandmpnn_touched_frozen_residue",
+    "ligandmpnn_wild_type_unverified",
 })
 
 #: Codes a human must answer. Never retried: re-running the step reproduces
@@ -121,6 +155,19 @@ NEEDS_HUMAN_CODES: frozenset[str] = frozenset({
     "single_seed_not_authorised", "single_seed_unjustified",
     "no_pre_registered_criterion", "criterion_undecidable",
     "protocol_deviation_refused", "template_assumption_rejected",
+    # ``normalize_reaction``: the substrate or the product is a name, or is
+    # absent. A name fixes neither tautomer, salt form nor stereochemistry,
+    # and this harness will not pick one -- only a chemist can supply the
+    # structure, so there is nothing here for a repair hook to repair.
+    "substrate_name_only", "substrate_unspecified",
+    "product_name_only", "product_unspecified",
+    # Whether the reaction creates a new stereocentre is not inferred from
+    # the reaction class; it is asked.
+    "stereocentre_undetermined",
+    # ``propose_mutations``: the parent has not been shown to run the target
+    # chemistry. Proceeding needs a ParentOverride with a stated reason, or
+    # an assay of the parent -- both are decisions, not inputs.
+    "unconfirmed_parent",
 })
 
 #: Codes meaning a tool, model or network resource is not available. Retrying
@@ -130,6 +177,12 @@ TOOL_UNAVAILABLE_CODES: frozenset[str] = frozenset({
     "tool_unavailable", "toolunavailableerror", "search_tool_unavailable",
     "ligandmpnn_unavailable", "network_disabled", "network_budget_exhausted",
     "ligandmpnn_network_blocked", "cache_miss",
+    # ``mine_sequences`` raises this when every configured search crashed
+    # rather than returning nothing. The sibling of search_tool_unavailable:
+    # the search machinery did not run, so there is no pool to judge, and
+    # reaching for whichever method did survive would silently change the
+    # method behind the pool.
+    "search_failed",
 })
 
 #: Codes where a policy or a licence refused the work. Escalated, never
@@ -149,7 +202,31 @@ INSUFFICIENT_EVIDENCE_CODES: frozenset[str] = frozenset({
     "no_actionable_sites", "evidence_entirely_circular", "layers_not_searched",
     "chemotype_unassigned", "catalytic_roles_incomplete",
     "family_signals_contradictory", "no_hits_in_round",
+    # ``model_complexes``: the assembly is missing a component of the
+    # catalytic system, or a modelling route produced nothing usable for this
+    # candidate. Neither is a wrong input and neither is a broken tool -- the
+    # run simply has too little structural evidence for that candidate, which
+    # is the widen-or-carry-as-a-probe branch.
+    "incomplete_catalytic_system", "route_failed",
 })
+
+#: Defects in this codebase. Never retried: a retry hides the bug, and a
+#: hidden bug eventually produces a wrong number.
+INTERNAL_ERROR_CODES: frozenset[str] = frozenset({"internal_error"})
+
+#: Codes that name no recovery at all. ``step_failed`` is
+#: :meth:`ToolResult.failure`'s default, so a step emitting it has not said
+#: what went wrong; there is nothing to route on and the run escalates
+#: carrying the envelope's own message.
+UNDIAGNOSED_CODES: frozenset[str] = frozenset({"step_failed"})
+
+#: Every code this module can place. The drift test in ``test_controller``
+#: compares the interfaces' emitted vocabulary against this union.
+CLASSIFIED_CODES: frozenset[str] = (
+    INPUT_ERROR_CODES | NEEDS_HUMAN_CODES | TOOL_UNAVAILABLE_CODES
+    | POLICY_BLOCKED_CODES | INSUFFICIENT_EVIDENCE_CODES
+    | INTERNAL_ERROR_CODES | UNDIAGNOSED_CODES
+)
 
 
 class FailureKind(str, enum.Enum):
@@ -219,6 +296,27 @@ RETRY_POLICY: dict[FailureKind, RetryRule] = {
 }
 
 
+#: The code sets in the order the classifier consults them, with the kind
+#: each one means. The order is the policy: a step blocked on a human and
+#: also short of evidence goes to the human, because widening the search
+#: while the operator has not confirmed the substrate searches harder for the
+#: wrong thing. Declared as data so the fallback pass over the non-blocking
+#: codes cannot drift out of step with the blocking one.
+_CODE_SETS: tuple[tuple[frozenset[str], FailureKind], ...] = (
+    (NEEDS_HUMAN_CODES, FailureKind.NEEDS_HUMAN),
+    (POLICY_BLOCKED_CODES, FailureKind.POLICY_BLOCKED),
+    (TOOL_UNAVAILABLE_CODES, FailureKind.TOOL_UNAVAILABLE),
+    (INPUT_ERROR_CODES, FailureKind.INPUT_ERROR),
+    (INTERNAL_ERROR_CODES, FailureKind.INTERNAL_ERROR),
+    (INSUFFICIENT_EVIDENCE_CODES, FailureKind.INSUFFICIENT_EVIDENCE),
+)
+
+
+def _failed(result: ToolResult) -> bool:
+    """Whether this envelope is a failure at all, by status or by blocker."""
+    return bool(result.blockers) or result.status is Status.FAILED
+
+
 def classify_failure(result: ToolResult) -> FailureKind:
     """Decide what kind of failure an envelope represents.
 
@@ -227,6 +325,13 @@ def classify_failure(result: ToolResult) -> FailureKind:
     blocked on a human and also short of evidence must be routed to the human,
     because widening the search while the operator has not confirmed the
     substrate searches for the wrong thing.
+
+    Every failed envelope leaves here with a kind that
+    :data:`RETRY_POLICY` has a rule for, :attr:`FailureKind.UNCLASSIFIED`
+    included. A step may fail with no blocking flag at all -- a structure
+    cache miss that only sets ``status`` -- and that must still be routed
+    somewhere declared, because a failure the machine has no bucket for is a
+    run that stops with nothing to tell the operator.
     """
     codes = {f.code.lower() for f in result.qc_flags}
     blocking = {f.code.lower() for f in result.blockers}
@@ -239,19 +344,50 @@ def classify_failure(result: ToolResult) -> FailureKind:
         # The step itself said a person has to act. Whatever the code says,
         # a retry cannot supply what it is asking for.
         return FailureKind.NEEDS_HUMAN
-    if blocking & POLICY_BLOCKED_CODES:
-        return FailureKind.POLICY_BLOCKED
-    if blocking & TOOL_UNAVAILABLE_CODES:
-        return FailureKind.TOOL_UNAVAILABLE
-    if blocking & INPUT_ERROR_CODES:
-        return FailureKind.INPUT_ERROR
-    if "internal_error" in blocking:
-        return FailureKind.INTERNAL_ERROR
+    for vocabulary, kind in _CODE_SETS[1:]:
+        if blocking & vocabulary:
+            return kind
     if (blocking | codes) & INSUFFICIENT_EVIDENCE_CODES:
         return FailureKind.INSUFFICIENT_EVIDENCE
-    if result.blockers or result.status is Status.FAILED:
-        return FailureKind.UNCLASSIFIED
-    return FailureKind.NONE
+    if not _failed(result):
+        return FailureKind.NONE
+    # A failure whose diagnosis was recorded below blocker severity, or on a
+    # result that set no flag at all. Reading the warnings is still better
+    # than escalating with "unclassified": the code is the step's own, and
+    # the alternative is a human re-deriving it from the message.
+    for vocabulary, kind in _CODE_SETS:
+        if codes & vocabulary:
+            return kind
+    return FailureKind.UNCLASSIFIED
+
+
+def describe_failure(result: ToolResult) -> str:
+    """One line saying what the classifier read, for the escalation record.
+
+    An escalation whose only content is "unclassified" asks the operator to
+    go and find the envelope themselves. This states which codes were present
+    and at what severity, so the reason recorded in the manifest is the
+    reason, not a label.
+    """
+    kind = classify_failure(result)
+    blocking = sorted({f.code for f in result.blockers})
+    other = sorted({f.code for f in result.qc_flags
+                    if f.severity is not Severity.BLOCKER})
+    parts = [f"status {result.status.value}", f"classified {kind.value}"]
+    if blocking:
+        parts.append("blocking code(s): " + ", ".join(blocking))
+    elif _failed(result):
+        parts.append("no blocking qc_flag was set")
+    if other:
+        parts.append("other code(s): " + ", ".join(other))
+    if result.message:
+        parts.append(f"message: {result.message}")
+    if kind is FailureKind.UNCLASSIFIED:
+        parts.append(
+            "no code on this envelope appears in any of the controller's "
+            "classified vocabularies, so no recovery is declared for it and "
+            "the run stops here rather than guessing one")
+    return "; ".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -773,9 +909,22 @@ class ResearchController:
         interface = STAGE_INTERFACE[stage]
         step_id = self._step_id(stage, interface)
         kind = classify_failure(result)
-        rule = RETRY_POLICY[kind]
+        # ``.get`` and not ``[]``: a kind added to the enum without a rule
+        # would otherwise raise here, turning a classified failure into an
+        # unhandled exception at the exact point the machine is supposed to
+        # be deciding what to do about failures.
+        rule = RETRY_POLICY.get(kind, RETRY_POLICY[FailureKind.UNCLASSIFIED])
         attempts = self._attempt_counts.get(step_id, 1)
         blockers = tuple(f"{f.code}: {f.message}" for f in result.blockers)
+        if not blockers:
+            # A step can fail with no blocking flag -- a structure cache miss
+            # that only sets the status. Recording an empty blocker list would
+            # hand the operator an escalation that names nothing.
+            blockers = (describe_failure(result),)
+        if kind is FailureKind.UNCLASSIFIED:
+            return self.escalate(stage, interface, kind, attempts,
+                                 f"{rule.why}. {describe_failure(result)}",
+                                 blockers)
 
         breaches = self.budget_breaches()
         if breaches:

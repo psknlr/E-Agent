@@ -432,6 +432,111 @@ class TestAuditLeakage(unittest.TestCase):
                          {c.value for c in LeakageCategory})
 
 
+class TestMultiGenerationLineageSplit(unittest.TestCase):
+    """A four-generation engineered lineage P -> A -> B -> C.
+
+    Each record names only its immediate parent, which is all an experiment
+    record can honestly carry, and every record carries its own DOI and its own
+    sequence cluster. Lineage is therefore the only thing that may hold the
+    family together -- and holding it together is the point: a parent in train
+    and its grandchild in test is interpolation inside a sequence the model has
+    already seen, and it is worse than useless when the audit certifies it.
+    """
+
+    GENERATIONS = ("gen-p", "gen-a", "gen-b", "gen-c")
+
+    def setUp(self) -> None:
+        sequences = {name: sequence_for(name) for name in self.GENERATIONS}
+        self.sequences = sequences
+        parents = dict(zip(self.GENERATIONS[1:], self.GENERATIONS[:-1]))
+        self.family = [
+            record(name,
+                   sequence=sequences[name],
+                   parent_sequence=(sequences[parents[name]]
+                                    if name in parents else None),
+                   doi=f"{DOI_ONE}-{name}")
+            for name in self.GENERATIONS
+        ]
+        self.others = [record(f"solo{i}", doi=f"{DOI_TWO}-{i}") for i in range(8)]
+        self.records = self.family + self.others
+        #: One cluster per record, so no two rows are linked by clustering.
+        self.clusters = cluster_lookup(self.records)
+
+    def test_every_generation_lands_in_the_same_fold(self) -> None:
+        family = set(self.GENERATIONS)
+        for seed in range(8):
+            with self.subTest(seed=seed):
+                split = grouped_split(
+                    self.records, SplitRegime.NOVEL_ENZYME, seed=seed,
+                    sequence_cluster_lookup=self.clusters)
+                train = set(split.train_record_ids)
+                test = set(split.test_record_ids)
+                self.assertTrue(
+                    family <= train or family <= test,
+                    f"seed {seed} scattered the lineage: "
+                    f"train={sorted(family & train)} test={sorted(family & test)}")
+                self.assertEqual(
+                    1, len({split.unit_of_record[name] for name in family}),
+                    "the four generations are one split unit or they are not "
+                    "a lineage")
+
+    def test_the_split_the_module_makes_is_proven_clean(self) -> None:
+        split = grouped_split(self.records, SplitRegime.NOVEL_ENZYME, seed=0,
+                              sequence_cluster_lookup=self.clusters)
+        self.assertTrue(split.is_usable, split.render())
+        self.assertEqual(
+            [], split.audit.by_category()[
+                LeakageCategory.SHARED_PARENT_LINEAGE.value],
+            split.audit.render())
+        self.assertTrue(split.audit.proven_clean, split.audit.render())
+
+    def test_a_split_that_cuts_the_chain_is_not_reported_clean(self) -> None:
+        """The regression guard: P and A in train, B and C in test.
+
+        A is B's parent. Before the lineage facet became a set, the row for A
+        emitted only its parent's hash and the row for B only A's, so these
+        two rows shared nothing, every category came back empty and the audit
+        answered 'proven clean' -- the certificate being wrong is what made the
+        defect worse than an uncertified split.
+        """
+        train, test = self.family[:2], self.family[2:]
+        audit = audit_leakage(train, test, regime=SplitRegime.NOVEL_ENZYME,
+                              sequence_cluster_lookup=self.clusters)
+        self.assertFalse(audit.proven_clean, audit.render())
+        self.assertTrue(audit.has_leakage, audit.render())
+
+        shared = audit.by_category()[
+            LeakageCategory.SHARED_PARENT_LINEAGE.value]
+        self.assertEqual(1, len(shared), audit.render())
+        self.assertEqual(f"lineage:{sequence_hash(self.sequences['gen-a'])}",
+                         shared[0].key)
+        self.assertEqual(("gen-a",), shared[0].train_record_ids)
+        self.assertEqual(("gen-b",), shared[0].test_record_ids)
+        self.assertIn(LeakageCategory.SHARED_SPLIT_GROUP,
+                      {o.category for o in audit.blocking_overlaps})
+
+    def test_a_grandparent_and_grandchild_split_is_caught_too(self) -> None:
+        """P and B are two generations apart and share no recorded link
+        directly; only the row for A bridges them, and it is in train."""
+        train = [self.family[0], self.family[1]]
+        test = [self.family[2]]
+        audit = audit_leakage(train, test, regime=SplitRegime.NOVEL_ENZYME,
+                              sequence_cluster_lookup=self.clusters)
+        self.assertTrue(audit.has_leakage, audit.render())
+        group = audit.by_category()[LeakageCategory.SHARED_SPLIT_GROUP.value]
+        self.assertTrue(group, audit.render())
+        self.assertEqual(("gen-a", "gen-p"), group[0].train_record_ids)
+        self.assertEqual(("gen-b",), group[0].test_record_ids)
+
+    def test_an_unrelated_row_is_not_dragged_into_the_family(self) -> None:
+        """Fusing everything would also read as clean. Nothing is invented."""
+        audit = audit_leakage(self.family, [self.others[0]],
+                              regime=SplitRegime.NOVEL_ENZYME,
+                              sequence_cluster_lookup=self.clusters)
+        self.assertFalse(audit.has_leakage, audit.render())
+        self.assertTrue(audit.proven_clean, audit.render())
+
+
 class TestRecurationDetection(unittest.TestCase):
     """'Train on database A, test on database B' when B re-curated A."""
 

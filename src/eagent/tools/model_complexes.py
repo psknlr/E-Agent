@@ -124,6 +124,7 @@ from ..science.structure_io import (
     read_structure,
 )
 from .base import ScientificInterface
+from .handoff import CANDIDATES_KEY, as_candidates, serialise_candidates
 from .prepare_structures import (
     METAL_ELEMENTS,
     StructureSourceError,
@@ -1097,7 +1098,8 @@ class ModelComplexes(ScientificInterface):
         self,
         ctx: RunContext,
         *,
-        candidates: Sequence[Candidate] | None = None,
+        candidates: Sequence[Candidate] | Sequence[Mapping[str, Any]]
+        | Mapping[str, Any] | None = None,
         structures: Mapping[str, StructureRecord] | None = None,
         requests: Sequence[ComplexRequest] | None = None,
         catalytic_templates: Mapping[str, CatalyticTemplate]
@@ -1111,8 +1113,16 @@ class ModelComplexes(ScientificInterface):
         access_policy: AccessPolicy | None = None,
         **_: Any,
     ) -> ToolResult:
-        """Validate each requested assembly, then model it by every route asked for."""
+        """Validate each requested assembly, then model it by every route asked for.
+
+        ``candidates`` may arrive as models or as the serialised mapping the
+        previous step published. :func:`~eagent.tools.handoff.as_candidates`
+        resolves that once, here, rather than letting a mapping reach
+        ``cand.catalytic_mapping`` and fail as a missing attribute with no hint
+        of which step produced the bad payload.
+        """
         policy = policy or ComplexPolicy()
+        candidates = as_candidates(candidates, source=self.name)
         substrate = substrate or ctx.task.reaction.substrate
         registry = tool_registry or ToolRegistry.from_config(ctx.config)
         wanted_routes = [Route(r) for r in routes]
@@ -1240,10 +1250,10 @@ class ModelComplexes(ScientificInterface):
         clusters = self._cluster(bundles, policy)
         index_path, notes_path = self._write_outputs(ctx, complexes_dir, bundles,
                                                      clusters)
-        self._finalise(ctx, result, request_list, bundles, validations, rejected,
-                       policy, registry, licenses, wanted_routes, clusters,
-                       per_candidate_poses, disclosure_notes, index_path,
-                       notes_path, complexes_dir)
+        self._finalise(ctx, result, candidates, request_list, bundles,
+                       validations, rejected, policy, registry, licenses,
+                       wanted_routes, clusters, per_candidate_poses,
+                       disclosure_notes, index_path, notes_path, complexes_dir)
         return result
 
     # -- routes ------------------------------------------------------------
@@ -1537,18 +1547,42 @@ class ModelComplexes(ScientificInterface):
         return LigandSource.JOINT_STRUCTURE_PREDICTION
 
     def _cluster(self, bundles: Sequence[_PoseBundle],
-                 policy: ComplexPolicy) -> dict[str, int]:
-        """Cluster poses within each candidate/route, never across them."""
-        clusters: dict[str, int] = {}
+                 policy: ComplexPolicy) -> dict[str, str]:
+        """Cluster poses within each candidate/route, never across them.
+
+        The id is namespaced with the group it was numbered in.
+        :func:`cluster_poses` restarts at 0 for every group, so merging the
+        per-group results on the bare integer collapsed candidate A's cluster 0
+        into candidate B's. The run then reported fewer binding modes than were
+        sampled -- understating diversity and overstating convergence, which is
+        the reading the cluster count exists to support.
+        """
+        clusters: dict[str, str] = {}
         groups: dict[tuple[str, str], dict[str, Sequence[Atom]]] = {}
         for b in bundles:
             groups.setdefault((b.candidate_id, b.route.value), {})[
                 b.pose.pose_id] = b.atoms
-        for key, poses in groups.items():
+        for (candidate_id, route), poses in groups.items():
             local = cluster_poses(poses, policy.pose_cluster_rmsd_angstrom)
             for pose_id, cid in local.items():
-                clusters[pose_id] = cid
+                clusters[pose_id] = f"{candidate_id}:{route}:{cid}"
         return clusters
+
+    @staticmethod
+    def _clusters_per_candidate(
+        bundles: Sequence[_PoseBundle], clusters: Mapping[str, str]
+    ) -> dict[str, int]:
+        """Distinct binding modes per candidate, which is where it is read.
+
+        A run-wide count hides the case the comparison needs: two candidates
+        with one mode each is convergence, one candidate with two modes is not.
+        """
+        per: dict[str, set[str]] = {}
+        for b in bundles:
+            cid = clusters.get(b.pose.pose_id)
+            if cid is not None:
+                per.setdefault(b.candidate_id, set()).add(cid)
+        return {c: len(v) for c, v in sorted(per.items())}
 
     # -- outputs -----------------------------------------------------------
     def _chain_for(self, receptor: Structure, cand: Candidate,
@@ -1565,7 +1599,7 @@ class ModelComplexes(ScientificInterface):
 
     def _write_outputs(self, ctx: RunContext, complexes_dir: Path,
                        bundles: Sequence[_PoseBundle],
-                       clusters: Mapping[str, int]) -> tuple[Path, Path]:
+                       clusters: Mapping[str, str]) -> tuple[Path, Path]:
         rows = []
         for b in bundles:
             p = b.pose
@@ -1616,7 +1650,10 @@ class ModelComplexes(ScientificInterface):
             "`eagent.science.robustness.CircularityGuard`.\n"
             "* `cluster_id` groups poses by heavy-atom RMSD for reporting. No "
             "pose is removed by clustering; several poses in one cluster mean "
-            "the sampling converged, not that the mode is correct.\n"
+            "the sampling converged, not that the mode is correct. It reads "
+            "`<candidate_id>:<route>:<local id>` because poses are only ever "
+            "compared inside one candidate and one route, so the local number "
+            "repeats across groups and is not a run-wide identity.\n"
             "* `is_valid=false` poses are kept deliberately. A runner that "
             "returns complexes missing the cofactor is a fact about the run.\n"
             "* `clash_count` is a hard-sphere screen at a stated tolerance, not "
@@ -1625,17 +1662,19 @@ class ModelComplexes(ScientificInterface):
         return index_path, notes_path
 
     def _finalise(self, ctx: RunContext, result: ToolResult,
+                  candidates: Sequence[Candidate],
                   requests: Sequence[ComplexRequest],
                   bundles: Sequence[_PoseBundle],
                   validations: Sequence[AssemblyValidation],
                   rejected: Sequence[Mapping[str, Any]], policy: ComplexPolicy,
                   registry: ToolRegistry, licenses: Sequence[Mapping[str, Any]],
-                  routes: Sequence[Route], clusters: Mapping[str, int],
+                  routes: Sequence[Route], clusters: Mapping[str, str],
                   per_candidate: Mapping[str, Sequence[str]],
                   disclosure_notes: Sequence[str], index_path: Path,
                   notes_path: Path, complexes_dir: Path) -> None:
         """Artifacts, status, provenance and the caveats that travel with them."""
         valid = [b for b in bundles if b.pose.is_valid]
+        per_candidate_clusters = self._clusters_per_candidate(bundles, clusters)
         result.artifacts.append(Artifact(
             key="complexes_dir", path=str(complexes_dir), kind="object",
             n_records=len(bundles),
@@ -1659,6 +1698,11 @@ class ModelComplexes(ScientificInterface):
                 f"request(s); {len(rejected)} were rejected before modelling "
                 f"and {len(bundles) - len(valid)} produced poses missing part of "
                 f"the catalytic system")
+            # Without a blocking code this failure is unclassifiable and the
+            # run stops as "unclassified" instead of being routed back to the
+            # assembly inputs that are actually missing.
+            result.add_flag("no_valid_complex", Severity.BLOCKER,
+                            result.message, subject="complexes")
         elif rejected or len(valid) < len(bundles) or n_with_poses < n_requested:
             result.status = Status.PARTIAL
             result.message = (
@@ -1708,6 +1752,11 @@ class ModelComplexes(ScientificInterface):
                 "n_poses": len(bundles),
                 "n_valid_poses": len(valid),
                 "n_clusters": len(set(clusters.values())),
+                "n_clusters_by_candidate": per_candidate_clusters,
+                "cluster_id_basis": ("<candidate_id>:<route>:<local id>; "
+                                     "clustering never crosses a candidate or "
+                                     "a route, so the local id alone is not "
+                                     "unique across the run"),
                 "restrained_constraints": sorted(
                     {n for b in bundles for n in b.pose.restrained_constraints}),
                 "disclosure_notes": list(disclosure_notes),
@@ -1720,10 +1769,13 @@ class ModelComplexes(ScientificInterface):
         )
 
         result.data.update({
+            CANDIDATES_KEY: serialise_candidates(candidates),
             "poses": [b.pose.model_dump(mode="json") for b in bundles],
             "poses_by_candidate": {c: list(ids)
                                    for c, ids in sorted(per_candidate.items())},
             "clusters": dict(clusters),
+            "n_clusters": len(set(clusters.values())),
+            "n_clusters_by_candidate": per_candidate_clusters,
             "rejected": list(rejected),
             "assembly_validation": [
                 {"candidate_id": v.candidate_id, "route": v.route.value,

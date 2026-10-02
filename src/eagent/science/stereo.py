@@ -46,11 +46,13 @@ from typing import Any, Iterable, Literal, Mapping, Protocol, Sequence
 
 from ..errors import FabricationGuardError, TemplateError
 from ..schemas import StereoCall, Stereochemistry
+from ..schemas.candidate import DEFAULT_COMPETING_FACE_FRACTION
 
 __all__ = [
     "FaceLabel",
     "Configuration",
     "PointLike",
+    "DEFAULT_COMPETING_FACE_FRACTION",
     "DEFAULT_IN_PLANE_TOLERANCE_DEG",
     "COLLINEARITY_SIN_FLOOR",
     "CIP_CONFIG_KEY",
@@ -749,6 +751,7 @@ def call_stereochemistry(
     target_configuration: Any,
     *,
     basis: str = "",
+    competing_face_fraction: float = DEFAULT_COMPETING_FACE_FRACTION,
 ) -> StereoCall:
     """Aggregate per-pose configurations into a directional stereochemical call.
 
@@ -767,9 +770,12 @@ def call_stereochemistry(
     :class:`StereoCall` already demands a named calibration source for one.
 
     What the call *is* good for is direction and conflict: whether every
-    surviving pose points the same way, and whether a substantial minority
-    points the other way. ``"competing_poses"`` is the honest answer when it
-    does, and it is deliberately not resolved by majority vote.
+    surviving pose points the same way, and whether any minority points the
+    other way. ``"competing_poses"`` is the honest answer when it does, and it
+    is deliberately not resolved by majority vote: by default *any* genuine
+    split is reported as competing, and the only way to get a majority call
+    out of a split ensemble is for the caller to pass a cut it has calibrated,
+    which is then recorded in ``basis``.
 
     Parameters
     ----------
@@ -791,6 +797,22 @@ def call_stereochemistry(
     basis:
         Free-text provenance of how the per-pose calls were produced (method,
         template id, CIP source). Appended to a generated count summary.
+    competing_face_fraction:
+        Minority-face share at or above which a split is reported as
+        ``competing_poses`` rather than resolved by majority. Defaults to
+        :data:`~eagent.schemas.candidate.DEFAULT_COMPETING_FACE_FRACTION`
+        (0.0), i.e. *any* genuine split is reported as competing. It is a
+        parameter -- not a literal inside the schema -- so that a caller who
+        has calibrated the cut on their own pose generator can set it, and so
+        that the value which decided the call is written into the returned
+        call's ``basis`` and from there into provenance. See that constant for
+        what calibrating it would have to mean.
+
+    Raises
+    ------
+    ValueError
+        When ``competing_face_fraction`` is outside ``[0, 0.5]``; see
+        :meth:`~eagent.schemas.candidate.StereoCall.from_counts`.
     """
     configurations = _iter_configurations(poses_faces)
     n_r = sum(1 for c in configurations if c == "R")
@@ -812,8 +834,12 @@ def call_stereochemistry(
         not_applicable = False
 
     detail = (f"counts: R={n_r}, S={n_s}, undetermined={n_undet}; "
-              f"pose counts are a sampling artefact of the modelling protocol, "
-              f"not a population distribution")
+              f"competing-face reporting cut={competing_face_fraction:.3f}"
+              + (" (any genuine split is reported as competing_poses)"
+                 if competing_face_fraction <= 0.0 else
+                 " (calibrated by the caller)")
+              + "; pose counts are a sampling artefact of the modelling "
+                "protocol, not a population distribution")
     full_basis = f"{basis}; {detail}" if basis else detail
 
     if not_applicable:
@@ -841,6 +867,7 @@ def call_stereochemistry(
             opposite=off_target,
             undetermined=n_undet,
             basis=f"target={target}; {full_basis}",
+            competing_face_fraction=competing_face_fraction,
         )
 
     if call.predicted_ee_pct is not None:  # pragma: no cover - guard, must stay unreachable

@@ -37,17 +37,27 @@ if TYPE_CHECKING:  # pragma: no cover - for type checkers only, never at runtime
 #: (:func:`discover_interfaces`) is authoritative, because an interface whose
 #: module was named something else would otherwise vanish from a run while this
 #: table went on implying the step had been planned for.
+#:
+#: The keys are the names of
+#: :data:`eagent.harness.registry.PROTOCOL_ORDER`, in that order, and the test
+#: suite asserts the two tables hold the same set. They drifted once: this table
+#: kept six planning-era names (``map_catalytic_site``, ``build_complex``,
+#: ``screen_geometry``, ``rank_candidates``, ``design_variants``, ``plan_batch``)
+#: that no module ever implemented, so :func:`available_interfaces` reported the
+#: roster as 4 of 10 and :func:`build_registry` attached six phantom gaps to
+#: ``missing_interfaces`` -- a planner reading either one would have believed
+#: six implemented steps were absent and six absent steps were planned.
 INTERFACE_MODULES: dict[str, str] = {
     "normalize_reaction": "normalize_reaction",
     "retrieve_evidence": "retrieve_evidence",
     "mine_sequences": "mine_sequences",
     "annotate_family": "annotate_family",
-    "map_catalytic_site": "map_catalytic_site",
-    "build_complex": "build_complex",
-    "screen_geometry": "screen_geometry",
-    "rank_candidates": "rank_candidates",
-    "design_variants": "design_variants",
-    "plan_batch": "plan_batch",
+    "prepare_structures": "prepare_structures",
+    "model_complexes": "model_complexes",
+    "evaluate_catalysis": "evaluate_catalysis",
+    "select_batch": "select_batch",
+    "ingest_results": "ingest_results",
+    "propose_mutations": "propose_mutations",
 }
 
 #: Exported symbol -> (module basename, attribute). Kept explicit rather than

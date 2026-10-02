@@ -1,9 +1,30 @@
 """Chemical identity: substrates, products, cofactors, reactive atoms.
 
-Small molecules enter the system as explicit structures (isomeric SMILES or a
-molfile/SDF block), never as prose names and never as "substrate sequence".
-Peptide, protein and nucleic-acid substrates use the sequence interface in
-``candidate.py`` instead.
+A substrate enters the system by one of two paths, and which one is a declared
+fact (:class:`SubstrateKind`) rather than something a reader infers from which
+fields happen to be filled:
+
+* **Small molecules** are explicit structures -- isomeric SMILES or a
+  molfile/SDF block -- never prose names and never a "substrate sequence". The
+  reactive site is an atom, addressed by atom-map id
+  (:class:`SubstrateSpec`, :class:`ReactiveAtoms`).
+* **Biopolymers** -- peptide, protein, nucleic acid -- are a sequence, and the
+  reactive site is a *residue*, addressed by position in that sequence
+  (:class:`BiopolymerSubstrateSpec`, :class:`ReactiveResidues`).
+
+The second path exists because the first one cannot be stretched to cover it.
+A 30-mer peptide substrate has no isomeric SMILES anybody will write, no
+InChIKey, and no atom-map id for the residue a kinase phosphorylates. A system
+offering only the small-molecule path leaves two options, and both are
+failures: block such a task forever on a structure it can never have, or let a
+prose name stand in for the substrate, which is the thing this module exists to
+prevent. Declaring the kind lets the gates ask each task for what that kind of
+substrate can actually be pinned down by -- see
+:data:`eagent.schemas.reaction.BIOPOLYMER_GATE_REQUIREMENTS`.
+
+Note that :class:`~eagent.schemas.candidate.SequenceRecord` is **not** this
+path: it is the mined *enzyme*. The substrate is the thing the enzyme acts on,
+and conflating the two makes the record of an assay unreadable.
 """
 
 from __future__ import annotations
@@ -11,7 +32,36 @@ from __future__ import annotations
 import enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from ..provenance import sequence_hash
+
+
+class SubstrateKind(str, enum.Enum):
+    """Which path a substrate enters by, declared rather than inferred.
+
+    Inferring the kind from which fields happen to be filled is how a task
+    with an unresolved SMILES becomes indistinguishable from a task that can
+    never have one. The kind decides which gate requirements apply.
+    """
+
+    SMALL_MOLECULE = "small_molecule"
+    PEPTIDE = "peptide"
+    PROTEIN = "protein"
+    NUCLEIC_ACID = "nucleic_acid"
+
+    @property
+    def is_biopolymer(self) -> bool:
+        return self is not SubstrateKind.SMALL_MOLECULE
+
+    @property
+    def alphabet(self) -> str:
+        """Residue letters this kind is written in."""
+        if self is SubstrateKind.NUCLEIC_ACID:
+            return "ACGTU"
+        if self.is_biopolymer:
+            return "ACDEFGHIKLMNPQRSTVWY"
+        return ""
 
 
 class Stereochemistry(str, enum.Enum):
@@ -102,11 +152,117 @@ class ReactiveAtoms(BaseModel):
         return [r for r in refs if r is not None] + list(self.stabilised_atoms)
 
 
+class ResidueRef(BaseModel):
+    """A residue in a biopolymer substrate, addressed by position.
+
+    The small-molecule path addresses a reactive site by atom-map id, which a
+    peptide substrate has none of. A residue plus the letter expected there is
+    the equivalent, and carrying the letter means a position that has drifted
+    against the sequence is caught instead of silently pointing at a
+    neighbour.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    position: int = Field(..., ge=1, description="1-based position in the substrate")
+    residue: str | None = Field(None, description="Expected one-letter residue")
+    role: str | None = Field(
+        None, description="e.g. phosphoacceptor, scissile_P1, hydroxylated"
+    )
+
+    def __str__(self) -> str:  # pragma: no cover - display only
+        return f"{self.residue or '?'}{self.position}({self.role or '-'})"
+
+
+class ReactiveResidues(BaseModel):
+    """Which residues the reaction touches, for a biopolymer substrate.
+
+    The analogue of :class:`ReactiveAtoms`. Kept as a separate type rather
+    than overloading the atom one, because a geometry check written against
+    atom-map ids silently measures nothing when handed residue positions.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    modified: list[ResidueRef] = Field(default_factory=list)
+    scissile_bond: tuple[ResidueRef, ResidueRef] | None = None
+    recognition_motif: str | None = None
+
+    def all_refs(self) -> list[ResidueRef]:
+        refs = list(self.modified)
+        if self.scissile_bond:
+            refs.extend(self.scissile_bond)
+        return refs
+
+
+class BiopolymerSubstrateSpec(BaseModel):
+    """A peptide, protein or nucleic-acid substrate.
+
+    This is not :class:`~eagent.schemas.candidate.SequenceRecord`, which is the
+    mined *enzyme*. Conflating the acting enzyme with the thing acted on makes
+    the record of an assay unreadable, so they are separate types.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: SubstrateKind = SubstrateKind.PEPTIDE
+    name: str | None = None
+    sequence: str | None = None
+    sequence_sha256: str | None = None
+    reactive_residues: ReactiveResidues = Field(default_factory=ReactiveResidues)
+    modifications: list[str] = Field(
+        default_factory=list,
+        description="Non-standard residues, caps, labels. A synthetic peptide "
+                    "is rarely just its one-letter sequence.",
+    )
+    length: int | None = None
+    source: str | None = None
+    purity: float | None = Field(None, ge=0.0, le=1.0)
+    notes: str = ""
+
+    @model_validator(mode="after")
+    def _derive_and_check(self) -> "BiopolymerSubstrateSpec":
+        if self.kind is SubstrateKind.SMALL_MOLECULE:
+            raise ValueError(
+                "a small molecule belongs in SubstrateSpec, not in the "
+                "biopolymer path")
+        if self.sequence:
+            norm = "".join(self.sequence.split()).upper()
+            object.__setattr__(self, "sequence", norm)
+            if self.sequence_sha256 is None:
+                object.__setattr__(self, "sequence_sha256", sequence_hash(norm))
+            if self.length is None:
+                object.__setattr__(self, "length", len(norm))
+            bad = set(norm) - set(self.kind.alphabet)
+            if bad and not self.modifications:
+                raise ValueError(
+                    f"sequence carries {sorted(bad)}, which are outside the "
+                    f"{self.kind.value} alphabet, and no modifications are "
+                    f"recorded to account for them")
+            for ref in self.reactive_residues.all_refs():
+                if ref.position > len(norm):
+                    raise ValueError(
+                        f"reactive residue {ref} lies beyond the "
+                        f"{len(norm)}-residue substrate")
+                if ref.residue and norm[ref.position - 1] != ref.residue.upper():
+                    raise ValueError(
+                        f"reactive residue {ref} does not match the sequence, "
+                        f"which has {norm[ref.position - 1]} at that position; "
+                        f"the numbering is wrong")
+        return self
+
+    @property
+    def is_structurally_defined(self) -> bool:
+        """A biopolymer is pinned down by its sequence, not by a SMILES."""
+        return bool(self.sequence)
+
+
 class SubstrateSpec(BaseModel):
     """A small-molecule substrate."""
 
     model_config = ConfigDict(extra="forbid")
 
+    kind: SubstrateKind = SubstrateKind.SMALL_MOLECULE
     name: str | None = None
     isomeric_smiles: str | None = None
     molfile: str | None = None
@@ -123,6 +279,15 @@ class SubstrateSpec(BaseModel):
         if v is not None and v.strip() in {"", "null", "None", "TBD"}:
             raise ValueError("use None for an unresolved SMILES, not a placeholder string")
         return v
+
+    @model_validator(mode="after")
+    def _kind_matches_path(self) -> "SubstrateSpec":
+        if self.kind.is_biopolymer:
+            raise ValueError(
+                f"kind '{self.kind.value}' belongs in BiopolymerSubstrateSpec; "
+                f"a biopolymer has no isomeric SMILES and its reactive site is "
+                f"a residue, not an atom-map id")
+        return self
 
     @property
     def is_structurally_defined(self) -> bool:

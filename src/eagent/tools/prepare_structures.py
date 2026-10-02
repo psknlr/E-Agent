@@ -115,6 +115,7 @@ from ..science.structure_io import (
     read_structure,
 )
 from .base import ScientificInterface
+from .handoff import CANDIDATES_KEY, as_candidates, serialise_candidates
 
 __all__ = [
     "DEFAULT_POCKET_RADIUS_A",
@@ -1283,7 +1284,8 @@ class PrepareStructures(ScientificInterface):
         self,
         ctx: RunContext,
         *,
-        candidates: Sequence[Candidate] | None = None,
+        candidates: Sequence[Candidate] | Sequence[Mapping[str, Any]]
+        | Mapping[str, Any] | None = None,
         index: StructureIndex | None = None,
         index_path: str | Path | None = None,
         catalytic_templates: Mapping[str, CatalyticTemplate]
@@ -1293,8 +1295,16 @@ class PrepareStructures(ScientificInterface):
         access_policy: AccessPolicy | None = None,
         **_: Any,
     ) -> ToolResult:
-        """Prepare one structure per candidate, or say exactly what is missing."""
+        """Prepare one structure per candidate, or say exactly what is missing.
+
+        ``candidates`` may arrive as models or as the serialised mapping the
+        previous step published; :func:`~eagent.tools.handoff.as_candidates`
+        settles that here, at the boundary, so a dict handed to code typed
+        against the model fails with a named payload instead of an
+        ``AttributeError`` raised halfway through a structure assessment.
+        """
         policy = policy or StructurePolicy()
+        candidates = as_candidates(candidates, source=self.name)
         if not candidates:
             return ToolResult.failure(
                 self.name,
@@ -1846,6 +1856,12 @@ class PrepareStructures(ScientificInterface):
                     f"{m['candidate_id']} ({m['sequence_sha256']}) -> {m['needed']}"
                     for m in missing[:5])
             )
+            # A failed status with no blocking code is unclassifiable: the
+            # controller cannot tell a routine structure-cache miss (repairable
+            # input) from an internal fault, and a run that only needed a
+            # coordinate file dead-ends as "unclassified".
+            result.add_flag("no_usable_structure", Severity.BLOCKER,
+                            result.message, subject="structures")
         elif missing or blockers:
             result.status = Status.PARTIAL
             result.message = (
@@ -1919,6 +1935,10 @@ class PrepareStructures(ScientificInterface):
         )
 
         result.data.update({
+            # Republished in the one serialised form every consumer reads back
+            # through ``handoff.as_candidates``, so model_complexes can be wired
+            # straight from this step's data mapping.
+            CANDIDATES_KEY: serialise_candidates(candidates),
             "structures": {cid: a.record.model_dump(mode="json")
                            for cid, a in selected.items()},
             "selected": {

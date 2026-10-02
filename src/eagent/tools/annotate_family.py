@@ -74,6 +74,7 @@ from ..schemas import (
 from ..science.diversity import jaccard_distance, kmer_set
 from ..science.numbering import Alignment, needleman_wunsch, three_to_one
 from .base import ScientificInterface
+from .handoff import CANDIDATES_KEY, serialise_candidates
 from .mine_sequences import (
     STANDARD_AA, FastaEntry, read_fasta, write_fasta, _tsv_cell, _write_tsv,
 )
@@ -1218,9 +1219,14 @@ class AnnotateFamily(ScientificInterface):
         )
 
         self._summarise(result, annotations, per_family, unassigned, hset, network)
+        # The candidate set leaves this step serialised, because the manifest
+        # stores JSON. Every consumer reads it back through
+        # ``handoff.as_candidates``, so the dict/model split is resolved at one
+        # boundary instead of surfacing as a missing attribute inside a
+        # consumer that typed the argument as a model.
         result.data.update({
             "annotations": annotations,
-            "candidates": [c.model_dump(mode="json") for c in candidates],
+            CANDIDATES_KEY: serialise_candidates(candidates),
             "per_family_counts": {k: len(v) for k, v in sorted(per_family.items())},
             "unassigned": [r.candidate_id for r in unassigned],
             "network_clusters": network.clusters,

@@ -55,6 +55,21 @@ fields (:attr:`CandidateEvaluation.n_violated` versus
 counts only decided poses, so a failed modelling run cannot be averaged into a
 rate of failure.
 
+ROBUSTNESS IS CORRECTED FOR CIRCULARITY, NOT ANNOTATED AFTERWARDS
+=================================================================
+A pose ensemble built under restraints satisfies exactly the constraints it
+was built to satisfy. Computing ``G = satisfied / decided`` over it and
+flagging the circularity afterwards still emits ``G = 1.0``, and that figure
+is what reaches the scorecard, the tables and the batch. So the correction is
+in the definition instead: :meth:`EvaluateCatalysis._rollup` counts a pose in
+the numerator only when it satisfies a gating constraint that was **not**
+restrained while it was built, counts it in the denominator only when it
+carried at least one such constraint, and reports ``G = None`` with a stated
+reason -- never 1.0, never 0.0 -- for a candidate that carries no independent
+evidence at all. The uncorrected sampling fraction survives under the separate
+name :attr:`CandidateEvaluation.sampling_G`, so the correction is auditable
+and the two numbers can never be mistaken for each other.
+
 WINDOWS COME FROM THE TEMPLATE, AND SO DOES THE AUTHORITY TO REJECT
 ===================================================================
 No catalytic threshold is written in this file. Every pass/fail decision is
@@ -153,6 +168,7 @@ __all__ = [
     "DEFAULT_COMPETING_GROUP_MARGIN_A",
     "DEFAULT_CLASH_TOLERANCE_A",
     "POCKET_LOCALISATION_CONSTRAINT_NAME",
+    "FAMILY_MATCH_GATE",
     "NICOTINAMIDE_HYDRIDE_DONOR_ATOM",
     "NS_SUBSTRATE",
     "NS_COFACTOR",
@@ -239,6 +255,12 @@ NICOTINAMIDE_HYDRIDE_DONOR_ATOM: dict[str, str] = {
     "NAJ": "C4N",
     "NDC": "C4N",
 }
+
+#: Scorecard key under which the "is this template even this candidate's
+#: template" check is recorded. A gate rather than an axis: applying one
+#: family's catalytic rules to another family's candidate is an input defect to
+#: repair, not a weakness to trade off against a good docking score.
+FAMILY_MATCH_GATE: str = "catalytic_template_family_match"
 
 #: Role-token namespaces understood by :func:`build_role_context`.
 NS_SUBSTRATE: str = "substrate"
@@ -688,6 +710,14 @@ class PocketLocalisation:
     Explicitly labelled a QC result. ``within=False`` asks a human to look at the
     pose; it is not a statement that the enzyme cannot catalyse the reaction,
     and nothing in this module rejects a pose on it.
+
+    ``missing_references`` is the half of the reference set that could not be
+    built. It exists because the alternative -- substituting whatever atom
+    happened to be bound under the bare residue label -- measures to an alpha
+    carbon and then labels the result with the template's functional atom. The
+    distance is then real, the label is wrong, and nothing downstream can tell:
+    exactly the sloppy distance definition this screen was specified to avoid.
+    A reference that cannot be built is left out and listed here instead.
     """
 
     distance_A: float | None
@@ -695,6 +725,7 @@ class PocketLocalisation:
     threshold_source: str
     nearest_role: str | None = None
     reference_roles: tuple[str, ...] = ()
+    missing_references: tuple[str, ...] = ()
     reason: str = ""
 
     @property
@@ -865,6 +896,13 @@ class PoseEvaluation:
     circular_satisfied: tuple[str, ...] = ()
     independent_satisfied: int = 0
     independent_total: int = 0
+    #: Gating constraints that were NOT restrained while this pose was built.
+    #: Kept apart from ``independent_total`` (which counts every evaluated
+    #: constraint, gating or scoring) because only the gating ones decide the
+    #: outcome, and so only they can corroborate it.
+    independent_gating: tuple[str, ...] = ()
+    independent_gating_satisfied: tuple[str, ...] = ()
+    restrained_gating: tuple[str, ...] = ()
     entirely_circular: bool = False
     restraint_name_mismatch: tuple[str, ...] = ()
     pocket: PocketLocalisation | None = None
@@ -876,6 +914,33 @@ class PoseEvaluation:
     stereo_note: str = ""
     unresolved_roles: dict[str, str] = field(default_factory=dict)
     input_errors: tuple[str, ...] = ()
+
+    @property
+    def carries_independent_test(self) -> bool:
+        """Whether this pose could corroborate anything it was not built to show.
+
+        A pose every one of whose gating constraints was enforced during
+        modelling was never a test: it satisfies them because it was built to,
+        and re-measuring them is a readback of the input file. Such a pose is
+        excluded from the robustness denominator entirely rather than counted
+        as a failure, for the same reason a pose outside an uncalibrated window
+        is excluded -- it did not answer the question either way.
+        """
+        return self.outcome.decided and bool(self.independent_gating)
+
+    @property
+    def independently_satisfied(self) -> bool:
+        """Numerator test: satisfied, and satisfied on evidence nobody imposed.
+
+        Requires at least one independent gating constraint and *all* of them
+        satisfied. This is the predicate that makes "circularity-corrected"
+        true of :attr:`CandidateEvaluation.robustness_G` rather than merely
+        advertised by it.
+        """
+        return (self.outcome is PoseOutcome.MECHANISM_SATISFIED
+                and bool(self.independent_gating)
+                and len(self.independent_gating_satisfied)
+                == len(self.independent_gating))
 
     def to_report(self) -> GeometryReport:
         """Render as the schema object downstream steps consume.
@@ -917,8 +982,27 @@ class CandidateEvaluation:
     #: no window" call for different follow-ups: one needs a calibration set,
     #: the other needs a curated template.
     has_template: bool = True
+    #: Whether the resolved template's ``family_name`` is this candidate's
+    #: family. ``True`` matched, ``False`` refused (a different family's
+    #: mechanism), ``None`` the question could not be asked -- the candidate's
+    #: family is unknown, or no template was resolved. Three-valued because an
+    #: unknown family is an unevaluated gate, not a mismatch, and conflating
+    #: the two would either reject every unannotated candidate or wave it
+    #: through as though the template had been checked.
+    family_match: bool | None = None
+    family_note: str = ""
     poses: list[PoseEvaluation] = field(default_factory=list)
+    #: Circularity-corrected robustness. See :meth:`EvaluateCatalysis._rollup`
+    #: for the numerator, the denominator and why an ensemble built entirely
+    #: under restraints reports ``None`` here rather than 1.0.
     robustness_G: float | None = None
+    #: The uncorrected sampling fraction (satisfied / decided), kept because it
+    #: describes how the sampler behaved and because hiding it would make the
+    #: correction unauditable. It is NOT evidence about the enzyme when the
+    #: constraints it counts were imposed, which is the whole point of
+    #: reporting the two numbers in two fields under two names.
+    sampling_G: float | None = None
+    robustness_basis: str = ""
     wilson_lo: float | None = None
     wilson_hi: float | None = None
     robustness_level: ConfidenceLevel = ConfidenceLevel.INSUFFICIENT
@@ -968,13 +1052,38 @@ class CandidateEvaluation:
         return sum(1 for p in self.poses if p.outcome is PoseOutcome.INPUT_ERROR)
 
     @property
+    def n_independently_tested(self) -> int:
+        """Decided poses that carried at least one unrestrained gating constraint.
+
+        The denominator of :attr:`robustness_G`. Poses whose every gating
+        constraint was imposed are not in it: they are not failures, they are
+        non-tests.
+        """
+        return sum(1 for p in self.poses if p.carries_independent_test)
+
+    @property
+    def n_independently_satisfied(self) -> int:
+        """The numerator of :attr:`robustness_G`."""
+        return sum(1 for p in self.poses if p.independently_satisfied)
+
+    @property
     def was_tested(self) -> bool:
         """Whether any pose produced a verdict at all.
 
-        Read this before reading :attr:`robustness_G`. ``was_tested=False`` with
-        ``robustness_G=None`` is a candidate the pipeline failed on; it must not
-        be ranked, plotted or averaged beside a candidate whose G is a genuine
-        0.0.
+        Read this before reading :attr:`robustness_G`, and note that the two
+        now distinguish three states rather than two:
+
+        * ``was_tested=False``, ``robustness_G=None`` -- the pipeline failed on
+          this candidate. Nothing was measured; it must not be ranked, plotted
+          or averaged beside a candidate whose G is a genuine 0.0.
+        * ``was_tested=True``, ``robustness_G=None`` -- poses were measured and
+          decided, but no decided pose carried a gating constraint that had not
+          been restrained during modelling. There is a sampling fraction
+          (:attr:`sampling_G`) and there is no independent evidence, so no
+          corrected G exists. This is the state a restrained ensemble used to
+          report as ``G = 1.0``.
+        * ``was_tested=True`` with a number -- a corrected fraction over the
+          poses that could actually have come out otherwise.
         """
         return self.n_decided > 0
 
@@ -1270,7 +1379,9 @@ class EvaluateCatalysis(ScientificInterface):
     description: ClassVar[str] = (
         "Per-pose mechanism geometry against a sourced catalytic template, with "
         "pocket-localisation QC, chemoselectivity and cofactor-state checks, "
-        "circularity-corrected robustness, a directional stereochemical call and "
+        "circularity-corrected robustness (G counted only over gating "
+        "constraints that were not restrained during modelling, and undefined "
+        "rather than 1.0 when none were), a directional stereochemical call and "
         "a per-candidate scorecard with no total."
     )
     required_fields: ClassVar[tuple[str, ...]] = (
@@ -1638,8 +1749,16 @@ class EvaluateCatalysis(ScientificInterface):
             template_problem = str(exc)
             result.add_flag("catalytic_template_missing", Severity.BLOCKER,
                             template_problem, candidate.candidate_id)
+        family_match: bool | None = None
+        family_note = ""
         if template is not None:
-            used_templates[template.template_id] = template
+            family_match, family_note = self._family_agreement(candidate, template)
+            if family_match is not False:
+                # Registered only when it is actually applied: a template from
+                # another family must not reach provenance as a model this
+                # candidate was evaluated against, nor reach the scorecard's
+                # template-dependent gates.
+                used_templates[template.template_id] = template
 
         authority = (template_authority(template) if template is not None
                      else WindowAuthority.UNCALIBRATED)
@@ -1648,6 +1767,8 @@ class EvaluateCatalysis(ScientificInterface):
             template_id=template.template_id if template is not None else template_id,
             authority=authority,
             has_template=template is not None,
+            family_match=family_match,
+            family_note=family_note,
         )
 
         if template is None:
@@ -1670,7 +1791,26 @@ class EvaluateCatalysis(ScientificInterface):
                          authority=WindowAuthority.UNCALIBRATED),
                     reason,
                 ))
+        elif family_match is False:
+            self._refuse_family_mismatch(
+                result, candidate, evaluation,
+                template.template_id, family_note,
+            )
         else:
+            if family_match is None:
+                # An unevaluated gate, not a mismatch: the geometry is still
+                # worth measuring, and the open question is routed as one
+                # rather than resolved in either direction here.
+                result.add_uncertainty(
+                    "candidate_family_unverified",
+                    f"{candidate.candidate_id}: {family_note}. Is "
+                    f"{template.template_id} the right mechanistic hypothesis "
+                    f"for this sequence?",
+                    affects=[candidate.candidate_id],
+                    resolvable_by=("run annotate_family to obtain a family call, "
+                                   "or name the family on the catalytic template, "
+                                   "so the template can be checked against it"),
+                )
             self._flag_template_authority(result, candidate, template, authority)
             for pose in candidate.poses:
                 evaluation.poses.append(self._evaluate_pose(
@@ -1689,6 +1829,105 @@ class EvaluateCatalysis(ScientificInterface):
         self._stereo_rollup(evaluation, target_configuration, cip_note)
         self._attach(candidate, evaluation)
         return evaluation
+
+    @staticmethod
+    def _family_agreement(
+        candidate: Candidate, template: CatalyticTemplate,
+    ) -> tuple[bool | None, str]:
+        """``(verdict, note)``: does this template describe this candidate's family?
+
+        WHY AN ID LOOKUP IS NOT ENOUGH
+        ------------------------------
+        The catalytic template is resolved by id from
+        :attr:`~eagent.schemas.candidate.CatalyticMapping.catalytic_template_id`,
+        and an id is just a string that some earlier step wrote. Nothing in the
+        lookup notices that ``ct_sdr_ketoreductase_v1`` was attached to an
+        aldo-keto reductase: the SDR template's catalytic Tyr/Lys roles map
+        cleanly onto *some* residues, its NADPH windows measure, and the
+        candidate scores. The whole design treats the short-chain
+        dehydrogenase/reductase, aldo-keto reductase and zinc-dependent
+        medium-chain alcohol dehydrogenase families as separate mechanistic
+        hypotheses -- different catalytic residues, different cofactor
+        recognition, different stereochemical logic -- and silently applying
+        one family's rules to another family's candidate produces a confident
+        verdict about a mechanism nobody proposed.
+
+        The comparison is case-insensitive and whitespace-insensitive because
+        family names arrive from annotation steps and curated template files
+        that disagree about capitalisation, and a case difference is not a
+        mechanistic difference. It is deliberately **not** fuzzy beyond that:
+        "SDR" and "SDR-like" are left to a curator, because guessing which
+        near-matches are the same mechanism is precisely the judgement this
+        step must not make on its own.
+        """
+        declared = (candidate.family.family_name or "").strip()
+        from_template = (template.family_name or "").strip()
+        if not declared:
+            return None, (
+                f"the candidate carries no family call, so whether catalytic "
+                f"template {template.template_id} (family "
+                f"'{from_template or 'unnamed'}') describes this sequence's "
+                f"mechanism could not be checked"
+            )
+        if not from_template:
+            return None, (
+                f"catalytic template {template.template_id} names no family, so "
+                f"it could not be compared with the candidate's family "
+                f"'{declared}'"
+            )
+        if declared.casefold() == from_template.casefold():
+            return True, (
+                f"catalytic template {template.template_id} describes family "
+                f"'{from_template}', which is the candidate's family '{declared}'"
+            )
+        return False, (
+            f"catalytic template {template.template_id} describes family "
+            f"'{from_template}', but this candidate was annotated as "
+            f"'{declared}'. These are separate mechanistic hypotheses with "
+            f"different catalytic residues and different cofactor recognition, "
+            f"so the template's windows cannot be applied to this sequence; "
+            f"doing so would score a mechanism nobody proposed for it"
+        )
+
+    def _refuse_family_mismatch(
+        self, result: ToolResult, candidate: Candidate,
+        evaluation: CandidateEvaluation, template_id: str | None, reason: str,
+    ) -> None:
+        """Disqualify rather than score, and record every pose as unmeasured.
+
+        A refusal, not a low score. There is no number this step could emit for
+        a candidate measured against the wrong family's mechanism that would be
+        less misleading than emitting none: the geometry would be real, the
+        windows would be real, and the conclusion would be about a reaction
+        this enzyme was never hypothesised to run. So the poses are recorded as
+        unmeasured -- nothing *was* tested -- the candidate is disqualified with
+        the reason attached, and the fix (attach the right template, or correct
+        the family call) is stated as a BLOCKER.
+        """
+        result.add_flag("catalytic_template_family_mismatch", Severity.BLOCKER,
+                        reason, candidate.candidate_id)
+        if candidate.disqualified and candidate.disqualification_reason:
+            candidate.disqualification_reason = (
+                f"{candidate.disqualification_reason}; {reason}")
+        else:
+            candidate.disqualification_reason = reason
+        candidate.disqualified = True
+        result.add_next(
+            "annotate_family",
+            "Resolve the family call and the catalytic template against each "
+            "other before any geometry is measured; a template from another "
+            "family cannot be applied to this candidate",
+            {"candidate_id": candidate.candidate_id,
+             "catalytic_template_id": template_id},
+        )
+        for pose in candidate.poses:
+            evaluation.poses.append(self._gap(
+                result,
+                dict(candidate_id=candidate.candidate_id, pose_id=pose.pose_id,
+                     method=pose.method, template_id=template_id,
+                     authority=WindowAuthority.UNCALIBRATED),
+                f"refused to measure this pose: {reason}",
+            ))
 
     def _flag_template_authority(
         self, result: ToolResult, candidate: Candidate,
@@ -1820,7 +2059,10 @@ class EvaluateCatalysis(ScientificInterface):
             unresolved_roles=context.gaps(), input_errors=input_errors,
             **base,
         )
-        self._apply_circularity(evaluation, pose, result, candidate.candidate_id)
+        self._apply_circularity(
+            evaluation, pose, result, candidate.candidate_id,
+            gating_names=[c.name for c in template.gating_constraints()],
+        )
         self._flag_pose(result, candidate.candidate_id, evaluation)
         return evaluation
 
@@ -1933,6 +2175,16 @@ class EvaluateCatalysis(ScientificInterface):
         the hydride donor -- the atoms that do the chemistry. Deliberately not a
         centroid, and deliberately not an alpha carbon: an alpha carbon can sit
         6 A from its own side-chain hydroxyl, which is most of the window.
+
+        A reference is accepted only when the atom bound for it really is one of
+        the atoms the template named. The canonical ``label.ATOM`` key is tried
+        first; a binding made under the bare ``label`` is accepted only after
+        the resolved atom's own ``name`` is checked against that entry's
+        ``functional_atoms``, and is otherwise dropped into
+        ``missing_references``. Without that check the screen silently measures
+        to a backbone atom and reports the distance as the template's catalytic
+        functional atom -- a number that is right about the coordinates and
+        wrong about the chemistry, which is worse than no number at all.
         """
         threshold, source = pocket_localisation_window(template, override)
         reactive = context.substrate_role_atoms.get(binding.reactive_atom_role)
@@ -1944,25 +2196,49 @@ class EvaluateCatalysis(ScientificInterface):
                         f"coordinate atom, so the screen could not run"),
             )
         refs: dict[str, Atom] = {}
+        gaps: list[str] = []
         for entry in template.catalytic_residues:
             label = entry.get("label")
             if label is None:
                 continue
-            for atom_name in entry.get("functional_atoms", ()) or ():
+            functional = [str(a) for a in (entry.get("functional_atoms", ()) or ())]
+            permitted = {a.strip().upper() for a in functional}
+            for atom_name in functional:
                 key = f"{label}.{atom_name}"
-                atom = context.protein_atoms.get(key) \
-                    or context.protein_atoms.get(str(label))
+                atom = context.protein_atoms.get(key)
                 if atom is not None:
                     refs[key] = atom
+                    continue
+                bare = context.protein_atoms.get(str(label))
+                if bare is None:
+                    gaps.append(
+                        f"{key} (no atom is bound under this role, and the bare "
+                        f"label '{label}' is unbound too)"
+                    )
+                    continue
+                if bare.name.strip().upper() in permitted:
+                    # The bare-label binding happens to name a functional atom;
+                    # key it by the atom actually resolved, never by the atom
+                    # name we were looking for.
+                    refs[f"{label}.{bare.name.strip()}"] = bare
+                else:
+                    gaps.append(
+                        f"{key} (unbound; the bare label '{label}' resolves to "
+                        f"atom '{bare.name.strip()}', which is not among this "
+                        f"template entry's functional_atoms {sorted(permitted)}, "
+                        f"so it was NOT substituted)"
+                    )
         donor = context.cofactor_role_atoms.get(binding.hydride_donor_role)
         if donor is not None:
             refs[f"{NS_COFACTOR}.{binding.hydride_donor_role}"] = donor
+        missing = tuple(sorted(set(gaps)))
         if not refs:
             return PocketLocalisation(
-                None, threshold, source,
+                None, threshold, source, missing_references=missing,
                 reason=("none of the template's catalytic functional atoms could be "
                         "located in this pose, so there is nothing to measure the "
-                        "reactive atom against"),
+                        "reactive atom against"
+                        + (": " + "; ".join(missing) if missing else "")),
             )
         best_key, best_d = min(
             ((k, geom.distance(reactive, a)) for k, a in refs.items()),
@@ -1971,6 +2247,9 @@ class EvaluateCatalysis(ScientificInterface):
         return PocketLocalisation(
             distance_A=best_d, threshold_A=threshold, threshold_source=source,
             nearest_role=best_key, reference_roles=tuple(sorted(refs)),
+            missing_references=missing,
+            reason=("reference atoms left out of the screen: " + "; ".join(missing)
+                    if missing else ""),
         )
 
     @staticmethod
@@ -2225,6 +2504,7 @@ class EvaluateCatalysis(ScientificInterface):
     def _apply_circularity(
         self, evaluation: PoseEvaluation, pose: ComplexPose,
         result: ToolResult, candidate_id: str,
+        *, gating_names: Sequence[str] = (),
     ) -> None:
         """Remove the restraints that were imposed from the evidence that counts.
 
@@ -2264,6 +2544,17 @@ class EvaluateCatalysis(ScientificInterface):
         evaluation.circular_satisfied = evidence.circular_satisfied
         evaluation.independent_satisfied = evidence.n_independent_satisfied
         evaluation.independent_total = len(evidence.satisfied) + len(evidence.unsatisfied)
+        # The gating subset, which is what the outcome rests on and therefore
+        # the only subset that can corroborate the outcome. Computed from the
+        # same guard, so a constraint cannot be independent here and circular
+        # three lines above.
+        restrained = set(evidence.circular_all)
+        independent_gating = [n for n in gating_names if n not in restrained]
+        evaluation.independent_gating = tuple(sorted(independent_gating))
+        evaluation.independent_gating_satisfied = tuple(sorted(
+            n for n in independent_gating if evaluation.satisfied.get(n) is True))
+        evaluation.restrained_gating = tuple(sorted(
+            n for n in gating_names if n in restrained))
         mismatch = guard.restrained_but_not_evaluated
         if mismatch:
             evaluation.restraint_name_mismatch = tuple(sorted(mismatch))
@@ -2293,6 +2584,15 @@ class EvaluateCatalysis(ScientificInterface):
             result.add_flag("pocket_localisation_unmeasured", Severity.INFO,
                             f"pose {evaluation.pose_id}: {pocket.reason}",
                             candidate_id)
+        if pocket is not None and pocket.missing_references:
+            result.add_flag(
+                "pocket_reference_atom_unbound", Severity.INFO,
+                f"pose {evaluation.pose_id}: the localisation screen ran against "
+                f"{len(pocket.reference_roles)} reference atom(s); these catalytic "
+                f"functional atoms named by the template were left out rather than "
+                f"substituted: " + "; ".join(pocket.missing_references),
+                candidate_id,
+            )
         chemo = evaluation.chemoselectivity
         if chemo is not None and chemo.target_in_reactive_position is False:
             result.add_flag("non_target_group_in_reactive_position", Severity.WARN,
@@ -2340,21 +2640,88 @@ class EvaluateCatalysis(ScientificInterface):
 
     # -- rollups ------------------------------------------------------------
     def _rollup(self, evaluation: CandidateEvaluation, min_valid_poses: int) -> None:
-        """Robustness over the poses that were actually decided.
+        """Circularity-corrected robustness, over evidence nobody imposed.
 
-        The denominator is the number of *decided* poses, not the number
-        attempted. A candidate whose five poses all failed to parse has
-        ``G = None`` and ``was_tested = False``; a candidate whose five poses were
-        all measured and all violated the mechanism has ``G = 0.0``. Those two
-        must never share a cell in a table, which is why
-        :func:`~eagent.science.robustness.pose_robustness` returns ``None`` rather
-        than ``0.0`` for an empty denominator.
+        WHY G IS NOT THE SATISFIED FRACTION
+        -----------------------------------
+        The obvious definition -- satisfied poses over decided poses -- lets an
+        ensemble built entirely under restraints report ``G = 1.0``, because
+        every pose satisfies exactly the constraints it was built to satisfy.
+        That number then flows into the scorecard, the Wilson interval, the
+        tables and the batch selection as though the model had corroborated
+        itself, which is the self-justification
+        :class:`~eagent.science.robustness.CircularityGuard` exists to prevent.
+        Flagging it afterwards does not help: by then the figure has already
+        been computed and reported.
+
+        So the correction is applied *in the definition*:
+
+        * **Denominator** -- decided poses that carried at least one gating
+          constraint which was not restrained while the pose was built
+          (:attr:`PoseEvaluation.carries_independent_test`). A pose whose every
+          gating constraint was imposed is excluded rather than counted as a
+          failure: it is a non-test, not a negative.
+        * **Numerator** -- poses satisfying the mechanism whose independent
+          gating constraints were *all* satisfied
+          (:attr:`PoseEvaluation.independently_satisfied`).
+        * **No independent evidence at all** -- ``G = None`` with a stated
+          reason, never 1.0 and never 0.0. ``None`` is the only honest value:
+          nothing was corroborated and nothing was refuted.
+
+        The uncorrected sampling fraction is still computed, under the separate
+        name :attr:`CandidateEvaluation.sampling_G`, so the correction can be
+        audited and so nobody has to re-derive it from the pose table.
+
+        The denominator remains the number of poses that *could* have come out
+        otherwise, never the number attempted: a candidate whose five poses all
+        failed to parse keeps ``G = None`` with ``was_tested = False``, which is
+        why :func:`~eagent.science.robustness.pose_robustness` returns ``None``
+        rather than ``0.0`` for an empty denominator.
         """
-        n_valid = evaluation.n_decided
-        n_sat = evaluation.n_satisfied
+        n_decided = evaluation.n_decided
+        evaluation.sampling_G = pose_robustness(evaluation.n_satisfied, n_decided)
+
+        n_valid = evaluation.n_independently_tested
+        n_sat = evaluation.n_independently_satisfied
         evaluation.robustness_G = pose_robustness(n_sat, n_valid)
         if n_valid > 0:
             evaluation.wilson_lo, evaluation.wilson_hi = wilson_interval(n_sat, n_valid)
+
+        sampling_text = ("none (no pose was decided)"
+                         if evaluation.sampling_G is None
+                         else f"{evaluation.sampling_G:.3f}")
+        if n_valid == 0 and n_decided > 0:
+            circular = sorted({c for p in evaluation.poses
+                               for c in p.restrained_gating})
+            evaluation.robustness_basis = (
+                f"G is undefined: of {n_decided} decided pose(s), none carried a "
+                f"gating constraint that had not been restrained during "
+                f"modelling"
+                + (f" (restrained gating constraints: {', '.join(circular)})"
+                   if circular else "")
+                + f". A distance that was enforced cannot corroborate the model "
+                  f"that enforced it, so no corrected fraction exists; the "
+                  f"uncorrected sampling fraction was {sampling_text} and is "
+                  f"reported separately as sampling_G, which is not evidence "
+                  f"about the enzyme"
+            )
+        elif n_valid == 0:
+            evaluation.robustness_basis = (
+                "G is undefined: no pose was decided against a window this "
+                "step trusts, so there was nothing to correct for circularity "
+                "and nothing to count. This candidate was not tested"
+            )
+        else:
+            evaluation.robustness_basis = (
+                f"G = {n_sat}/{n_valid}: of the decided poses carrying at least "
+                f"one gating constraint that was not restrained during "
+                f"modelling, this many had all of those independent constraints "
+                f"satisfied. {n_decided - n_valid} decided pose(s) were excluded "
+                f"from the denominator as entirely restrained non-tests. The "
+                f"uncorrected sampling fraction over all {n_decided} decided "
+                f"pose(s) was {sampling_text}"
+            )
+
         level = classify_robustness(evaluation.robustness_G, n_valid,
                                     min_valid_poses=min_valid_poses)
         if evaluation.authority is not WindowAuthority.CALIBRATED:
@@ -2437,9 +2804,15 @@ class EvaluateCatalysis(ScientificInterface):
             # Pass a library only when it holds this candidate's template: the
             # scorecard raises on a named-but-absent template, and a template we
             # already reported as missing must not fail the whole step twice.
-            library = dict(used_templates) if (tid and tid in used_templates) else None
+            # A template belonging to another family is withheld for a stronger
+            # reason: its cofactor and machinery gates would otherwise decide
+            # this candidate against a mechanism nobody proposed for it.
+            library = dict(used_templates) if (
+                tid and tid in used_templates and evaluation.family_match is not False
+            ) else None
             gates = evaluate_feasibility_gates(candidate, ctx.task, library)
             candidate.scorecard = build_scorecard(candidate, ctx.task, library, config)
+            self._attach_family_gate(candidate, evaluation)
             if evaluation.has_template \
                     and evaluation.authority is not WindowAuthority.CALIBRATED:
                 self._downgrade_axis(candidate, "catalytic_geometry",
@@ -2448,6 +2821,34 @@ class EvaluateCatalysis(ScientificInterface):
                 gate_uncertainties(gates, subject=candidate.candidate_id))
             result.qc_flags.extend(scorecard_qc_flags(candidate, gates))
             evaluation.explanation = explain(candidate)
+
+    @staticmethod
+    def _attach_family_gate(
+        candidate: Candidate, evaluation: CandidateEvaluation,
+    ) -> None:
+        """Record the family check as a three-valued gate on the scorecard.
+
+        A gate rather than an axis, because there is no amount of good geometry
+        that compensates for having measured the wrong mechanism. Three-valued
+        because :attr:`~eagent.schemas.candidate.Candidate.has_unresolved_gate`
+        is how this codebase says "this question was never answered": an
+        unknown family leaves ``gate_passed=None``, which keeps the candidate
+        out of the eligible set without recording it as a failure, and the
+        matching uncertainty says what would resolve it.
+        """
+        if not evaluation.has_template:
+            return
+        verdict = evaluation.family_match
+        level = {
+            True: ConfidenceLevel.STRONG,
+            False: ConfidenceLevel.CONTRADICTORY,
+            None: ConfidenceLevel.INSUFFICIENT,
+        }[verdict]
+        candidate.set_dimension(ScoreDimension(
+            name=FAMILY_MATCH_GATE, level=level, direction="categorical",
+            basis=evaluation.family_note or "family agreement was not assessed",
+            is_gate=True, gate_passed=verdict,
+        ))
 
     @staticmethod
     def _downgrade_axis(candidate: Candidate, axis: str,
@@ -2489,7 +2890,7 @@ class EvaluateCatalysis(ScientificInterface):
             "gating_passed", "hard_failures", "provisional_failures",
             "unmeasured_constraints",
             "pocket_localisation_A", "pocket_threshold_A", "pocket_threshold_source",
-            "pocket_within", "pocket_nearest_role",
+            "pocket_within", "pocket_nearest_role", "pocket_missing_references",
             "chemoselectivity_tested", "target_in_reactive_position",
             "target_to_donor_A", "displacing_group", "displacing_to_donor_A",
             "cofactor_present", "cofactor_component", "cofactor_identity",
@@ -2497,7 +2898,10 @@ class EvaluateCatalysis(ScientificInterface):
             "cofactor_identity_ok", "cofactor_state_ok", "cofactor_placement_ok",
             "clash_count", "clash_tolerance_A", "clash_screen_complete",
             "circular_constraints", "circular_satisfied", "independent_satisfied",
-            "independent_total", "entirely_circular", "restraint_name_mismatch",
+            "independent_total", "independent_gating", "independent_gating_satisfied",
+            "restrained_gating", "carries_independent_test",
+            "counts_toward_robustness",
+            "entirely_circular", "restraint_name_mismatch",
             "face", "product_configuration", "stereo_note", "unresolved_roles",
         ]
         header += [f"measure:{n}" for n in names]
@@ -2520,6 +2924,7 @@ class EvaluateCatalysis(ScientificInterface):
                     None if pocket is None else pocket.threshold_source,
                     None if pocket is None else pocket.within,
                     None if pocket is None else pocket.nearest_role,
+                    None if pocket is None else pocket.missing_references,
                     None if chemo is None else chemo.tested,
                     None if chemo is None else chemo.target_in_reactive_position,
                     None if chemo is None else chemo.target_distance_A,
@@ -2539,6 +2944,9 @@ class EvaluateCatalysis(ScientificInterface):
                     None if clash is None else clash.complete,
                     p.circular_constraints, p.circular_satisfied,
                     p.independent_satisfied, p.independent_total,
+                    p.independent_gating, p.independent_gating_satisfied,
+                    p.restrained_gating, p.carries_independent_test,
+                    p.independently_satisfied,
                     p.entirely_circular, p.restraint_name_mismatch,
                     p.face, p.product_configuration, p.stereo_note,
                     "; ".join(f"{k}={v}" for k, v in sorted(p.unresolved_roles.items())),
@@ -2555,10 +2963,14 @@ class EvaluateCatalysis(ScientificInterface):
         axes = sorted({name for c in candidates for name in c.scorecard})
         sc_header = [
             "candidate_id", "family", "catalytic_template_id", "template_authority",
-            "passes_gates", "has_unresolved_gate", "disqualified", "input_errors",
+            "template_family_match", "template_family_note",
+            "passes_gates", "has_unresolved_gate", "disqualified",
+            "disqualification_reason", "input_errors",
             "n_poses", "n_decided", "n_mechanism_satisfied", "n_mechanism_violated",
             "n_outside_uncalibrated_window", "n_not_measurable", "n_input_error",
-            "was_tested", "robustness_G", "wilson_lower", "wilson_upper",
+            "was_tested", "robustness_G", "robustness_basis",
+            "n_independently_tested", "n_independently_satisfied",
+            "sampling_G_uncorrected", "wilson_lower", "wilson_upper",
             "robustness_level", "stereo_call", "stereo_target_poses",
             "stereo_opposite_poses", "stereo_undetermined_poses",
             "predicted_ee_pct", "ee_calibration_source",
@@ -2570,11 +2982,15 @@ class EvaluateCatalysis(ScientificInterface):
         for candidate, e in zip(candidates, evaluations):
             row = [
                 candidate.candidate_id, candidate.family.family_name, e.template_id,
-                e.authority.value, candidate.passes_gates,
+                e.authority.value, e.family_match, e.family_note,
+                candidate.passes_gates,
                 candidate.has_unresolved_gate, candidate.disqualified,
+                candidate.disqualification_reason,
                 candidate.input_errors, e.n_poses, e.n_decided, e.n_satisfied,
                 e.n_violated, e.n_provisional, e.n_not_measurable, e.n_input_error,
-                e.was_tested, e.robustness_G, e.wilson_lo, e.wilson_hi,
+                e.was_tested, e.robustness_G, e.robustness_basis,
+                e.n_independently_tested, e.n_independently_satisfied,
+                e.sampling_G, e.wilson_lo, e.wilson_hi,
                 e.robustness_level.value, e.stereo.call, e.stereo.target_face_poses,
                 e.stereo.opposite_face_poses, e.stereo.undetermined_poses,
                 e.stereo.predicted_ee_pct, e.stereo.calibration_source,
@@ -2591,8 +3007,7 @@ class EvaluateCatalysis(ScientificInterface):
         explain_path = ctx.path(self.name, "candidate_explanations.txt")
         blocks: list[str] = []
         for e in evaluations:
-            g = ("not computed (no pose was decided, so this candidate was not "
-                 "tested)" if e.robustness_G is None else f"{e.robustness_G:.3f}")
+            g = "not computed" if e.robustness_G is None else f"{e.robustness_G:.3f}"
             blocks.append(
                 "=" * 70 + "\n" + e.explanation + "\n"
                 f"Pose outcomes: satisfied={e.n_satisfied}, "
@@ -2600,9 +3015,11 @@ class EvaluateCatalysis(ScientificInterface):
                 f"outside-uncalibrated-window={e.n_provisional}, "
                 f"not-measurable={e.n_not_measurable}, "
                 f"input-error={e.n_input_error}\n"
-                f"Robustness G={g} over {e.n_decided} decided pose(s); level "
-                f"{e.robustness_level.value}; window authority "
-                f"{e.authority.value}\n"
+                f"Robustness G (circularity-corrected)={g} over "
+                f"{e.n_independently_tested} independently testable pose(s) of "
+                f"{e.n_decided} decided; level {e.robustness_level.value}; window "
+                f"authority {e.authority.value}\n"
+                f"  {e.robustness_basis}\n"
                 f"Stereochemistry: {e.stereo.call} -- {e.stereo.basis}\n"
             )
         explain_path.write_text("\n".join(blocks), encoding="utf-8")
@@ -2617,6 +3034,8 @@ class EvaluateCatalysis(ScientificInterface):
             "catalytic_template_id": e.template_id,
             "template_authority": e.authority.value,
             "has_catalytic_template": e.has_template,
+            "template_family_matches_candidate": e.family_match,
+            "template_family_note": e.family_note,
             "n_poses": e.n_poses,
             "n_decided": e.n_decided,
             "counts": {
@@ -2628,6 +3047,16 @@ class EvaluateCatalysis(ScientificInterface):
             },
             "was_tested": e.was_tested,
             "robustness_G": e.robustness_G,
+            "robustness_is_circularity_corrected": True,
+            "robustness_basis": e.robustness_basis,
+            "n_independently_tested": e.n_independently_tested,
+            "n_independently_satisfied": e.n_independently_satisfied,
+            "sampling_G": e.sampling_G,
+            "sampling_G_note": (
+                "uncorrected satisfied/decided fraction, reported for audit only; "
+                "constraints that were restrained during modelling are counted in "
+                "it, so it is not evidence about the enzyme"
+            ),
             "robustness_wilson_95": (None if e.wilson_lo is None
                                      else [e.wilson_lo, e.wilson_hi]),
             "robustness_level": e.robustness_level.value,
@@ -2646,6 +3075,11 @@ class EvaluateCatalysis(ScientificInterface):
                     "circular_constraints": list(p.circular_constraints),
                     "independent_satisfied": p.independent_satisfied,
                     "independent_total": p.independent_total,
+                    "independent_gating": list(p.independent_gating),
+                    "independent_gating_satisfied": list(p.independent_gating_satisfied),
+                    "restrained_gating": list(p.restrained_gating),
+                    "carries_independent_test": p.carries_independent_test,
+                    "counts_toward_robustness": p.independently_satisfied,
                     "entirely_circular": p.entirely_circular,
                     "clash_count": None if p.clash is None else p.clash.count,
                     "face": p.face,
@@ -2662,9 +3096,26 @@ class EvaluateCatalysis(ScientificInterface):
         """Set the status and a message that never rounds a gap into a negative."""
         n_cand = len(evaluations)
         tested = [e for e in evaluations if e.was_tested]
-        untested = [e for e in evaluations if not e.was_tested]
+        refused = [e for e in evaluations if e.family_match is False]
+        # A refused candidate is untested too, but "re-run the modelling" is the
+        # wrong next step for it: nothing is wrong with its poses. Keeping the
+        # two apart means each gets the follow-up that would actually fix it.
+        untested = [e for e in evaluations
+                    if not e.was_tested and e.family_match is not False]
         n_poses = sum(e.n_poses for e in evaluations)
         n_failed = sum(e.n_not_measurable + e.n_input_error for e in evaluations)
+
+        if refused:
+            result.status = Status.PARTIAL
+            shown = ", ".join(e.candidate_id for e in refused[:8])
+            more = " ..." if len(refused) > 8 else ""
+            result.add_flag(
+                "candidates_refused_on_family_mismatch", Severity.BLOCKER,
+                f"{len(refused)} of {n_cand} candidate(s) were refused because "
+                f"the catalytic template attached to them describes another "
+                f"family: {shown}{more}. They were disqualified rather than "
+                f"scored; nothing was measured about their mechanism.",
+            )
 
         if untested:
             result.status = Status.PARTIAL

@@ -1104,14 +1104,25 @@ def grouping_key(obj: Any, sequence_cluster_lookup: ClusterLookup = None) -> tup
     """De-duplication facets for leakage-controlled train/test splitting.
 
     Returns the sorted tuple of facets a row belongs to: its publication(s), its
-    experiment activity, its parent sequence lineage (so a variant and its
-    parent never straddle the split), and its sequence cluster.
+    experiment activity, its sequence lineage (so a variant and its parent never
+    straddle the split), and its sequence cluster.
 
     **The source database is deliberately absent.** "Train on BRENDA, test on
     SKiD" is not a clean split when SKiD re-curated BRENDA: the same measurement
     appears on both sides under different accessions, and the resulting test
     score measures how well the model memorised the training rows. Splitting
     must happen over the original measurement and the sequence cluster instead.
+
+    **Lineage is a set of facets, not one facet.** A row that records a parent
+    emits ``lineage:<own>`` *and* ``lineage:<parent>``, never only the parent.
+    Emitting one of the two cuts a multi-generation lineage at every link: for a
+    chain P -> A -> B -> C, the rows for A and B would share no facet at all, the
+    transitive closure would never fuse the family, and the generations would
+    scatter across folds while the audit reported the split proven clean. A
+    parent in train and its grandchild in test is memorisation measured as
+    generalisation, and it is worse for being certified. Emitting both ends of
+    every recorded link makes the closure in :func:`leakage_safe_groups` walk the
+    whole chain, however many generations long it is.
 
     An unresolved sequence cluster becomes ``cluster:unresolved:<sequence id>``
     rather than a shared ``cluster:unknown``; a shared placeholder would silently
@@ -1120,7 +1131,9 @@ def grouping_key(obj: Any, sequence_cluster_lookup: ClusterLookup = None) -> tup
 
     Two rows sharing *any* facet must not be split apart. Use
     :func:`leakage_safe_groups` for the transitive closure; comparing these
-    tuples for equality alone still leaks when rows overlap on one facet only.
+    tuples for equality alone still leaks when rows overlap on one facet only --
+    which is now the normal case for a variant row, since it carries two lineage
+    facets and a sibling shares only one of them.
     """
     facets: list[str] = []
     facets.extend(activity_ids(obj))
@@ -1128,19 +1141,25 @@ def grouping_key(obj: Any, sequence_cluster_lookup: ClusterLookup = None) -> tup
 
     parent = getattr(obj, "parent_sequence_sha256", None)
     own = getattr(obj, "sequence_sha256", None) or _sequence_identity(obj)
-    lineage = str(parent or own) if (parent or own) else None
+    # Both ends of the recorded link, so one row bridges to its parent's row and
+    # to its own children's rows at the same time.
+    lineage = sorted({str(v) for v in (own, parent) if v})
     if lineage:
-        facets.append(f"lineage:{lineage}")
+        facets.extend(f"lineage:{member}" for member in lineage)
     else:
         facets.append(f"lineage:unresolved:{_record_id(obj, 'anon')}")
 
+    # The parent, when there is one, anchors the unresolved-cluster token: two
+    # rows for one parent then still share it, exactly as before this function
+    # began emitting more than one lineage facet.
+    anchor = str(parent or own) if (parent or own) else None
     cluster = _cluster_for(str(own) if own else None, sequence_cluster_lookup)
     if cluster is None and parent:
         cluster = _cluster_for(str(parent), sequence_cluster_lookup)
     if cluster:
         facets.append(f"cluster:{cluster}")
     else:
-        facets.append(f"cluster:unresolved:{lineage or _record_id(obj, 'anon')}")
+        facets.append(f"cluster:unresolved:{anchor or _record_id(obj, 'anon')}")
 
     return tuple(sorted(set(facets)))
 
@@ -1151,11 +1170,17 @@ def leakage_safe_groups(
 ) -> dict[str, str]:
     """Map each record id to a split group id, closed transitively over facets.
 
-    Rows that share a paper, an activity, a parent lineage or a sequence cluster
-    end up in one group, even when they share no single facet directly (row A
-    shares a paper with B, B shares a cluster with C, so A, B and C must stay on
-    the same side of the split). Equality of :func:`grouping_key` tuples alone
-    would put A and C in different folds and leak.
+    Rows that share a paper, an activity, a sequence lineage or a sequence
+    cluster end up in one group, even when they share no single facet directly
+    (row A shares a paper with B, B shares a cluster with C, so A, B and C must
+    stay on the same side of the split). Equality of :func:`grouping_key` tuples
+    alone would put A and C in different folds and leak.
+
+    The same closure is what keeps a *multi-generation* variant family whole:
+    each row emits its own sequence hash and its parent's, so P -> A -> B -> C
+    fuses link by link into one group. A split that separated a parent from its
+    grandchild would measure interpolation inside a sequence the model has
+    already seen.
     """
     ds = _DisjointSet()
     rec_keys: list[str] = []

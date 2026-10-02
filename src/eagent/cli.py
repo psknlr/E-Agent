@@ -627,6 +627,155 @@ def _argument_map(path: Path | None) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _annotation_shape(annotation: Any) -> tuple[set[Any], bool]:
+    """The pydantic models a parameter names, and whether it is structured.
+
+    ``structured`` is the gate on coercion. A parameter typed ``float`` or
+    ``str`` is left exactly as the operator wrote it -- the CLI has no
+    business rewriting a number someone typed. A parameter typed against a
+    pydantic model, a dataclass or an enum is a different matter: a YAML file
+    can only ever carry a mapping, and the step is going to call attributes
+    on it.
+    """
+    from dataclasses import is_dataclass
+    from enum import Enum
+    from typing import get_args
+
+    from pydantic import BaseModel
+
+    models: set[Any] = set()
+    structured = False
+    seen: set[int] = set()
+
+    def walk(node: Any) -> None:
+        nonlocal structured
+        if id(node) in seen:
+            return
+        seen.add(id(node))
+        if isinstance(node, type):
+            if issubclass(node, BaseModel):
+                models.add(node)
+                structured = True
+            elif is_dataclass(node) or issubclass(node, Enum):
+                structured = True
+        for arg in get_args(node):
+            walk(arg)
+
+    walk(annotation)
+    return models, structured
+
+
+def _accepts_many(annotation: Any) -> bool:
+    """Whether the annotation has a container around its model anywhere."""
+    from typing import get_args, get_origin
+
+    for member in (get_args(annotation) or (annotation,)):
+        if get_origin(member) is not None:
+            return True
+    return False
+
+
+def _coerce_arguments(registry: Any, arguments: Mapping[str, Mapping[str, Any]],
+                      source: Path | None, out: Out) -> dict[str, dict[str, Any]]:
+    """Validate each ``--arguments`` payload against the model its step declares.
+
+    Every interface's ``execute`` is typed against pydantic models, and a
+    YAML or JSON file can only ever produce mappings and lists. Handing those
+    straight to ``execute(**kwargs)`` puts a dict where a model is expected,
+    and the mistake surfaces as an ``AttributeError`` from somewhere deep
+    inside the step -- a bare traceback, which is the one thing this CLI must
+    never print, and which names neither the file nor the field that was
+    wrong.
+
+    So the boundary is here. Candidate-shaped payloads go through
+    :mod:`eagent.tools.handoff`, which is the agreed crossing for them, and
+    everything else is validated against its own annotation. A payload that
+    does not validate stops the run before any step executes, with the
+    interface, the parameter and the validator's complaint, because a
+    partially-filled model would be scored as though the missing fields were
+    genuinely absent.
+    """
+    import inspect
+    import typing
+
+    from pydantic import TypeAdapter, ValidationError
+
+    from .schemas.candidate import Candidate
+    from .tools.handoff import HandoffError, as_candidate, as_candidates
+
+    where = str(source) if source is not None else "--arguments"
+    coerced: dict[str, dict[str, Any]] = {}
+    for interface, kwargs in arguments.items():
+        if interface not in registry:
+            out.warn(f"{where}: '{interface}' is not one of the protocol's "
+                     f"interfaces, so its arguments were never going to reach "
+                     f"a step; the ten are "
+                     f"{', '.join(sorted(registry.names()))}")
+            coerced[interface] = dict(kwargs)
+            continue
+        execute = type(registry.get(interface)).execute
+        try:
+            hints = typing.get_type_hints(execute)
+            parameters = inspect.signature(execute).parameters
+        except Exception:                 # an un-resolvable annotation
+            # Better to pass the payload through untouched than to refuse a
+            # run because this module could not read a type hint.
+            coerced[interface] = dict(kwargs)
+            continue
+
+        out_kwargs: dict[str, Any] = {}
+        for key, value in kwargs.items():
+            annotation = hints.get(key)
+            if key not in parameters or annotation is None:
+                out_kwargs[key] = value
+                continue
+            models, structured = _annotation_shape(annotation)
+            if not structured:
+                out_kwargs[key] = value
+                continue
+            label = f"{where}: {interface}.{key}"
+            try:
+                if Candidate in models:
+                    out_kwargs[key] = (
+                        as_candidates(value, source=label)
+                        if _accepts_many(annotation) or not isinstance(
+                            value, Mapping)
+                        else as_candidate(value, source=label))
+                else:
+                    out_kwargs[key] = TypeAdapter(annotation).validate_python(
+                        value)
+            except HandoffError as exc:
+                raise Refusal(
+                    f"{label} is not a usable candidate payload: {exc}",
+                    next_action=("fix the entry in the arguments file; a "
+                                 "candidate that lost fields in transit would "
+                                 "be scored as though those fields had never "
+                                 "been measured"),
+                    exit_code=EXIT_USAGE) from exc
+            except ValidationError as exc:
+                raise Refusal(
+                    f"{label} does not validate as "
+                    f"{_annotation_name(annotation)}: {exc}",
+                    next_action=("correct the payload in the arguments file, "
+                                 "or drop the key to let the step use its own "
+                                 "default; nothing is filled in here"),
+                    exit_code=EXIT_USAGE) from exc
+            except Exception:
+                # The annotation is real but pydantic cannot build a schema
+                # for it -- a Protocol, a runner object. Nothing in a YAML
+                # file can satisfy it anyway, so leave it for the step to
+                # reject with its own message.
+                out_kwargs[key] = value
+        coerced[interface] = out_kwargs
+    return coerced
+
+
+def _annotation_name(annotation: Any) -> str:
+    """A readable name for an annotation, for a refusal message."""
+    return getattr(annotation, "__name__", None) or str(annotation).replace(
+        "typing.", "")
+
+
 def _report_attempts(controller: Any, out: Out, already: int) -> int:
     """Stream the attempts recorded since the last call."""
     from .envelope import Severity
@@ -866,8 +1015,11 @@ def run_command(task_file: Path, rundir: Path | None, step: str | None,
         return
 
     queue = ApprovalQueue.load(run_dir / "approvals.json", manifest)
-    controller = ResearchController(
-        ctx, registry, queue, arguments=_argument_map(arguments_file))
+    # Coerced before the controller exists, so a bad payload stops the run
+    # with the file and the field named, rather than from inside a step.
+    arguments = _coerce_arguments(
+        registry, _argument_map(arguments_file), arguments_file, out)
+    controller = ResearchController(ctx, registry, queue, arguments=arguments)
     if arguments_file is None:
         out.note("no --arguments file was given, so each step runs with its own "
                  "defaults; the harness does not invent the data flow between "
@@ -876,6 +1028,7 @@ def run_command(task_file: Path, rundir: Path | None, step: str | None,
 
     out.heading("run")
     reported = 0
+    reached_requested_stage = False
     try:
         if start is not None:
             controller.stage = start
@@ -890,7 +1043,13 @@ def run_command(task_file: Path, rundir: Path | None, step: str | None,
                 controller.step()
                 reported = _report_attempts(controller, out, reported)
                 moves += 1
-                if before is stop_after or moves > controller.max_transitions:
+                if before is stop_after:
+                    # The stage the operator asked for has now executed. This
+                    # is the ordinary end of a --step or --until run, not a
+                    # failure, and it is recorded as such below.
+                    reached_requested_stage = True
+                    break
+                if moves > controller.max_transitions:
                     break
             if controller.stage in TERMINAL_STAGES:
                 controller.run()          # records the outcome and the note
@@ -949,6 +1108,23 @@ def run_command(task_file: Path, rundir: Path | None, step: str | None,
     out.line(f"report:   {report_path}")
 
     outcome = controller.outcome
+    undecided = [r for r in pending if not queue.is_granted(r.gate)]
+    if outcome is None and stop_after is not None:
+        # --step and --until stop the machine in a stage that is not
+        # terminal, so the controller never records an outcome. Reaching the
+        # stage the operator asked for is the command doing exactly what it
+        # was told; reporting it as a failed run made the documented way to
+        # drive one stage at a time unusable. A queued decision still
+        # outranks it: the next stage genuinely cannot run.
+        if undecided:
+            outcome = RunOutcome.AWAITING_HUMAN
+        elif reached_requested_stage and not controller.escalations:
+            out.line("")
+            out.line(f"stopped after {stop_after.value}, as asked. The run is "
+                     f"intact: continue it with `eagent run {task_file} "
+                     f"--rundir {run_dir} --from "
+                     f"{controller.stage.value}`.")
+            return
     if outcome is RunOutcome.COMPLETED or outcome is RunOutcome.AWAITING_RESULTS:
         return
     if outcome is RunOutcome.AWAITING_HUMAN:
@@ -956,7 +1132,6 @@ def run_command(task_file: Path, rundir: Path | None, step: str | None,
         # the one this stop is about. An older pending duplicate, or one
         # whose gate another request already carries a grant for, would name
         # a decision the operator has in fact already taken.
-        undecided = [r for r in pending if not queue.is_granted(r.gate)]
         blocking = (undecided or pending)[-1] if pending else None
         gate = blocking.gate if blocking is not None else None
         raise Refusal(

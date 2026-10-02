@@ -45,6 +45,7 @@ from eagent.schemas import (
     TemplateSourceType,
 )
 from eagent.science.numbering import one_to_three
+from eagent.tools.handoff import CANDIDATES_KEY, HandoffError, serialise_candidates
 from eagent.science.structure_io import read_mmcif, read_pdb
 from eagent.tools.prepare_structures import (
     PRIORITY_EXPERIMENTAL_ENZYME,
@@ -682,6 +683,87 @@ class TestPae(unittest.TestCase):
         self.assertIsNotNone(conf["pae_mean"])
         self.assertAlmostEqual(conf["pae_pocket_mean"], 9.0, places=6)
         self.assertTrue(result.status.usable, result.message)
+
+
+# ---------------------------------------------------------------------------
+# the candidate hand-off
+# ---------------------------------------------------------------------------
+
+
+class TestCandidateHandoff(unittest.TestCase):
+    """This step must read what ``annotate_family`` actually publishes.
+
+    ``annotate_family`` writes its candidates into ``result.data`` as JSON,
+    because that is what the manifest stores, while this step is typed against
+    the model. Wiring the two together the obvious way therefore used to hand
+    mappings to code expecting models, and the run died on a missing attribute
+    deep inside a structure assessment with nothing naming the step that
+    produced the payload.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.iface = PrepareStructures()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _index_path(self) -> Path:
+        _write(self.tmp, "holo.pdb", _protein_pdb(ligands=(("NDP", 3),)))
+        index_path = self.tmp / "index.json"
+        index_path.write_text(json.dumps({"cache_version": "test-1", "entries": [
+            {"structure_id": "holo", "path": "holo.pdb", "candidate_id": "c1",
+             "source": "pdb_complex"}]}), encoding="utf-8")
+        return index_path
+
+    def _run_with(self, candidates: object, workdir: str):
+        return self.iface.run(
+            _ctx(self.tmp / workdir), candidates=candidates,
+            index_path=self._index_path(),
+            catalytic_templates=[_template()])
+
+    def test_accepts_the_serialised_payload_annotate_family_publishes(self) -> None:
+        # Exactly the expression annotate_family writes into result.data.
+        published = {CANDIDATES_KEY: serialise_candidates([_candidate()]),
+                     "annotations": [], "per_family_counts": {}}
+        from_models = self._run_with([_candidate()], "w_models")
+        from_mapping = self._run_with(published, "w_mapping")
+        from_rows = self._run_with(published[CANDIDATES_KEY], "w_rows")
+
+        for result in (from_models, from_mapping, from_rows):
+            self.assertTrue(result.status.usable, result.message)
+            self.assertEqual(result.data["selected"]["c1"]["structure_id"],
+                             "holo")
+        # and the step republishes the same serialised form, so the next step
+        # can be wired from this one's data mapping in turn.
+        self.assertEqual(from_mapping.data[CANDIDATES_KEY],
+                         serialise_candidates([_candidate()]))
+
+    def test_a_malformed_payload_fails_at_the_boundary(self) -> None:
+        # A candidate that lost its sequence record in transit. Scoring it as
+        # though the sequence were genuinely absent is the failure mode the
+        # boundary exists to stop.
+        broken = [{"candidate_id": "c1", "family": {"family_name": "SDR"}}]
+        with self.assertRaises(HandoffError) as caught:
+            self.iface.execute(_ctx(self.tmp / "w_raise"), candidates=broken,
+                               index_path=self._index_path(),
+                               catalytic_templates=[_template()])
+        self.assertIn("prepare_structures", str(caught.exception))
+
+        result = self._run_with(broken, "w_envelope")
+        self.assertIs(result.status, Status.FAILED)
+        codes = {f.code for f in result.blockers}
+        self.assertIn("handofferror", codes)
+        self.assertNotIn("internal_error", codes)
+        self.assertNotIn("traceback", result.data)
+
+    def test_a_string_is_not_a_candidate_payload(self) -> None:
+        with self.assertRaises(HandoffError):
+            self.iface.execute(_ctx(self.tmp / "w_str"),
+                               candidates="candidates.json",
+                               index_path=self._index_path(),
+                               catalytic_templates=[_template()])
 
 
 if __name__ == "__main__":  # pragma: no cover - pytest may not be installed

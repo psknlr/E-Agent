@@ -4,8 +4,8 @@ Three milestones, then a branch. Each milestone has an acceptance criterion that
 can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
-**Where the project is today.** The harness is complete and tested: 1592 tests
-plus 415 subtests pass. **No step has ever run against a live public database, a
+**Where the project is today.** The harness is complete and tested: the whole suite
+passes (1614 tests plus 415 subtests at the time of writing). **No step has ever run against a live public database, a
 real structure predictor, a real docking program, a real inverse-folding model
 or a real plate.** Milestone 1 is therefore *built but not demonstrated*, and
 milestones 2 and 3 have not started because they require a laboratory, not more
@@ -241,6 +241,7 @@ Three states only:
 | --- | --- | --- |
 | `science/structure_io.py` | implemented | mmCIF and PDB reader/writer; anything it cannot interpret is an error, never a skipped line |
 | `science/numbering.py` | implemented | Gotoh affine-gap alignment, residue maps, unobserved regions, wild-type verification |
+| `science/family_numbering.py` | implemented, **reference data not shipped** | cross-subfamily position equivalence through a sourced family reference, validated against conserved anchors; refuses across families, below the identity floor, and into a gap. The machinery ships; **a curator must supply each scheme's reference sequence and where it came from**, because a fabricated reference would silently shift every position derived from it |
 | `science/geometry.py` | implemented | distance, angle, dihedral, centroid, clash screen; measurement only, no thresholds |
 | `science/stereo.py` | implemented | signed face calls; **does not perceive CIP priorities** and does not estimate ee |
 | `science/robustness.py` | implemented | pose robustness, Wilson interval, circularity guard, cross-method agreement |
@@ -356,7 +357,7 @@ In the order that unblocks the most:
 
 ### 现状一句话
 
-框架已完成并通过测试（1592 个测试 + 415 个子测试），但**没有任何一步跑过真实的公共数据库、
+框架已完成并通过测试（写作时 1614 个测试 + 415 个子测试），但**没有任何一步跑过真实的公共数据库、
 真实的结构预测器、真实的对接程序、真实的反向折叠模型或真实的实验板**。里程碑 1 是
 "已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。
 

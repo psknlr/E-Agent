@@ -288,6 +288,23 @@ an experimental precedent naming the substitution, a residue actually observed a
 that position in a subfamily with the wanted substrate range, or a smaller
 residue **only where a steric clash was measured**.
 
+A note on the `family` evidence class: "the selectivity-determining residue
+reported at 152 in a related enzyme" is only usable if 152 in that enzyme is
+the *same site* as some position in this parent, and comparing the two numbers
+does not establish that. Author numbering is set per deposition and shifts with
+construct boundaries, tags and truncations. `science/family_numbering.py` is
+the one place allowed to answer the question: it aligns both sequences to a
+**sourced** family reference, validates the result against the family's
+conserved anchors, and returns a result object carrying confidence and a
+refusal reason rather than a bare integer. It refuses hard in three cases —
+across families (an SDR position has no counterpart in an AKR; the folds and
+the catalytic residues differ, and the alignment that would produce a number is
+spurious), below an identity floor, and into a gap. A mis-mapped position is
+not a weak hypothesis; it is a different experiment, and it spends a synthesis
+slot either way. The module ships the machinery and **not** the reference
+sequences: a scheme needs a curator to supply the reference together with where
+it came from.
+
 Every proposal states, before testing, what it is expected to improve and what it
 may cost, on three axes kept deliberately apart — substrate fit, catalytic
 function, stability/expression risk. `MutationProposal` refuses a proposal with

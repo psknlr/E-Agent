@@ -249,7 +249,8 @@ src/eagent/
                   experiment record, candidates and scorecards, variants,
                   batches, the five template types
   science/        measurement, never judgement: mmCIF/PDB io, geometry,
-                  numbering, stereochemistry, robustness, scorecard, diversity
+                  residue numbering, cross-subfamily position equivalence,
+                  stereochemistry, robustness, scorecard, diversity
   tools/          the ten scientific interfaces behind one contract
   datalayer/      six layers, identity, intake tiers, lineage, snapshots,
                   preconditions, the house database, the staged rollout
@@ -284,7 +285,7 @@ docs/             the documents listed below
 
 ## Status
 
-The code is complete and tested as a harness: 1592 tests pass, plus 415 subtests.
+The code is complete and tested as a harness: the whole suite passes (1614 tests plus 415 subtests at the time of writing; the tree is still growing, so run `PYTHONPATH=src python3 -m pytest tests -q` for the current figure).
 No step has ever run against a live public database, a real structure predictor,
 a real docking program or a real plate. Everything described as a refusal is a
 code path that raises or returns a typed failure; it is not a refusal that has
@@ -383,7 +384,7 @@ LigandMPNN，在本环境里**全部不存在**。它们的契约、校验、溯
 
 ### 现状
 
-1592 个测试 + 415 个子测试全部通过。但没有任何一步跑过真实的公共数据库、真实的结构预测器、
+整个测试套件通过（写作时为 1614 个测试 + 415 个子测试；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。但没有任何一步跑过真实的公共数据库、真实的结构预测器、
 真实的对接程序或真实的实验板。文档里写"系统会拒绝 X"，意思是**存在一条会抛错或返回带类型
 失败的代码路径**，而不是这条拒绝已经在真实语料上被触发过。逐组件的状态表在
 `docs/ROADMAP.md`。

@@ -148,6 +148,7 @@ class SplitRegime(str, enum.Enum):
     NOVEL_ENZYME = "novel_enzyme"
     NOVEL_SUBSTRATE = "novel_substrate"
     DUAL_EXTRAPOLATION = "dual_extrapolation"
+    SHARED_ENZYME_NOVEL_SUBSTRATE = "shared_enzyme_novel_substrate"
 
     @property
     def holds_out_sequences(self) -> bool:
@@ -158,7 +159,31 @@ class SplitRegime(str, enum.Enum):
     def holds_out_substrates(self) -> bool:
         """Whether test substrate scaffolds must be absent from training."""
         return self in (SplitRegime.NOVEL_SUBSTRATE,
-                        SplitRegime.DUAL_EXTRAPOLATION)
+                        SplitRegime.DUAL_EXTRAPOLATION,
+                        SplitRegime.SHARED_ENZYME_NOVEL_SUBSTRATE)
+
+    @property
+    def permits_shared_enzymes(self) -> bool:
+        """Whether the same enzyme may appear on both sides by design.
+
+        True only for :attr:`SHARED_ENZYME_NOVEL_SUBSTRATE`, which exists
+        because the other three cannot express the commonest substrate-scope
+        question. Grouping by lineage, as the leakage-safe regimes must, drags
+        every one of an enzyme's measurements into whichever fold its
+        held-out substrate landed in, so a substrate-scope split also becomes
+        enzyme-disjoint and answers a harder question than the one asked.
+        """
+        return self is SplitRegime.SHARED_ENZYME_NOVEL_SUBSTRATE
+
+    @property
+    def is_weaker_than_leakage_safe(self) -> bool:
+        """Whether a score here supports a narrower claim than the others.
+
+        A regime that deliberately lets an enzyme appear on both sides cannot
+        support a generalisation claim about enzymes, and saying so is the
+        price of being able to ask the question at all.
+        """
+        return self.permits_shared_enzymes
 
     def claim(self) -> str:
         """The sentence a score under this regime is allowed to support."""
@@ -171,6 +196,12 @@ class SplitRegime(str, enum.Enum):
             SplitRegime.DUAL_EXTRAPOLATION:
                 "performance on an unseen enzyme and an unseen substrate at "
                 "once, which is the situation a discovery campaign is in",
+            SplitRegime.SHARED_ENZYME_NOVEL_SUBSTRATE:
+                "performance on a new substrate scaffold for enzymes the model "
+                "has already seen. This is deliberately weaker than "
+                "novel_substrate: the same enzyme appears on both sides, so a "
+                "score here says nothing about a new enzyme and must not be "
+                "quoted as substrate generalisation without that qualifier",
         }[self]
 
 
@@ -193,12 +224,20 @@ class LeakageCategory(str, enum.Enum):
     def is_expected_under(self, regime: "SplitRegime | None") -> bool:
         """Whether this overlap is the regime's design rather than its failure.
 
-        Only one case qualifies: a ``novel_enzyme`` split shares substrates on
-        purpose, so a shared scaffold there is not leakage. Everything else is
-        leakage under every regime, and no regime may excuse it.
+        Two cases qualify. A ``novel_enzyme`` split shares substrates on
+        purpose, so a shared scaffold there is not leakage. A
+        ``shared_enzyme_novel_substrate`` split shares enzymes on purpose, so a
+        shared sequence cluster, parent lineage or split group there is the
+        design. Nothing excuses a shared publication or a re-curated source
+        pair under any regime: those are leakage however the folds were drawn.
         """
-        return (regime is SplitRegime.NOVEL_ENZYME
-                and self is LeakageCategory.SHARED_SCAFFOLD)
+        if regime is SplitRegime.NOVEL_ENZYME:
+            return self is LeakageCategory.SHARED_SCAFFOLD
+        if regime is SplitRegime.SHARED_ENZYME_NOVEL_SUBSTRATE:
+            return self in (LeakageCategory.SHARED_SEQUENCE_CLUSTER,
+                            LeakageCategory.SHARED_PARENT_LINEAGE,
+                            LeakageCategory.SHARED_SPLIT_GROUP)
+        return False
 
 
 #: Facet prefixes produced by :func:`eagent.datalayer.lineage.grouping_key`.
@@ -514,7 +553,69 @@ def _two_core(graph: _MolGraph, atoms: Sequence[int]) -> list[int]:
     return sorted(keep)
 
 
-def _wl_hash(graph: _MolGraph, atoms: Sequence[int], rounds: int = 3) -> str:
+#: Elements treated as peripheral decoration rather than as the functional
+#: group a reaction acts on. A chloro analogue of a substrate is the same
+#: scaffold; a ketone analogue of a benzene is not.
+_PERIPHERAL_ELEMENTS: frozenset[str] = frozenset({"F", "Cl", "Br", "I", "H"})
+
+#: How far from the ring-and-linker core a heteroatom may sit and still count
+#: as part of the core's functional group. Two bonds reaches the oxygen of a
+#: ring-attached carbonyl, which is the group a carbonyl-reduction campaign is
+#: about, without reaching across a linker into a second substituent.
+_FUNCTIONAL_SHELL_BONDS = 2
+
+
+def _functional_signature(graph: _MolGraph, core: Sequence[int]) -> str:
+    """Core composition plus the functional heteroatoms hanging off it.
+
+    The two-core alone is not a usable scaffold for this project: it reduces
+    acetophenone, 4-chloroacetophenone and plain benzene to one ring, so in a
+    carbonyl-reduction campaign the substrate axis of a split collapses and
+    cannot hold out a substrate class at all. The reacting group has to
+    survive into the key.
+
+    The whole molecule's composition is the wrong fix in the other direction,
+    because it makes every substituent a new scaffold and a chloro analogue of
+    the training substrate becomes a "novel" substrate. So this counts the
+    core's own elements plus the non-halogen heteroatoms within
+    :data:`_FUNCTIONAL_SHELL_BONDS` of it: the carbonyl oxygen counts, a ring
+    chlorine does not.
+
+    Everything here is counted from element symbols and graph distance, never
+    from bond orders, so every spelling of a molecule gives one signature. An
+    aromatic and a kekulised benzene must not get two keys, and that property
+    is worth more than the resolution a bond-order term would buy.
+
+    What it still cannot do: tell an aromatic ring from a saturated one of the
+    same composition. Nothing in this module perceives aromaticity, so
+    cyclohexanone and acetophenone's ring system remain indistinguishable
+    here. That over-groups, which costs data and never inflates a score.
+    """
+    members = set(core)
+    counts: dict[str, int] = {}
+    for a in members:
+        counts[graph.elements[a]] = counts.get(graph.elements[a], 0) + 1
+
+    # Breadth-first out from the core, collecting functional heteroatoms.
+    frontier = set(members)
+    seen = set(members)
+    for _ in range(_FUNCTIONAL_SHELL_BONDS):
+        nxt: set[int] = set()
+        for atom in frontier:
+            for nb in graph.adjacency[atom]:
+                if nb in seen:
+                    continue
+                seen.add(nb)
+                nxt.add(nb)
+                element = graph.elements[nb]
+                if element not in _PERIPHERAL_ELEMENTS and element != "C":
+                    counts["~" + element] = counts.get("~" + element, 0) + 1
+        frontier = nxt
+    return ",".join(f"{el}{n}" for el, n in sorted(counts.items()))
+
+
+def _wl_hash(graph: _MolGraph, atoms: Sequence[int], rounds: int = 3,
+             signature: str = "") -> str:
     """Weisfeiler-Lehman hash of an induced subgraph: order-invariant, not canonical.
 
     Order invariance is the property that matters: the same molecule written
@@ -534,7 +635,8 @@ def _wl_hash(graph: _MolGraph, atoms: Sequence[int], rounds: int = 3) -> str:
             nxt[atom] = sha256_text(labels[atom] + "|" + ",".join(neighbours))[:16]
         labels = nxt
     n_bonds = sum(1 for a in members for b in graph.adjacency[a] if b in members) // 2
-    payload = f"{len(members)}|{n_bonds}|" + ",".join(sorted(labels.values()))
+    payload = (f"{signature}|{len(members)}|{n_bonds}|"
+               + ",".join(sorted(labels.values())))
     return sha256_text(payload)[:24]
 
 
@@ -611,6 +713,12 @@ def scaffold_key(substrate: Any, *, prefer_rdkit: bool = True) -> ScaffoldKey:
             "separates folds further than necessary rather than less).",
             "the Weisfeiler-Lehman hash is not a canonical form: distinct "
             "skeletons can collide and be held out together.",
+            "the key combines the ring-and-linker skeleton with the core's "
+            "composition and the non-halogen heteroatoms within two bonds of "
+            "it, so a ring-attached carbonyl survives into the key while a "
+            "ring halogen does not; saturated and aromatic rings of the same "
+            "composition still collide, because nothing here perceives "
+            "aromaticity.",
         ]
         if had_other_components:
             shared.append(
@@ -620,13 +728,13 @@ def scaffold_key(substrate: Any, *, prefer_rdkit: bool = True) -> ScaffoldKey:
         core = _two_core(graph, atoms)
         if core:
             return ScaffoldKey(
-                key=f"scaffold:{SCAFFOLD_KEY_ALGORITHM}:{_wl_hash(graph, core)}",
+                key=f"scaffold:{SCAFFOLD_KEY_ALGORITHM}:{_wl_hash(graph, core, signature=_functional_signature(graph, core))}",
                 basis=ScaffoldBasis.RING_AND_LINKER_SKELETON,
                 limitations=tuple(shared),
                 source_smiles=smiles,
             )
         return ScaffoldKey(
-            key=f"acyclic:{SCAFFOLD_KEY_ALGORITHM}:{_wl_hash(graph, atoms)}",
+            key=f"acyclic:{SCAFFOLD_KEY_ALGORITHM}:{_wl_hash(graph, atoms, signature=_functional_signature(graph, atoms))}",
             basis=ScaffoldBasis.ACYCLIC_SKELETON,
             limitations=tuple(shared + [
                 "the molecule has no ring, so it has no Murcko framework; the "
@@ -716,11 +824,17 @@ def source_tokens_of(
 ) -> set[str]:
     """Resource ids this row can be traced to, normalised to lowercase tokens.
 
-    Three places are read, because no single field carries the answer: the
+    Four places are read, because no single field carries the answer: the
     caller's ``source_lookup`` (the connector that fetched the row), the
-    ``upstream_sources`` an :class:`~eagent.schemas.record.EvidenceRef` already
-    carries, and a ``source_database`` attribute where one exists. Nothing is
-    inferred from a URL or a record-id shape.
+    ``source_id`` an :class:`~eagent.schemas.record.EvidenceRef` carries for
+    the resource it was read from, the ``upstream_sources`` naming what that
+    resource re-curated, and a ``source_database`` attribute where one exists.
+    Nothing is inferred from a URL or a record-id shape.
+
+    ``source_id`` is what lets the audit catch the subtle case unaided: a split
+    that trains on one database and tests on another is not clean when the
+    second re-published the first, and before this field the audit could only
+    see that if the caller supplied a lookup.
     """
     out: set[str] = set()
 
@@ -745,6 +859,7 @@ def source_tokens_of(
     if seq_rec is not None:
         add(getattr(seq_rec, "source_database", None))
     for ev in getattr(obj, "evidence", None) or []:
+        add(getattr(ev, "source_id", None))
         add(getattr(ev, "upstream_sources", None))
     return out
 
@@ -1350,15 +1465,36 @@ def grouped_split(
     placeable = [rid for rid in ids if rid not in reasons]
 
     # -- 2. build the split units ------------------------------------------
-    union = _Union()
-    for rid in placeable:
-        group = assignment[rid]
-        union.add(group)
-        if regime.holds_out_substrates:
+    # The unit is normally the lineage group closed over the scaffold, so
+    # neither can straddle the boundary. The shared-enzyme regime is the one
+    # exception: its unit is the scaffold alone, which is precisely what lets
+    # one enzyme's measurements land on both sides. That is the weaker
+    # question, chosen deliberately, and the regime's own claim() says so.
+    if regime.permits_shared_enzymes:
+        unit_of_record: dict[str, str] = {}
+        for rid in placeable:
             scaffold = scaffolds[rid].key
-            if scaffold:
-                union.union(group, f"scaffold::{scaffold}")
-    unit_of_record = {rid: union.find(assignment[rid]) for rid in placeable}
+            # A placeable row under this regime always has a scaffold: the
+            # unresolved ones were excluded above, since holds_out_substrates
+            # is true here.
+            unit_of_record[rid] = f"scaffold::{scaffold}"
+        notes.append(
+            "regime 'shared_enzyme_novel_substrate': units are substrate "
+            "scaffolds alone, so an enzyme measured on both a training and a "
+            "test scaffold appears on both sides. That is this regime's "
+            "design and the reason its claim is narrower; a score here is "
+            "about a new substrate for a known enzyme and is not evidence "
+            "about a new enzyme")
+    else:
+        union = _Union()
+        for rid in placeable:
+            group = assignment[rid]
+            union.add(group)
+            if regime.holds_out_substrates:
+                scaffold = scaffolds[rid].key
+                if scaffold:
+                    union.union(group, f"scaffold::{scaffold}")
+        unit_of_record = {rid: union.find(assignment[rid]) for rid in placeable}
     members: dict[str, list[str]] = {}
     for rid in placeable:
         members.setdefault(unit_of_record[rid], []).append(rid)

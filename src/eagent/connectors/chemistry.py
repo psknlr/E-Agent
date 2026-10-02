@@ -340,6 +340,7 @@ def evidence_ref_for(source: DataSource, identifier: str, *,
         retrieved_at=retrieved_at,
         database_version=database_version,
         source_record_id=identifier,
+        source_id=source.id,
         license=source.license,
         upstream_sources=list(upstream_sources_for(source.id, registry)),
     )

@@ -141,6 +141,15 @@ class EvidenceRef(BaseModel):
     database_version: str | None = None
     source_doi: str | None = None
     source_record_id: str | None = None
+    source_id: str | None = Field(
+        None,
+        description="Registered data-source id this record was read from, e.g. "
+                    "'brenda'. Distinct from upstream_sources, which names what "
+                    "that resource re-curated. Without it, a leakage audit "
+                    "cannot tell that testing on one database and training on "
+                    "another is unclean because the second re-published the "
+                    "first, and the split looks honest while sharing rows.",
+    )
     license: str | None = Field(
         None, description="Licence of the source record, carried so redistribution "
                           "terms travel with the data rather than being looked up later."

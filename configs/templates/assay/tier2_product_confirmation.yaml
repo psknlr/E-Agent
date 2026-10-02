@@ -1,0 +1,97 @@
+# Assay template -- tier 2, product identity confirmation.
+#
+# Validates against eagent.schemas.templates.AssayTemplate.
+#
+# WHY THIS TIER EXISTS. Tier 1 watches the cofactor. This tier watches the
+# PRODUCT: it is the first point at which "this enzyme reduces our ketone to
+# our alcohol" can be said at all. AssayTemplate refuses a tier-2 template
+# whose confirms_product_identity is false, which is the schema's way of saying
+# that an indirect signal cannot be promoted by running more of it.
+#
+# ACHIRAL ON PURPOSE. chiral_capable is false: a standard reversed-phase or
+# non-chiral GC method cannot separate enantiomers, so this tier confirms
+# CONSTITUTION, not configuration. Reporting an ee from this tier is the
+# specific error it is designed to prevent.
+
+template_id: assay.tier2.product_confirmation.v1
+tier: 2
+
+method: >-
+  LC-MS or GC-MS of the quenched reaction against an authentic standard of the
+  target secondary alcohol: retention time and mass match, with co-injection
+  (spiking) of the standard into a positive sample to confirm that the peaks
+  are the same compound and not merely co-eluting isomers.
+
+confirms_product_identity: true
+chiral_capable: false
+requires_authentic_standard: true
+
+controls_required:
+  - "authentic_standard_injection: the pure alcohol standard alone, establishing retention time and mass fragmentation in this method"
+  - "co_injection_spike: a positive sample spiked with the standard, so that a shared retention time is demonstrated rather than inferred"
+  - "substrate_only_injection: the unreacted ketone, so that substrate carry-over and in-source fragmentation are not read as product"
+  - "no_enzyme: the complete reaction without enzyme, carried through the same work-up -- abiotic background and work-up artefacts"
+  - "empty_vector: host background carried through the same work-up"
+  - "solvent_blank: the injection solvent and the work-up solvent alone -- carry-over between injections"
+  - "no_cofactor: cofactor dependence, repeated at this tier because the detection chain has changed"
+
+positive_criteria:
+  requires_authentic_standard: true
+  min_conversion_pct: null
+  measurement_type: "conversion_pct_target_alcohol_vs_authentic_standard"
+  min_measurement_value: null
+  requires_chiral_method_validated: false
+
+limit_of_detection: null
+limit_unit: null
+
+replicates: 3
+
+readout_fields:
+  - plan_id
+  - plate
+  - well
+  - slot
+  - candidate_id
+  - construct_id
+  - kind
+  - role
+  - parent_candidate_id
+  - mutations
+  - cofactor
+  - cofactor_state
+  - replicate
+  - tested
+  - detection_method
+  - confirms_product_identity
+  - authentic_standard
+  - limit_of_detection
+  - limit_unit
+  - measurement_type
+  - measurement_value
+  - measurement_unit
+  - conversion_pct
+  - product_identity_observed
+  - notes
+
+provenance:
+  source_type: curated_database
+  identifiers:
+    - "textbook:chromatographic_product_identification_by_authentic_standard_co_injection"
+    - "eagent:ingest_results.RECOGNISED_CRITERION_KEYS"
+  curated_by: "e-agent build agent (model-drafted from standard analytical practice; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    Before this tier runs the operator must supply: (1) the pre-registered
+    conversion bar (min_conversion_pct), with the date it was fixed;
+    (2) the measured limit of detection and unit for this method; (3) the
+    source of the authentic standard, its purity and its lot -- a standard with
+    unrecorded provenance makes every identity claim in the round unverifiable;
+    (4) whether the method separates the target alcohol from any regioisomeric
+    or over-reduced by-product, because a single peak that was never challenged
+    with those compounds is not an identification.
+    .
+    product_identity_observed in the returned plate carries target / other /
+    none / unknown. "unknown" is a legitimate outcome of a failed injection and
+    must not be rewritten as "none".

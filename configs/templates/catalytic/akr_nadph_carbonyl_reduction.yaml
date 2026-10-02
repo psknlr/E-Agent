@@ -1,0 +1,236 @@
+# Catalytic template -- AKR, NADPH-dependent carbonyl reduction.
+#
+# Validates against eagent.schemas.templates.CatalyticTemplate.
+#
+# ===========================================================================
+# READ THIS BEFORE USING ANY NUMBER IN THIS FILE
+# ===========================================================================
+# EVERY geometry constraint below has calibrated_on: [] and a severity of
+# "scoring" or "advisory". None is "gating". No candidate may be rejected on
+# any window in this file.
+#
+# The windows present are attributable to general chemistry (van der Waals
+# contact distances, hydrogen-bond heavy-atom ranges, the Buergi-Dunitz
+# trajectory), not to a measured distribution over catalytically competent AKR
+# complexes. A restraint published in one engineering or simulation study is
+# that study's modelling choice; it is not a universal catalytic cutoff and is
+# not reproduced here as one.
+#
+# No PDB entry, M-CSA identifier, PMID or DOI appears below; none could be
+# verified in this environment, so reference_structures is EMPTY.
+#
+# THIS IS A DIFFERENT HYPOTHESIS FROM THE SDR TEMPLATE, NOT A VARIANT OF IT.
+# Different fold (TIM barrel, not Rossmann), different catalytic set (a
+# Tyr-Lys-His-Asp tetrad, not Ser-Tyr-Lys-Asn), different cofactor geometry
+# (nicotinamide extended across the barrel face, no pyrophosphate glycine loop)
+# and the opposite nicotinamide face. Nothing calibrated on an SDR complex may
+# be reused here.
+# ===========================================================================
+
+template_id: cat.akr.nadph_carbonyl_reduction.v1
+family_name: AKR
+
+mechanism_summary: >-
+  The nicotinamide C4 of NADPH delivers a hydride to the substrate carbonyl
+  carbon from the face presented by the C-terminal end of the barrel, and the
+  tyrosine of the Tyr-Lys-His-Asp tetrad donates a proton to the carbonyl
+  oxygen. The lysine hydrogen-bonds the tyrosine hydroxyl and lowers its pKa;
+  the aspartate orients and polarises the lysine, completing the charge relay
+  that makes the tyrosine an acid at physiological pH; the histidine sits on
+  the opposite side of the oxyanion site, orienting and polarising the
+  substrate carbonyl and contributing to which carbonyl compounds the enzyme
+  accepts. AKRs are described as transferring the 4-pro-R hydride (SDRs are
+  described as 4-pro-S); this is a family-level generalisation and must be
+  confirmed for a specific enzyme before it is used in a stereochemical
+  argument.
+  .
+  Which enantiomer is formed is set by the orientation the pocket imposes on
+  the substrate relative to that fixed nicotinamide face, not by the tetrad.
+  Nothing in this template predicts the configuration.
+  .
+  Mechanistically relevant kinetics: AKRs follow an ordered mechanism in which
+  the cofactor binds first and is released last, with a loop conformational
+  change that is frequently rate-limiting. An initial-rate screen can therefore
+  report cofactor dynamics rather than substrate chemistry.
+
+catalytic_residues:
+  - label: tetrad_tyr
+    residue_types: [TYR]
+    role: >-
+      General acid: protonates the carbonyl oxygen / developing alkoxide. The
+      catalytic residue of the tetrad.
+    functional_atoms: [OH]
+    evidence: "textbook: AKR Tyr-Lys-His-Asp catalytic tetrad"
+  - label: tetrad_lys
+    residue_types: [LYS]
+    role: >-
+      Hydrogen-bonds the tyrosine hydroxyl and lowers its pKa; the middle link
+      of the Asp-Lys-Tyr charge relay.
+    functional_atoms: [NZ]
+    evidence: "textbook: AKR Tyr-Lys-His-Asp catalytic tetrad"
+  - label: tetrad_his
+    residue_types: [HIS]
+    role: >-
+      Orients and polarises the substrate carbonyl at the oxyanion site and
+      shapes the substrate preference of the pocket. In some members it has
+      been proposed as an alternative proton donor; this template does not take
+      a position on that.
+    functional_atoms: [NE2, ND1]
+    evidence: "textbook: AKR Tyr-Lys-His-Asp catalytic tetrad"
+    needs_curation: true
+    curator_must_supply: >-
+      Which imidazole nitrogen faces the substrate in this project's members,
+      read off an experimental structure. Both are listed because the
+      histidine ring flip and its tautomer are routinely ambiguous at
+      crystallographic resolution and must not be guessed here.
+  - label: tetrad_asp
+    residue_types: [ASP]
+    role: >-
+      Orients and polarises the catalytic lysine, completing the charge relay.
+      Not in contact with the substrate.
+    functional_atoms: [OD1, OD2]
+    evidence: "textbook: AKR Tyr-Lys-His-Asp catalytic tetrad"
+    needs_curation: true
+    curator_must_supply: >-
+      Which carboxylate oxygen contacts the lysine in this project's members;
+      both are listed because the two are equivalent by symmetry in a model and
+      are frequently assigned arbitrarily by refinement.
+
+required_cofactor: NADPH
+# EXPLICIT: a crystallographic NADP+ is not a hydride donor.
+required_cofactor_state: reduced
+# NDP = 1,4-dihydro-NADP (NADPH), from REDUCED_NICOTINAMIDE_CODES in
+# eagent.schemas.chem. The oxidised code NAP must NOT be added here.
+cofactor_ligand_codes:
+  - NDP
+metals: []
+
+assembly_state: >-
+  Frequently monomeric; multimeric members exist. NOT ESTABLISHED HERE for any
+  specific enzyme.
+
+geometry_constraints:
+  - name: hydride_donor_to_carbonyl_carbon
+    kind: distance
+    atom_a: "cofactor.hydride_donor_C4"
+    atom_b: "substrate.electrophile"
+    min_value: 2.9
+    max_value: null
+    unit: angstrom
+    severity: advisory
+    calibrated_on: []
+    source: >-
+      LOWER BOUND ONLY. 2.9 A is the sum of two carbon van der Waals radii
+      (1.70 + 1.70 A, VDW_RADII_A in eagent.science.geometry) less the 0.5 A
+      overlap that module tolerates (DEFAULT_VDW_OVERLAP_TOLERANCE_A); below it
+      the two carbons clash. NO UPPER BOUND is given because none could be
+      attributed for this family: the separation at which transfer becomes
+      implausible is the quantity that must be fitted to AKR complexes, and
+      figures taken from individual modelling studies are those studies'
+      restraints. CURATOR MUST supply max_value with the complexes it was fitted
+      on in calibrated_on. This is a heavy-atom separation and says nothing
+      about where the C4-H bond points, which is what the angle constraint is
+      for.
+  - name: hydride_approach_angle_burgi_dunitz
+    kind: angle
+    atom_a: "cofactor.hydride_donor_C4"
+    atom_b: "substrate.electrophile"
+    atom_c: "substrate.carbonyl_O"
+    min_value: 90.0
+    max_value: 130.0
+    unit: degree
+    severity: advisory
+    calibrated_on: []
+    source: >-
+      Centre attributable to the Buergi-Dunitz trajectory, 105-107 degrees from
+      small-molecule crystallography (Buergi, Dunitz & Shefter, J. Am. Chem.
+      Soc. 95 (1973) 5065; BURGI_DUNITZ_LITERATURE_DEG in this repository). THE
+      WIDTH IS NOT A MEASUREMENT: it is deliberately permissive so that an
+      uncalibrated angle cannot reject a candidate, and the severity is
+      advisory for the same reason. CURATOR MUST refit on AKR complexes.
+  - name: carbonyl_oxygen_to_tetrad_tyr_OH
+    kind: distance
+    atom_a: "substrate.carbonyl_O"
+    atom_b: "protein.tetrad_tyr.OH"
+    min_value: 2.5
+    max_value: 3.2
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard heavy-atom range for an O-H...O hydrogen bond (textbook
+      hydrogen-bond geometry). Tests whether the acid can reach the carbonyl
+      oxygen in this pose, not whether proton transfer happens. CURATOR MUST
+      calibrate on AKR complexes and list them in calibrated_on.
+  - name: carbonyl_oxygen_to_tetrad_his_NE2
+    kind: distance
+    atom_a: "substrate.carbonyl_O"
+    atom_b: "protein.tetrad_his.NE2"
+    min_value: 2.6
+    max_value: 3.3
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard heavy-atom range for an N-H...O hydrogen bond. The atom name is
+      a CHOICE a curator must confirm: if the histidine in a given member
+      presents ND1 to the substrate, this constraint will come back UNMEASURED
+      rather than failed, which is the correct behaviour and must be read as
+      "the template named the wrong nitrogen", not as "the contact is absent".
+  - name: tetrad_lys_NZ_to_tetrad_tyr_OH
+    kind: distance
+    atom_a: "protein.tetrad_lys.NZ"
+    atom_b: "protein.tetrad_tyr.OH"
+    min_value: 2.6
+    max_value: 3.4
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard N...O hydrogen-bond heavy-atom range, applied to the Lys-Tyr link
+      of the charge relay. An INTERNAL check on whether the tetrad is assembled
+      in the model at all, independent of the substrate pose. CURATOR MUST
+      calibrate on experimental complexes.
+  - name: tetrad_asp_OD1_to_tetrad_lys_NZ
+    kind: distance
+    atom_a: "protein.tetrad_asp.OD1"
+    atom_b: "protein.tetrad_lys.NZ"
+    min_value: 2.6
+    max_value: 3.4
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard N...O range for a charged hydrogen bond / salt bridge, applied to
+      the Asp-Lys link of the relay. As above, an internal check on the tetrad.
+      If refinement placed OD2 where OD1 is expected, this comes back as a
+      measured value against the wrong atom; a curator should confirm the
+      carboxylate assignment in the reference structure before calibrating.
+
+# EMPTY: no PDB entry was verified in this environment. This is why none of the
+# windows above is calibrated.
+reference_structures: []
+
+provenance:
+  source_type: mechanism_literature
+  identifiers:
+    - "textbook:akr_tyr_lys_his_asp_catalytic_tetrad"
+    - "textbook:nadph_c4_hydride_transfer_to_carbonyl_carbon"
+    - "PFAM:PF00248"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must supply: (1) at least one experimental ternary-complex
+    structure (enzyme, NADP(H) and a substrate or inhibitor) for
+    reference_structures, with its ligand codes; (2) the M-CSA entry or primary
+    mechanism reference (PMID or DOI); (3) calibrated windows -- with
+    calibrated_on filled in -- for the hydride distance upper bound and the
+    approach angle before any constraint is promoted above "scoring";
+    (4) confirmation of the 4-pro-R hydride face and of the histidine nitrogen
+    and aspartate oxygen assignments for the members in this project's pool.
+    .
+    source_type is mechanism_literature: the tetrad is standard teaching-level
+    enzymology for this superfamily. It is NOT theoretical_model (no
+    coordinates were computed here) and NOT experimental_structure (no
+    structure was read here).

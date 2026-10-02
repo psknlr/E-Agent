@@ -47,7 +47,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, ClassVar, Iterable, Mapping, Sequence
 
 from ..errors import (
     EAgentError,
@@ -102,6 +102,7 @@ __all__ = [
     "VariantComparisonReport",
     "PredictionOutcomeRow",
     "TopKResult",
+    "EnrichmentResult",
     "PredictionOutcomeReport",
     "CoverageAudit",
     "LineageGroupSummary",
@@ -171,8 +172,13 @@ class RecordOverwriteError(HouseDBError):
     The sibling of :class:`DeletionRefusedError`. Deleting a negative and
     re-ingesting it as a positive would be refused; quietly overwriting the
     same ``record_id`` achieves the same thing without a delete, so it is
-    refused too. A corrected measurement is a new record, or an explicit
-    deprecation of the old one with a reason.
+    refused too.
+
+    Deprecating the row first does **not** open this path. A deprecated
+    record is still the reading that was taken, and an in-place rewrite
+    destroys it with no audit trail and no way for a later reader to see that
+    a different number was once there. A corrected measurement is always a
+    new ``record_id``; the superseded row stays, deprecated, beside it.
     """
 
 
@@ -641,6 +647,18 @@ class RecordRow:
         for an unassessed construct is that nobody knows, and the hit-rate
         object reports those separately instead of folding them into either
         denominator.
+
+        Exactly one outcome licenses an inference from an unassessed row:
+        a confirmed target product means the protein existed, because the
+        product was made. Every other outcome does not. In particular a
+        ``no_target_product_detected`` or
+        ``other_product_or_wrong_configuration`` row with
+        ``expression_status=not_assessed`` and no ``soluble_expression`` flag
+        stays ``None``: inferring expression from "this row informs catalysis"
+        would invent expression data for a construct nobody ran a gel on,
+        empty the expression-unknown count, and quietly enlarge the
+        expressed-only denominator in :class:`HitRate` -- which is one of the
+        two numbers this module exists to keep honest.
         """
         if self.outcome is OutcomeClass.EXPRESSION_OR_SOLUBILITY_FAILURE:
             return False
@@ -649,8 +667,8 @@ class RecordRow:
             return explicit
         if self.soluble_expression is not None:
             return self.soluble_expression
-        if self.outcome.informs_catalytic_ability:
-            # A turnover measurement is only possible on protein that existed.
+        if self.outcome is OutcomeClass.CONFIRMED_TARGET_PRODUCT:
+            # Product was made and identified, so soluble protein existed.
             return True
         return None
 
@@ -1092,6 +1110,59 @@ class TopKResult:
 
 
 @dataclass(frozen=True)
+class EnrichmentResult:
+    """A top-k rate divided by a baseline, carrying the denominator it used.
+
+    Returned instead of a bare float because a bare float cannot say which
+    baseline it was divided by, and this report now publishes two
+    (:attr:`PredictionOutcomeReport.rate_over_informative` and
+    :attr:`PredictionOutcomeReport.rate_over_submitted`). "3.2x enrichment"
+    quoted without its denominator is the same failure as quoting one hit
+    rate: the number silently doubles when the baseline is swapped for the
+    narrower one, and no reader can tell which was used.
+
+    :attr:`ratio` is ``None`` whenever either side is undefined, with
+    :attr:`undefined_reason` saying which, rather than a 0.0 or an infinity
+    that would be plotted as a result.
+    """
+
+    k: int
+    n_considered: int
+    top_k_rate: float | None
+    baseline_denominator: str
+    n_baseline_denominator: int
+    baseline_rate: float | None
+    ratio: float | None
+    undefined_reason: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Every number needed to recompute the ratio, denominator named."""
+        return {
+            "k": self.k,
+            "n_considered": self.n_considered,
+            "top_k_rate": self.top_k_rate,
+            "baseline_denominator": self.baseline_denominator,
+            "n_baseline_denominator": self.n_baseline_denominator,
+            "baseline_rate": self.baseline_rate,
+            "ratio": self.ratio,
+            "undefined_reason": self.undefined_reason,
+        }
+
+    def describe(self) -> str:
+        """One line that never states the ratio without naming its baseline."""
+        if self.ratio is None:
+            return (f"top-{self.k} enrichment undefined: "
+                    f"{self.undefined_reason or 'baseline or top-k rate missing'}")
+        return (
+            f"top-{self.k} enrichment {self.ratio:.2f}x over "
+            f"{self.baseline_denominator} "
+            f"({self.n_baseline_denominator} rows); top-k rate "
+            f"{self.top_k_rate:.3f} of {self.n_considered}, baseline rate "
+            f"{self.baseline_rate:.3f}"
+        )
+
+
+@dataclass(frozen=True)
 class PredictionOutcomeReport:
     """Did the pre-registered ranking find hits faster than the batch average?
 
@@ -1101,9 +1172,12 @@ class PredictionOutcomeReport:
     the report returning a number that looks like evidence of a working agent.
 
     Rows that cannot inform catalysis -- expression failures, untested
-    constructs, computational failures -- are excluded from the rates and
-    counted on the side. A top-ranked candidate that never expressed is a
-    cloning result, not a wrong prediction about chemistry.
+    constructs, computational failures -- are excluded from
+    :attr:`rate_over_informative` and counted on the side. A top-ranked
+    candidate that never expressed is a cloning result, not a wrong
+    prediction about chemistry. :attr:`rate_over_submitted` keeps them in the
+    denominator, and both rates are emitted together, so the narrow one can
+    never be quoted alone.
     """
 
     round_id: str
@@ -1120,6 +1194,10 @@ class PredictionOutcomeReport:
     n_submitted_without_prediction: int
     n_predicted_not_submitted: int
 
+    #: Name of the denominator :meth:`enrichment_vs_baseline` divides by, so
+    #: the ratio can never be quoted without saying which rate produced it.
+    ENRICHMENT_BASELINE: ClassVar[str] = "informative"
+
     @property
     def frozen_before_results(self) -> bool:
         """Whether the ranking existed before anyone saw a result."""
@@ -1128,11 +1206,31 @@ class PredictionOutcomeReport:
         return self.predictions_frozen_at <= self.results_ingested_at
 
     @property
-    def baseline_rate(self) -> float | None:
-        """The round's own hit rate over informative rows: the chance level."""
+    def rate_over_informative(self) -> float | None:
+        """Hits over rows that could show chemistry: the narrow chance level.
+
+        Named for its denominator, and never published alone. This rate
+        excludes expression failures, untested constructs and computational
+        failures, so it is the larger of the two and the one a summary would
+        quote if the type let it. :attr:`rate_over_submitted` is emitted
+        beside it everywhere, mirroring :class:`HitRate`, so a reader always
+        sees which constructs were dropped from the denominator.
+        """
         if self.n_informative <= 0:
             return None
         return self.n_hits / self.n_informative
+
+    @property
+    def rate_over_submitted(self) -> float | None:
+        """Hits over every construct submitted in the round.
+
+        ``None`` with a zero denominator rather than 0.0: a rate over nothing
+        is undefined, and reporting it as a number is how an empty round
+        becomes a plotted point.
+        """
+        if self.n_submitted <= 0:
+            return None
+        return self.n_hits / self.n_submitted
 
     def top_k(self, k: int) -> TopKResult:
         """Hits among the k best-ranked informative, submitted constructs."""
@@ -1147,17 +1245,44 @@ class PredictionOutcomeReport:
         return TopKResult(k_requested=k, n_considered=len(ranked),
                           n_hits=sum(1 for r in ranked if r.is_hit))
 
-    def enrichment_vs_baseline(self, k: int) -> float | None:
-        """Top-k rate divided by the round's own hit rate, or ``None``.
+    def enrichment_vs_baseline(self, k: int) -> EnrichmentResult:
+        """Top-k rate divided by :attr:`rate_over_informative`, denominator named.
 
-        ``None`` whenever either side is undefined -- notably when the round
-        produced no hits at all, where any ratio would be invented.
+        Returns an :class:`EnrichmentResult` rather than a float so the ratio
+        always travels with the baseline it was computed against. The baseline
+        is the *informative* rate, not the submitted one: the top-k numerator
+        is itself restricted to informative, submitted rows, and dividing it
+        by the submitted rate would compare two different populations and
+        inflate the enrichment by exactly the expression-failure fraction.
+
+        ``ratio`` is ``None`` whenever either side is undefined -- notably
+        when the round produced no hits at all, where any ratio would be
+        invented -- and ``undefined_reason`` says which side was missing.
         """
-        top = self.top_k(k).rate
-        base = self.baseline_rate
-        if top is None or base in (None, 0):
-            return None
-        return top / float(base)  # type: ignore[arg-type]
+        top = self.top_k(k)
+        base = self.rate_over_informative
+        reason: str | None = None
+        ratio: float | None = None
+        if top.rate is None:
+            reason = (f"no informative, submitted, ranked construct fell inside "
+                      f"the top {k}")
+        elif base is None:
+            reason = "the round has no informative rows, so there is no baseline"
+        elif base == 0:
+            reason = ("the round produced no hits, so the baseline is zero and "
+                      "any ratio would be invented")
+        else:
+            ratio = top.rate / float(base)
+        return EnrichmentResult(
+            k=k,
+            n_considered=top.n_considered,
+            top_k_rate=top.rate,
+            baseline_denominator=self.ENRICHMENT_BASELINE,
+            n_baseline_denominator=self.n_informative,
+            baseline_rate=base,
+            ratio=ratio,
+            undefined_reason=reason,
+        )
 
     @property
     def rank_of_first_hit(self) -> int | None:
@@ -1195,7 +1320,9 @@ class PredictionOutcomeReport:
             "n_excluded_uninformative": self.n_excluded_uninformative,
             "n_submitted_without_prediction": self.n_submitted_without_prediction,
             "n_predicted_not_submitted": self.n_predicted_not_submitted,
-            "baseline_rate": self.baseline_rate,
+            "rate_over_informative": self.rate_over_informative,
+            "rate_over_submitted": self.rate_over_submitted,
+            "denominators_differ": self.n_informative != self.n_submitted,
             "rank_of_first_hit": self.rank_of_first_hit,
             "stereo_agreement": self.stereo_agreement_counts(),
         }
@@ -1283,13 +1410,37 @@ class LineageGroupSummary:
     groups: tuple[Mapping[str, Any], ...]
     available: bool
     unavailable_reason: str | None = None
+    unresolved_record_ids: tuple[str, ...] = ()
+
+    @property
+    def n_resolved(self) -> int:
+        """Requested rows that were actually found and grouped.
+
+        Smaller than :attr:`n_rows` whenever a requested ``record_id`` does
+        not exist. The two are kept apart because a summary that reported
+        only the rows it managed to load would look complete: a caller asking
+        about twelve records and silently being answered about nine cannot
+        tell that three went missing.
+        """
+        return self.n_rows - len(self.unresolved_record_ids)
+
+    @property
+    def complete(self) -> bool:
+        """Whether every requested record id resolved to a stored row."""
+        return not self.unresolved_record_ids
 
     @property
     def n_discounted(self) -> int | None:
-        """Rows that are copies and must not be counted a second time."""
+        """Rows that are copies and must not be counted a second time.
+
+        Computed over :attr:`n_resolved`, not :attr:`n_rows`: an id that was
+        never found is missing, not a duplicate measurement, and charging it
+        to the discount would misreport a curation gap as corroboration that
+        was correctly refused.
+        """
         if self.n_independent is None:
             return None
-        return self.n_rows - self.n_independent
+        return self.n_resolved - self.n_independent
 
 
 # --------------------------------------------------------------------------
@@ -2465,8 +2616,8 @@ class HouseDB:
             "evidence": list(_get(obj, "evidence") or []),
         }
 
-    #: Fields an ingest may not change on an existing, non-deprecated record.
-    #: Everything a later reader would quote as the result.
+    #: Fields an ingest may not change on an existing record, deprecated or
+    #: not. Everything a later reader would quote as the result.
     _IMMUTABLE_RESULT_FIELDS: tuple[str, ...] = (
         "outcome", "ee_target_pct", "conversion_pct", "measurement_value",
         "specific_activity", "kcat_s", "km_mM",
@@ -2478,14 +2629,24 @@ class HouseDB:
         Re-ingesting an unchanged batch is harmless and common, so identical
         values pass. Changing the outcome or any headline number on an
         existing ``record_id`` is refused: it is the delete-and-replace this
-        database forbids, performed without a delete. Deprecate the old record
-        with a reason and write the correction under a new id, so both the
-        original reading and the correction survive.
+        database forbids, performed without a delete.
+
+        **The refusal does not depend on the deprecation flag.** An earlier
+        version of this check returned early for a deprecated row, and the
+        ``ON CONFLICT(record_id) DO UPDATE`` that follows then rewrote
+        ``outcome``, ``conversion_pct``, ``ee_target_pct``, ``kcat_s``,
+        ``km_mM`` and every other result column in place. The original reading
+        was gone, with no audit row and no log entry, which is exactly the
+        destruction of a negative that :class:`DeletionRefusedError` exists to
+        stop -- reachable through the public API by deprecating first. A
+        deprecated row is still a reading that was taken and must remain
+        retrievable, so the correction goes under a new ``record_id``, which
+        is what the error message has always said to do.
         """
         existing = self._one(
             "SELECT * FROM experiment_record WHERE record_id = ?",
             (row["record_id"],))
-        if existing is None or existing["deprecated"]:
+        if existing is None:
             return
         changed: list[str] = []
         for fieldname in self._IMMUTABLE_RESULT_FIELDS:
@@ -2497,12 +2658,15 @@ class HouseDB:
             if before is None or after is None or before != after:
                 changed.append(f"{fieldname}: {before!r} -> {after!r}")
         if changed:
+            state = ("is deprecated" if existing["deprecated"]
+                     else "is not deprecated")
             raise RecordOverwriteError(
-                f"{row['record_id']} already holds a result and is not "
-                f"deprecated; this ingest would change " + "; ".join(changed)
-                + ". Deprecate the existing record with a reason and ingest the "
-                  "correction under a new record_id, so the original reading "
-                  "and the correction both survive."
+                f"{row['record_id']} already holds a result and {state}; this "
+                f"ingest would change " + "; ".join(changed)
+                + ". Deprecating a record retires it, it does not make it "
+                  "rewritable: the reading that was taken stays readable. "
+                  "Ingest the correction under a new record_id, so the "
+                  "original reading and the correction both survive."
             )
 
     def ingest_round(self, results: Sequence[Any], *,
@@ -2782,6 +2946,12 @@ class HouseDB:
         every batch query with ``deprecated=True``, so a reader sees that a
         measurement was made and later distrusted, which is a different fact
         from the measurement never having existed.
+
+        Deprecating does **not** unlock an in-place rewrite of the row. The
+        stored outcome and numbers stay readable afterwards, and a corrected
+        measurement is ingested under a new ``record_id``; an ingest that
+        tried to change this row's result would still raise
+        :class:`RecordOverwriteError`.
         """
         if not str(reason).strip():
             raise UnresolvedFieldError(["reason"], gate="deprecate_record")
@@ -3450,7 +3620,8 @@ class HouseDB:
 
     # -- independent evidence ----------------------------------------------
 
-    def _evidence_shims(self, record_ids: Sequence[str]) -> list[Any]:
+    def _evidence_shims(self, record_ids: Sequence[str]
+                        ) -> tuple[list[Any], tuple[str, ...]]:
         """Build duck-typed rows for :mod:`eagent.datalayer.lineage`.
 
         Shims rather than re-imported pydantic records so the independent-
@@ -3458,12 +3629,19 @@ class HouseDB:
         the house database depending on being able to reconstruct a valid
         :class:`~eagent.schemas.record.ExperimentRecord` from a partially
         curated row.
+
+        Returns the shims **and** the requested ids that matched no stored
+        row. Skipping a missing id silently, while the caller takes its row
+        count from the shims, is how a group of twelve records reports itself
+        as a complete group of nine.
         """
         shims: list[Any] = []
+        unresolved: list[str] = []
         for rid in record_ids:
             row = self._one(
                 "SELECT * FROM experiment_record WHERE record_id = ?", (rid,))
             if row is None:
+                unresolved.append(str(rid))
                 continue
             target = self._one(
                 "SELECT * FROM substrate_target WHERE substrate_target_id = ?",
@@ -3485,10 +3663,19 @@ class HouseDB:
             conditions = _loads(row["conditions_json"], {})
             cond_key = tuple(
                 _enum_value(conditions.get(f)) for f in CONDITION_KEY_FIELDS)
+            parent = self._one(
+                "SELECT parent_sha256 FROM lineage WHERE variant_sha256 = ? "
+                "ORDER BY edge_id LIMIT 1", (row["sequence_sha256"],))
             shims.append(SimpleNamespace(
                 record_id=row["record_id"],
                 sequence_sha256=row["sequence_sha256"],
-                parent_sequence_sha256=None,
+                # Read from the lineage table rather than hardcoded to None:
+                # the edges are already stored by add_lineage_edge, and
+                # dropping them here meant a variant and its parent never
+                # shared a lineage facet, so every lineage-aware grouping over
+                # house rows split an engineering series into unrelated rows.
+                parent_sequence_sha256=(
+                    parent["parent_sha256"] if parent is not None else None),
                 accession=None,
                 construct_sequence=row["construct_sequence"],
                 substrate=SimpleNamespace(
@@ -3515,7 +3702,7 @@ class HouseDB:
                     limit_of_detection=row["limit_of_detection"]),
                 evidence=refs,
             ))
-        return shims
+        return shims, tuple(unresolved)
 
     def independent_evidence(self, *, round_id: str | None = None,
                              record_ids: Sequence[str] | None = None,
@@ -3531,6 +3718,11 @@ class HouseDB:
         ``available=False`` with the reason, instead of falling back to
         ``len(records)`` -- a row count presented as an evidence count is the
         exact overstatement the lineage module exists to prevent.
+
+        ``n_rows`` counts the ids that were *asked about*, and any that match
+        no stored row come back in ``unresolved_record_ids``. Counting only
+        the rows that loaded would present a partially missing group as a
+        complete one, which is the same overstatement in the other direction.
         """
         if record_ids is None:
             if round_id is None:
@@ -3539,7 +3731,8 @@ class HouseDB:
             record_ids = [r["record_id"] for r in self._all(
                 "SELECT record_id FROM experiment_record WHERE round_id = ? "
                 "ORDER BY record_id", (round_id,))]
-        ids = list(record_ids)
+        ids = [str(r) for r in record_ids]
+        shims, unresolved = self._evidence_shims(ids)
         if _independent_evidence_groups is None:
             return LineageGroupSummary(
                 n_rows=len(ids), n_independent=None, groups=(), available=False,
@@ -3547,8 +3740,8 @@ class HouseDB:
                     "eagent.datalayer.lineage could not be imported; the number "
                     "of independent measurements is unknown and len(records) is "
                     "not a substitute"),
+                unresolved_record_ids=unresolved,
             )
-        shims = self._evidence_shims(ids)
         groups = _independent_evidence_groups(shims)
         payload = tuple(
             {
@@ -3578,8 +3771,8 @@ class HouseDB:
                              str(g["strongest_strength"]), g["n_rows"], now),
                         )
         return LineageGroupSummary(
-            n_rows=len(shims), n_independent=len(payload), groups=payload,
-            available=True,
+            n_rows=len(ids), n_independent=len(payload), groups=payload,
+            available=True, unresolved_record_ids=unresolved,
         )
 
     # -- public read accessors ---------------------------------------------

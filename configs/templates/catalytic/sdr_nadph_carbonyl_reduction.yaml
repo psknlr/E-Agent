@@ -1,0 +1,246 @@
+# Catalytic template -- SDR, NADPH-dependent carbonyl reduction.
+#
+# Validates against eagent.schemas.templates.CatalyticTemplate.
+#
+# ===========================================================================
+# READ THIS BEFORE USING ANY NUMBER IN THIS FILE
+# ===========================================================================
+# EVERY geometry constraint below has calibrated_on: [] -- an EMPTY list -- and
+# a severity of "scoring" or "advisory". None is "gating". No candidate may be
+# rejected on any window in this file.
+#
+# The windows that are present are attributable to general chemistry (van der
+# Waals contact distances, hydrogen-bond heavy-atom distance ranges, the
+# Buergi-Dunitz approach trajectory), NOT to a measured distribution over
+# catalytically competent SDR complexes. That distribution is what
+# calibrated_on is for, and it does not exist yet.
+#
+# A modelling restraint published in one engineering study -- "the hydride
+# donor was restrained to within 3.5 A of the carbonyl carbon" -- is THAT
+# STUDY'S MODELLING CHOICE, made to keep a simulation in a basin of interest.
+# It is not a universal catalytic cutoff, it was not derived as a decision
+# boundary, and copying it into this file as a gating window would turn one
+# group's convention into this pipeline's definition of catalysis.
+#
+# No PDB entry, M-CSA identifier, PMID or DOI appears below; none could be
+# verified in this environment. reference_structures is therefore EMPTY, which
+# is also why no window could be calibrated.
+# ===========================================================================
+
+template_id: cat.sdr.nadph_carbonyl_reduction.v1
+family_name: SDR
+
+mechanism_summary: >-
+  The nicotinamide C4 of NADPH delivers a hydride to the si or re face of the
+  substrate carbonyl carbon while the tyrosine hydroxyl donates a proton to the
+  carbonyl oxygen; the result is a secondary alcohol and NADP+. The lysine
+  epsilon-amine hydrogen-bonds the nicotinamide ribose hydroxyls and lowers the
+  tyrosine pKa so that the tyrosine can act as the acid at physiological pH;
+  the serine hydroxyl binds and polarises the carbonyl oxygen and holds the
+  substrate in register; the asparagine positions a water that completes a
+  proton relay reprotonating the tyrosine from bulk solvent. SDRs are generally
+  described as transferring the 4-pro-S hydride (the AKR and MDR families are
+  described as 4-pro-R); this is a family-level generalisation and must be
+  confirmed for a specific enzyme before it is used in a stereochemical
+  argument.
+  .
+  WHICH ENANTIOMER IS FORMED IS NOT DECIDED BY ANY OF THIS. The hydride leaves
+  one fixed face of the nicotinamide, so the product configuration is set by
+  which prochiral face of the ketone the pocket presents to that fixed face --
+  that is, by substrate orientation, which is a property of the pocket and of
+  the particular substrate. Nothing in this template predicts the configuration.
+
+catalytic_residues:
+  - label: catalytic_tyr
+    residue_types: [TYR]
+    role: >-
+      General acid: protonates the carbonyl oxygen / developing alkoxide. The
+      catalytic residue of the family; its hydroxyl oxygen is the atom that
+      matters.
+    functional_atoms: [OH]
+    evidence: "textbook: SDR Ser-Tyr-Lys-Asn catalytic arrangement"
+  - label: catalytic_lys
+    residue_types: [LYS]
+    role: >-
+      Lowers the tyrosine hydroxyl pKa and hydrogen-bonds the 2'- and 3'-OH of
+      the nicotinamide ribose, which both anchors the cofactor and couples the
+      acid to the proton relay.
+    functional_atoms: [NZ]
+    evidence: "textbook: SDR Ser-Tyr-Lys-Asn catalytic arrangement (the YxxxK pair)"
+  - label: catalytic_ser
+    residue_types: [SER, THR]
+    role: >-
+      Binds and polarises the substrate carbonyl oxygen and stabilises the
+      developing oxyanion, holding the substrate in a productive orientation.
+      Threonine occurs in place of serine in part of the superfamily, so both
+      are accepted.
+    functional_atoms: [OG, OG1]
+    evidence: "textbook: SDR Ser-Tyr-Lys-Asn catalytic arrangement"
+    needs_curation: true
+    curator_must_supply: >-
+      Whether the members in this project's pool carry Ser (atom OG) or Thr
+      (atom OG1) at this position; both atom names are listed so that either
+      binds, but a per-candidate mapping must name one.
+  - label: catalytic_asn
+    residue_types: [ASN]
+    role: >-
+      Positions the conserved water of the proton-relay that reprotonates the
+      tyrosine from bulk solvent, and contributes to the architecture of the
+      cofactor-binding site. Not an acid or a base itself.
+    functional_atoms: [OD1, ND2]
+    evidence: "textbook: the asparagine of the SDR Ser-Tyr-Lys-Asn arrangement"
+    needs_curation: true
+    curator_must_supply: >-
+      Which of OD1 and ND2 faces the relay water in this project's members, read
+      off an experimental structure. Both are listed because the side-chain
+      amide orientation is routinely ambiguous at crystallographic resolution
+      and must not be guessed here.
+
+required_cofactor: NADPH
+# EXPLICIT, and the schema refuses the template without it. A crystallographic
+# NADP+ is not a hydride donor: a template that merely said "NADP" would let an
+# oxidised-cofactor structure be scored as a competent reducing complex.
+required_cofactor_state: reduced
+# NDP is the wwPDB chemical component id for 1,4-dihydro-NADP (NADPH), taken
+# from eagent.schemas.chem.REDUCED_NICOTINAMIDE_CODES in this repository. The
+# oxidised codes NAP (NADP+) and NAD (NAD+) must NOT be added here.
+cofactor_ligand_codes:
+  - NDP
+metals: []
+
+assembly_state: >-
+  Commonly homodimeric or homotetrameric. In several SDRs the C-terminal
+  substrate-binding segment of a neighbouring subunit completes the pocket, so
+  the biological assembly -- not an isolated chain -- is what must be modelled.
+  NOT ESTABLISHED HERE for any specific enzyme.
+
+geometry_constraints:
+  - name: hydride_donor_to_carbonyl_carbon
+    kind: distance
+    atom_a: "cofactor.hydride_donor_C4"
+    atom_b: "substrate.electrophile"
+    min_value: 2.9
+    max_value: null
+    unit: angstrom
+    severity: advisory
+    calibrated_on: []
+    source: >-
+      LOWER BOUND ONLY, and deliberately so. 2.9 A is the sum of two carbon van
+      der Waals radii (1.70 + 1.70 = 3.40 A, VDW_RADII_A in
+      eagent.science.geometry) less the 0.5 A overlap that module tolerates
+      (DEFAULT_VDW_OVERLAP_TOLERANCE_A); below it the donor and acceptor carbons
+      are clashing, which is a modelling artefact rather than a reactive
+      geometry. THERE IS NO UPPER BOUND HERE because none could be attributed:
+      the separation at which hydride transfer becomes implausible in this
+      family is exactly the quantity that must be fitted to experimental
+      complexes, and the 3.2-4.0 A figures that circulate are modelling
+      restraints from individual studies, not measured cutoffs. CURATOR MUST
+      SUPPLY max_value together with the complexes it was fitted on, listed in
+      calibrated_on; until then the constraint can only detect a clash, and its
+      severity says so. Note also that this is a HEAVY-ATOM separation: the C4-H
+      bond points somewhere this measurement knows nothing about, which is why
+      the approach-angle constraint is measured alongside it.
+  - name: hydride_approach_angle_burgi_dunitz
+    kind: angle
+    atom_a: "cofactor.hydride_donor_C4"
+    atom_b: "substrate.electrophile"
+    atom_c: "substrate.carbonyl_O"
+    min_value: 90.0
+    max_value: 130.0
+    unit: degree
+    severity: advisory
+    calibrated_on: []
+    source: >-
+      The CENTRE of this band is attributable: small-molecule crystallography
+      puts the preferred nucleophile-to-carbonyl trajectory at 105-107 degrees
+      (Buergi, Dunitz & Shefter, J. Am. Chem. Soc. 95 (1973) 5065, recorded in
+      this repository as BURGI_DUNITZ_LITERATURE_DEG). The WIDTH IS NOT
+      ATTRIBUTABLE AND IS NOT A MEASUREMENT: it is set wide on purpose so that
+      an uncalibrated angle cannot push a candidate out, and the severity is
+      advisory for the same reason. The distribution inside an enzyme site is
+      broader than in small-molecule crystals and differs between families.
+      CURATOR MUST replace this band with one fitted on this family's own
+      complexes and list them in calibrated_on.
+  - name: carbonyl_oxygen_to_catalytic_tyr_OH
+    kind: distance
+    atom_a: "substrate.carbonyl_O"
+    atom_b: "protein.catalytic_tyr.OH"
+    min_value: 2.5
+    max_value: 3.2
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard heavy-atom donor-acceptor separation for an O-H...O hydrogen
+      bond (textbook hydrogen-bond geometry). What this window tests is whether
+      a hydrogen bond between the acid and the carbonyl oxygen is geometrically
+      POSSIBLE in the pose; it does not test whether proton transfer occurs, and
+      it is not specific to this family. CURATOR MUST narrow or widen it on this
+      family's experimental complexes and record them in calibrated_on.
+  - name: carbonyl_oxygen_to_catalytic_ser_OG
+    kind: distance
+    atom_a: "substrate.carbonyl_O"
+    atom_b: "protein.catalytic_ser.OG"
+    min_value: 2.5
+    max_value: 3.2
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Same standard O-H...O hydrogen-bond range as the tyrosine constraint, for
+      the second hydroxyl that stabilises the carbonyl oxygen and the developing
+      oxyanion. NOTE the atom name: a member carrying threonine at this position
+      presents OG1, not OG, and this constraint will then be UNMEASURED rather
+      than failed -- which is the correct outcome, and is why the catalytic
+      residue entry lists both atoms. CURATOR MUST calibrate, and must add the
+      Thr variant of this constraint if the pool contains Thr members.
+  - name: catalytic_lys_NZ_to_catalytic_tyr_OH
+    kind: distance
+    atom_a: "protein.catalytic_lys.NZ"
+    atom_b: "protein.catalytic_tyr.OH"
+    min_value: 2.6
+    max_value: 3.4
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard N...O hydrogen-bond heavy-atom range, applied to the YxxxK pair
+      itself. This is an INTERNAL check on the catalytic arrangement rather than
+      a check on the pose: if the lysine and the tyrosine are not within
+      hydrogen-bonding reach of each other (directly or through the ribose
+      hydroxyls), the mechanism this template describes is not in place in the
+      model, whatever the substrate is doing. CURATOR MUST confirm against
+      experimental complexes whether the direct Lys-Tyr contact or the
+      ribose-mediated arrangement is the one to measure in this family.
+
+# EMPTY. No PDB entry was verified in this environment, and a fabricated
+# four-character code here would be fetched, parsed and trusted by the
+# structure steps. This emptiness is the reason every window above is
+# uncalibrated.
+reference_structures: []
+
+provenance:
+  source_type: mechanism_literature
+  identifiers:
+    - "textbook:sdr_ser_tyr_lys_asn_catalytic_arrangement"
+    - "textbook:nadph_c4_hydride_transfer_to_carbonyl_carbon"
+    - "PFAM:PF00106"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must supply: (1) at least one experimental ternary-complex
+    structure (PDB entry with NADPH or an NADPH analogue and a substrate or
+    substrate analogue bound) for reference_structures, with the ligand codes
+    that structure actually uses; (2) the M-CSA entry or the primary mechanism
+    reference (PMID or DOI) for this mechanism; (3) calibrated windows -- with
+    the complexes they were fitted on listed in calibrated_on -- for the hydride
+    distance upper bound and the approach angle, before any constraint here is
+    promoted above "scoring"; (4) confirmation of the 4-pro-S hydride face for
+    the members in this project's pool.
+    .
+    source_type is mechanism_literature because the catalytic arrangement
+    recorded here is standard teaching-level enzymology for this superfamily,
+    not a result produced in this environment. It is NOT theoretical_model: no
+    coordinates were computed. It is NOT experimental_structure: no structure
+    was read.

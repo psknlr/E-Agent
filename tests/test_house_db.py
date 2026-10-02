@@ -35,11 +35,13 @@ from eagent.datalayer.house_db import (
     CollapsedScoreError,
     ConditionMismatchError,
     DeletionRefusedError,
+    EnrichmentResult,
     ExpressionStatus,
     FrozenPredictionError,
     HitRate,
     HouseDB,
     PredictionEntry,
+    PredictionOutcomeReport,
     RecordOverwriteError,
     SchemaVersionError,
     UnknownRecordError,
@@ -406,6 +408,104 @@ class TestHitRate(unittest.TestCase):
             self.assertFalse(hasattr(hr, forbidden),
                              f"HitRate must not expose a single {forbidden!r}")
         self.assertIsInstance(hr, HitRate)
+
+
+class TestExpressionIsNeverInvented(unittest.TestCase):
+    """Regression guard for the expressed-only denominator.
+
+    ``RecordRow.expressed`` used to fall through to
+    ``outcome.informs_catalytic_ability``, which is true for
+    ``no_target_product_detected`` and
+    ``other_product_or_wrong_configuration`` as well as for a hit. A negative
+    whose expression nobody assessed was therefore reported as successfully
+    expressed, the expression-unknown count went to zero, and the
+    expressed-only hit rate was computed over a denominator containing
+    constructs no one had ever seen on a gel.
+    """
+
+    def _unassessed_db(self) -> HouseDB:
+        """One hit with expression data; a negative and an other-product row
+        with none at all. All three inform catalysis; only one expressed."""
+        db = HouseDB(":memory:")
+        db.register_substrate_target(
+            TARGET, substrate_ladder={"isomeric_smiles": "CC(=O)c1ccccc1"},
+            product_ladder={"isomeric_smiles": "C[C@@H](O)c1ccccc1"})
+        hit = db.upsert_candidate(sequence=_seq("h"))
+        neg = db.upsert_candidate(sequence=_seq("n"))
+        oth = db.upsert_candidate(sequence=_seq("o"))
+        db.create_round("r", TARGET)
+        db.ingest_round([
+            _result("rec-hit", hit, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                    round_id="r", soluble_expression=True, conversion_pct=55.0,
+                    measurement_type="conversion", measurement_value=55.0,
+                    measurement_unit="%",
+                    product_smiles="C[C@@H](O)c1ccccc1"),
+            # expression never assessed: no soluble_expression, no status
+            _result("rec-neg", neg, OutcomeClass.NO_TARGET_PRODUCT_DETECTED,
+                    round_id="r",
+                    detection={"confirms_product_identity": False}),
+            _result("rec-other", oth,
+                    OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION,
+                    round_id="r", conversion_pct=40.0,
+                    measurement_type="conversion", measurement_value=40.0,
+                    measurement_unit="%",
+                    detection={"confirms_product_identity": False}),
+        ])
+        return db
+
+    def test_an_unassessed_negative_counts_as_expression_unknown(self) -> None:
+        db = self._unassessed_db()
+        row = {r.record_id: r for r in db.batch_outcomes("r").rows}["rec-neg"]
+        self.assertIs(row.expression_status, ExpressionStatus.NOT_ASSESSED)
+        self.assertIsNone(row.soluble_expression)
+        self.assertTrue(row.outcome.informs_catalytic_ability,
+                        "the fixture must exercise the informative-outcome path")
+        self.assertIsNone(row.expressed,
+                          "a negative nobody ran a gel on is expression-unknown")
+
+    def test_an_unassessed_other_product_row_counts_as_expression_unknown(
+            self) -> None:
+        db = self._unassessed_db()
+        row = {r.record_id: r for r in db.batch_outcomes("r").rows}["rec-other"]
+        self.assertIs(row.expression_status, ExpressionStatus.NOT_ASSESSED)
+        self.assertTrue(row.outcome.informs_catalytic_ability)
+        self.assertIsNone(row.expressed)
+
+    def test_the_unassessed_rows_stay_out_of_the_expressed_denominator(self) -> None:
+        db = self._unassessed_db()
+        hr = db.hit_rate("r")
+        self.assertEqual(hr.n_submitted, 3)
+        self.assertEqual(hr.n_informative, 3)
+        self.assertEqual(hr.n_expressed, 1)
+        self.assertEqual(hr.n_expression_unknown, 2)
+        self.assertEqual(hr.n_expression_failed, 0)
+        self.assertEqual(hr.n_hits, 1)
+        self.assertAlmostEqual(hr.rate_expressed_only, 1.0)
+        self.assertAlmostEqual(hr.rate_all_submitted, 1 / 3)
+        # the counts still add up: nothing was invented into either bucket
+        self.assertEqual(
+            hr.n_expressed + hr.n_expression_failed + hr.n_expression_unknown,
+            hr.n_submitted)
+        self.assertIn("2 expression unassessed", hr.describe())
+
+    def test_a_confirmed_product_still_implies_the_protein_existed(self) -> None:
+        """The one sound inference is kept: product was made, so protein was there."""
+        db = HouseDB(":memory:")
+        db.register_substrate_target(
+            TARGET, substrate_ladder={"isomeric_smiles": "CC(=O)c1ccccc1"},
+            product_ladder={"isomeric_smiles": "C[C@@H](O)c1ccccc1"})
+        sha = db.upsert_candidate(sequence=_seq("h"))
+        db.create_round("r", TARGET)
+        db.ingest_round([
+            _result("rec", sha, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                    round_id="r", conversion_pct=55.0,
+                    measurement_type="conversion", measurement_value=55.0,
+                    measurement_unit="%",
+                    product_smiles="C[C@@H](O)c1ccccc1")])
+        row = db.batch_outcomes("r").rows[0]
+        self.assertIs(row.expression_status, ExpressionStatus.NOT_ASSESSED)
+        self.assertTrue(row.expressed)
+        self.assertEqual(db.hit_rate("r").n_expression_unknown, 0)
 
 
 class TestVariantVsParent(unittest.TestCase):
@@ -797,13 +897,14 @@ class TestPredictionVsOutcome(unittest.TestCase):
         self.assertEqual(report.n_informative, 3)
         self.assertEqual(report.n_hits, 1)
         self.assertEqual(report.n_excluded_uninformative, 3)
-        self.assertAlmostEqual(report.baseline_rate, 1 / 3)
+        self.assertAlmostEqual(report.rate_over_informative, 1 / 3)
+        self.assertAlmostEqual(report.rate_over_submitted, 1 / 6)
         # ranks 1,2,3 over informative rows are c3, c1, c2; c1 is the only hit
         self.assertEqual(report.rank_of_first_hit, 2)
         top2 = report.top_k(2)
         self.assertEqual((top2.n_considered, top2.n_hits), (2, 1))
         self.assertAlmostEqual(top2.rate, 0.5)
-        self.assertAlmostEqual(report.enrichment_vs_baseline(2), 1.5)
+        self.assertAlmostEqual(report.enrichment_vs_baseline(2).ratio, 1.5)
 
     def test_stereo_calls_are_scored_against_the_sign_of_the_measured_ee(self) -> None:
         db, _ = _fixture_db()
@@ -852,6 +953,93 @@ class TestPredictionVsOutcome(unittest.TestCase):
         self.assertEqual(report.n_predicted_not_submitted, 0)
         # the unpredicted construct is the only hit, so the top-1 is empty of hits
         self.assertEqual(report.top_k(1).n_hits, 0)
+
+
+class TestPredictionRateDenominators(unittest.TestCase):
+    """Regression guard: the report must not expose one rate on its own.
+
+    ``PredictionOutcomeReport`` used to publish ``baseline_rate``, a single
+    hits-over-informative number -- the narrow denominator ``HitRate`` was
+    built to stop anyone quoting alone, reintroduced one class further down
+    the module. Both rates are now emitted together, and the enrichment says
+    which one it divided by.
+    """
+
+    def test_there_is_no_single_baseline_rate_to_quote(self) -> None:
+        db, _ = _fixture_db()
+        report = db.prediction_vs_outcome("round-1")
+        for forbidden in ("baseline_rate", "hit_rate", "rate", "value"):
+            self.assertFalse(
+                hasattr(report, forbidden),
+                f"PredictionOutcomeReport must not expose a single {forbidden!r}")
+        self.assertFalse(hasattr(PredictionOutcomeReport, "baseline_rate"))
+
+    def test_both_rates_appear_together_and_differ(self) -> None:
+        db, _ = _fixture_db()
+        report = db.prediction_vs_outcome("round-1")
+        self.assertAlmostEqual(report.rate_over_informative, 1 / 3)
+        self.assertAlmostEqual(report.rate_over_submitted, 1 / 6)
+        self.assertNotAlmostEqual(report.rate_over_informative,
+                                  report.rate_over_submitted)
+        d = report.as_dict()
+        self.assertNotIn("baseline_rate", d)
+        self.assertIn("rate_over_informative", d)
+        self.assertIn("rate_over_submitted", d)
+        self.assertTrue(d["denominators_differ"])
+
+    def test_both_rates_are_undefined_rather_than_zero_on_an_empty_round(
+            self) -> None:
+        db = HouseDB(":memory:")
+        db.register_substrate_target(
+            TARGET, substrate_ladder={"isomeric_smiles": "CC(=O)c1ccccc1"},
+            product_ladder={"isomeric_smiles": "C[C@@H](O)c1ccccc1"})
+        db.create_round("empty", TARGET)
+        report = db.prediction_vs_outcome("empty")
+        self.assertIsNone(report.rate_over_informative)
+        self.assertIsNone(report.rate_over_submitted)
+
+    def test_the_enrichment_names_the_denominator_it_divided_by(self) -> None:
+        db, _ = _fixture_db()
+        report = db.prediction_vs_outcome("round-1")
+        enr = report.enrichment_vs_baseline(2)
+        self.assertIsInstance(enr, EnrichmentResult)
+        self.assertEqual(enr.baseline_denominator, "informative")
+        self.assertEqual(enr.n_baseline_denominator, report.n_informative)
+        self.assertAlmostEqual(enr.baseline_rate, report.rate_over_informative)
+        self.assertAlmostEqual(enr.top_k_rate, 0.5)
+        self.assertAlmostEqual(enr.ratio, 1.5)
+        self.assertIsNone(enr.undefined_reason)
+        self.assertIn("informative", enr.describe())
+        self.assertEqual(enr.as_dict()["baseline_denominator"], "informative")
+        # the other denominator would have given a different, larger number
+        self.assertNotAlmostEqual(
+            enr.ratio, enr.top_k_rate / report.rate_over_submitted)
+
+    def test_an_enrichment_with_no_hits_is_undefined_with_a_reason(self) -> None:
+        db = HouseDB(":memory:")
+        db.register_substrate_target(
+            TARGET, substrate_ladder={"isomeric_smiles": "CC(=O)c1ccccc1"},
+            product_ladder={"isomeric_smiles": "C[C@@H](O)c1ccccc1"})
+        a = db.upsert_candidate(sequence=_seq("a"))
+        b = db.upsert_candidate(sequence=_seq("b"))
+        db.create_round("r", TARGET)
+        db.freeze_predictions("r", [
+            PredictionEntry(a, 1, "diversity", "closest homolog", "no structure"),
+            PredictionEntry(b, 2, "diversity", "second clade", "no structure"),
+        ], snapshot_id="snap")
+        db.ingest_round([
+            _result("rec-a", a, OutcomeClass.NO_TARGET_PRODUCT_DETECTED,
+                    round_id="r", soluble_expression=True,
+                    detection={"confirms_product_identity": False}),
+            _result("rec-b", b, OutcomeClass.NO_TARGET_PRODUCT_DETECTED,
+                    round_id="r", soluble_expression=True,
+                    detection={"confirms_product_identity": False}),
+        ])
+        enr = db.prediction_vs_outcome("r").enrichment_vs_baseline(2)
+        self.assertIsNone(enr.ratio)
+        self.assertIn("no hits", enr.undefined_reason)
+        self.assertEqual(enr.baseline_denominator, "informative")
+        self.assertIn("undefined", enr.describe())
 
 
 class TestIngestGuards(unittest.TestCase):
@@ -970,19 +1158,102 @@ class TestIngestGuards(unittest.TestCase):
         row = self.db.batch_outcomes("r").rows[0]
         self.assertIs(row.outcome, OutcomeClass.NO_TARGET_PRODUCT_DETECTED)
 
-    def test_a_deprecated_record_may_be_corrected_in_place(self) -> None:
+    def test_deprecating_a_record_does_not_unlock_an_in_place_rewrite(self) -> None:
+        """Regression: the deprecated escape destroyed the original reading.
+
+        ``_assert_result_not_silently_rewritten`` used to return early for a
+        deprecated row, and the ``ON CONFLICT(record_id) DO UPDATE`` behind it
+        then rewrote every result column with no audit row and no log entry.
+        Deprecate-then-reingest was therefore the delete-and-replace the
+        module forbids, reachable through the public API. The reading must
+        still be retrievable afterwards.
+        """
+        self.db.ingest_round([
+            _result("rec", self.sha, OutcomeClass.NO_TARGET_PRODUCT_DETECTED,
+                    round_id="r", soluble_expression=True,
+                    measurement_type="conversion", measurement_value=0.0,
+                    measurement_unit="%", conversion_pct=0.0,
+                    detection={"confirms_product_identity": False})])
+        self.db.deprecate_record("rec", "wrong plate read")
+        with self.assertRaises(RecordOverwriteError) as ctx:
+            self.db.ingest_round([
+                _result("rec", self.sha, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                        round_id="r", soluble_expression=True,
+                        conversion_pct=70.0, ee_target_pct=95.0,
+                        measurement_type="conversion", measurement_value=70.0,
+                        measurement_unit="%")])
+        self.assertIn("new record_id", str(ctx.exception))
+        self.assertIn("deprecat", str(ctx.exception).lower())
+
+        # the original negative reading survives, numbers and all
+        rows = {r.record_id: r for r in self.db.batch_outcomes("r").rows}
+        self.assertEqual(set(rows), {"rec"})
+        kept = rows["rec"]
+        self.assertIs(kept.outcome, OutcomeClass.NO_TARGET_PRODUCT_DETECTED)
+        self.assertAlmostEqual(kept.conversion_pct, 0.0)
+        self.assertAlmostEqual(kept.measurement_value, 0.0)
+        self.assertIsNone(kept.ee_target_pct)
+        self.assertTrue(kept.deprecated)
+        self.assertEqual(kept.deprecation_reason, "wrong plate read")
+
+    def test_every_result_column_of_a_deprecated_row_is_protected(self) -> None:
+        """Not only the outcome: kcat, Km and ee are rewritable columns too."""
+        self.db.ingest_round([
+            _result("kin", self.sha, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                    round_id="r", soluble_expression=True, ee_target_pct=80.0,
+                    kcat_s=2.5, km_mM=0.4,
+                    measurement_type="kcat", measurement_value=2.5,
+                    measurement_unit="1/s",
+                    product_smiles="C[C@@H](O)c1ccccc1")])
+        self.db.deprecate_record("kin", "cuvette path length wrong")
+        unchanged: dict[str, object] = {
+            "round_id": "r", "soluble_expression": True, "ee_target_pct": 80.0,
+            "kcat_s": 2.5, "km_mM": 0.4, "measurement_type": "kcat",
+            "measurement_value": 2.5, "measurement_unit": "1/s",
+            "product_smiles": "C[C@@H](O)c1ccccc1",
+        }
+        for change in ({"kcat_s": 9.9}, {"km_mM": 0.01}, {"ee_target_pct": 99.0}):
+            with self.assertRaises(RecordOverwriteError):
+                self.db.ingest_round([
+                    _result("kin", self.sha,
+                            OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                            **{**unchanged, **change})])
+        row = self.db.batch_outcomes("r").rows[0]
+        self.assertAlmostEqual(row.kcat_s, 2.5)
+        self.assertAlmostEqual(row.km_mM, 0.4)
+        self.assertAlmostEqual(row.ee_target_pct, 80.0)
+
+    def test_the_correction_goes_under_a_new_id_beside_the_original(self) -> None:
+        """The route the refusal names actually works, and keeps both rows."""
         self.db.ingest_round([
             _result("rec", self.sha, OutcomeClass.NO_TARGET_PRODUCT_DETECTED,
                     round_id="r", soluble_expression=True,
                     detection={"confirms_product_identity": False})])
         self.db.deprecate_record("rec", "wrong plate read")
         self.db.ingest_round([
-            _result("rec", self.sha, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+            _result("rec-v2", self.sha, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
                     round_id="r", soluble_expression=True, conversion_pct=70.0,
                     measurement_type="conversion", measurement_value=70.0,
-                    measurement_unit="%")])
-        self.assertIs(self.db.batch_outcomes("r").rows[0].outcome,
-                      OutcomeClass.CONFIRMED_TARGET_PRODUCT)
+                    measurement_unit="%",
+                    product_smiles="C[C@@H](O)c1ccccc1")])
+        rows = {r.record_id: r for r in self.db.batch_outcomes("r").rows}
+        self.assertEqual(set(rows), {"rec", "rec-v2"})
+        self.assertIs(rows["rec"].outcome, OutcomeClass.NO_TARGET_PRODUCT_DETECTED)
+        self.assertTrue(rows["rec"].deprecated)
+        self.assertIs(rows["rec-v2"].outcome, OutcomeClass.CONFIRMED_TARGET_PRODUCT)
+        self.assertFalse(rows["rec-v2"].deprecated)
+
+    def test_re_ingesting_an_unchanged_deprecated_row_is_still_allowed(self) -> None:
+        """A replayed batch must not fail merely because one row was retired."""
+        row = _result("rec", self.sha, OutcomeClass.NO_TARGET_PRODUCT_DETECTED,
+                      round_id="r", soluble_expression=True,
+                      detection={"confirms_product_identity": False})
+        self.db.ingest_round([row])
+        self.db.deprecate_record("rec", "wrong plate read")
+        self.db.ingest_round([dict(row)])
+        kept = self.db.batch_outcomes("r").rows[0]
+        self.assertTrue(kept.deprecated)
+        self.assertEqual(kept.deprecation_reason, "wrong plate read")
 
     def test_one_ingest_writes_one_round(self) -> None:
         self.db.create_round("r2", TARGET, round_number=2)
@@ -1114,14 +1385,96 @@ class TestExportAndEvidence(unittest.TestCase):
                     evidence=copy),
         ])
         summary = db.independent_evidence(round_id="r")
+        self.assertEqual(summary.unresolved_record_ids, ())
+        self.assertTrue(summary.complete)
+        self.assertEqual(summary.n_rows, 2)
+        self.assertEqual(summary.n_resolved, 2)
         if summary.available:
-            self.assertEqual(summary.n_rows, 2)
             self.assertEqual(summary.n_independent, 1)
             self.assertEqual(summary.n_discounted, 1)
             self.assertEqual(len(summary.groups), 1)
             self.assertEqual(len(summary.groups[0]["record_ids"]), 2)
         else:  # pragma: no cover - only when the lineage module is absent
             self.assertIsNone(summary.n_independent)
+
+
+class TestEvidenceShimsCarryLineage(unittest.TestCase):
+    """Regression guard for the shims handed to :mod:`eagent.datalayer.lineage`.
+
+    ``parent_sequence_sha256`` was hardcoded to ``None`` even though
+    ``add_lineage_edge`` had already stored the edge, so a variant and its
+    parent never shared a lineage facet and an engineering series was split
+    into unrelated rows. Separately, a requested ``record_id`` that matched no
+    row was skipped while ``n_rows`` was taken from the shims that were found,
+    so a partially missing group reported itself as complete.
+    """
+
+    def _lineage_db(self) -> tuple[HouseDB, str, str]:
+        db = HouseDB(":memory:")
+        db.register_substrate_target(
+            TARGET, substrate_ladder={"isomeric_smiles": "CC(=O)c1ccccc1"},
+            product_ladder={"isomeric_smiles": "C[C@@H](O)c1ccccc1"})
+        parent = db.upsert_candidate(sequence=_seq("p"), candidate_id="parent")
+        variant = db.upsert_candidate(sequence=_seq("v"), candidate_id="variant",
+                                      origin="engineered",
+                                      construct_sequence=_seq("v"))
+        db.add_lineage_edge(parent_sha256=parent, variant_sha256=variant,
+                            mutations=["W110A"],
+                            numbering_reference="parent sequence 1-based")
+        db.create_round("r", TARGET)
+        db.ingest_round([
+            _result("rec-p", parent, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                    round_id="r", conversion_pct=30.0,
+                    measurement_type="conversion", measurement_value=30.0,
+                    measurement_unit="%", soluble_expression=True,
+                    product_smiles="C[C@@H](O)c1ccccc1"),
+            _result("rec-v", variant, OutcomeClass.CONFIRMED_TARGET_PRODUCT,
+                    round_id="r", conversion_pct=70.0,
+                    measurement_type="conversion", measurement_value=70.0,
+                    measurement_unit="%", soluble_expression=True,
+                    product_smiles="C[C@@H](O)c1ccccc1"),
+        ])
+        return db, parent, variant
+
+    def test_the_shim_reads_the_parent_from_the_lineage_table(self) -> None:
+        db, parent, _ = self._lineage_db()
+        shims, unresolved = db._evidence_shims(["rec-p", "rec-v"])
+        self.assertEqual(unresolved, ())
+        by_id = {s.record_id: s for s in shims}
+        self.assertEqual(by_id["rec-v"].parent_sequence_sha256, parent)
+        self.assertIsNone(by_id["rec-p"].parent_sequence_sha256,
+                          "a row with no incoming edge has no parent to claim")
+
+    def test_a_variant_and_its_parent_stay_in_one_split_group(self) -> None:
+        """The consequence of the dropped edge: a leaking train/test split."""
+        from eagent.datalayer.lineage import leakage_safe_groups
+        db, _, _ = self._lineage_db()
+        shims, _unresolved = db._evidence_shims(["rec-p", "rec-v"])
+        groups = leakage_safe_groups(shims)
+        self.assertEqual(groups["rec-p"], groups["rec-v"],
+                         "a variant and its parent must not straddle a split")
+
+    def test_an_unknown_record_id_is_returned_not_dropped(self) -> None:
+        db, _, _ = self._lineage_db()
+        summary = db.independent_evidence(
+            record_ids=["rec-p", "rec-missing"], persist=False)
+        self.assertEqual(summary.n_rows, 2, "n_rows counts what was asked about")
+        self.assertEqual(summary.unresolved_record_ids, ("rec-missing",))
+        self.assertFalse(summary.complete)
+        self.assertEqual(summary.n_resolved, 1)
+        if summary.available:
+            self.assertEqual(summary.n_independent, 1)
+            # the missing id is a curation gap, not a discounted duplicate
+            self.assertEqual(summary.n_discounted, 0)
+        else:  # pragma: no cover - only when the lineage module is absent
+            self.assertIsNone(summary.n_independent)
+            self.assertIsNone(summary.n_discounted)
+
+    def test_the_shim_helper_reports_the_missing_id_too(self) -> None:
+        db, _, _ = self._lineage_db()
+        shims, unresolved = db._evidence_shims(["rec-p", "nope", "rec-v"])
+        self.assertEqual(unresolved, ("nope",))
+        self.assertEqual(len(shims), 2)
 
 
 class TestConditionKey(unittest.TestCase):

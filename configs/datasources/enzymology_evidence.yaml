@@ -210,7 +210,7 @@ sources:
         bias; absence of a substrate is not a tested negative.
       - Enzyme identity in a scope table is often a name or a strain, not a
         sequence, so sequence-level claims require resolution per record.
-    access_modes: [manual_review_import, local_package]
+    access_modes: [manual_review_import, offline_import]
     capabilities:
       keyword_query: unknown
       exact_record_fetch: unknown
@@ -240,7 +240,12 @@ sources:
       - "Confirm licence and redistribution terms for both the code and the data,
          which may differ."
       - "Confirm whether any programmatic route exists; none is recorded and no
-         endpoint is asserted."
+         endpoint is asserted. The access modes are deliberately the two
+         human-in-the-loop ones: the published code is a package, but installing
+         it yields only the example specificity data, so registering it as
+         local_package would mark this source programmatically reachable and
+         suppress the warning that a person must obtain and check the real
+         records first."
     notes: >-
       Highly relevant to the pilot reaction, which is exactly why the
       code-is-not-the-database caveat is recorded in not_good_for rather than in

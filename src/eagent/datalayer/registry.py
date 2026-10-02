@@ -322,7 +322,10 @@ class DataSource(BaseModel):
     derived_from_complete: bool = Field(
         True,
         description="False when the upstream list is known to be incomplete. Such "
-                    "a source must not be counted as independent evidence.")
+                    "a source must not be counted as independent evidence, and "
+                    "IndependenceReport.n_independent holds back every group it "
+                    "sits in: an unlisted upstream may be exactly what another "
+                    "group rests on, so nothing about its separateness is known.")
 
     connectivity_verified: bool = Field(
         False, description="Always false: nothing here has been connectivity-tested.")
@@ -475,10 +478,23 @@ def _strength_rank(s: Any) -> int:
 class IndependenceReport:
     """Groups of sources that do not corroborate one another, plus caveats.
 
-    Returned alongside the plain grouping because two sources can be
-    *technically* independent in the registry and still share a measurement
-    campaign, and because a source with an admittedly incomplete lineage must be
-    flagged rather than counted.
+    Two counts are kept apart on purpose. :attr:`n_groups` is how many groups
+    the lineage collapse produced; :attr:`n_independent` counts only the groups
+    whose every member declares a *complete* lineage. A source that admits it
+    does not know its own upstreams cannot be shown to be separate from any
+    other group -- its unlisted upstreams may be exactly the resource another
+    group rests on -- so counting it would silently convert "nobody has traced
+    this" into "this is independent corroboration", which is the one error this
+    report exists to prevent. Such ids stay visible in
+    :attr:`incomplete_lineage` and in every rendered line rather than being
+    folded into a confident number.
+
+    ``shared_upstreams`` is keyed by the first id of a group and holds the union
+    of the pairwise lineage intersections observed inside it, not the
+    intersection across all its members; see
+    :meth:`SourceRegistry._collapse_with_causes` for why the global
+    intersection would be empty exactly when the collapse most needs
+    explaining.
     """
 
     groups: tuple[tuple[str, ...], ...]
@@ -486,19 +502,59 @@ class IndependenceReport:
     incomplete_lineage: tuple[str, ...]
 
     @property
-    def n_independent(self) -> int:
+    def n_groups(self) -> int:
+        """Groups after lineage collapse, traced and untraced alike."""
         return len(self.groups)
 
+    @property
+    def counted_groups(self) -> tuple[tuple[str, ...], ...]:
+        """The groups whose every member has ``derived_from_complete`` true."""
+        unresolved = set(self.incomplete_lineage)
+        return tuple(g for g in self.groups if not unresolved.intersection(g))
+
+    @property
+    def withheld_groups(self) -> tuple[tuple[str, ...], ...]:
+        """Groups kept out of the count because a member's lineage is incomplete."""
+        unresolved = set(self.incomplete_lineage)
+        return tuple(g for g in self.groups if unresolved.intersection(g))
+
+    @property
+    def n_independent(self) -> int:
+        """How many groups may be cited as independent corroboration.
+
+        Deliberately not ``len(self.groups)``: a group holding a source with an
+        admittedly incomplete lineage is not shown to be independent of
+        anything, and the difference between the two numbers is the whole point
+        of the report.
+        """
+        return len(self.counted_groups)
+
+    def unresolved_in(self, group: Sequence[str]) -> tuple[str, ...]:
+        """Which members of ``group`` are the reason it is not counted."""
+        unresolved = set(self.incomplete_lineage)
+        return tuple(s for s in group if s in unresolved)
+
     def report_lines(self) -> list[str]:
-        lines = [f"{self.n_independent} independent source group(s)"]
+        lines = [f"{self.n_independent} of {self.n_groups} source group(s) "
+                 f"countable as independent after lineage collapse"]
         for g in self.groups:
             shared = self.shared_upstreams.get(g[0], ())
-            suffix = f"  (shared upstream: {', '.join(shared)})" if shared else ""
+            bits: list[str] = []
+            if shared:
+                bits.append(f"shared upstream: {', '.join(shared)}")
+            unresolved = self.unresolved_in(g)
+            if unresolved:
+                bits.append("NOT counted, lineage incomplete: "
+                            + ", ".join(unresolved))
+            suffix = f"  ({'; '.join(bits)})" if bits else ""
             lines.append(f"  - {', '.join(g)}{suffix}")
         for sid in self.incomplete_lineage:
             lines.append(f"  ! {sid}: lineage is known to be incomplete; it must "
                          f"not be counted as independent corroboration")
         return lines
+
+    def describe(self) -> str:
+        return "\n".join(self.report_lines())
 
 
 def default_datasource_dir() -> Path:
@@ -700,15 +756,20 @@ class SourceRegistry:
         """The source itself plus its upstream closure."""
         return frozenset({source_id}) | self.upstream_closure(source_id)
 
-    def independent_source_groups(
+    def _collapse_with_causes(
         self, ids: Sequence[str] | None = None
-    ) -> list[list[str]]:
-        """Collapse sources that share an upstream into one group.
+    ) -> list[tuple[list[str], tuple[str, ...]]]:
+        """Group by lineage overlap, keeping *which* resources each overlap was.
 
-        Two sources belong to the same group when their lineages intersect, so
-        BRENDA, a resource derived from BRENDA, and a second resource derived
-        from BRENDA come back as one group. Counting groups, not hits, is what
-        stops a re-published measurement being read as corroboration.
+        Returns ``(members, shared)`` per group, members sorted, groups ordered
+        by their first member. ``shared`` is the union of the pairwise lineage
+        intersections seen inside the group, never the intersection across all
+        of its members: groups form by transitive union, so a group whose
+        members have two unrelated roots (BRENDA shares BRENDA with OED, OED
+        shares SABIO-RK with CatPred-DB) has an empty global intersection. A
+        report that printed that empty set would leave the collapse unexplained
+        in exactly the case where a reader most needs to see what tied the
+        sources together.
         """
         chosen = [self.get(i).id for i in (ids if ids is not None else self.ids())]
         chosen = sorted(dict.fromkeys(chosen))
@@ -726,37 +787,61 @@ class SourceRegistry:
                 parent[max(rx, ry)] = min(rx, ry)
 
         lineages = {i: self.lineage(i) for i in chosen}
+        overlaps: list[tuple[str, frozenset[str]]] = []
         for n, i in enumerate(chosen):
             for j in chosen[n + 1:]:
-                if lineages[i] & lineages[j]:
+                common = lineages[i] & lineages[j]
+                if common:
+                    overlaps.append((i, common))
                     union(i, j)
 
         groups: dict[str, list[str]] = {}
         for i in chosen:
             groups.setdefault(find(i), []).append(i)
-        return [sorted(v) for _, v in sorted(groups.items())]
+        causes: dict[str, set[str]] = {root: set() for root in groups}
+        for i, common in overlaps:
+            causes[find(i)].update(common)
+        return [(sorted(members), tuple(sorted(causes[root])))
+                for root, members in sorted(groups.items())]
+
+    def independent_source_groups(
+        self, ids: Sequence[str] | None = None
+    ) -> list[list[str]]:
+        """Collapse sources that share an upstream into one group.
+
+        Two sources belong to the same group when their lineages intersect, so
+        BRENDA, a resource derived from BRENDA, and a second resource derived
+        from BRENDA come back as one group. Counting groups, not hits, is what
+        stops a re-published measurement being read as corroboration.
+
+        The number of groups is **not** the number of independent sources:
+        grouping uses the declared lineages, and a source that admits its
+        ``derived_from`` list is incomplete forms a group of its own that
+        nobody has shown to be separate from the rest. Use
+        :meth:`independence_report` and its ``n_independent`` for a count that
+        holds those back; ``len()`` of this list silently counts them in.
+        """
+        return [members for members, _ in self._collapse_with_causes(ids)]
 
     def independence_report(
         self, ids: Sequence[str] | None = None
     ) -> IndependenceReport:
-        """Groups plus the shared upstream that caused each collapse."""
-        groups = self.independent_source_groups(ids)
-        shared: dict[str, tuple[str, ...]] = {}
-        incomplete: list[str] = []
-        for g in groups:
-            common: frozenset[str] | None = None
-            for sid in g:
-                lin = self.lineage(sid)
-                common = lin if common is None else (common & lin)
-            if len(g) > 1 and common:
-                shared[g[0]] = tuple(sorted(common))
-            for sid in g:
-                if not self.get(sid).derived_from_complete:
-                    incomplete.append(sid)
+        """Groups, what collapsed each one, and whose lineage is still unknown.
+
+        Incompleteness is part of the result rather than a side channel: the
+        report's ``n_independent`` already excludes the groups holding a source
+        with an incomplete lineage, so a caller cannot get the confident number
+        without the caveat travelling with it.
+        """
+        collapsed = self._collapse_with_causes(ids)
+        shared = {members[0]: causes for members, causes in collapsed if causes}
+        incomplete = sorted(
+            sid for members, _ in collapsed for sid in members
+            if not self.get(sid).derived_from_complete)
         return IndependenceReport(
-            groups=tuple(tuple(g) for g in groups),
+            groups=tuple(tuple(members) for members, _ in collapsed),
             shared_upstreams=shared,
-            incomplete_lineage=tuple(sorted(set(incomplete))),
+            incomplete_lineage=tuple(incomplete),
         )
 
     # -- rollout -----------------------------------------------------------
@@ -780,7 +865,20 @@ class SourceRegistry:
         return {n: self.stage_plan(n) for n in (1, 2, 3)}
 
     # -- reporting ---------------------------------------------------------
+    def human_import_only(self) -> list[DataSource]:
+        """Sources with no unattended route; a person must fetch or curate first.
+
+        Separated out because a planner that treats these as callable schedules
+        a run step that will simply never happen.
+        """
+        return [s for s in self if s.is_human_import_only]
+
     def report_lines(self) -> list[str]:
+        """The whole registry in the form a reader can check against the files.
+
+        Prints the independence summary too, because the per-layer counts read
+        as coverage and coverage is what gets mistaken for corroboration.
+        """
         lines = [f"{len(self)} registered sources "
                  f"(connectivity_verified=false for every one of them)"]
         for l in LAYER_ORDER:
@@ -788,4 +886,19 @@ class SourceRegistry:
             lines.append(f"  {l.value:<26} {len(srcs):>3} sources: "
                          f"{', '.join(s.id for s in srcs) or '-'}")
         lines.append(f"  needing curation: {len(self.needing_curation())}")
+        endpoints = [s.id for s in self if s.endpoint is not None]
+        lines.append(f"  recording an endpoint: {len(endpoints)}"
+                     + (f" ({', '.join(endpoints)})" if endpoints else ""))
+        lines.append(f"  network mode but no endpoint: "
+                     f"{len(self.without_endpoint())}")
+        human = self.human_import_only()
+        lines.append(f"  human-import only: {len(human)}"
+                     + (f" ({', '.join(s.id for s in human)})" if human else ""))
+        report = self.independence_report()
+        lines.append(f"  {report.report_lines()[0]}")
+        lines.append(f"  lineage admittedly incomplete: "
+                     f"{len(report.incomplete_lineage)}")
         return lines
+
+    def describe(self) -> str:
+        return "\n".join(self.report_lines())

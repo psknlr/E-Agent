@@ -147,15 +147,64 @@ class TestHonestyInvariants(unittest.TestCase):
             DataSource(**_minimal_source(connectivity_verified=True))
 
     def test_every_endpoint_has_a_citation(self) -> None:
-        checked = 0
+        """An endpoint code will dial must be traceable to documentation.
+
+        Vacuous over the shipped files while no entry records an endpoint; the
+        teeth are in ``test_the_model_refuses_an_endpoint_without_a_citation``,
+        which holds whatever a future curator adds.
+        """
         for src in REGISTRY:
             if src.endpoint is not None:
-                checked += 1
                 self.assertTrue(
                     src.citations,
                     f"{src.id} records an endpoint with no citation")
-        self.assertGreater(checked, 0,
-                           "no endpoint-bearing entry; the check would be vacuous")
+
+    def test_no_entry_asserts_an_endpoint_nobody_has_called(self) -> None:
+        """Five entries used to record a base URL recalled from memory.
+
+        A registry consumed by code must not carry a URL nobody has called: the
+        failure then surfaces at call time, inside a run that has already spent
+        its budget, and a planner will have preferred that route over one that
+        honestly reported uncertainty.
+        """
+        recorded = {s.id: s.endpoint for s in REGISTRY if s.endpoint is not None}
+        self.assertEqual(
+            recorded, {},
+            f"an endpoint is asserted for {sorted(recorded)}; nothing in this "
+            f"registry has been called from this environment, so a URL belongs "
+            f"in curation_notes as a hint until a curator confirms it")
+
+    def test_the_recalled_urls_survive_as_curator_hints(self) -> None:
+        """Nulling the endpoint must not throw the starting point away.
+
+        The URL is still the most useful thing a curator can be handed; it is
+        kept as prose that says it was never called, where no consumer can read
+        it as an established route.
+        """
+        for sid in ("pubmed", "europe_pmc", "pubchem", "uniprotkb",
+                    "ncbi_protein"):
+            src = REGISTRY.get(sid)
+            notes = " ".join(src.curation_notes)
+            self.assertIsNone(src.endpoint, sid)
+            self.assertTrue(src.needs_curation, sid)
+            self.assertIn("starting hint", notes, sid)
+            self.assertIn("from this environment", notes, sid)
+
+    def test_no_bare_url_is_asserted_as_a_citation(self) -> None:
+        """A documentation URL nobody opened is an assertion, not a citation.
+
+        The five endpoints above were each backed by a bare documentation URL
+        recalled the same way. Those are gone; a URL may come back only when it
+        is marked as unopened or carries an identifier, so that a reader cannot
+        mistake it for a page somebody read.
+        """
+        for src in REGISTRY:
+            for cite in src.citations:
+                self.assertFalse(
+                    cite.startswith("http://") or cite.startswith("https://"),
+                    f"{src.id} cites the bare URL {cite!r}; nothing here has "
+                    f"been opened from this environment, so a citation must be "
+                    f"an identifier or say explicitly that it was not read")
 
     def test_the_model_refuses_an_endpoint_without_a_citation(self) -> None:
         with self.assertRaises(Exception):
@@ -177,11 +226,23 @@ class TestHonestyInvariants(unittest.TestCase):
                                   f"{src.id} is import-only but records an endpoint")
 
     def test_uncertain_specifics_are_null_not_guessed(self) -> None:
+        """A specific value and an open curation flag cannot both be true.
+
+        ``endpoint`` is covered here as well as ``version`` and
+        ``approximate_record_count``: the module's own docstring calls a guessed
+        base URL the most dangerous value in the file, because code will call
+        it, so it is the last field that may sit beside "nobody has checked".
+        """
         for src in REGISTRY:
-            if src.version is not None or src.approximate_record_count is not None:
+            asserted = [name for name, value in (
+                ("endpoint", src.endpoint),
+                ("version", src.version),
+                ("approximate_record_count", src.approximate_record_count),
+            ) if value is not None]
+            if asserted:
                 self.assertFalse(
                     src.needs_curation,
-                    f"{src.id} asserts a version or record count while still "
+                    f"{src.id} asserts {', '.join(asserted)} while still "
                     f"flagged for curation")
 
     def test_needs_curation_entries_say_what_to_confirm(self) -> None:
@@ -259,12 +320,31 @@ class TestCapabilities(unittest.TestCase):
         self.assertTrue(AccessMode.MANUAL_REVIEW_IMPORT.requires_human_step)
         self.assertFalse(AccessMode.REST_API.requires_human_step)
 
-    def test_sdred_and_akr_are_registered_as_human_imports(self) -> None:
-        for sid in ("sdred", "akr_superfamily"):
+    def test_sdred_akr_and_retrobiocat_are_registered_as_human_imports(self) -> None:
+        """Three resources whose records a person must fetch before any ingest.
+
+        ``retrobiocat_db`` is the one that is easy to get wrong: its code is
+        published as an installable package, but installing it yields only the
+        example specificity data. Registering it as ``local_package`` would make
+        it programmatically reachable in this taxonomy and suppress the warning
+        in ``plan.readiness()`` that somebody has to obtain and check the real
+        records first.
+        """
+        for sid in ("sdred", "akr_superfamily", "retrobiocat_db"):
             src = REGISTRY.get(sid)
             self.assertTrue(src.is_human_import_only,
                             f"{sid} must not be registered as a live API")
+            self.assertFalse(src.is_programmatically_reachable, sid)
             self.assertIsNone(src.endpoint)
+
+    def test_local_package_is_programmatic_and_not_a_human_step(self) -> None:
+        """The taxonomy fact the retrobiocat_db entry turned on."""
+        self.assertTrue(AccessMode.LOCAL_PACKAGE.is_programmatic)
+        self.assertFalse(AccessMode.LOCAL_PACKAGE.requires_human_step)
+        self.assertFalse(
+            DataSource(**_minimal_source(
+                access_modes=[AccessMode.MANUAL_REVIEW_IMPORT,
+                              AccessMode.LOCAL_PACKAGE])).is_human_import_only)
 
 
 # ---------------------------------------------------------------------------
@@ -332,15 +412,103 @@ class TestLineage(unittest.TestCase):
 
     def test_independence_report_names_the_shared_upstream(self) -> None:
         report = REGISTRY.independence_report(["brenda", "oed", "catpred_db"])
-        self.assertEqual(report.n_independent, 1)
+        self.assertEqual(report.n_groups, 1)
         shared = report.shared_upstreams[report.groups[0][0]]
         self.assertIn("brenda", shared)
+
+    def test_shared_upstreams_explain_a_collapse_made_through_a_chain(self) -> None:
+        """A group formed transitively must still name what tied it together.
+
+        BRENDA and SABIO-RK share nothing with each other; OED and CatPred-DB
+        each re-integrate both, so all four collapse into one group through
+        them. The intersection across every member is therefore empty, and a
+        report that printed that empty set would leave the collapse unexplained
+        exactly where a reader most needs to see the cause.
+        """
+        ids = ["brenda", "sabio_rk", "oed", "catpred_db"]
+        report = REGISTRY.independence_report(ids)
+        self.assertEqual(report.groups,
+                         (("brenda", "catpred_db", "oed", "sabio_rk"),))
+        shared = report.shared_upstreams[report.groups[0][0]]
+        self.assertTrue(shared, "the collapse is reported without a cause")
+        self.assertEqual(set(shared), {"brenda", "sabio_rk"})
+
+        # The old global-intersection rule would have produced nothing here.
+        common = set(REGISTRY.lineage(ids[0]))
+        for sid in ids[1:]:
+            common &= set(REGISTRY.lineage(sid))
+        self.assertEqual(common, set())
+
+        self.assertIn("shared upstream: brenda, sabio_rk",
+                      "\n".join(report.report_lines()))
+
+    def test_a_single_source_group_claims_no_shared_upstream(self) -> None:
+        report = REGISTRY.independence_report(["brenda", "wwpdb_ccd"])
+        self.assertEqual(report.shared_upstreams, {})
 
     def test_incomplete_lineage_is_flagged_rather_than_assumed_independent(self) -> None:
         skid = REGISTRY.get("skid")
         self.assertFalse(skid.derived_from_complete)
         report = REGISTRY.independence_report(["skid", "wwpdb_ccd"])
         self.assertIn("skid", report.incomplete_lineage)
+        self.assertEqual(report.n_groups, 2)
+        self.assertEqual(report.n_independent, 1, "skid was counted")
+        self.assertEqual(report.counted_groups, (("wwpdb_ccd",),))
+        self.assertEqual(report.withheld_groups, (("skid",),))
+
+    def test_n_independent_excludes_every_group_with_an_unknown_lineage(self) -> None:
+        """The count must not absorb a source that admits it is untraced.
+
+        SKiD and IntEnzyDB declare ``derived_from: []`` with a note saying their
+        upstreams are not fully known, and OED and CatPred-DB say the same about
+        the upstreams beyond the two they list. An untraced source cannot be
+        shown to be separate from anything, so counting its group would report
+        re-publication as corroboration -- which is the one thing this registry
+        exists to prevent.
+        """
+        ids = ["brenda", "sabio_rk", "oed", "catpred_db", "skid", "intenzydb"]
+        report = REGISTRY.independence_report(ids)
+        self.assertEqual(report.n_groups, 3)
+        self.assertEqual(len(REGISTRY.independent_source_groups(ids)), 3)
+        self.assertEqual(
+            report.incomplete_lineage,
+            ("catpred_db", "intenzydb", "oed", "skid"))
+        self.assertEqual(report.n_independent, 0,
+                         f"counted {report.counted_groups} as independent")
+        self.assertEqual(report.counted_groups, ())
+        text = "\n".join(report.report_lines())
+        self.assertIn("0 of 3 source group(s) countable as independent", text)
+        for sid in report.incomplete_lineage:
+            self.assertIn(f"! {sid}: lineage is known to be incomplete", text)
+
+    def test_one_untraced_member_withholds_the_whole_group(self) -> None:
+        """Synthetic, so the invariant survives a curator completing a lineage."""
+        reg = SourceRegistry([
+            DataSource(**_minimal_source(id="traced_db", display_name="Traced")),
+            DataSource(**_minimal_source(id="vague_db", display_name="Vague",
+                                         derived_from_complete=False)),
+            DataSource(**_minimal_source(id="child_db", display_name="Child",
+                                         derived_from=["traced_db"])),
+        ])
+        report = reg.independence_report()
+        self.assertEqual(report.n_groups, 2)
+        self.assertEqual(report.counted_groups, (("child_db", "traced_db"),))
+        self.assertEqual(report.n_independent, 1)
+        self.assertEqual(report.incomplete_lineage, ("vague_db",))
+
+        completed = SourceRegistry([
+            DataSource(**_minimal_source(id="traced_db", display_name="Traced")),
+            DataSource(**_minimal_source(id="vague_db", display_name="Vague")),
+        ])
+        self.assertEqual(completed.independence_report().n_independent, 2)
+
+    def test_the_whole_registry_counts_fewer_groups_than_it_has(self) -> None:
+        """The two numbers must stay visibly different on the shipped files."""
+        report = REGISTRY.independence_report()
+        self.assertEqual(report.n_groups, len(REGISTRY.independent_source_groups()))
+        self.assertLess(report.n_independent, report.n_groups)
+        self.assertEqual(len(report.incomplete_lineage),
+                         sum(1 for s in REGISTRY if not s.derived_from_complete))
 
     def test_unknown_source_id_raises(self) -> None:
         with self.assertRaises(UnknownSourceError):

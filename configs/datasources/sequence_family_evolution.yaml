@@ -1,9 +1,13 @@
 # Layer 3 -- sequence, family and evolution.
 #
-# HONESTY RULE: no endpoint URL, record count, version string or licence term in
-# this file was verified in this environment. Unknown specifics are null with
-# needs_curation: true. connectivity_verified is false everywhere. Capability
-# flags describe documented capability, not proven behaviour.
+# HONESTY RULE: nothing in this file was verified in this environment. Unknown
+# specifics are null with needs_curation: true, and that includes every
+# `endpoint` key -- as of this revision no entry here records one. A base URL
+# recalled from general knowledge lives in that entry's curation_notes as a
+# starting hint that has never been called, where no code can mistake it for an
+# established route. Record counts, version strings and licence terms follow
+# the same rule. connectivity_verified is false everywhere. Capability flags
+# describe documented capability, not proven behaviour.
 
 layer: sequence_family_evolution
 layer_question: >-
@@ -59,18 +63,22 @@ sources:
     derived_from: []
     derived_from_complete: true
     connectivity_verified: false
-    endpoint: "https://rest.uniprot.org"
-    citations:
-      - "https://www.uniprot.org/help/api"
+    endpoint: null
+    citations: []
     version: null
     approximate_record_count: null
     priority_stage: 1
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "The REST base URL recorded here is from general knowledge and has NOT
-         been called from this environment. Confirm it, and confirm the SPARQL
-         endpoint separately -- no SPARQL URL is recorded."
+      - "No endpoint is recorded, because none has been established here. As a
+         starting hint for a curator and nothing more: this project's general
+         knowledge suggests a REST service under a base of the form
+         https://rest.uniprot.org, with an API help page on the provider's own
+         site. Neither string was called or opened from this environment.
+         Confirm the real base URL, confirm the SPARQL endpoint separately
+         because no SPARQL URL is recorded either, record the documentation as a
+         citation, and only then set endpoint."
       - "Confirm the licence and whether derived records may be redistributed."
       - "Record the release identifier used in each run so accessions resolve to
          the same entries later."
@@ -317,18 +325,23 @@ sources:
     derived_from: []
     derived_from_complete: true
     connectivity_verified: false
-    endpoint: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
-    citations:
-      - "https://www.ncbi.nlm.nih.gov/books/NBK25501/"
+    endpoint: null
+    citations: []
     version: null
     approximate_record_count: null
     priority_stage: 2
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "The E-utilities base URL recorded here is from general knowledge and has
-         NOT been called from this environment. Confirm it, together with the
-         current API-key and request-rate policy, before the first automated call."
+      - "No endpoint is recorded, because none has been established here. As a
+         starting hint for a curator and nothing more: this project's general
+         knowledge suggests retrieval through the same E-utilities service as
+         the literature layer records, under a base of the form
+         https://eutils.ncbi.nlm.nih.gov/entrez/eutils/ and documented in NCBI
+         Bookshelf entry NBK25501. Neither string was called or opened from this
+         environment. Confirm the real base URL, the API-key policy and the
+         request-rate policy, record the documentation as a citation, and only
+         then set endpoint."
       - "Sequence similarity search is a separate service from record retrieval;
          sequence_query is left unknown rather than assumed, and a similarity hit
          is in any case never a join."

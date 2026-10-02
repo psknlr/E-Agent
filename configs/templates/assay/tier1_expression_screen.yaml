@@ -1,0 +1,115 @@
+# Assay template -- tier 1, expression and indirect activity screen.
+#
+# Validates against eagent.schemas.templates.AssayTemplate.
+#
+# WHAT THIS TIER CAN AND CANNOT CLAIM. A nicotinamide-depletion readout
+# measures the disappearance of NAD(P)H. It does not see the product. Lysate
+# contains many enzymes that consume NAD(P)H, the cofactor oxidises slowly on
+# its own, and a ketone can be reduced by an endogenous host reductase. So a
+# tier-1 positive is a SHORTLISTING SIGNAL and nothing else: confirms_product
+# _identity is false here, and the schema forbids that at tier 2 and above for
+# exactly this reason. No hit may be reported outside the project on tier-1
+# data alone.
+#
+# POSITIVE CRITERIA ARE PRE-REGISTERED AND ARE NOT FILLED IN HERE. Every
+# numeric bar below is null. The bar depends on this plate reader, this lysate
+# preparation and the measured background, none of which exist yet, and a
+# number invented now would be a threshold that was never calibrated and that
+# a later reader would take for a validated cutoff. With the bars null the
+# ingest step reports every well as UNDECIDED rather than as a pass, which is
+# the loud failure that forces the operator to pre-register the bar before the
+# plate is read.
+
+template_id: assay.tier1.expression_screen.v1
+tier: 1
+
+method: >-
+  Microplate screen on clarified lysate (or whole cells), following
+  nicotinamide cofactor depletion by absorbance at 340 nm against the target
+  ketone, with a soluble-expression readout (soluble versus insoluble fraction
+  by gel or an equivalent) recorded per construct in the same round.
+
+# Absorbance at 340 nm reports the cofactor, not the alcohol.
+confirms_product_identity: false
+chiral_capable: false
+requires_authentic_standard: false
+
+controls_required:
+  - "no_enzyme: buffer, substrate, cofactor and recycling system only -- abiotic background, including slow non-enzymatic reduction"
+  - "empty_vector: host lysate carrying the expression vector without the insert -- endogenous host ketoreductase background"
+  - "no_cofactor: complete reaction with the nicotinamide cofactor omitted -- cofactor dependence"
+  - "no_substrate: complete reaction with the ketone omitted -- cofactor oxidation and lysate NAD(P)H turnover background"
+  - "positive_enzyme: an enzyme known to turn over a surrogate ketone under these conditions -- shows the assay system works. If none is available, say so; a plate of negatives with no system control cannot be interpreted"
+  - "heat_inactivated_lysate: the same lysate after heat treatment -- separates catalysis from a non-protein artefact in the detection chain"
+
+# Keys are restricted to those eagent.tools.ingest_results honours
+# (RECOGNISED_CRITERION_KEYS); an unrecognised key raises there rather than
+# being ignored, because an ignored criterion passes everything.
+positive_criteria:
+  measurement_type: "nadph_depletion_initial_rate_A340_per_min"
+  min_measurement_value: null
+  min_fold_over_empty_vector: null
+  min_conversion_pct: null
+  requires_authentic_standard: false
+  requires_chiral_method_validated: false
+
+# Null: the detection limit is a property of the instrument, the path length
+# and the lysate background in the laboratory that runs this, and it must be
+# measured there. A number here would be copied into reports as if it had been.
+limit_of_detection: null
+limit_unit: null
+
+# A design default for a screening plate, not the output of a power
+# calculation. Three wells cannot establish a small difference; they exist to
+# catch pipetting and well-position failures.
+replicates: 3
+
+# Column names from eagent.tools.select_batch.ASSAY_RESULT_COLUMNS, so the
+# returned plate parses without renaming.
+readout_fields:
+  - plan_id
+  - plate
+  - well
+  - slot
+  - candidate_id
+  - construct_id
+  - kind
+  - role
+  - parent_candidate_id
+  - mutations
+  - cofactor
+  - cofactor_state
+  - replicate
+  - tested
+  - expressed_soluble
+  - detection_method
+  - confirms_product_identity
+  - limit_of_detection
+  - limit_unit
+  - measurement_type
+  - measurement_value
+  - measurement_unit
+  - notes
+
+provenance:
+  source_type: curated_database
+  identifiers:
+    - "textbook:nicotinamide_cofactor_absorbance_340nm_depletion_assay"
+    - "eagent:select_batch.default_control_plan"
+  curated_by: "e-agent build agent (model-drafted from standard assay practice; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    Before this plate is run the operator must supply: (1) the numeric bar --
+    min_measurement_value and/or min_fold_over_empty_vector -- pre-registered
+    and recorded with the date, because changing it after the data arrive
+    invalidates the endpoint; (2) the measured limit of detection and its unit
+    for this instrument and lysate; (3) confirmation that measurement_type
+    matches the string the plate file will actually carry, since the ingest
+    step refuses to pool different measurement types; (4) whether a positive
+    control enzyme is available, and if not, an explicit record that the system
+    control is missing.
+    .
+    No molar absorption coefficient is recorded here. Conversion calculated
+    from absorbance needs the coefficient for the path length and plate in use;
+    taking one from memory is how an apparent conversion over 100% is produced.

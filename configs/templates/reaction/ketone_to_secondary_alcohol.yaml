@@ -1,0 +1,127 @@
+# Reaction template -- ketone -> secondary alcohol (asymmetric carbonyl reduction).
+#
+# Validates against eagent.schemas.templates.ReactionTemplate. Top-level keys are
+# exactly that model's fields; the model forbids extras.
+#
+# HONESTY RULES FOR THIS FILE
+#   * No PDB entry, RHEA id, M-CSA id, PMID or DOI appears anywhere below. None
+#     could be verified in this environment, and a plausible-looking identifier
+#     is worse than an absent one because downstream code trusts it. Identifier
+#     prefixes used here: "EC:" (an Enzyme Commission class, textbook) and
+#     "textbook:" (a statement that is standard teaching-level biochemistry and
+#     carries no external identifier yet).
+#   * The SMARTS below were written by hand and were NOT parsed in this
+#     environment: RDKit is not installed here. A curator must round-trip every
+#     pattern through a toolkit before it is used to accept or reject a
+#     substrate.
+#   * creates_stereocenter is deliberately null. See the note under it: a
+#     non-null value here is copied by normalize_reaction into the task spec as
+#     a template-sourced assumption for EVERY substrate of this class, and that
+#     would be wrong for an aldehyde or a symmetric ketone.
+
+template_id: rxn.ketone_to_secondary_alcohol.v1
+reaction_class: ketone_to_secondary_alcohol
+
+description: >-
+  Net addition of a hydride to the carbonyl carbon of a ketone and of a proton
+  to the carbonyl oxygen, giving a secondary alcohol. In the enzymes this
+  project targets the hydride comes from C4 of the reduced nicotinamide of
+  NAD(P)H and the proton comes from an active-site acid (and ultimately from
+  solvent), so the transformation is a two-particle transfer and not a hydrogen
+  transfer from one molecule. The reverse direction -- secondary alcohol
+  oxidation -- is the same catalytic machinery run the other way, which is why
+  an activity record must always be read with its direction attached.
+
+# A ketone: a trigonal carbon doubly bonded to a terminal oxygen and bearing two
+# carbon substituents. The two [#6] neighbours are what excludes an aldehyde
+# (one neighbour is hydrogen) and a carboxylic acid, ester or amide (one
+# neighbour is a heteroatom).
+required_substrate_motif: "[#6][CX3](=[OX1])[#6]"
+
+# Motifs whose PRESENCE makes the target transformation ambiguous, not motifs
+# that make a molecule a bad enzyme substrate. Read with chemoselectivity_notes,
+# which says what each one is for; the schema gives this field no room for a
+# per-entry explanation.
+forbidden_substrate_motif:
+  - "[CX3H1](=[OX1])[#6]"
+  - "[#6][CX3](=[OX1])[CX3](=[OX1])[#6]"
+
+# A secondary alcohol: an sp3 carbon carrying exactly one hydrogen, one hydroxyl
+# and two carbon substituents.
+product_motif: "[#6][CX4H1]([OX2H1])[#6]"
+
+chemoselectivity_notes: >-
+  WHAT THE TWO FORBIDDEN MOTIFS ARE FOR.
+  "[CX3H1](=[OX1])[#6]" is an aldehyde. A substrate that also carries an
+  aldehyde has two reducible carbonyls, the aldehyde is normally the more
+  electrophilic of the two, and most ketoreductases reduce it in preference.
+  The target transformation is then not identifiable from a conversion number
+  alone, so such a substrate is refused by this template rather than scored.
+  "[#6][CX3](=[OX1])[CX3](=[OX1])[#6]" is a 1,2-diketone: two reducible
+  carbonyls in one conjugated unit, giving an alpha-hydroxy ketone, a diol, or a
+  mixture, and up to two new stereocentres. Which product is intended must be
+  stated by the operator; this template cannot represent it.
+  .
+  WHAT THE TEMPLATE CANNOT DECIDE, AND MUST NOT PRETEND TO.
+  Whether a ketone is PROCHIRAL is not expressible as a substructure match. A
+  symmetric ketone (propan-2-one, pentan-3-one, and every ketone whose two
+  carbon substituents are constitutionally and configurationally identical)
+  matches required_substrate_motif exactly as acetophenone does, and gives an
+  ACHIRAL alcohol. Symmetry perception needs a toolkit (canonical ranking of the
+  two branches) or a chemist, and the answer belongs in
+  SubstrateSpec.is_prochiral and ProductSpec.creates_new_stereocenter per
+  substrate.
+  .
+  COMPETING REDUCIBLE GROUPS THAT ARE NOT FORBIDDEN HERE. Esters, amides,
+  carboxylic acids, nitro groups, alkenes, nitriles, imines and
+  alpha,beta-unsaturated carbonyls elsewhere in the molecule are left to the
+  candidate-level chemoselectivity check (evaluate_catalysis compares which
+  group actually occupies the reactive position in a pose). Forbidding them here
+  would discard legitimate substrates: a keto-ester is a normal and valuable
+  ketoreductase target.
+  .
+  ALPHA-SUBSTITUTED KETONES. When the carbon alpha to the carbonyl is itself a
+  stereocentre, reduction can give diastereomers and the substrate may racemise
+  under the reaction conditions (dynamic kinetic resolution). The product then
+  needs diastereomeric AND enantiomeric analysis, which is a different assay
+  from a single chiral separation. This template does not detect that case; the
+  operator must declare it.
+
+# UNSPECIFIED, not R or S: the configuration wanted is a property of the task,
+# not of the reaction class. An operator sets it per task, and until they do,
+# no candidate may be ranked on enantioselectivity.
+stereo_requirement: unspecified
+
+# DELIBERATELY NULL. Reducing a prochiral ketone creates a stereocentre;
+# reducing an aldehyde or a symmetric ketone does not. The reaction class cannot
+# tell these apart, and normalize_reaction promotes a non-null value here into
+# the task spec as an authority ("template:<id>") for whatever substrate is
+# loaded. Leaving it null makes the step report the field unresolved and ask the
+# operator, which is the correct behaviour.
+# needs_curation: false -- this null is the sourced answer, not a gap.
+creates_stereocenter: null
+
+provenance:
+  source_type: mechanism_literature
+  identifiers:
+    - "EC:1.1.1.-"
+    - "textbook:nadph_dependent_carbonyl_reduction_ketone_to_secondary_alcohol"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must supply, before this template is used to accept or reject a
+    real substrate: (1) the RHEA reaction identifier(s) for the generic
+    transformation, if the operator wants reaction-level database joins -- none
+    is recorded here because none was verified; (2) confirmation that each
+    SMARTS above parses and matches the intended set in the toolkit this
+    installation actually uses; (3) a decision on whether alpha-halo and
+    alpha-keto esters should be moved from the chemoselectivity notes into
+    forbidden_substrate_motif for this programme.
+    .
+    On the EC identifier: EC 1.1.1.- covers oxidoreductases acting on the CH-OH
+    group of a donor with NAD(+) or NADP(+) as acceptor, and EC numbers in this
+    class are written in the OXIDATION direction. It is recorded here as a
+    search hint for mining, not as a statement that a sequence carrying it
+    reduces this substrate, and it must never be used to exclude an
+    uncharacterised sequence.

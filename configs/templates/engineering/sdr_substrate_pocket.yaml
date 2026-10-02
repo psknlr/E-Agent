@@ -1,0 +1,173 @@
+# Engineering template -- SDR substrate pocket, round 1.
+#
+# Validates against eagent.schemas.templates.EngineeringTemplate.
+#
+# WHAT THIS FILE IS. A statement of what may be changed in an SDR scaffold,
+# what is frozen, and what is already known to go wrong. It is NOT a list of
+# mutations to make: known_beneficial_mutations is empty, deliberately, because
+# no sourced precedent could be recorded in this environment and
+# propose_mutations rejects an entry with no evidence field anyway.
+#
+# THE SHELL BOUNDS ARE A SEARCH SCOPE, NOT A CATALYTIC CRITERION. "Within 4.5 A
+# of the substrate" says where to look for positions to consider; it says
+# nothing about whether a position matters. The code that consumes these zones
+# records bare shell membership as scope and demands a separate reason -- a
+# measured contact, a clash, a sourced precedent -- before a position is
+# proposed on.
+
+template_id: eng.sdr.substrate_pocket.v1
+family_name: SDR
+
+# Role labels from cat.sdr.nadph_carbonyl_reduction.v1. Frozen in round 1
+# because changing any of them tests "is this enzyme still an SDR" rather than
+# "does this enzyme accept the substrate", and a dead variant teaches nothing
+# about substrate fit.
+frozen_roles:
+  - catalytic_tyr
+  - catalytic_lys
+  - catalytic_ser
+  - catalytic_asn
+
+mutable_zones:
+  - name: first_shell_substrate_contact
+    selector: >-
+      Residues with at least one heavy atom within 4.5 A of any substrate heavy
+      atom in the modelled complex.
+    role: substrate_contact
+    min_angstrom: 0.0
+    max_angstrom: 4.5
+    rationale: >-
+      The wall of the pocket. These positions set which ketone fits and which
+      prochiral face is presented, so they are where a substrate-directed
+      round-1 library belongs. 4.5 A is the conventional heavy-atom contact
+      cut-off used to define a first coordination shell; it is a SCOPE for
+      proposing, not a threshold anything passes or fails, and no candidate is
+      accepted or rejected on it.
+  - name: second_shell_pocket_support
+    selector: >-
+      Residues in the default shell (default_shell_min_angstrom to
+      default_shell_max_angstrom from the substrate) that are not already in the
+      first shell.
+    role: pocket_shell_member
+    rationale: >-
+      Second-shell positions move first-shell side chains without touching the
+      substrate themselves. Included as scope because second-shell substitutions
+      are a recognised route to changing selectivity with less loss of activity;
+      bare membership of this shell is explicitly NOT a reason to mutate, and
+      the consuming code records it as scope only.
+  - name: substrate_entrance_channel
+    selector: >-
+      Residues lining the channel from bulk solvent to the pocket. This cannot
+      be derived from a distance alone -- it needs a tunnel or cavity
+      calculation, or a curator's reading of the structure -- so this zone is
+      measured in the default shell until one is supplied.
+    role: pocket_entrance
+    rationale: >-
+      Entrance residues control access of a bulky ketone and of the cosolvent,
+      and they are a common site of activity gains that do not disturb the
+      catalytic arrangement.
+    needs_curation: true
+    curator_must_supply: >-
+      A channel definition (tunnel calculation output, or an explicit residue
+      list) for this scaffold. Without it this zone is indistinguishable from
+      the second shell and will over-propose.
+  - name: sdr_substrate_binding_loop
+    selector: >-
+      The variable C-terminal substrate-binding loop of the SDR fold. Its
+      boundaries differ between members and must come from an alignment to the
+      project's reference, not from a distance cut-off.
+    role: orienting_loop
+    rationale: >-
+      In SDRs this loop closes over the pocket and carries much of the substrate
+      range and the facial preference. It is also frequently disordered in
+      crystal structures and poorly predicted, which is exactly why a proposal
+      here needs the loop's modelling confidence recorded alongside it.
+    needs_curation: true
+    curator_must_supply: >-
+      The residue range of this loop in the project's reference numbering,
+      taken from an alignment, plus the per-residue model confidence for each
+      candidate. Proposing into a region with low model confidence spends
+      construct slots on coordinates nobody trusts.
+
+# Schema defaults, kept. They are a SCOPE: positions between 4 and 8 A of the
+# substrate are the ones worth looking at, and that is all the two numbers mean.
+default_shell_min_angstrom: 4.0
+default_shell_max_angstrom: 8.0
+
+# EMPTY ON PURPOSE. Every entry here would be an experimental precedent, and a
+# precedent needs a citation -- propose_mutations excludes an entry whose
+# evidence field is blank and records the exclusion. No mutation with a
+# verifiable citation could be recorded in this environment, and a plausible
+# "F147L improves activity on aryl ketones" with no source would be adopted by
+# the proposal step as experimental evidence.
+# needs_curation: true -- a curator must add precedents with PMIDs or DOIs, and
+# must mark for each whether the effect was measured on THIS sequence or on a
+# homologue, because the two carry different weight.
+known_beneficial_mutations: []
+
+known_failure_modes:
+  - >-
+    Substituting the catalytic Tyr, Lys, Ser/Thr or Asn abolishes or cripples
+    activity. These are frozen for round 1 for that reason; a variant library
+    that includes them spends slots on a result that is already known.
+  - >-
+    Enlarging the pocket to accept a bulkier ketone frequently destroys
+    enantioselectivity, because the alternative substrate orientation becomes
+    sterically accessible at the same time. Activity and selectivity must be
+    read as two separate outcomes of the same variant, never combined into one
+    figure of merit.
+  - >-
+    Substitutions in or next to the glycine-rich cofactor loop change cofactor
+    binding and can change cofactor PREFERENCE. A variant that loses activity
+    there may simply have switched to a cofactor the assay did not supply,
+    which looks identical to a dead enzyme unless both cofactors are tested.
+  - >-
+    Replacing buried hydrophobic pocket residues with polar or charged ones is
+    a common route to loss of soluble expression. In a lysate screen this is
+    indistinguishable from loss of activity unless soluble expression is
+    measured per well.
+  - >-
+    Several SDRs complete their pocket with the C-terminal segment of the
+    neighbouring subunit. A proposal made on a monomer model can target a
+    position that is not part of the real pocket, or miss the interface
+    position that is.
+  - >-
+    Gains measured on a surrogate or model ketone frequently do not transfer to
+    the real substrate. The assay must use the declared target substrate, and
+    if a surrogate is used the substitution must be recorded as an assumption.
+  - >-
+    Stacking several substitutions in round 1 makes an inactive variant
+    uninterpretable, because the responsible substitution cannot be identified.
+    That is what max_simultaneous_mutations_round1 limits.
+
+# A design choice about interpretability, not a biochemical constant: with at
+# most two simultaneous substitutions, a dead variant can still be attributed.
+# Raise it only with the single-substitution decomposition controls in the same
+# plate.
+max_simultaneous_mutations_round1: 2
+
+provenance:
+  source_type: mechanism_literature
+  identifiers:
+    - "textbook:sdr_substrate_binding_loop_determines_substrate_range"
+    - "textbook:activity_selectivity_trade_off_in_pocket_enlargement"
+    - "PFAM:PF00106"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry and general protein-engineering practice; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must supply: (1) sourced entries for known_beneficial_mutations,
+    each with a PMID or DOI and a statement of whether the effect was measured
+    on this sequence or on a homologue; (2) the residue range of the
+    substrate-binding loop in the project's reference numbering; (3) a channel
+    definition for the entrance zone; (4) the cofactor-anchoring positions that
+    should ALSO be frozen -- the glycine-rich loop and the basic residue that
+    reads the 2'-phosphate of NADP(H). Those positions have no role label in
+    cat.sdr.nadph_carbonyl_reduction.v1, so they cannot be named in
+    frozen_roles yet; they belong in a cofactor recognition rule, and until one
+    exists the proposal step can touch them. This is a real gap in round-1
+    safety and is recorded rather than papered over with an invented label.
+    .
+    The known_failure_modes list is qualitative on purpose. Every quantitative
+    version of these statements ("ee drops by N% when the pocket is enlarged by
+    M cubic angstroms") would be a fabricated number.

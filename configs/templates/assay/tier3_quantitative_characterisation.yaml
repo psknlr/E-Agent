@@ -1,0 +1,110 @@
+# Assay template -- tier 3, quantitative characterisation with configuration.
+#
+# Validates against eagent.schemas.templates.AssayTemplate.
+#
+# WHAT THIS TIER ADDS. Tier 2 says the product is the target alcohol. This tier
+# says HOW MUCH and WHICH ENANTIOMER, on a chiral method that has been shown to
+# separate the two and whose peaks have been assigned to configurations with
+# authentic single-enantiomer standards.
+#
+# ENANTIOMERIC EXCESS IS NOT ALWAYS DEFINED. If the substrate is an aldehyde or
+# a symmetric ketone, the product has no stereocentre, and an "ee" from an
+# achiral product is an artefact of integrating noise. The ee criterion below
+# therefore applies only when ProductSpec.creates_new_stereocenter is true and
+# a target configuration has been set; TaskSpec.stereo_task is the switch, and
+# a task where it is false must not be scored on the ee bar at all.
+
+template_id: assay.tier3.quantitative_characterisation.v1
+tier: 3
+
+method: >-
+  Chiral GC or chiral HPLC with a validated separation of the two product
+  enantiomers: baseline resolution demonstrated on a racemic standard, and each
+  peak assigned to a configuration with authentic single-enantiomer standards.
+  Quantitative conversion against a calibration curve; where justified by the
+  programme, kinetic parameters on purified enzyme under stated conditions.
+
+confirms_product_identity: true
+chiral_capable: true
+requires_authentic_standard: true
+
+controls_required:
+  - "racemic_standard: the racemate of the product alcohol, establishing that the method resolves the two enantiomers to baseline in this run"
+  - "single_enantiomer_standards: authentic (R) and (S) standards, assigning each peak to a configuration -- elution order must not be assumed from another column, another temperature programme or another paper"
+  - "authentic_standard_calibration: a calibration series of the product, so conversion is quantified rather than estimated from peak-area ratios"
+  - "substrate_only_injection: the unreacted ketone, which can co-elute with one enantiomer"
+  - "no_enzyme: abiotic background carried through the same work-up, which can be racemic and will otherwise erode an apparent ee"
+  - "empty_vector: host background, which can be enantioselective in its own right and of the opposite sense"
+  - "no_cofactor: cofactor dependence, repeated at this tier"
+  - "racemisation_control: standard product incubated under the reaction and work-up conditions, to show the measured ee is not an artefact of the work-up or of substrate racemisation"
+
+positive_criteria:
+  requires_authentic_standard: true
+  requires_chiral_method_validated: true
+  min_conversion_pct: null
+  min_ee_target_pct: null
+  measurement_type: "conversion_pct_chiral_method"
+  min_measurement_value: null
+
+limit_of_detection: null
+limit_unit: null
+
+replicates: 3
+
+readout_fields:
+  - plan_id
+  - plate
+  - well
+  - slot
+  - candidate_id
+  - construct_id
+  - kind
+  - role
+  - parent_candidate_id
+  - mutations
+  - cofactor
+  - cofactor_state
+  - replicate
+  - tested
+  - detection_method
+  - confirms_product_identity
+  - authentic_standard
+  - chiral_method_validated
+  - limit_of_detection
+  - limit_unit
+  - measurement_type
+  - measurement_value
+  - measurement_unit
+  - conversion_pct
+  - product_identity_observed
+  - peak_area_target_enantiomer
+  - peak_area_opposite_enantiomer
+  - notes
+
+provenance:
+  source_type: curated_database
+  identifiers:
+    - "textbook:chiral_chromatography_enantiomeric_excess_determination"
+    - "eagent:ingest_results.RECOGNISED_CRITERION_KEYS"
+  curated_by: "e-agent build agent (model-drafted from standard analytical practice; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    Before this tier runs the operator must supply: (1) the pre-registered
+    conversion and ee bars (min_conversion_pct, min_ee_target_pct), with the
+    date they were fixed and the decision they feed; (2) the measured limit of
+    detection and unit; (3) the chiral method's validation record -- column,
+    mobile phase or temperature programme, resolution achieved on the racemate,
+    and the peak-to-configuration assignment with the standards used;
+    (4) the source, purity and lot of every standard.
+    .
+    ee IS REPORTED SIGNED AND IS COMPUTED FROM THE TWO PEAK AREAS, which is why
+    both peak_area_target_enantiomer and peak_area_opposite_enantiomer are in
+    readout_fields. A single "ee" column with no peak areas cannot be audited,
+    cannot distinguish 98 percent of the wanted enantiomer from 98 percent of
+    the unwanted one, and must not be accepted by the ingest step.
+    .
+    Kinetic parameters, where measured, belong to the conditions they were
+    measured under. They are not comparable across lysate and purified enzyme,
+    across cosolvent fractions, or across cofactor recycling systems, and must
+    not be pooled into one table with the screening numbers.

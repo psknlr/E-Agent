@@ -54,11 +54,18 @@ declared.
 
 ```
 layer coverage for task <id> (thin below 3 records)
-  ok     reaction_and_chemistry        4 records (0 experimental) from [rhea, pubchem]
+  ok     reaction_and_chemistry        4 records (0 experimental) from [pubchem, rhea]
   THIN   enzymology_evidence           1 records (1 experimental) from [brenda]
+  EMPTY  sequence_family_evolution     0 records (0 experimental) from [-]
+  EMPTY  structure_and_mechanism       0 records (0 experimental) from [-]
   EMPTY  mutation_and_performance      0 records (0 experimental) from [-]
            gap: no variant-effect data retrieved for this family
+  EMPTY  literature_and_feedback       0 records (0 experimental) from [-]
 ```
+
+(Pasted from a run: three records from Rhea, one from PubChem, one experimental
+record from BRENDA, and a recorded gap on the mutation layer. The four layers
+that supplied nothing are printed anyway, which is the point.)
 
 A ranked candidate table built on one thin layer looks exactly like one built on
 six rich layers. `experimental_counts` is tracked apart from `counts` because
@@ -377,22 +384,46 @@ measurements".
 ### Worked example: one measurement in four databases
 
 Four `ExperimentRecord`s describing one campaign, as BRENDA, OED, SKiD and
-CatPred-DB would each present it. Output below is the actual rendering of
-`LineageReport.build(...)` on those four rows:
+CatPred-DB would each present it. The inputs are stated in full, because a
+transcript whose inputs are hidden cannot be checked and a group id is a hash
+of them:
+
+* rows `r_brenda`, `r_oed`, `r_skid`, `r_catpred`, each carrying one
+  `EvidenceRef` with `experiment_activity_id="campaign-7"`, the same
+  `source_doi`, `strength=homolog_experimental` and `extracted_by="human"`;
+* `upstream_sources`: none for `r_brenda`, `brenda` for `r_oed`,
+  `brenda, oed` for `r_skid`, `brenda, oed, skid` for `r_catpred`;
+* the DOI is the placeholder `10.5555/example-doi-do-not-cite` — the reserved
+  `10.5555` test prefix with a suffix that cannot be read as a title, the same
+  spelling `lineage.normalise_doi`'s own docstring uses. **It names no paper.**
+  A fixture DOI that looks like a real article gets copied into a docstring,
+  and out of the docstring into a document, until something prints it as a
+  citation to work that was never done;
+* each row reports the same conversion and *ee* with the same detection method,
+  so nothing distinguishes them except which database they came from.
+
+Output below is the actual rendering of `LineageReport.build(...)` on those four
+rows, pasted from a run of the current code:
 
 ```
 claim: this ADH reduces 4-chloroacetophenone to the (S)-alcohol
 rows retrieved:           4
 independent measurements: 1
+unlinkable rows:          0
 corroboration:            weak
-upstream resources:       activity:campaign-7, brenda, sabio_rk
+upstream resources:       activity:campaign-7, brenda, oed, skid
 groups:
-  grp:8a83f09d07c7  [experiment_activity]  rows=4  strength=homolog_experimental  upstream=activity:campaign-7
+  grp:60eade85bba4  [experiment_activity]  rows=4  strength=homolog_experimental  upstream=activity:campaign-7
 discounted rows:
-  r_oed (grp:8a83f09d07c7): re-report of the same measurement (matched on experiment_activity); counted once through r_brenda
-  r_skid (grp:8a83f09d07c7): re-report of the same measurement (matched on experiment_activity); counted once through r_brenda
-  r_catpred (grp:8a83f09d07c7): re-report of the same measurement (matched on experiment_activity); counted once through r_brenda
+  r_oed (grp:60eade85bba4): re-report of the same measurement (matched on experiment_activity); counted once through r_brenda
+  r_skid (grp:60eade85bba4): re-report of the same measurement (matched on experiment_activity); counted once through r_brenda
+  r_catpred (grp:60eade85bba4): re-report of the same measurement (matched on experiment_activity); counted once through r_brenda
 ```
+
+The named origin is `activity:campaign-7` rather than the DOI because
+`ProvenanceGraph` records that the activity produced the number and the paper
+reports it, so the publication node hangs below the activity and the activity is
+the only root.
 
 Three things are worth reading carefully. The row count and the independent
 count sit **side by side**, so "supported by four records" cannot be written
@@ -446,12 +477,27 @@ cite each other; cycles are reported through `cycles()`, not followed.
 
 `SourceRegistry.independent_source_groups()` does the same job one level up, over
 the registry's `derived_from` declarations. On the current registry it collapses
-49 sources into 28 independent groups. The notable collapse is
+49 sources into 28 groups. The notable collapse is
 `brenda, catpred_db, enzymemap, oed, sabio_rk` into one group — four of those
-re-integrate one or both of the first two. `derived_from_complete=False` marks a
-source whose upstream list is known to be incomplete; 23 entries carry that flag
-today, and the report names each one as "must not be counted as independent
-corroboration".
+re-integrate one or both of the first two.
+
+Those 28 are **not** 28 independent sources, and
+`SourceRegistry.independence_report()` is what keeps the two apart.
+`derived_from_complete=False` marks a source whose upstream list is known to be
+incomplete; 23 entries carry that flag today. A source that cannot say what it
+re-integrates cannot be shown to be separate from any other group — its
+unlisted upstreams may be exactly what another group rests on — so
+`IndependenceReport.n_independent` counts only the groups whose every member
+declares a complete lineage. That is **13** of the 28 today; the other 15 stay
+in `groups`, are listed in `incomplete_lineage`, and are printed with "NOT
+counted, lineage incomplete" beside them rather than being dropped or quietly
+added in.
+
+`shared_upstreams` explains each collapse with the union of the pairwise lineage
+intersections inside the group, not the intersection across all its members: a
+group formed through a chain (BRENDA shares BRENDA with OED, OED shares SABIO-RK
+with CatPred-DB) has an empty global intersection, and printing that would leave
+the collapse unexplained exactly where the cause is least obvious.
 
 ---
 

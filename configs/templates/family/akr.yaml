@@ -1,0 +1,121 @@
+# Family template -- AKR, the aldo-keto reductase superfamily.
+#
+# Validates against eagent.schemas.templates.FamilyTemplate.
+#
+# One of three SEPARATE mechanistic hypotheses for ketone reduction. AKR shares
+# no fold, no cofactor-binding architecture and no catalytic residue set with
+# SDR; the resemblance is at the level of the overall chemistry only. Nothing
+# learned about an SDR pocket transfers here.
+#
+# HONESTY RULES FOR THIS FILE
+#   * No UniProt accession, PDB entry or PROSITE pattern identifier appears
+#     below. conserved_motifs is EMPTY -- see the caveat; that is a recorded gap,
+#     not an assertion that the family has no sequence signature.
+#   * Family assignment for AKR therefore rests on the HMM/domain hit and on the
+#     fold, which means the domain signal is load-bearing here in a way it is
+#     not for SDR. The mining step must not quietly count a missing motif signal
+#     as a negative.
+
+template_id: fam.akr.v1
+family_name: AKR
+
+# PF00248 is the "Aldo_ket_red" aldo/keto reductase domain.
+pfam_ids:
+  - PF00248
+
+interpro_ids: []
+
+domain_architecture:
+  - >-
+    Single (beta/alpha)8 TIM barrel. The active site sits at the C-terminal end
+    of the barrel, where the catalytic tetrad and the nicotinamide ring meet.
+  - >-
+    Three variable loops (conventionally loops A, B and C) at the C-terminal
+    face form the walls of the substrate pocket and carry most of the substrate
+    range and stereochemical preference. Loop movement on cofactor binding is
+    part of the ordered mechanism, so a static model of an apo structure can
+    describe a pocket that does not exist in the productive complex.
+  - >-
+    A C-terminal segment folds back over the barrel; the nicotinamide sits in an
+    extended conformation across the barrel face rather than in a Rossmann fold.
+    There is NO Rossmann fold in this family, and no glycine-rich pyrophosphate
+    loop to look for.
+
+# EMPTY, and the emptiness is the honest answer here. Writing a plausible
+# PROSITE-style pattern from memory would mean a motif that never matches is
+# reported as "this family's signature is absent from the candidate" -- a
+# statement about the sequence rather than about the template.
+conserved_motifs: []
+
+cofactor_preference:
+  NADPH: >-
+    The great majority of characterised AKRs are NADPH-dependent. The
+    2'-phosphate is held by a basic pocket (Arg and Lys residues) on the
+    C-terminal face of the barrel, and cofactor binding and release are
+    frequently rate-limiting because they involve a loop conformational change.
+    Still a PER-SEQUENCE question: NADH-utilising members and members with
+    relaxed preference are known, and the mining step must determine the
+    preference from the sequence and structure of each candidate rather than
+    inheriting it from the family.
+
+typical_fold: >-
+  (beta/alpha)8 TIM barrel. Distinct from the SDR Rossmann fold and from the
+  two-domain MDR/ADH architecture; an automated fold assignment that returns
+  "TIM barrel" for a candidate contradicts an SDR family call and the conflict
+  must be resolved, not averaged.
+
+oligomeric_state: >-
+  Frequently monomeric, which simplifies modelling relative to SDR and MDR;
+  multimeric members exist. NOT DETERMINED HERE for any specific enzyme.
+
+catalytic_template_ids:
+  - cat.akr.nadph_carbonyl_reduction.v1
+
+seed_accessions: []
+
+provenance:
+  source_type: curated_database
+  identifiers:
+    - "PFAM:PF00248"
+    - "EC:1.1.1.-"
+    - "textbook:aldo_keto_reductase_superfamily_tim_barrel_and_tyr_lys_his_asp_tetrad"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must first VERIFY the Pfam accession above against the Pfam
+    release in use -- it was written from memory -- and must then supply:
+    (1) the InterPro accession(s) for the superfamily;
+    (2) the PROSITE (or equivalent) sequence signature(s) for the aldo/keto
+    reductase family, read from PROSITE itself, with their identifiers, so that
+    conserved_motifs can stop being empty; (3) a primary reference (PMID or DOI)
+    for the superfamily definition and for the catalytic tetrad; (4) a seed
+    accession set with its database snapshot; (5) at least one experimental
+    ternary-complex structure (enzyme, cofactor, substrate or inhibitor) with
+    ligand codes, which the catalytic template needs before any geometry window
+    can be calibrated.
+    .
+    The EC identifier is a search hint, written in the oxidation direction.
+
+caveats: >-
+  conserved_motifs is empty, so only two of the three independent signal types
+  FamilyTemplate expects are available from this file (domain hit and, via the
+  catalytic template, catalytic-residue plausibility). Treat a bare AKR call as
+  weaker than an SDR call made on the same evidence until a curator adds the
+  signature patterns, and record that asymmetry in the report rather than
+  letting the two families appear equally supported.
+  .
+  The superfamily spans aldehyde reductases, aldose reductases, hydroxysteroid
+  dehydrogenases, prostaglandin F synthases and others. Membership fixes the
+  mechanistic hypothesis -- 4-pro-R hydride transfer from NADPH with a
+  Tyr-Lys-His-Asp tetrad -- and says nothing about which carbonyl compounds a
+  particular member accepts.
+  .
+  Many AKRs reduce aldehydes faster than ketones. For a ketone-reduction
+  campaign this is a chemoselectivity risk rather than a disqualification, and
+  it is a reason to keep the aldehyde control in the tier-1 plate.
+  .
+  Ordered bi-bi kinetics with cofactor binding first, and cofactor release
+  commonly rate-limiting, mean that an initial-rate screen on this family can
+  report cofactor turnover behaviour rather than substrate preference. The
+  tier-2 product-identity assay is what separates the two.

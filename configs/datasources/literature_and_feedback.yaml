@@ -1,9 +1,13 @@
 # Layer 6 -- literature and feedback.
 #
-# HONESTY RULE: no endpoint URL, record count, version string or licence term in
-# this file was verified in this environment. Unknown specifics are null with
-# needs_curation: true. connectivity_verified is false everywhere. Capability
-# flags describe documented capability, not proven behaviour.
+# HONESTY RULE: nothing in this file was verified in this environment. Unknown
+# specifics are null with needs_curation: true, and that includes every
+# `endpoint` key -- as of this revision no entry here records one. A base URL
+# recalled from general knowledge lives in that entry's curation_notes as a
+# starting hint that has never been called, where no code can mistake it for an
+# established route. Record counts, version strings and licence terms follow
+# the same rule. connectivity_verified is false everywhere. Capability flags
+# describe documented capability, not proven behaviour.
 
 layer: literature_and_feedback
 layer_question: >-
@@ -53,18 +57,23 @@ sources:
     derived_from: []
     derived_from_complete: true
     connectivity_verified: false
-    endpoint: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
-    citations:
-      - "https://www.ncbi.nlm.nih.gov/books/NBK25501/"
+    endpoint: null
+    citations: []
     version: null
     approximate_record_count: null
     priority_stage: 1
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "The E-utilities base URL recorded here is from general knowledge and has
-         NOT been called from this environment. Confirm it, together with the
-         API-key and request-rate policy, before the first automated call."
+      - "No endpoint is recorded, because none has been established here. As a
+         starting hint for a curator and nothing more: this project's general
+         knowledge suggests the E-utilities live under a base of the form
+         https://eutils.ncbi.nlm.nih.gov/entrez/eutils/ and are documented in
+         NCBI Bookshelf entry NBK25501. Neither string was called or opened from
+         this environment, so both may be stale or simply wrong. Establish the
+         real base URL, the API-key policy and the request-rate policy from the
+         provider, record the documentation as a citation, and only then set
+         endpoint."
       - "Confirm the terms of use for storing retrieved records."
       - "Decide how retraction and correction notices are checked, since the
          search result does not surface them reliably."
@@ -108,18 +117,22 @@ sources:
     derived_from: [pubmed]
     derived_from_complete: false
     connectivity_verified: false
-    endpoint: "https://www.ebi.ac.uk/europepmc/webservices/rest"
-    citations:
-      - "https://europepmc.org/RestfulWebService"
+    endpoint: null
+    citations: []
     version: null
     approximate_record_count: null
     priority_stage: 1
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "The REST base URL recorded here is from general knowledge and has NOT
-         been called from this environment. Confirm it and the rate policy before
-         the first automated call."
+      - "No endpoint is recorded, because none has been established here. As a
+         starting hint for a curator and nothing more: this project's general
+         knowledge suggests a REST service under a base of the form
+         https://www.ebi.ac.uk/europepmc/webservices/rest, described on a
+         RESTful-web-service page of the provider's own site. Neither string was
+         called or opened from this environment. Confirm the real base URL and
+         the rate policy with the provider, record the documentation as a
+         citation, and only then set endpoint."
       - "Confirm per-article licence handling, and implement the refusal path for
          non-open full text before any extraction runs."
       - "derived_from is marked incomplete -- it aggregates several literature

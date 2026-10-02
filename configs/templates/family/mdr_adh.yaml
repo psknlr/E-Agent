@@ -1,0 +1,145 @@
+# Family template -- MDR/ADH, the medium-chain zinc-dependent alcohol
+# dehydrogenase family.
+#
+# Validates against eagent.schemas.templates.FamilyTemplate.
+#
+# One of three SEPARATE mechanistic hypotheses for ketone reduction, and the
+# only one of the three with a catalytic metal. The zinc is not a decoration:
+# it polarises the substrate carbonyl and stabilises the developing alkoxide, so
+# a model of this family built without the metal is not a model of the
+# mechanism, and a geometry score computed on such a model is meaningless.
+#
+# HONESTY RULES FOR THIS FILE
+#   * No UniProt accession and no PDB entry appears below.
+#   * Only one sequence motif is recorded, and it is the generic Rossmann
+#     fingerprint. The zinc-ligand motifs were NOT written from an alignment and
+#     are therefore left out; see caveats for exactly what a curator must add.
+
+template_id: fam.mdr_adh.v1
+family_name: MDR/ADH
+
+# PF08240 is the "ADH_N" GroES-like N-terminal catalytic domain and PF00107 is
+# the "ADH_zinc_N" zinc-binding dehydrogenase (C-terminal, Rossmann) domain. A
+# member of this family is normally hit by BOTH, and the two-domain hit is
+# itself the strongest cheap signal for the family.
+pfam_ids:
+  - PF08240
+  - PF00107
+
+interpro_ids: []
+
+domain_architecture:
+  - >-
+    Two domains per subunit. The N-terminal catalytic domain (GroES-like,
+    largely beta) carries the catalytic zinc and most of the substrate pocket.
+  - >-
+    The C-terminal domain is a Rossmann fold that binds NAD(H). Cofactor
+    binding drives a hinge rotation that closes the two domains over the
+    substrate; the closed conformation is the catalytically relevant one, so an
+    apo or open structure measures a pocket the reaction never uses.
+  - >-
+    Many members carry a SECOND, purely structural zinc in a cysteine-rich loop
+    of the catalytic domain. It is not catalytic, it is absent from parts of the
+    family, and it must not be confused with the catalytic metal when a
+    structure is prepared: stripping it collapses the loop, and modelling it
+    into the catalytic site mislabels the mechanism.
+
+conserved_motifs:
+  - name: rossmann_glycine_rich_mdr
+    pattern: "G-x-G-x-x-G"
+    role: >-
+      Cofactor binding: the classic GxGxxG dinucleotide-binding fingerprint in
+      the Rossmann domain, at the first beta-strand to alpha-helix turn. NOTE
+      that this is a DIFFERENT spacing from the SDR fingerprint (GxxxGxG); the
+      two should not be interchanged when a candidate is being assigned to one
+      of the two families.
+    evidence: >-
+      textbook: Rossmann-fold dinucleotide-binding fingerprint. VERY LOW
+      SPECIFICITY on its own -- a six-residue pattern with three wildcards
+      matches many unrelated sequences, so this contributes one weak signal and
+      is never a filter.
+    needs_curation: true
+    curator_must_supply: >-
+      The spacing variant present in this project's seed set, taken from an
+      alignment, and a reference for the fingerprint. A curator should also add
+      the catalytic-zinc and structural-zinc patterns (see caveats), which were
+      deliberately not written here.
+
+cofactor_preference:
+  NADH: >-
+    The characterised members of this family are predominantly NAD(H)-dependent,
+    including the classical liver and yeast alcohol dehydrogenases. The classic
+    Rossmann determinant applies: an acidic residue at the C-terminal end of the
+    second beta-strand hydrogen-bonds the adenosine ribose 2'- and 3'-hydroxyls
+    and disfavours a 2'-phosphate. PER-SEQUENCE QUESTION; NADP(H)-dependent
+    members of the family exist and must not be mis-assigned by inheritance.
+
+typical_fold: >-
+  Two-domain: GroES-like catalytic domain plus a Rossmann-fold cofactor domain,
+  with the active site in the cleft between them. Distinct from both the
+  single-domain SDR Rossmann fold and the AKR TIM barrel.
+
+oligomeric_state: >-
+  Commonly homodimeric (the classical liver enzymes) or homotetrameric (several
+  microbial and yeast enzymes). NOT DETERMINED HERE for any specific enzyme.
+  The interface contributes to the pocket in some members, so the assembly must
+  be settled before a complex is modelled.
+
+catalytic_template_ids:
+  - cat.mdr_adh.zn_nadh_carbonyl_reduction.v1
+
+seed_accessions: []
+
+provenance:
+  source_type: curated_database
+  identifiers:
+    - "PFAM:PF08240"
+    - "PFAM:PF00107"
+    - "EC:1.1.1.1"
+    - "EC:1.1.1.2"
+    - "textbook:medium_chain_zinc_dependent_alcohol_dehydrogenase_family"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must first VERIFY both Pfam accessions above against the Pfam
+    release in use -- they were written from memory, and PF00107 in
+    particular is recorded here as the zinc-binding dehydrogenase domain on
+    that basis alone -- and must then supply: (1) the InterPro accession(s)
+    for both domains;
+    (2) sequence patterns for the catalytic-zinc ligand set and for the
+    structural-zinc cysteine loop, taken from an alignment of this project's
+    seed set rather than from memory; (3) a primary reference (PMID or DOI) for
+    the family definition and for the zinc-dependent mechanism; (4) a seed
+    accession set with its database snapshot; (5) at least one experimental
+    ternary-complex structure with the catalytic zinc and the cofactor present,
+    with ligand codes, before any geometry window is calibrated.
+    .
+    EC 1.1.1.1 (NAD-dependent) and EC 1.1.1.2 (NADP-dependent) alcohol
+    dehydrogenase are recorded as search hints, in the oxidation direction, and
+    are not a claim about any particular sequence.
+
+caveats: >-
+  Only one motif is recorded, and it is weak. The two patterns a curator should
+  add are (i) the catalytic-zinc ligand set -- in the classical enzymes two
+  cysteines and a histidine, with a glutamate or aspartate replacing one
+  cysteine in a sizeable part of the family -- and (ii) the cysteine-rich
+  structural-zinc loop. Neither was written here because their residue spacings
+  were not checked against an alignment in this environment, and a pattern with
+  a wrong spacing silently never matches.
+  .
+  THE METAL IS A HARD REQUIREMENT FOR MODELLING, NOT A PREFERENCE. Structure
+  preparation must keep the catalytic zinc with its coordinating residues; a
+  prediction or docking run that drops it will place the substrate carbonyl
+  where the metal should be and will then score that pose as a good fit.
+  Whether a candidate structure actually contains the metal is a QC question
+  with a yes/no answer and must be recorded per structure.
+  .
+  The same enzymes catalyse alcohol oxidation, which is how most of them were
+  characterised and reported. An activity record for a member of this family is
+  very often an OXIDATION measurement; using it as evidence for reduction of a
+  ketone reverses the direction of the reaction and the cofactor state at once.
+  .
+  Broad substrate range in this family is common and is not the same thing as
+  activity on the target ketone; bulky and sterically demanding ketones are
+  frequently poor substrates for the classical members.

@@ -23,14 +23,20 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 > in `curation_notes` exactly what a curator must confirm — the model refuses an
 > unexplained curation flag.
 >
-> A registry that admits uncertainty is useful. One with a plausible fabricated
+> **No entry records an endpoint at all.** Five entries once carried a base URL
+> recalled from general knowledge rather than read from documentation. All five
+> `endpoint` keys are now `null`, and each recalled URL sits in that entry's
+> `curation_notes`, phrased as a starting hint that has never been called, so
+> no consumer can read it as an established route.
+>
+> A registry that admits uncertainty is useful. One with a plausible remembered
 > endpoint is dangerous, because code will call it.
 
 ### What the registry does and does not assert
 
 | Field | What a value means | What `null` / `unknown` means |
 | --- | --- | --- |
-| `endpoint` | A URL taken from documentation and recorded with a citation. Still never called from here. | Nobody established the route. The model refuses an endpoint without a citation, and refuses one on a source with no network access mode. |
+| `endpoint` | A URL read from the provider's documentation and recorded with a citation. No entry in this registry has one today. | Nobody established the route — the current state of **every** entry. A URL somebody remembers is not an endpoint; it belongs in `curation_notes` as a hint. The model also refuses an endpoint without a citation, and refuses one on a source with no network access mode. |
 | `version` | A release string somebody recorded. | No release was recorded. Never "latest", never today's date. |
 | `approximate_record_count` | A number somebody counted. | Nobody counted. Never estimated from memory. |
 | `license` | A statement, with `license_source` naming who made it. | The licence has not been read. `needs_legal_review` cannot be false while `license` is null. |
@@ -38,13 +44,19 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 | capability `unknown` | — | Nobody checked. It is **not** `not_supported`; a planner can prefer a verified route and schedule the unknown one for curation. |
 | `connectivity_verified` | Always `false`. | — |
 
-Only **five** entries record an endpoint at all — `europe_pmc`, `ncbi_protein`,
-`pubchem`, `pubmed`, `uniprotkb` — each with a documentation citation and each
-with a curation note stating in so many words that the URL is from general
-knowledge and **has not been called from this environment**. Twenty-one further
-entries declare a network access mode and record **no** endpoint; they appear in
-`SourceRegistry.without_endpoint()` and must be resolved by a curator before any
-connector dials anything.
+**No entry records an endpoint.** Five once did — `europe_pmc`, `ncbi_protein`,
+`pubchem`, `pubmed`, `uniprotkb` — but those URLs were recalled from general
+knowledge, not read from the providers' documentation, and the citations
+backing them were bare URLs recalled the same way and never opened from here.
+A registry consumed by code must not carry a URL nobody has called, so all five
+`endpoint` keys and all five citations are gone. Each recalled URL survives in
+that entry's `curation_notes` as a starting hint for a curator, stated as never
+having been called, together with what must be confirmed before an endpoint may
+be recorded at all.
+
+Twenty-six entries therefore declare a network access mode and record **no**
+endpoint; they are exactly what `SourceRegistry.without_endpoint()` returns, and
+every one must be resolved by a curator before any connector dials anything.
 
 Exactly **one** licence string is recorded anywhere in the registry: `brenda`
 carries `CC BY 4.0`, and its `license_source` says:
@@ -66,14 +78,15 @@ curation note demanding the terms be established before use.
 | Registered sources | 49 (defined once each; `enzengdb` declares two layers) |
 | Entries with `connectivity_verified: true` | **0**, and the schema refuses it |
 | Entries with `needs_curation: true` | 49 |
-| Entries with a recorded endpoint | 5 |
-| Network-mode entries with no endpoint | 21 |
+| Entries with a recorded endpoint | **0** |
+| Network-mode entries with no endpoint | 26 |
 | Entries with a recorded licence | 1 (`brenda`, unverified) |
 | Entries with `needs_legal_review: true` | 49 |
 | Entries requiring human review **per record** | 9 |
-| Entries reachable only by a human import route | 5 |
-| Entries not programmatically reachable at all | 17 |
-| Independent source groups (after lineage collapse) | 28 |
+| Entries reachable only by a human import route | 6 |
+| Entries not programmatically reachable at all | 18 |
+| Source groups after lineage collapse | 28 |
+| Groups countable as independent (every member fully traced) | **13** |
 | Entries whose upstream list is admittedly incomplete | 23 |
 | Rollout stage 1 / 2 / 3 | 16 / 24 / 9 |
 
@@ -140,7 +153,7 @@ be irrelevant evidence; `mavedb` and `fireprotdb` are exactly that case.
 | `enzyme_explorenz` | 1 | bulk_download, manual_review_import | `? ? - - + ? ?` | ec_species_mapped | null / review | null | Authoritative EC nomenclature -- accepted and systematic names, the official reaction, and the class hierarchy. | An EC number is a reaction-class label and is not sufficient evidence of specificity for a given substrate; two enzymes sharing an EC number may have no overlap in substrate scope. |
 | `enzymemap` | 2 | bulk_download, offline_import | `? ? - ? + ? ?` | annotation_only | null / review | null | Curated and atom-mapped enzymatic reactions, which make the bond that changes explicit instead of leaving it to be inferred from two SMILES. | Reaction-level resource. An entry is NOT a claim that each associated sequence was experimentally validated on that substrate, and must not be ingested as sequence-level activity evidence. |
 | `metanetx` | 2 | bulk_download | `? ? - ? + ? ?` | annotation_only | null / review | null | Reconciling compound and reaction identifiers across several chemical and metabolic resources through one namespace, so that two resources can be recognised as describing the same transformation. | A mapping edge is a reconciliation decision, not a statement of chemical identity. Mapped entities may differ from the upstream ones in protonation, stereochemistry or cofactor specificity, so one mapping edge does not license merging all chemical states of a compound. |
-| `pubchem` | 1 | rest_api, bulk_download | `+ + ? + + ? ?` | annotation_only | null / review | recorded | Normalising a trivial, catalogue or paper-prose compound name to a CID and then to SMILES/InChI, at a scale no curated resource matches. | Name resolution routinely returns the wrong stereoisomer, a salt, or a different charge state. Chirality, salt form and protonation must be re-verified after every lookup; for an asymmetric reduction task this is the difference between the right and the wrong experiment. |
+| `pubchem` | 1 | rest_api, bulk_download | `+ + ? + + ? ?` | annotation_only | null / review | null (hint in notes) | Normalising a trivial, catalogue or paper-prose compound name to a CID and then to SMILES/InChI, at a scale no curated resource matches. | Name resolution routinely returns the wrong stereoisomer, a salt, or a different charge state. Chirality, salt form and protonation must be re-verified after every lookup; for an asymmetric reduction task this is the difference between the right and the wrong experiment. |
 | `retrorules` | 3 | bulk_download, offline_import | `? ? - ? + ? ?` | computational_construct | null / review | null | Reaction rules at several reaction-centre diameters, usable to enumerate candidate transformations for a substrate that has no exact precedent. | A rule firing is an enumeration, not a demonstrated enzymatic reaction, and must never be recorded as an observed transformation. |
 | `rhea` | 1 | rest_api, sparql, bulk_download | `+ + - ? + + ?` | annotation_only | null / review | null | Reaction-level definition of a transformation with participants given as ChEBI entries, so the substrate and product are structures rather than names. | Not evidence that any specific sequence catalyses the reaction; a Rhea identifier attached to a protein entry is an annotation, not a measurement. |
 
@@ -151,7 +164,7 @@ be irrelevant evidence; `mavedb` and `fireprotdb` are exactly that case.
 | `brenda` | 1 | soap, bulk_download, manual_review_import | `+ ? ? ? ? ? ?` | ec_species_mapped | CC BY 4.0 / review | null | The broadest curated coverage of enzyme activity, substrate ranges, kinetic parameters, inhibitors, pH and temperature behaviour, with literature references attached. | A record is frequently tied to an EC number and an organism rather than to a specific sequence, so it must not be ingested as sequence-level evidence; each record needs checking that it maps to one specific sequence before any sequence-level claim is made. |
 | `enzengdb` | 2 | bulk_download, offline_import | `? ? ? ? ? ? ?` | homolog_experimental | null / review | null | Engineered parents and their variants with the reported performance of each, including yields, total turnover numbers, selectivity and screening outcomes, which is the record shape this project's own batches produce. | Coverage is limited to certain scaffolds and non-natural reactions; absence of an enzyme or reaction here means nothing about the literature. |
 | `oed` | 2 | unknown | `? ? ? ? ? ? ?` | ec_species_mapped | null / review | null | Programmatic integration of enzymology records that otherwise have to be assembled by hand from several resources. | NOT an independent source. It re-integrates BRENDA and SABIO-RK, so a record found both here and in either upstream is one piece of evidence, not two, and counting hits across them overstates support. |
-| `retrobiocat_db` | 2 | manual_review_import, local_package | `? ? ? ? ? ? ?` | ec_species_mapped | null / review | null | Biocatalytic transformations organised by reaction type, including the enzyme classes used for ketone reduction, which maps directly onto the pilot task. | The open-source code ships only example specificity data. Having the code is not having the database, and a pipeline built against the example data must not be described as covering the published substrate scope. |
+| `retrobiocat_db` | 2 | manual_review_import, offline_import | `? ? ? ? ? ? ?` | ec_species_mapped | null / review | null | Biocatalytic transformations organised by reaction type, including the enzyme classes used for ketone reduction, which maps directly onto the pilot task. | The open-source code ships only example specificity data. Having the code is not having the database, and a pipeline built against the example data must not be described as covering the published substrate scope. |
 | `sabio_rk` | 1 | rest_api, manual_review_import | `+ ? - ? ? ? ?` | ec_species_mapped | null / review | null | Kinetic parameters recorded with their assay context -- buffer, pH, temperature and the measured entity -- which is what makes a kinetic number interpretable at all. | Coverage is narrower than a breadth-first enzymology resource; absence here is not evidence that an activity was never measured. |
 | `strenda_db` | 2 | manual_review_import | `? ? ? ? ? ? ?` | sequence_level_experimental | null / review | null | Enzymology records captured against a reporting standard, so the protein, the assay conditions and the measured quantity are present together rather than scattered across a paper's methods section. | Do not assume sequence-database-scale coverage. The number of fully contextualised records is small compared with a breadth-first enzymology resource, and absence here is not evidence of anything. |
 
@@ -164,11 +177,11 @@ be irrelevant evidence; `mavedb` and `fireprotdb` are exactly that case.
 | `eggnog` | 3 | bulk_download, manual_review_import | `? ? ? - ? ? ?` | annotation_only | null / review | null | Orthology groups and taxonomic context, which help decide whether a candidate is a plausible functional counterpart in another organism. | Orthology is an evolutionary relationship, not an activity label, and orthologues routinely differ in substrate preference. |
 | `interpro` | 1 | rest_api, bulk_download | `+ + ? - + + ?` | annotation_only | null / review | null | Integrated family, domain and site annotation that constrains which candidates share an architecture with the seeds. | A single short motif or site match does not establish activity on a given substrate; motifs are shared across enzymes with different scopes. |
 | `mgnify_proteins` | 3 | rest_api, bulk_download | `? ? ? - ? ? ?` | computational_construct | null / review | null | Metagenome-derived sequences that are absent from cultured-organism databases, which is where genuinely novel candidates come from. | Sequences are predicted from assemblies, so a record may be a fragment, a chimera or an assembly artefact rather than a real protein. |
-| `ncbi_protein` | 2 | rest_api, bulk_download | `+ + ? - + + ?` | annotation_only | null / review | recorded | Expanding a candidate set beyond curated entries, including sequences that never reach a reviewed database. | Annotation quality varies widely, and a protein name is frequently propagated from a distant homologue; a name is not a function. |
+| `ncbi_protein` | 2 | rest_api, bulk_download | `+ + ? - + + ?` | annotation_only | null / review | null (hint in notes) | Expanding a candidate set beyond curated entries, including sequences that never reach a reviewed database. | Annotation quality varies widely, and a protein name is frequently propagated from a distant homologue; a name is not a function. |
 | `pfam` | 2 | rest_api, bulk_download | `+ + ? - + + ?` | annotation_only | null / review | null | Domain definitions and curated alignments, which give the position numbering a family-wide design discussion needs. | A domain assignment is not a function assignment, and a family can contain members with opposite stereopreference. |
 | `sdred` | 2 | manual_review_import, offline_import | `? ? ? - ? ? ?` | annotation_only | null / review | null | Subfamily grouping within the short-chain dehydrogenase/reductase superfamily, which is directly the family of the pilot ketone-reduction task. | Family classification is not activity; membership says nothing about the target substrate or the product configuration. |
 | `uniparc` | 2 | rest_api, bulk_download | `? + + - + + ?` | annotation_only | null / review | null | A non-redundant archive of sequences with their history, which answers whether two differently named records are literally the same sequence. | No annotation and no function; it answers identity questions only. |
-| `uniprotkb` | 1 | rest_api, sparql, bulk_download | `+ + + - + + ?` | annotation_only | null / review | recorded | The reference sequence record for most candidates, with cross-references that let a sequence be joined to structures, families and reactions. | Not every functional statement is an experimental result for that sequence. The evidence code must be kept and surfaced, because an inferred catalytic activity annotation reads identically to a measured one. |
+| `uniprotkb` | 1 | rest_api, sparql, bulk_download | `+ + + - + + ?` | annotation_only | null / review | null (hint in notes) | The reference sequence record for most candidates, with cross-references that let a sequence be joined to structures, families and reactions. | Not every functional statement is an experimental result for that sequence. The evidence code must be kept and surfaced, because an inferred catalytic activity annotation reads identically to a measured one. |
 | `uniref` | 1 | rest_api, bulk_download | `? + ? - + + ?` | computational_construct | null / review | null | Ready-made clustering at fixed identity thresholds, used to deduplicate a candidate set and to control redundancy in a selection. | Cluster co-membership is a computed grouping, not an identity and not a shared function; two members of one cluster can differ in substrate scope and in stereopreference. |
 
 #### structure_and_mechanism
@@ -205,11 +218,11 @@ be irrelevant evidence; `mavedb` and `fireprotdb` are exactly that case.
 | `enzchemred` | 2 | bulk_download, offline_import | `- ? - - ? ? ?` | annotation_only | null / review | null | An expert-annotated corpus linking enzymes and chemical transformations in text to sequence-database and chemical-ontology identifiers, which is exactly the relation this project's literature module must extract. | It is an evaluation corpus, not an evidence store; a relation in it is not a measurement of activity and carries no conditions. |
 | `enzymeml` | 1 | local_package, offline_import | `- - - - - ? ?` | sequence_level_experimental | null / review | null | A structured format for this project's own experimental output, holding the protein, the reaction, the conditions, the measured time courses and the analysis together in one document. | It is a data standard, not another database; it supplies no external records and must never be counted as a source of evidence about other people's enzymes. |
 | `equilibrator` | 2 | local_package | `- ? - ? ? ? ?` | computational_construct | null / review | null | Estimated reaction thermodynamics under stated conditions, which tells the project whether a target direction is feasible at all and what cofactor ratio or coupled system it would need. | Accessed as a local package rather than as a simple remote endpoint, so a plan that assumes a REST call is wrong about how this works. |
-| `europe_pmc` | 1 | rest_api, bulk_download | `+ + - - ? - ?` | annotation_only | null / review | recorded | Programmatic search with access to full text where the licence permits it, which is the only way an extraction pipeline can reach a methods section legitimately. | Full text is available only within open licences; subscription content must not be fetched or stored, and a pipeline that silently falls back to the abstract will produce records that look full-text derived. |
+| `europe_pmc` | 1 | rest_api, bulk_download | `+ + - - ? - ?` | annotation_only | null / review | null (hint in notes) | Programmatic search with access to full text where the licence permits it, which is the only way an extraction pipeline can reach a methods section legitimately. | Full text is available only within open licences; subscription content must not be fetched or stored, and a pipeline that silently falls back to the abstract will produce records that look full-text derived. |
 | `kegg` | 3 | rest_api, manual_review_import | `? ? - - ? ? ?` | ec_species_mapped | null / review | null | Pathway context for a reaction, showing what else consumes or produces the substrate in a living system. | Not unconditionally open. Bulk access and some uses are subject to subscription or licence conditions that must be confirmed before any automated retrieval or any redistribution of derived records. |
 | `machine_literature_extraction` | 3 | local_package, offline_import | `- - - - - ? ?` | annotation_only | null / review | null | Turning kinetic and condition tables in papers into structured candidate records at a volume no curator can match. | Always a pending-review source. No extracted record may enter the evidence store as confirmed, and none may be promoted to sequence-level experimental strength without a named human verifier. |
 | `metacyc_biocyc` | 3 | rest_api, bulk_download, manual_review_import | `? ? - - ? ? ?` | ec_species_mapped | null / review | null | Literature-curated metabolic reactions and pathways with citations attached, which makes a pathway claim auditable. | Not unconditionally open. Access and redistribution are subject to subscription or licence conditions that must be confirmed first. |
-| `pubmed` | 1 | rest_api | `+ + - - ? - ?` | annotation_only | null / review | recorded | Programmatic search across the biomedical literature, with stable identifiers that can be recorded in an evidence reference. | Abstract-level only; the numbers this project needs are almost always in the methods, the tables or the supplementary material. |
+| `pubmed` | 1 | rest_api | `+ + - - ? - ?` | annotation_only | null / review | null (hint in notes) | Programmatic search across the biomedical literature, with stable identifiers that can be recorded in an evidence reference. | Abstract-level only; the numbers this project needs are almost always in the methods, the tables or the supplementary material. |
 | `zenodo` | 2 | rest_api, offline_import | `? ? - - - + ?` | annotation_only | null / review | null | Fetching an author's deposited dataset by DOI, which is often the only machine-readable form of a paper's supplementary tables. | An archive does not guarantee complete experimental conditions; deposits routinely omit buffer, temperature, detection method and construct. |
 
 ---
@@ -285,13 +298,39 @@ interpro, pfam                                   -> one group (shared upstream: 
 ```
 
 Counting *groups*, not hits, is what stops a re-published measurement being read
-as corroboration. Twenty-three entries additionally carry
-`derived_from_complete: false`, which the independence report flags
-individually: their upstream list is known to be incomplete, so they **must not
-be counted as independent corroboration** until a curator completes it. Among
-them are `oed`, `catpred_db`, `enzymemap`, `skid`, `intenzydb`, `esibank`,
-`fireprotdb`, `interpro`, `metanetx`, `retrorules`, `reactzyme`, `proteingym`
-and `europe_pmc`.
+as corroboration — but 28 groups is **not** 28 independent sources. Twenty-three
+entries carry `derived_from_complete: false`: their upstream list is known to be
+incomplete. Among them are `oed`, `catpred_db`, `enzymemap`, `skid`,
+`intenzydb`, `esibank`, `fireprotdb`, `interpro`, `metanetx`, `retrorules`,
+`reactzyme`, `proteingym` and `europe_pmc`. A source that cannot say what it
+re-integrates cannot be shown to be separate from any other group, so
+`SourceRegistry.independence_report()` counts only groups whose **every** member
+declares a complete lineage: `n_independent` is **13** of the 28 today. The
+other 15 groups are still returned and still listed, each printed with "NOT
+counted, lineage incomplete" and the member ids responsible, so an untraced
+source stays visible instead of being folded into a confident number.
+
+Running that report over the pilot's enzymology and kinetics sources gives,
+verbatim:
+
+```
+0 of 3 source group(s) countable as independent after lineage collapse
+  - brenda, catpred_db, oed, sabio_rk  (shared upstream: brenda, sabio_rk; NOT counted, lineage incomplete: catpred_db, oed)
+  - intenzydb  (NOT counted, lineage incomplete: intenzydb)
+  - skid  (NOT counted, lineage incomplete: skid)
+  ! catpred_db: lineage is known to be incomplete; it must not be counted as independent corroboration
+  ! intenzydb: lineage is known to be incomplete; it must not be counted as independent corroboration
+  ! oed: lineage is known to be incomplete; it must not be counted as independent corroboration
+  ! skid: lineage is known to be incomplete; it must not be counted as independent corroboration
+```
+
+Six resources, and **nothing** that may be quoted as independent corroboration:
+four of them admit they do not know their own upstreams, and the two that do —
+`brenda` and `sabio_rk` — are in one group with the two resources that
+re-integrate them. The `shared upstream` note names what caused that collapse,
+which the group's own membership does not show: `brenda` and `sabio_rk` share
+nothing with each other, and the group exists only because `oed` and
+`catpred_db` re-integrate both.
 
 The row-level counterpart is `datalayer/lineage.py`, which groups the retrieved
 *records* by experiment activity, publication and assay fingerprint — see
@@ -358,6 +397,14 @@ task. The open-source code ships only **example** specificity data. Having the
 code is not having the database, and a pipeline built against the example data
 must not be described as covering the published substrate scope. The caveat
 lives in `not_good_for` rather than in a source comment for exactly that reason.
+
+Its access modes are `manual_review_import, offline_import` — both human steps,
+which makes it human-import only. Registering the published package as
+`local_package` would be a second version of the same error one level down:
+`local_package` is *programmatic* in this taxonomy, so it would mark the source
+callable inside a run and suppress the `plan.readiness()` warning that a person
+has to obtain and check the real records first. Installing the code gives you
+the examples, not the data.
 
 Related confusions the registry separates by hand:
 
@@ -474,12 +521,15 @@ is the honest starting state of a fresh checkout.
 ### 现状数字
 
 共注册 49 个来源（`enzengdb` 跨两层，定义一次）。其中：
-记录了 endpoint 的只有 5 个（`europe_pmc`、`ncbi_protein`、`pubchem`、`pubmed`、
-`uniprotkb`，且每一条的策展备注都写明"该 URL 来自一般知识，尚未从本环境调用过"）；
-声明了网络访问方式却**没有** endpoint 的有 21 个；记录了许可证的只有 1 个
-（`brenda` 的 `CC BY 4.0`，来源是项目方的陈述，**未经独立核实**）；需要法务审查的
-49 个；需要逐条人工复核的 9 个；完全无法程序化访问的 17 个。343 个能力标志槽位中，
-220 个是"未知"，72 个是"不支持"，只有 51 个是"支持（有文档）"。
+记录了 endpoint 的有 **0 个**。曾经有 5 个（`europe_pmc`、`ncbi_protein`、
+`pubchem`、`pubmed`、`uniprotkb`），但那些 URL 来自一般知识回忆，并非读自官方文档，
+其引用也是同样未曾打开过的裸 URL；代码会真的去调用 endpoint，因此这 5 个 endpoint
+与这 5 条引用都已清空，回忆到的 URL 改写进各自的 `curation_notes`，明确标注为"仅供
+策展人起步参考、从未在本环境调用过"。声明了网络访问方式却**没有** endpoint 的有
+26 个；记录了许可证的只有 1 个（`brenda` 的 `CC BY 4.0`，来源是项目方的陈述，
+**未经独立核实**）；需要法务审查的 49 个；需要逐条人工复核的 9 个；只能靠人工导入的
+6 个；完全无法程序化访问的 18 个。343 个能力标志槽位中，220 个是"未知"，72 个是
+"不支持"，只有 51 个是"支持（有文档）"。
 
 `unknown` ≠ `not_supported`。前者是一项待办的核查任务，后者是一条可用于路由的事实。
 `redistribution_allowed: unknown` 的意思是**许可证还没被读过**，绝不表示允许再分发。
@@ -495,9 +545,12 @@ is the honest starting state of a fresh checkout.
 3. **化学类目条目不是具体的立体定义化合物。** 把任务底物解析到 ChEBI 的一个类目条目
    （如泛指的"酮"）会悄悄把任务范围放大；对不对称还原而言这是致命的。
 4. **再整合型资源不构成独立证据。** `oed`、`catpred_db` 再整合 BRENDA/SABIO-RK，
-   `enzymemap` 再策展 BRENDA，`proteingym` 与 MaveDB 重叠。49 个来源经血缘合并后只剩
-   **28 个独立组**；另有 23 个来源的上游清单被明确标记为不完整，在策展人补全之前
-   不得计为独立佐证。
+   `enzymemap` 再策展 BRENDA，`proteingym` 与 MaveDB 重叠。49 个来源经血缘合并后剩
+   **28 组**——但 28 组并不等于 28 个独立来源：有 23 个来源的上游清单被明确标记为不
+   完整，一个说不清自己再整合了谁的来源，也就无法证明它与别的组相互独立。因此
+   `independence_report()` 只统计"全体成员血缘均已交代清楚"的组，当前为 **13 组**；
+   其余 15 组照常列出，并逐条标注"NOT counted, lineage incomplete"，绝不混入那个
+   看起来可信的数字里。
 5. **只含阳性的检索基准给不出实验阴性。** `reactzyme` 里缺失的酶—反应配对不是实验
    阴性；按"缺失即无活性"去训练或评估，只会制造虚假信心。
 6. **变异效应数据的测量终点可能是生长或结合，而不是催化。** `mavedb` 的上限虽是
@@ -509,7 +562,10 @@ is the honest starting state of a fresh checkout.
 9. **热力学有利不等于某条序列能催化该反应。** `equilibrator` 给出的是必要条件而非证据，
    而且它是本地包而不是 REST 服务。
 10. **代码开源不等于完整数据随代码发布。** `retrobiocat_db` 的开源代码只附带**示例**
-    特异性数据；拿到代码不等于拿到数据库。同理：`catpred_db` 是数据集不是同名模型，
+    特异性数据；拿到代码不等于拿到数据库。它的访问方式因此登记为
+    `manual_review_import, offline_import`（两者都需要人工）：若登记成
+    `local_package`，在本注册表的分类里那属于"可程序化访问"，会把"必须先由人取得并
+    核对真实记录"的告警一并抹掉。同理：`catpred_db` 是数据集不是同名模型，
     `esibank` 是数据资源不是模型，`proteingym` 是基准不是候选来源，`alphafold_db` 是
     模型仓库不是预测服务（且模型是 apo，没有辅因子），`enzymeml` 是数据标准不是数据库。
 11. **部分通路资源带订阅或许可条件。** `kegg` 与 `metacyc_biocyc` 并非无条件开放，

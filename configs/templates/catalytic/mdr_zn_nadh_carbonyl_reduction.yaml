@@ -1,0 +1,268 @@
+# Catalytic template -- MDR/ADH, zinc-dependent NADH carbonyl reduction.
+#
+# Validates against eagent.schemas.templates.CatalyticTemplate.
+#
+# ===========================================================================
+# READ THIS BEFORE USING ANY NUMBER IN THIS FILE
+# ===========================================================================
+# EVERY geometry constraint below has calibrated_on: [] and a severity of
+# "scoring" or "advisory". None is "gating". No candidate may be rejected on
+# any window in this file.
+#
+# The windows present are attributable to general chemistry: van der Waals
+# contact distances, hydrogen-bond heavy-atom ranges, the Buergi-Dunitz
+# trajectory, and standard Zn(II) coordination bond lengths. They are NOT a
+# measured distribution over catalytically competent MDR complexes, and a
+# restraint published in one modelling study is that study's choice, not a
+# universal catalytic cutoff.
+#
+# No PDB entry, M-CSA identifier, PMID or DOI appears below; none could be
+# verified in this environment, so reference_structures is EMPTY.
+#
+# THIS IS A DIFFERENT HYPOTHESIS FROM THE SDR AND AKR TEMPLATES. The carbonyl
+# oxygen here is activated by COORDINATION TO A CATALYTIC ZINC, not by a pair
+# of hydroxyls and not by a Tyr-His oxyanion site. A pipeline that drops the
+# metal during structure preparation does not merely lose accuracy here: it
+# deletes the activating group and then scores the empty space as a pocket.
+# ===========================================================================
+
+template_id: cat.mdr_adh.zn_nadh_carbonyl_reduction.v1
+family_name: MDR/ADH
+
+mechanism_summary: >-
+  The substrate carbonyl oxygen coordinates the catalytic zinc, which polarises
+  the carbonyl and stabilises the alkoxide that develops as the nicotinamide C4
+  of NADH delivers a hydride to the carbonyl carbon. The alkoxide leaves as the
+  zinc-bound alcohol and is protonated via a relay that runs from the
+  zinc-bound oxygen through a serine or threonine hydroxyl and the
+  nicotinamide ribose 2'-hydroxyl to a histidine at the protein surface, and
+  thence to bulk solvent. In the classical enzymes the zinc is held by two
+  cysteines and a histidine; in a substantial part of the family a glutamate or
+  aspartate replaces one of the cysteines, so the ligand set must be determined
+  per enzyme and not assumed. Cofactor binding drives the hinge closure of the
+  catalytic and Rossmann domains, and the closed form is the catalytically
+  relevant one. MDR alcohol dehydrogenases are described as transferring the
+  4-pro-R hydride; a family-level generalisation, to be confirmed per enzyme.
+  .
+  Which enantiomer is formed is set by the orientation the pocket imposes on
+  the substrate, not by the metal and not by the nicotinamide face. Nothing in
+  this template predicts the configuration.
+  .
+  DIRECTION WARNING. These enzymes are usually characterised, and usually
+  reported, in the ALCOHOL OXIDATION direction with NAD+. Reduction of a ketone
+  is the reverse reaction with NADH, and an activity record must not be carried
+  across the two without recording that the direction and the cofactor
+  oxidation state both change.
+
+catalytic_residues:
+  - label: zinc_ligand_1
+    residue_types: [CYS]
+    role: >-
+      First protein ligand of the catalytic zinc (thiolate). Part of the metal
+      site, not a general acid or base.
+    functional_atoms: [SG]
+    evidence: "textbook: catalytic zinc site of the medium-chain zinc-dependent alcohol dehydrogenases"
+  - label: zinc_ligand_2
+    residue_types: [HIS]
+    role: "Second protein ligand of the catalytic zinc (imidazole nitrogen)."
+    functional_atoms: [NE2, ND1]
+    evidence: "textbook: catalytic zinc site of the medium-chain zinc-dependent alcohol dehydrogenases"
+    needs_curation: true
+    curator_must_supply: >-
+      Which imidazole nitrogen coordinates the metal in this project's members,
+      read off an experimental structure; both are listed rather than guessed.
+  - label: zinc_ligand_3
+    residue_types: [CYS, GLU, ASP]
+    role: >-
+      Third protein ligand of the catalytic zinc. Cysteine in the classical
+      liver-type enzymes; glutamate or aspartate in a substantial part of the
+      family. The identity changes the charge of the site and therefore its
+      substrate and inhibitor behaviour, so it is a per-enzyme determination.
+    functional_atoms: [SG, OE1, OE2, OD1, OD2]
+    evidence: "textbook: catalytic zinc site of the medium-chain zinc-dependent alcohol dehydrogenases"
+    needs_curation: true
+    curator_must_supply: >-
+      The residue type and coordinating atom actually present at this position
+      in each candidate. The atom list here spans all three accepted residue
+      types so that a mapping can bind whichever applies; a per-candidate
+      mapping must name exactly one.
+  - label: proton_relay_ser
+    residue_types: [SER, THR]
+    role: >-
+      Hydroxyl in the proton relay between the zinc-bound oxygen and the
+      nicotinamide ribose 2'-hydroxyl. Does not contact the metal.
+    functional_atoms: [OG, OG1]
+    evidence: "textbook: proton relay of the zinc-dependent alcohol dehydrogenases"
+    needs_curation: true
+    curator_must_supply: >-
+      Whether this project's members carry Ser (OG) or Thr (OG1) here.
+  - label: proton_relay_his
+    residue_types: [HIS]
+    role: >-
+      Surface histidine at the solvent end of the proton relay; the exit point
+      for the proton released on reduction. Distinct from the zinc-ligand
+      histidine and must not be mapped onto the same residue.
+    functional_atoms: [NE2, ND1]
+    evidence: "textbook: proton relay of the zinc-dependent alcohol dehydrogenases"
+    needs_curation: true
+    curator_must_supply: >-
+      Confirmation that this residue is present in each candidate: it is absent
+      or replaced in parts of the family, and its absence changes the pH
+      behaviour rather than abolishing catalysis.
+
+required_cofactor: NADH
+# EXPLICIT: NAD+ in a crystal structure is not a hydride donor, and this family
+# is most often crystallised and reported in the oxidation direction, which is
+# exactly where the oxidised cofactor comes from.
+required_cofactor_state: reduced
+# NAI = 1,4-dihydro-NAD (NADH), from REDUCED_NICOTINAMIDE_CODES in
+# eagent.schemas.chem. The oxidised code NAD must NOT be added here.
+cofactor_ligand_codes:
+  - NAI
+# The CATALYTIC zinc. A second, purely structural zinc is present in part of the
+# family; it is not listed here because this field describes the catalytic
+# machinery, and a structure-preparation step must keep both.
+metals:
+  - ZN
+
+assembly_state: >-
+  Commonly homodimeric or homotetrameric, with the subunit interface
+  contributing to the pocket in some members. NOT ESTABLISHED HERE for any
+  specific enzyme; the biological assembly must be settled before a complex is
+  modelled.
+
+geometry_constraints:
+  - name: zinc_to_carbonyl_oxygen
+    kind: distance
+    atom_a: "protein.catalytic_zn.ZN"
+    atom_b: "substrate.carbonyl_O"
+    min_value: 1.8
+    max_value: 2.4
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard Zn(II)-O coordination bond length from coordination chemistry.
+      This is the constraint that distinguishes this family's hypothesis from
+      the other two: if the substrate oxygen is not coordinated, the carbonyl
+      is not activated by the mechanism described here, whatever the hydride
+      geometry looks like. It is a COORDINATION-GEOMETRY check, not a catalytic
+      criterion, and it is uncalibrated: CURATOR MUST refit on experimental
+      complexes of this family and list them in calibrated_on. NOTE the role
+      token: the metal must be bound as a protein-namespace atom role named
+      catalytic_zn with atom ZN, and if the structure has no zinc this comes
+      back UNMEASURED -- which must be read as "the model has no metal", a
+      structure-preparation failure, not as a failed candidate.
+  - name: hydride_donor_to_carbonyl_carbon
+    kind: distance
+    atom_a: "cofactor.hydride_donor_C4"
+    atom_b: "substrate.electrophile"
+    min_value: 2.9
+    max_value: null
+    unit: angstrom
+    severity: advisory
+    calibrated_on: []
+    source: >-
+      LOWER BOUND ONLY. 2.9 A is the sum of two carbon van der Waals radii
+      (VDW_RADII_A in eagent.science.geometry) less that module's 0.5 A
+      tolerance (DEFAULT_VDW_OVERLAP_TOLERANCE_A); below it the carbons clash.
+      No upper bound is attributable for this family, so none is given; CURATOR
+      MUST supply one with the complexes it was fitted on.
+  - name: hydride_approach_angle_burgi_dunitz
+    kind: angle
+    atom_a: "cofactor.hydride_donor_C4"
+    atom_b: "substrate.electrophile"
+    atom_c: "substrate.carbonyl_O"
+    min_value: 90.0
+    max_value: 130.0
+    unit: degree
+    severity: advisory
+    calibrated_on: []
+    source: >-
+      Centre attributable to the Buergi-Dunitz trajectory, 105-107 degrees
+      (Buergi, Dunitz & Shefter, J. Am. Chem. Soc. 95 (1973) 5065;
+      BURGI_DUNITZ_LITERATURE_DEG in this repository). THE WIDTH IS NOT A
+      MEASUREMENT: deliberately permissive, advisory only. In this family the
+      carbonyl oxygen is held by the metal, so the accessible angular range is
+      expected to differ from the unconstrained case -- another reason the
+      window must be refitted here rather than copied from the SDR or AKR
+      template.
+  - name: zinc_to_zinc_ligand_1_SG
+    kind: distance
+    atom_a: "protein.catalytic_zn.ZN"
+    atom_b: "protein.zinc_ligand_1.SG"
+    min_value: 2.1
+    max_value: 2.5
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard Zn(II)-S(thiolate) coordination bond length. An INTEGRITY check
+      on the metal site in the model rather than a statement about the
+      substrate: a zinc that has drifted from its ligands during preparation or
+      prediction invalidates every other measurement in this template.
+      Uncalibrated; CURATOR MUST confirm against experimental complexes.
+  - name: zinc_to_zinc_ligand_2_NE2
+    kind: distance
+    atom_a: "protein.catalytic_zn.ZN"
+    atom_b: "protein.zinc_ligand_2.NE2"
+    min_value: 1.9
+    max_value: 2.3
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard Zn(II)-N(imidazole) coordination bond length; the second half of
+      the metal-site integrity check. The atom name NE2 is a CHOICE that a
+      curator must confirm per member: if the coordinating nitrogen is ND1 this
+      constraint returns UNMEASURED, which means the template named the wrong
+      atom and not that the metal site is broken.
+  - name: proton_relay_ser_OG_to_carbonyl_oxygen
+    kind: distance
+    atom_a: "protein.proton_relay_ser.OG"
+    atom_b: "substrate.carbonyl_O"
+    min_value: 2.5
+    max_value: 3.2
+    unit: angstrom
+    severity: scoring
+    calibrated_on: []
+    source: >-
+      Standard O-H...O hydrogen-bond heavy-atom range, applied to the first step
+      of the proton relay. Tests whether the relay can reach the oxygen that
+      will become the alkoxide. A member carrying Thr presents OG1 and this
+      constraint will be UNMEASURED; see the catalytic residue entry. CURATOR
+      MUST calibrate.
+
+# EMPTY: no PDB entry was verified in this environment, which is why no window
+# above is calibrated.
+reference_structures: []
+
+provenance:
+  source_type: mechanism_literature
+  identifiers:
+    - "textbook:zinc_dependent_alcohol_dehydrogenase_catalytic_zinc_site"
+    - "textbook:nadh_c4_hydride_transfer_to_zinc_polarised_carbonyl"
+    - "PFAM:PF08240"
+    - "PFAM:PF00107"
+    - "EC:1.1.1.1"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must supply: (1) at least one experimental ternary-complex
+    structure with the catalytic zinc, NADH (or an analogue) and a substrate or
+    inhibitor bound, for reference_structures, with its ligand codes; (2) the
+    M-CSA entry or primary mechanism reference (PMID or DOI); (3) calibrated
+    windows -- with calibrated_on filled in -- for the hydride distance upper
+    bound, the approach angle and the zinc-oxygen distance before any
+    constraint is promoted above "scoring"; (4) the zinc-ligand residue
+    identities (Cys/Cys/His versus Cys/His/Glu or Asp) for the members in this
+    project's pool; (5) confirmation of the 4-pro-R hydride face for those
+    members; (6) a statement of whether each candidate structure also carries
+    the structural zinc, which this template does not list and
+    structure preparation must not discard.
+    .
+    source_type is mechanism_literature: the zinc site and the relay are
+    standard teaching-level enzymology for this family. NOT theoretical_model
+    (no coordinates were computed here) and NOT experimental_structure (no
+    structure was read here).

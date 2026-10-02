@@ -1,11 +1,18 @@
 # Layer 1 -- reaction and chemistry.
 #
-# HONESTY RULE FOR THIS DIRECTORY: no endpoint URL, record count, version
-# string or licence term in these files was verified in this environment.
-# Anything not known with confidence is null with needs_curation: true and a
-# note saying what a curator must confirm. Every entry carries
-# connectivity_verified: false. Capability flags describe what a resource is
-# documented to offer, not what has been proven to work.
+# HONESTY RULE FOR THIS DIRECTORY: nothing in these files was verified in this
+# environment. Anything not known with confidence is null with
+# needs_curation: true and a note saying what a curator must confirm.
+#
+# As of this revision no entry in this directory records an endpoint at all:
+# every `endpoint` key is null. Where a base URL was recalled from general
+# knowledge it sits in that entry's curation_notes, labelled as a starting hint
+# that has never been called, because a hint in a note cannot be read
+# programmatically as an established route the way an `endpoint` value can.
+# The same rule holds for record counts, version strings and licence terms.
+#
+# Every entry carries connectivity_verified: false. Capability flags describe
+# what a resource is documented to offer, not what has been proven to work.
 
 layer: reaction_and_chemistry
 layer_question: >-
@@ -168,18 +175,22 @@ sources:
     derived_from: []
     derived_from_complete: true
     connectivity_verified: false
-    endpoint: "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
-    citations:
-      - "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest"
+    endpoint: null
+    citations: []
     version: null
     approximate_record_count: null
     priority_stage: 1
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "The PUG REST base URL recorded here is from general knowledge and has
-         NOT been called from this environment; confirm it, together with the
-         current request-rate policy, before the first automated call."
+      - "No endpoint is recorded, because none has been established here. As a
+         starting hint for a curator and nothing more: this project's general
+         knowledge suggests a PUG REST service under a base of the form
+         https://pubchem.ncbi.nlm.nih.gov/rest/pug, with a PUG REST page in the
+         provider's own documentation. Neither string was called or opened from
+         this environment. Confirm the real base URL and the current
+         request-rate policy, record the documentation as a citation, and only
+         then set endpoint."
       - "Confirm whether a stable release or snapshot identifier can be recorded
          for provenance; version_information is marked unknown because this
          project has not established one."

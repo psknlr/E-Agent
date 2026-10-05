@@ -165,13 +165,33 @@ class RunManifest:
         return rec
 
     def record_approval(self, gate: str, decision: str, actor: str,
-                        detail: str = "") -> None:
+                        detail: str = "", payload_sha256: str | None = None,
+                        request_id: str | None = None) -> None:
+        """Record a human decision, including what it was a decision about.
+
+        ``payload_sha256`` is what stops a grant migrating to other work. A
+        manifest entry naming only a gate matches every batch that will ever
+        be proposed under that gate, so a later, different, more expensive
+        batch inherits an approval given for a small pilot.
+        """
         self.approvals.append({
             "gate": gate, "decision": decision, "actor": actor,
             "detail": detail, "at": utc_now(),
+            "payload_sha256": payload_sha256, "request_id": request_id,
         })
 
-    def approved(self, gate: str) -> bool:
+    def approved(self, gate: str, payload_sha256: str | None = None) -> bool:
+        """Whether a grant is recorded, optionally for this exact payload.
+
+        With a hash, only a decision recorded about that payload counts, and
+        the latest such decision governs so a refusal cannot be outranked by
+        an older grant.
+        """
+        if payload_sha256 is not None:
+            matching = [a for a in self.approvals
+                        if a.get("gate") == gate
+                        and a.get("payload_sha256") == payload_sha256]
+            return bool(matching and matching[-1].get("decision") == "approve")
         return any(a["gate"] == gate and a["decision"] == "approve"
                    for a in self.approvals)
 

@@ -1,0 +1,630 @@
+# ===========================================================================
+# External tool registry -- four licence facets per tool.
+#
+# Loads with eagent.tools.model_complexes.ToolRegistry.from_config(), which
+# reads the `tool_registry` list below and builds one ToolRegistryEntry per
+# item. check_license() consults it BEFORE a tool is invoked, because once a
+# predictor has run, its weights' terms have already been exercised and its
+# outputs already exist.
+#
+# WHY FOUR ENTRIES PER TOOL AND NOT ONE
+# -------------------------------------
+# "AlphaFold3: licence X" is the exact statement this file exists to prevent.
+# A single licence line hides a conflict that is routine in this field: the
+# source code may be permissive while the model parameters are restricted and
+# the outputs carry conditions of their own, and the databases fed to the tool
+# have terms set by someone else again. So each tool is registered four times,
+# with these kinds (the ToolKind enum):
+#
+#   code            the program itself
+#   model_weights   separately distributed learned parameters
+#   input_database  the data the tool is fed -- sequence, structure and MSA
+#                   databases whose terms travel with every result derived
+#                   from them (the per-database detail lives in
+#                   configs/datasources/*.yaml)
+#   output          what the producer's terms say about the coordinates,
+#                   alignments, trees or sequences the tool emits
+#
+# Keys are "<tool>.<facet>" so that a missing facet is visible at a glance.
+#
+# COMMERCIAL USE: permitted / restricted / unknown
+# ------------------------------------------------
+# permits_commercial_use is tri-state and is read by code that blocks or
+# permits a run:
+#     true  -> permitted   (a positive, recorded permission)
+#     false -> restricted  (terms read, and they forbid it)
+#     null  -> unknown     (nobody has read the terms)
+# check_license() refuses a commercial run on null exactly as it does on false,
+# because an unverified licence is not a permission.
+#
+# EVERY ENTRY IN THIS FILE RECORDS unknown, AND THAT IS DELIBERATE
+# ----------------------------------------------------------------
+# Nothing in this environment could be read: no distribution is installed, no
+# LICENSE file was opened, no terms page was fetched, and no version is pinned.
+# Licence terms attach to a RELEASE and they change between releases, so a
+# licence string written from memory for an unspecified version would be an
+# unsourced legal claim that this pipeline would then cite in provenance. The
+# ToolRegistryEntry model enforces the same discipline: a licence may only be
+# recorded together with license_source, and a commercial-use permission may
+# only be recorded together with a licence.
+#
+# So: license: null, license_source: null, permits_commercial_use: null and
+# needs_legal_review: true throughout, except on the facets marked NOT
+# APPLICABLE, where the artefact does not exist and there is nothing to read.
+# Each entry's notes say exactly which document a curator must read. The
+# consequence of leaving them is loud and safe, not silent: every
+# allow_commercial_use=True run is blocked until someone records the terms.
+#
+# No URL appears in this file. None could be verified here, and a plausible
+# but wrong URL would be fetched.
+# ===========================================================================
+
+registry_policy:
+  recorded_in_this_environment: false
+  facet_kinds: [code, model_weights, input_database, output]
+  commercial_use_encoding:
+    permitted: "permits_commercial_use: true"
+    restricted: "permits_commercial_use: false"
+    unknown: "permits_commercial_use: null (blocks a commercial run)"
+  curator_instructions:
+    - "Pin the installed version first. Terms attach to a release."
+    - "Record license together with license_source naming the document read and the date."
+    - "Set permits_commercial_use only from a licence you have read."
+    - "Set needs_legal_review false only once a human has signed off on that facet."
+    - "A NOT APPLICABLE facet must not be listed in an adapter's registry_keys: check_license treats an unrecorded permission as a block, and a facet that does not exist cannot grant one."
+
+tool_registry:
+
+  # -- BLAST+ : sequence similarity search ---------------------------------
+  - key: blast_plus.code
+    kind: code
+    display_name: "NCBI BLAST+ (blastp, psiblast, makeblastdb)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Install the NCBI BLAST+ distribution for this platform and record the exact version string reported by `blastp -version`."
+    citations: []
+    notes: "CURATOR MUST read the licence notice shipped inside the installed distribution and record it with the version. Standalone BLAST+ and the NCBI web BLAST service are governed differently; this entry is the standalone program only."
+  - key: blast_plus.model_weights
+    kind: model_weights
+    display_name: "NCBI BLAST+ -- no model weights (NOT APPLICABLE)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: false
+    install_hint: ""
+    citations: []
+    notes: "NOT APPLICABLE: BLAST+ ships no learned parameters. Its substitution matrices and gap costs are fixed tables distributed with the code and covered by the code facet. Recorded so that an absent facet is visibly absent rather than merely unfilled."
+  - key: blast_plus.input_database
+    kind: input_database
+    display_name: "Sequence databases searched with BLAST+ (nr, nt, swissprot, or a local set)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record which database was searched and its snapshot date; a BLAST hit list is only reproducible against a named snapshot."
+    citations: []
+    notes: "CURATOR MUST record the data-usage terms of each database actually searched, and whether its records may be redistributed. The per-source detail belongs in configs/datasources/. Terms here travel with every downstream result: a candidate list derived from a restricted database inherits that restriction."
+  - key: blast_plus.output
+    kind: output
+    display_name: "BLAST+ outputs (hit tables, alignments, derived candidate lists)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST decide, with the database terms in hand, whether hit tables and the sequences they quote may be redistributed or published. The program's own terms and the searched database's terms both apply to the output, and the stricter governs."
+
+  # -- MMseqs2 : fast search and clustering --------------------------------
+  - key: mmseqs2.code
+    kind: code
+    display_name: "MMseqs2 (search, cluster, easy-cluster)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Install MMseqs2 and record the version and commit it reports."
+    citations: []
+    notes: "CURATOR MUST read the LICENSE file in the installed distribution. If it turns out to be a copyleft licence, note that the obligations fall on distribution of the program, not on the search results, and record that distinction here so it is not mis-applied to candidate lists."
+  - key: mmseqs2.model_weights
+    kind: model_weights
+    display_name: "MMseqs2 -- no model weights (NOT APPLICABLE)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: false
+    install_hint: ""
+    citations: []
+    notes: "NOT APPLICABLE: MMseqs2 ships no learned parameters; its substitution matrices are fixed tables covered by the code facet."
+  - key: mmseqs2.input_database
+    kind: input_database
+    display_name: "Databases clustered or searched with MMseqs2 (UniRef, UniProt, project sets)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the database and its release; cluster membership is not reproducible without it."
+    citations: []
+    notes: "CURATOR MUST record each input database's terms and release. See configs/datasources/."
+  - key: mmseqs2.output
+    kind: output
+    display_name: "MMseqs2 outputs (clusters, representative sets, alignments)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm whether representative sequence sets derived from a restricted database may be redistributed. A cluster representative is still a database record."
+
+  # -- HMMER : profile HMM search ------------------------------------------
+  - key: hmmer.code
+    kind: code
+    display_name: "HMMER (hmmscan, hmmsearch, hmmbuild, jackhmmer)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Install HMMER and record the version reported by `hmmscan -h`."
+    citations: []
+    notes: "CURATOR MUST read the LICENSE file in the installed distribution. HMMER has been distributed under different licences across its major versions, so the version must be pinned before the licence means anything."
+  - key: hmmer.model_weights
+    kind: model_weights
+    display_name: "HMMER -- no separately distributed weights (NOT APPLICABLE)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: false
+    install_hint: ""
+    citations: []
+    notes: "NOT APPLICABLE as a separate artefact: HMMER's built-in priors ship inside the program and are covered by the code facet. The profile HMMs that matter scientifically -- Pfam and the like -- are INPUT DATABASES and are registered as such, not as weights."
+  - key: hmmer.input_database
+    kind: input_database
+    display_name: "Profile HMM libraries scanned with HMMER (Pfam and equivalents)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the HMM library and its release number; a domain call is only meaningful against a named release."
+    citations: []
+    notes: "CURATOR MUST record the terms and the release of each HMM library used. Family assignment in this project rests on these hits, so their provenance is scientific as well as legal."
+  - key: hmmer.output
+    kind: output
+    display_name: "HMMER outputs (domain tables, E-values, alignments)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm redistribution terms for domain annotations derived from the HMM library in use."
+
+  # -- MAFFT : multiple sequence alignment ---------------------------------
+  - key: mafft.code
+    kind: code
+    display_name: "MAFFT (multiple sequence alignment)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Install MAFFT and record the version it prints."
+    citations: []
+    notes: "CURATOR MUST read the licence shipped with the installed distribution and record it with the version."
+  - key: mafft.model_weights
+    kind: model_weights
+    display_name: "MAFFT -- no model weights (NOT APPLICABLE)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: false
+    install_hint: ""
+    citations: []
+    notes: "NOT APPLICABLE: MAFFT ships no learned parameters; its scoring matrices are fixed tables covered by the code facet."
+  - key: mafft.input_database
+    kind: input_database
+    display_name: "Sequences aligned with MAFFT (project sets drawn from public databases)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record where every aligned sequence came from, with the database release."
+    citations: []
+    notes: "CURATOR MUST note that MAFFT has no database of its own: the terms attached to an alignment are the terms of the sequences in it, inherited from whichever databases supplied them. An alignment is a derived work of its inputs."
+  - key: mafft.output
+    kind: output
+    display_name: "MAFFT outputs (alignments, and the residue numbering derived from them)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm whether an alignment containing records from a restricted database may be published."
+
+  # -- IQ-TREE : phylogenetic inference ------------------------------------
+  - key: iqtree.code
+    kind: code
+    display_name: "IQ-TREE (maximum-likelihood phylogenetics, ModelFinder, UFBoot)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Install IQ-TREE and record the version banner it prints."
+    citations: []
+    notes: "CURATOR MUST read the LICENSE file in the installed distribution and record it with the version."
+  - key: iqtree.model_weights
+    kind: model_weights
+    display_name: "IQ-TREE -- no model weights (NOT APPLICABLE)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: false
+    install_hint: ""
+    citations: []
+    notes: "NOT APPLICABLE: the substitution models are published rate matrices distributed with the program, not separately licensed learned parameters. Record WHICH model was selected in provenance -- that is a scientific requirement, not a licence one."
+  - key: iqtree.input_database
+    kind: input_database
+    display_name: "Alignments supplied to IQ-TREE"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the alignment artefact hash and the databases its sequences came from."
+    citations: []
+    notes: "CURATOR MUST record the inherited terms of the sequences in the alignment, as for MAFFT."
+  - key: iqtree.output
+    kind: output
+    display_name: "IQ-TREE outputs (trees, supports, model selection tables)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm publication terms for trees built from restricted sequence sets. Separately and scientifically: a tree is a hypothesis conditioned on the alignment and the model, and neither is a licence to treat clade membership as functional evidence."
+
+  # -- EFI-EST : sequence similarity networks (external web service) --------
+  - key: efi_est.code
+    kind: code
+    display_name: "EFI-EST (Enzyme Function Initiative -- Enzyme Similarity Tool), as a web service"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "A hosted service, not a local binary. Record the service version or build identifier shown with each job, and the job identifier."
+    citations: []
+    notes: "CURATOR MUST read the service's own terms of use, which govern SUBMISSION as well as results: sending a project's sequences to a third-party service can itself be a disclosure, and that question is separate from whether the network may be published. If a local deployment is used instead, register it as a different entry with its own code licence."
+  - key: efi_est.model_weights
+    kind: model_weights
+    display_name: "EFI-EST -- no model weights (NOT APPLICABLE)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: false
+    install_hint: ""
+    citations: []
+    notes: "NOT APPLICABLE: the tool computes all-by-all sequence similarity; there are no learned parameters."
+  - key: efi_est.input_database
+    kind: input_database
+    display_name: "Databases EFI-EST draws on (UniProt, InterPro and equivalents) plus the submitted sequences"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record which database release the job ran against; the service's copy is versioned independently of any local snapshot."
+    citations: []
+    notes: "CURATOR MUST record both directions: the terms of the databases the service uses, and whether this project's own sequences may be submitted to it at all."
+  - key: efi_est.output
+    kind: output
+    display_name: "EFI-EST outputs (SSNs, cluster assignments, node attributes)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST read what the service's terms say about reuse and publication of the networks it returns. Scientifically: an SSN cluster is a similarity grouping at a chosen threshold, not a function assignment."
+
+  # -- AlphaFold3 : structure and complex prediction -----------------------
+  - key: alphafold3.code
+    kind: code
+    display_name: "AlphaFold 3 inference code"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Record the release or commit of the inference code actually deployed."
+    citations: []
+    notes: "CURATOR MUST read the licence of the code release deployed, and must NOT assume it also covers the model parameters -- the separation between those two is the reason this registry has four facets."
+  - key: alphafold3.model_weights
+    kind: model_weights
+    display_name: "AlphaFold 3 model parameters"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Parameters are obtained from the producer separately from the code; record which parameter set and release is installed."
+    citations: []
+    notes: "CURATOR MUST read the terms ACTUALLY ACCEPTED when the parameters were obtained, and record who accepted them and when. Treat the weights as restricted until that document has been read: it is distributed separately from the code and may impose conditions the code licence does not, including on commercial use, on redistribution of the parameters, and on the outputs. Nothing about those terms was verified here, which is why permits_commercial_use is null and a commercial run is blocked."
+  - key: alphafold3.input_database
+    kind: input_database
+    display_name: "Genetic and template databases used for AlphaFold 3 MSAs (sequence databases and PDB-derived templates)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record every MSA and template database with its release; a prediction is not reproducible without them."
+    citations: []
+    notes: "CURATOR MUST record the terms of each MSA and template database separately from the weights. These databases are third-party data with their own conditions, and the MSA depth they give is also the main determinant of how much the prediction should be trusted."
+  - key: alphafold3.output
+    kind: output
+    display_name: "AlphaFold 3 outputs (predicted coordinates, pLDDT, PAE, ranking scores)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST read what the parameter terms say about the coordinates produced -- output restrictions outlive the run that produced them, and a pose redistributed in a paper is still an output of the model that made it. Scientifically: pLDDT, PAE and ranking scores are confidence in the STRUCTURE, never a prediction of catalysis, affinity or selectivity."
+
+  # -- Boltz : open structure/complex prediction ---------------------------
+  - key: boltz.code
+    kind: code
+    display_name: "Boltz structure and complex prediction code"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Record the release or commit deployed."
+    citations: []
+    notes: "CURATOR MUST read the LICENSE file of the release deployed and record it with the version. Do not carry a licence finding from one Boltz release to another."
+  - key: boltz.model_weights
+    kind: model_weights
+    display_name: "Boltz model checkpoints"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record which checkpoint file and release is installed, with its hash."
+    citations: []
+    notes: "CURATOR MUST read the terms the checkpoint is released under, separately from the code, even when both come from the same project: a repository that is permissively licensed may ship checkpoints under different conditions, and a checkpoint is the artefact whose terms were exercised when the run happened."
+  - key: boltz.input_database
+    kind: input_database
+    display_name: "MSA and template inputs supplied to Boltz"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the MSA source and release, including any third-party MSA service used."
+    citations: []
+    notes: "CURATOR MUST record the terms of the MSA databases or MSA service used. If an external MSA service is called, submission of this project's sequences to it is itself a disclosure question."
+  - key: boltz.output
+    kind: output
+    display_name: "Boltz outputs (predicted complexes and confidence estimates)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm the output terms of the checkpoint release. Scientifically: a predicted complex is a hypothesis about placement -- recorded as LigandSource.JOINT_STRUCTURE_PREDICTION, never as an observed binding mode."
+
+  # -- LigandMPNN : sequence design conditioned on structure and ligand ----
+  - key: ligandmpnn.code
+    kind: code
+    display_name: "LigandMPNN sequence design code"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Record the release or commit deployed."
+    citations: []
+    notes: "CURATOR MUST read the LICENSE file of the release deployed."
+  - key: ligandmpnn.model_weights
+    kind: model_weights
+    display_name: "LigandMPNN model weights"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record which weight file is installed, with its hash; several variants are distributed and they are not interchangeable."
+    citations: []
+    notes: "CURATOR MUST read the terms the weight files are released under, separately from the code, and record which variant was used. Designs produced by different weight files are different artefacts scientifically as well as legally."
+  - key: ligandmpnn.input_database
+    kind: input_database
+    display_name: "Structures supplied to LigandMPNN, and the structural data its weights were trained on"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the input structure artefacts and whether they are experimental or predicted."
+    citations: []
+    notes: "CURATOR MUST record the terms of the input structures. Note also, for the training data, that any PDB-derived training set carries the depositors' terms into the model; whether that affects the outputs is a question for a lawyer, not for this file to answer."
+  - key: ligandmpnn.output
+    kind: output
+    display_name: "LigandMPNN outputs (designed sequences and per-position probabilities)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm the output terms before a designed sequence is ORDERED -- this is the facet with a direct commercial consequence, since a design that reaches a synthesis order has left the laboratory. Scientifically: a design probability is a model preference, not evidence that the variant folds or functions."
+
+  # -- RFdiffusion2 : generative backbone design ---------------------------
+  - key: rfdiffusion2.code
+    kind: code
+    display_name: "RFdiffusion2 backbone generation code"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Record the release or commit deployed."
+    citations: []
+    notes: "CURATOR MUST read the LICENSE file of the release deployed. Do NOT carry across a licence finding from the earlier RFdiffusion release: this is a different artefact and the terms of successive releases from the same group have differed."
+  - key: rfdiffusion2.model_weights
+    kind: model_weights
+    display_name: "RFdiffusion2 model weights"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record which weight file is installed, with its hash."
+    citations: []
+    notes: "CURATOR MUST read the terms the weights are distributed under, separately from the code, and record who accepted them. Generative-design weights in this field are frequently released on terms that restrict commercial use and sometimes the use of their outputs; none of that was verified here, so a commercial run stays blocked."
+  - key: rfdiffusion2.input_database
+    kind: input_database
+    display_name: "Structural inputs to RFdiffusion2, and the structural data its weights were trained on"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the input motif or scaffold artefacts."
+    citations: []
+    notes: "CURATOR MUST record the terms of any input structure used as a motif or scaffold, including unpublished or third-party structures."
+  - key: rfdiffusion2.output
+    kind: output
+    display_name: "RFdiffusion2 outputs (generated backbones)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm the output terms before a generated backbone is taken forward to sequence design and synthesis. Scientifically: a generated backbone is a proposal with no evidence of expressibility, stability or activity."
+
+  # -- Docking engine : AutoDock Vina (the engine this project assumes) -----
+  # The engine is NOT PINNED for this project. If a different engine is used,
+  # register it as its own four entries rather than editing these: docking
+  # scores are comparable only within one scoring function, one receptor
+  # preparation and one box.
+  - key: autodock_vina.code
+    kind: code
+    display_name: "AutoDock Vina (docking engine)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Install the docking engine and record the version it prints; also record the receptor-preparation tooling, which is frequently a separate program with its own licence and must then be registered separately."
+    citations: []
+    notes: "CURATOR MUST read the LICENSE file of the installed engine, and must check whether the preparation tools used alongside it (receptor and ligand preparation, protonation, partial charges) are separately licensed -- they often are, and they change the result."
+  - key: autodock_vina.model_weights
+    kind: model_weights
+    display_name: "AutoDock Vina -- no separately distributed weights (NOT APPLICABLE)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: false
+    install_hint: ""
+    citations: []
+    notes: "NOT APPLICABLE as a separate artefact: the scoring function's coefficients were fitted to a set of complexes by its authors but ship inside the program and are covered by the code facet. Recorded explicitly because 'empirically fitted parameters' and 'no learned component' are different claims, and only the first is true here."
+  - key: autodock_vina.input_database
+    kind: input_database
+    display_name: "Receptors and ligands prepared for docking"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the receptor artefact (experimental or predicted, and which), the ligand source, and the box definition."
+    citations: []
+    notes: "CURATOR MUST record the terms of the receptor structures used, which are inherited from the PDB entry or the prediction that produced them."
+  - key: autodock_vina.output
+    kind: output
+    display_name: "Docking outputs (poses and scores)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm redistribution terms for poses derived from third-party receptors. Scientifically: a docking score is a scoring-function value comparable only within one scoring function, receptor preparation and box; it is not an affinity and not a catalytic ranking, and a pose is recorded as LigandSource.DOCKING_PREDICTED."

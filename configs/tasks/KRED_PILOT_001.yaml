@@ -1,0 +1,193 @@
+# ===========================================================================
+# KRED_PILOT_001 -- pilot task: asymmetric ketone reduction to a chiral
+# secondary alcohol by a ketoreductase.
+#
+# THE NULLS IN THIS FILE ARE DELIBERATE. READ THIS BEFORE FILLING ANY OF THEM.
+#
+# Every null below marks a decision that belongs to an OPERATOR -- a chemist or
+# the project owner -- and that this system is built never to make for them.
+# A null here is not an omission to be tidied up, and it is not an invitation
+# for a language model to supply "a reasonable default". It means: nobody has
+# decided yet, and no step that depends on it may run.
+#
+# Why the discipline is worth the inconvenience:
+#
+#   * The substrate and the product are the task. "Acetophenone, because that
+#     is the usual model ketone" would silently redefine the project, and every
+#     mined sequence, every modelled complex and every ordered gene after that
+#     point would be evidence about the wrong molecule. The structures must be
+#     supplied as isomeric SMILES by someone who knows which compound the
+#     programme is about.
+#   * The target configuration ((R) or (S)) is a commercial and chemical
+#     decision. Guessing it inverts the objective: a variant that is excellent
+#     for one enantiomer is the worst possible choice for the other.
+#   * Whether a new stereocentre is created at all depends on the substrate.
+#     An aldehyde or a symmetric ketone gives an achiral alcohol, and then the
+#     enantioselectivity objective does not apply and no ee may be reported.
+#     The reaction template deliberately leaves creates_stereocenter null for
+#     the same reason; see configs/templates/reaction/.
+#   * pH, temperature, solvent, cosolvent and host are part of the record KEY,
+#     not metadata (Conditions.key()). Two activity measurements taken under
+#     different conditions are two different facts, so inventing conditions
+#     would silently merge records that are not comparable.
+#
+# HOW A NULL IS LEGITIMATELY FILLED. Not by editing this file by hand mid-run,
+# and never by a model: through TaskSpec.resolve(), which demands a source
+# ("operator:<name>", "literature:<PMID/DOI>", "database:<name>@<version>",
+# "template:<id>" or "experiment:<id>") and writes an Assumption into the
+# ledger below. An assumption with no accepted authority is refused.
+#
+# WHAT THE GATES WILL SAY WHILE THIS FILE IS UNCHANGED. The
+# reaction_spec_confirmed gate requires reaction.substrate.isomeric_smiles,
+# reaction.product.isomeric_smiles, reaction.product.creates_new_stereocenter
+# and reaction.atom_mapped_reaction_smiles. All four are null, so the gate
+# reports all four as unresolved and refuses to open. That is the intended
+# state of this file as shipped.
+#
+# Validates against eagent.schemas.reaction.TaskSpec.
+# ===========================================================================
+
+task_id: KRED_PILOT_001
+
+# Mode A: the reaction class is known and we are looking for enzymes that do
+# it. Not substrate_directed_engineering -- that mode needs parent enzymes, and
+# this pilot starts from no parent.
+task_mode: enzyme_mining
+
+reaction:
+  reaction_class: ketone_to_secondary_alcohol
+
+  # Null: an atom-mapped reaction SMILES can only be written once both
+  # structures exist, and the mapping is what ties the reactive atoms (the
+  # carbonyl carbon, the carbonyl oxygen, the prochiral centre) to the geometry
+  # checks. Required by the reaction_spec_confirmed gate.
+  atom_mapped_reaction_smiles: null
+
+  substrate:
+    name: null
+    # Null: the operator supplies the structure. A prose name is not a
+    # substrate -- it loses stereochemistry, salt form and tautomer.
+    isomeric_smiles: null
+    molfile: null
+    inchikey: null
+    reactive_atoms:
+      # Filled from the atom-mapped reaction SMILES once it exists; atom-map
+      # ids are meaningless before then.
+      electrophile: null        # the ketone carbonyl carbon
+      nucleophile: null         # not applicable to this reaction class
+      leaving_group: null       # not applicable to this reaction class
+      stabilised_atoms: []      # the carbonyl oxygen, once mapped
+      prochiral_center: null    # the carbonyl carbon, IF the ketone is prochiral
+    # Null, NOT false: whether the ketone is prochiral is a per-substrate fact
+    # that needs symmetry perception or a chemist. It cannot be read off the
+    # reaction class, and false would silently switch off the chiral analysis.
+    is_prochiral: null
+    chemical_purity: null
+    supplier_or_synthesis: null
+    notes: >-
+      Supply the substrate as isomeric SMILES (or a molfile) together with its
+      purity and origin. If the material is a mixture of diastereomers or
+      carries a stereocentre of its own, say so here: the assay and the
+      analytical method both change.
+
+  product:
+    name: null
+    isomeric_smiles: null
+    inchikey: null
+    # Unspecified, not R or S: the wanted configuration is a decision, and
+    # until it is made no candidate may be ranked on enantioselectivity.
+    target_stereochemistry: unspecified
+    # Null, NOT true: see the header. Required by the reaction_spec_confirmed
+    # gate, and it drives TaskSpec.stereo_task, which switches the chiral
+    # analysis and the ee criterion on or off.
+    creates_new_stereocenter: null
+    # Null: whether an authentic standard of the product can be bought or
+    # synthesised decides whether the tier-2 and tier-3 assays are runnable at
+    # all. It is a procurement fact, not a chemical one.
+    authentic_standard_available: null
+    notes: >-
+      The product structure is what the assay must detect. Supply it as
+      isomeric SMILES including the target configuration once that is decided.
+
+  # Null: no RHEA identifier was verified for this transformation, and an
+  # invented one would be used as a database join key.
+  rhea_id: null
+
+  # A SEARCH HINT ONLY. EC 1.1.1.- covers oxidoreductases acting on the CH-OH
+  # group of a donor with NAD(+) or NADP(+) as acceptor -- and EC numbers in
+  # this class are written in the OXIDATION direction, which is the reverse of
+  # the target reaction. It must widen a search, never narrow one: a candidate
+  # without an EC assignment is uncharacterised, not disqualified.
+  ec_hint: "1.1.1.-"
+
+  notes: >-
+    Pilot task. Three mechanistic hypotheses are in scope and are kept separate
+    throughout: SDR (Rossmann fold, Ser-Tyr-Lys-Asn), AKR (TIM barrel,
+    Tyr-Lys-His-Asp) and MDR/ADH (catalytic zinc, two-domain). See
+    configs/templates/family/ and configs/templates/catalytic/. The three are
+    not interchangeable and evidence calibrated on one does not transfer to
+    another.
+
+conditions:
+  # Empty, not populated with a guess. Which nicotinamide cofactor is supplied,
+  # at what stoichiometry, with which recycling system, is an operator decision
+  # that also determines what the no_cofactor control means. The mining step
+  # must determine each candidate's preference per sequence rather than
+  # inheriting it from this list.
+  cofactor_options: []
+  pH: null
+  temperature_C: null
+  solvent_system: null
+  # Null: most ketones of interest need a cosolvent, and the fraction changes
+  # both enzyme stability and the measured conversion. It is part of the record
+  # key, so it cannot be left implicit.
+  cosolvent_fraction: null
+  buffer: null
+  expression_host: null
+  substrate_concentration_mM: null
+  enzyme_loading: null
+  reaction_time_h: null
+
+budget:
+  # Planning targets for round 1. They are a resource plan and NOT predicted
+  # pass rates: nothing here asserts that 600 of 2000 sequences will survive
+  # family QC, only that the stage is sized for 600.
+  initial_sequence_target: 2000
+  family_qc_pool_target: 600
+  structure_pool_target: 600
+  detailed_complex_target: 300
+  new_constructs_round_1: 96
+  # SCHEMA DEFAULT, NOT AN OPERATOR DECISION. If 96 is a hard synthesis cap,
+  # set this true and reserve slots: the positive-control enzyme and any
+  # decomposition controls that need new genes come out of the same 96, and
+  # discovering that after the order is placed costs a round.
+  constructs_include_controls: false
+  reserved_control_slots: 0
+
+objectives:
+  # The primary objective is an EXPERIMENTAL CONFIRMATION, not a score: the
+  # round succeeds when a construct is shown to make the target product.
+  primary: experimentally_confirmed_target_product
+  # Separate, named axes. They are never combined into one total score, here or
+  # anywhere downstream; a variant that gains activity and loses selectivity
+  # has done two different things and both must stay visible.
+  # target_enantiomer_selectivity applies only if TaskSpec.stereo_task is true,
+  # which needs creates_new_stereocenter true AND a target configuration set.
+  secondary:
+    - target_enantiomer_selectivity
+    - activity
+    - soluble_expression
+
+approval:
+  # All three human decision points are open. Nothing in this file has been
+  # approved by anyone.
+  reaction_spec_confirmed: false
+  synthesis_authorized: false
+  functional_criteria_confirmed: false
+
+# Mode A: no parent enzyme. (Populated only in substrate_directed_engineering.)
+parent_enzymes: []
+
+# Empty: nothing has been filled in, so nobody has had to justify anything yet.
+# Every future entry carries the authority that supplied the value.
+assumptions: []

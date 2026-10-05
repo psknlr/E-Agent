@@ -1,0 +1,559 @@
+# Layer 6 -- literature and feedback.
+#
+# HONESTY RULE: nothing in this file was verified in this environment. Unknown
+# specifics are null with needs_curation: true, and that includes every
+# `endpoint` key -- as of this revision no entry here records one. A base URL
+# recalled from general knowledge lives in that entry's curation_notes as a
+# starting hint that has never been called, where no code can mistake it for an
+# established route. Record counts, version strings and licence terms follow
+# the same rule. connectivity_verified is false everywhere. Capability flags
+# describe documented capability, not proven behaviour.
+
+layer: literature_and_feedback
+layer_question: >-
+  How do we obtain new evidence, and how does this project's own data re-enter
+  the next decision?
+agent_stages:
+  - literature agent
+  - active learning
+notes: >-
+  This layer closes the loop. It covers how new evidence is found and read, how
+  machine extraction is held at arm's length until a human checks it, and how
+  this project's own measurements are recorded in a form the next run can use.
+  Context resources are registered here too, because a strain growth temperature
+  and a reaction equilibrium are context, not enzyme properties.
+
+sources:
+  - id: pubmed
+    display_name: PubMed
+    layers: [literature_and_feedback]
+    good_for:
+      - Programmatic search across the biomedical literature, with stable
+        identifiers that can be recorded in an evidence reference.
+      - Field-scoped queries and date filtering, which is what makes an
+        incremental literature sweep possible between runs.
+      - Resolving a citation to a durable identifier for provenance.
+    not_good_for:
+      - Abstract-level only; the numbers this project needs are almost always in
+        the methods, the tables or the supplementary material.
+      - Indexing is not endorsement, and a retracted or corrected paper can still
+        be retrieved; retraction status must be checked separately.
+      - Search recall for chemistry and biocatalysis vocabulary is uneven, so
+        absence of a hit is not absence of literature.
+      - No full text, so it cannot by itself support any extracted value.
+    access_modes: [rest_api]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: not_supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint is recorded, because none has been established here. As a
+         starting hint for a curator and nothing more: this project's general
+         knowledge suggests the E-utilities live under a base of the form
+         https://eutils.ncbi.nlm.nih.gov/entrez/eutils/ and are documented in
+         NCBI Bookshelf entry NBK25501. Neither string was called or opened from
+         this environment, so both may be stale or simply wrong. Establish the
+         real base URL, the API-key policy and the request-rate policy from the
+         provider, record the documentation as a citation, and only then set
+         endpoint."
+      - "Confirm the terms of use for storing retrieved records."
+      - "Decide how retraction and correction notices are checked, since the
+         search result does not surface them reliably."
+    notes: >-
+      Entry point for the literature agent. Every value extracted downstream
+      still needs the full text and a human check.
+
+  - id: europe_pmc
+    display_name: Europe PMC
+    layers: [literature_and_feedback]
+    good_for:
+      - Programmatic search with access to full text where the licence permits
+        it, which is the only way an extraction pipeline can reach a methods
+        section legitimately.
+      - Cross-references between publications and biological database entries.
+      - Preprint coverage, useful because biocatalysis results often appear there
+        first.
+    not_good_for:
+      - Full text is available only within open licences; subscription content
+        must not be fetched or stored, and a pipeline that silently falls back to
+        the abstract will produce records that look full-text derived.
+      - It includes the same abstract records as the upstream biomedical index,
+        so a hit in both is one publication, not two.
+      - Automated annotations surfaced alongside articles are machine-generated
+        and are not curated facts.
+      - Supplementary files are frequently not retrievable even for open articles,
+        and that is where the tables usually are.
+    access_modes: [rest_api, bulk_download]
+    capabilities:
+      keyword_query: supported
+      exact_record_fetch: supported
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: not_supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [pubmed]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint is recorded, because none has been established here. As a
+         starting hint for a curator and nothing more: this project's general
+         knowledge suggests a REST service under a base of the form
+         https://www.ebi.ac.uk/europepmc/webservices/rest, described on a
+         RESTful-web-service page of the provider's own site. Neither string was
+         called or opened from this environment. Confirm the real base URL and
+         the rate policy with the provider, record the documentation as a
+         citation, and only then set endpoint."
+      - "Confirm per-article licence handling, and implement the refusal path for
+         non-open full text before any extraction runs."
+      - "derived_from is marked incomplete -- it aggregates several literature
+         sources beyond the one recorded here."
+    notes: >-
+      Preferred over an abstract-only index wherever the licence allows full text.
+
+  - id: enzchemred
+    display_name: EnzChemRED
+    layers: [literature_and_feedback]
+    good_for:
+      - An expert-annotated corpus linking enzymes and chemical transformations
+        in text to sequence-database and chemical-ontology identifiers, which is
+        exactly the relation this project's literature module must extract.
+      - Evaluating whether the literature module extracts the right relations,
+        rather than whether it writes fluent prose, because the corpus provides
+        the gold relations to score against.
+      - Calibrating how often an extraction pipeline invents or drops a link.
+    not_good_for:
+      - It is an evaluation corpus, not an evidence store; a relation in it is
+        not a measurement of activity and carries no conditions.
+      - The expert-annotated part and any further text-mined part must be managed
+        separately, because mixing them destroys the only clean evaluation set.
+      - Coverage reflects the annotation campaign's scope, not the literature.
+      - Scoring well on it does not establish that extraction works on the
+        biocatalysis papers this project actually reads.
+    access_modes: [bulk_download, offline_import]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [pubmed, uniprotkb, chebi]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the distribution route, version, citation and licence; no URL is
+         recorded here."
+      - "Confirm exactly which portion is expert-annotated and which is
+         text-mined, and keep them in separate stores from the first import --
+         separating them later is not reliably possible."
+      - "derived_from is marked incomplete; confirm the full set of resources the
+         annotations link to."
+    notes: >-
+      Registered as the evaluation set for the literature module, which is a
+      different job from being a source of enzyme records.
+
+  - id: machine_literature_extraction
+    display_name: Machine literature extraction (EnzyExtract-style)
+    layers: [literature_and_feedback]
+    good_for:
+      - Turning kinetic and condition tables in papers into structured candidate
+        records at a volume no curator can match.
+      - Surfacing papers whose supplementary tables contain the measurements this
+        project needs, so a human reads the right twenty papers instead of two
+        hundred.
+      - Producing a queue of proposed records with their source locators attached.
+    not_good_for:
+      - Always a pending-review source. No extracted record may enter the
+        evidence store as confirmed, and none may be promoted to sequence-level
+        experimental strength without a named human verifier.
+      - Unit, scale and transcription errors are systematic rather than random,
+        especially across table footnotes and multi-panel figures.
+      - Enzyme identity in a table is usually a label; resolving it to a sequence
+        is a separate step the extractor does not perform.
+      - A confident extraction of a value that is not in the paper is the exact
+        failure mode this project's data model is built to prevent.
+    access_modes: [local_package, offline_import]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: not_supported
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: not_supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: [pubmed, europe_pmc]
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "Confirm which extraction implementation and model version will be used,
+         and record both per extracted record; without them an extraction is not
+         reproducible and not auditable."
+      - "Confirm the licence position for processing full text at scale, per
+         source and per article licence."
+      - "Implement the review queue before the first extraction run, not after --
+         a pending-review store that does not exist becomes an accepted store."
+    notes: >-
+      Registered as a process, not a database, so that its outputs are governed
+      by the same pending-review rule wherever they appear.
+
+  - id: zenodo
+    display_name: Zenodo (author data archives)
+    layers: [literature_and_feedback]
+    good_for:
+      - Fetching an author's deposited dataset by DOI, which is often the only
+        machine-readable form of a paper's supplementary tables.
+      - Durable identifiers and versioned deposits, so a dataset used in a run
+        can be cited and re-fetched.
+      - Reaching data that never entered any curated database.
+    not_good_for:
+      - An archive does not guarantee complete experimental conditions; deposits
+        routinely omit buffer, temperature, detection method and construct.
+      - File formats and column meanings are author-specific, so every deposit
+        needs manual interpretation before import.
+      - Deposit licences vary per record and must be read per record.
+      - A DOI proves provenance, not quality.
+    access_modes: [rest_api, offline_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: not_supported
+      version_information: supported
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: true
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm the API base URL and authentication
+         requirements before any automated fetch."
+      - "Record the deposit DOI and the concept-versus-version DOI distinction
+         for every imported dataset."
+      - "Licence is per deposit and must be read per deposit; nothing general can
+         be asserted here."
+    notes: >-
+      Fetched by DOI, imported by hand. The conditions gap is the reason every
+      imported record starts incomplete rather than assumed-standard.
+
+  - id: bacdive
+    display_name: BacDive
+    layers: [literature_and_feedback]
+    good_for:
+      - Strain origin, isolation source and cultivation conditions for the
+        organism a candidate sequence came from, which informs expression-host
+        choice and plausible operating temperature.
+      - Linking a strain designation in an old paper to a usable culture
+        collection identifier.
+      - Context for interpreting why a thermophilic source organism might matter.
+    not_good_for:
+      - A strain growth temperature is not an enzyme's optimum and not its
+        thermostability; the two are routinely conflated and the inference does
+        not hold in either direction.
+      - Organism-level metadata says nothing about a specific protein's
+        expression, solubility or activity.
+      - Strain records can be incomplete or disputed between collections.
+    access_modes: [rest_api, manual_review_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: annotation_only
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "No endpoint recorded. Confirm the API base URL, registration and
+         authentication requirements before use."
+      - "Confirm licence and redistribution terms."
+      - "Record the strain identifier used for any context claim, so a later
+         reader can see the claim is about the organism and not the enzyme."
+    notes: >-
+      Context only. Registered so that organism metadata has somewhere to live
+      that is not the enzyme record.
+
+  - id: equilibrator
+    display_name: eQuilibrator
+    layers: [literature_and_feedback]
+    good_for:
+      - Estimated reaction thermodynamics under stated conditions, which tells
+        the project whether a target direction is feasible at all and what
+        cofactor ratio or coupled system it would need.
+      - A local package route, so the calculation runs without a network call and
+        can be pinned for reproducibility.
+      - Comparing the target direction with its reverse before any enzyme is
+        chosen.
+    not_good_for:
+      - Accessed as a local package rather than as a simple remote endpoint, so a
+        plan that assumes a REST call is wrong about how this works.
+      - A favourable equilibrium does not show that any given sequence catalyses
+        the reaction; thermodynamics is a necessary condition, never evidence.
+      - Estimates carry uncertainty that must be propagated, and group-contribution
+        estimates can be poor for unusual chemistry.
+      - Standard conditions are not assay conditions.
+    access_modes: [local_package]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: unknown
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: computational_construct
+    derived_from: []
+    derived_from_complete: false
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 2
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the package name, version and its own data dependencies, and
+         record them in run provenance; the package is not installed in this
+         environment and nothing about its interface is asserted here."
+      - "Confirm licence for the package and for its underlying data separately."
+      - "derived_from is marked incomplete -- the estimates rest on compound and
+         reaction data that a curator should identify."
+      - "Confirm how uncertainty is reported so it can be carried, not dropped."
+    notes: >-
+      Registered as a local calculation, which is why it is a package and not an
+      endpoint.
+
+  - id: kegg
+    display_name: KEGG
+    layers: [literature_and_feedback]
+    good_for:
+      - Pathway context for a reaction, showing what else consumes or produces
+        the substrate in a living system.
+      - Orthology groupings and enzyme-to-pathway mapping, useful for
+        interpreting where a candidate sits metabolically.
+    not_good_for:
+      - Not unconditionally open. Bulk access and some uses are subject to
+        subscription or licence conditions that must be confirmed before any
+        automated retrieval or any redistribution of derived records.
+      - Pathway membership is a model of metabolism, not evidence that a
+        particular enzyme acts on the project's substrate.
+      - Reaction entries are generalised and often lack the stereochemical detail
+        this task depends on.
+    access_modes: [rest_api, manual_review_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Licence and access conditions must be established BEFORE any automated
+         use. Nothing is asserted here about what the current terms permit, and
+         no endpoint is recorded."
+      - "Confirm whether this project's use is academic or commercial, because
+         the answer changes what is permitted."
+      - "If use is permitted, record the release used for provenance."
+    notes: >-
+      Stage 3, and gated on the licence question rather than on engineering work.
+
+  - id: metacyc_biocyc
+    display_name: MetaCyc / BioCyc
+    layers: [literature_and_feedback]
+    good_for:
+      - Literature-curated metabolic reactions and pathways with citations
+        attached, which makes a pathway claim auditable.
+      - Enzyme and reaction curation that frequently records the organism and the
+        experimental basis.
+      - Cross-references usable to reach the underlying publications.
+    not_good_for:
+      - Not unconditionally open. Access and redistribution are subject to
+        subscription or licence conditions that must be confirmed first.
+      - Curated pathway presence is not substrate-scope evidence for a specific
+        sequence under this project's conditions.
+      - Reaction representations may omit stereochemistry relevant to an
+        asymmetric transformation.
+    access_modes: [rest_api, bulk_download, manual_review_import]
+    capabilities:
+      keyword_query: unknown
+      exact_record_fetch: unknown
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: unknown
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: ec_species_mapped
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 3
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Licence and subscription status must be established before any
+         automated use; no endpoint is recorded and nothing is asserted about
+         current terms."
+      - "Confirm which parts of the resource the project is entitled to use, as
+         the terms differ between components."
+      - "If use is permitted, record the version used for provenance."
+    notes: >-
+      Valued for citation-backed curation, gated on terms.
+
+  - id: enzymeml
+    display_name: EnzymeML
+    layers: [literature_and_feedback]
+    good_for:
+      - A structured format for this project's own experimental output, holding
+        the protein, the reaction, the conditions, the measured time courses and
+        the analysis together in one document.
+      - Making internal batches machine-readable so a result can re-enter the
+        next round of candidate selection instead of living in a spreadsheet.
+      - Interoperability with external records captured against the same
+        reporting conventions.
+    not_good_for:
+      - It is a data standard, not another database; it supplies no external
+        records and must never be counted as a source of evidence about other
+        people's enzymes.
+      - A document in the format is only as good as the experiment it records --
+        the format enforces structure, not correctness, and will faithfully
+        store an unvalidated detection method.
+      - Adopting the format does not by itself make internal and external records
+        comparable, because unit and condition conventions still have to be agreed.
+    access_modes: [local_package, offline_import]
+    capabilities:
+      keyword_query: not_supported
+      exact_record_fetch: not_supported
+      sequence_query: not_supported
+      chemical_structure_query: not_supported
+      bulk_snapshot: not_supported
+      version_information: unknown
+      redistribution_allowed: unknown
+    license: null
+    license_source: null
+    needs_legal_review: true
+    evidence_strength_ceiling: sequence_level_experimental
+    derived_from: []
+    derived_from_complete: true
+    connectivity_verified: false
+    endpoint: null
+    citations: []
+    version: null
+    approximate_record_count: null
+    priority_stage: 1
+    requires_human_review_per_record: false
+    needs_curation: true
+    curation_notes:
+      - "Confirm the format version and the tooling this project will use, and
+         record both; no implementation is asserted to be installed here."
+      - "The sequence-level ceiling applies only to this project's own
+         measurements recorded with the expressed construct sequence and a
+         product-identifying detection method. A document missing either must
+         enter at a lower strength."
+      - "Agree the unit and condition conventions before the first batch is
+         recorded, since retrofitting them across batches is not reliable."
+      - "Decide the licence under which internal records may later be published."
+    notes: >-
+      The feedback half of this layer. Without it the project cannot learn from
+      its own negative results, which are its most valuable records.

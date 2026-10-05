@@ -1,0 +1,161 @@
+# Family template -- SDR, the short-chain dehydrogenase/reductase superfamily.
+#
+# Validates against eagent.schemas.templates.FamilyTemplate.
+#
+# This is one of three SEPARATE mechanistic hypotheses for ketone reduction
+# (see also family/akr.yaml and family/mdr_adh.yaml). The three families are
+# unrelated in fold and differ in catalytic machinery, cofactor-binding
+# architecture and the face of the nicotinamide that donates the hydride. They
+# are kept apart on purpose: a "ketoreductase" label that merges them hides the
+# fact that a mutation, a motif or a geometry window transfers within a family
+# and not between families.
+#
+# HONESTY RULES FOR THIS FILE
+#   * No UniProt accession and no PDB entry appears below. seed_accessions is
+#     empty and interpro_ids is empty for that reason, not because the family
+#     has none.
+#   * The motif patterns are the degenerate, textbook-level fingerprints. They
+#     SUPPORT a family call and prove nothing on their own; FamilyTemplate
+#     requires three independent signal types before a call is made
+#     (min_independent_signals).
+#   * Nothing here is an activity prediction. Family membership says which
+#     mechanistic hypothesis to test, not that an enzyme reduces the substrate.
+
+template_id: fam.sdr.v1
+family_name: SDR
+
+# PF00106 is the "adh_short" short-chain dehydrogenase/reductase domain.
+# Recorded as a single accession on purpose: the superfamily is covered by
+# several further Pfam entries whose accessions were not verified here.
+pfam_ids:
+  - PF00106
+
+# Empty because no InterPro accession could be verified in this environment.
+# An invented IPR number would be used by the mining step as a hard filter.
+interpro_ids: []
+
+domain_architecture:
+  - >-
+    Single alpha/beta domain: an N-terminal Rossmann fold (a central, mostly
+    parallel beta-sheet sandwiched by alpha-helices) that binds the
+    dinucleotide, with the catalytic residues on the C-terminal edge of the
+    sheet.
+  - >-
+    A variable C-terminal extension (commonly called the substrate-binding
+    loop) closes over the pocket and carries most of the determinants of
+    substrate range and of which prochiral face is presented. It is the least
+    conserved part of the fold and is frequently disordered in crystal
+    structures, which is exactly the region an engineering campaign touches.
+
+conserved_motifs:
+  - name: rossmann_glycine_rich_sdr
+    pattern: "G-x(3)-G-x-G"
+    role: >-
+      Cofactor binding: the glycine-rich loop between the first beta-strand and
+      the first alpha-helix wraps the pyrophosphate of NAD(P)H. In SDRs it is
+      usually written TGxxxGxG; the pattern here is the GxxxGxG core, so that a
+      member whose first position is not Thr still matches.
+    evidence: >-
+      textbook: dinucleotide-binding glycine-rich fingerprint of the SDR
+      superfamily. LOW SPECIFICITY -- a seven-residue degenerate pattern hits
+      unrelated sequences by chance at a rate that matters over a pool of
+      thousands, so it is one signal among several and never a filter on its own.
+    needs_curation: true
+    curator_must_supply: >-
+      The spacing variant(s) actually present in this project's seed set, taken
+      from an alignment, plus a PROSITE or Pfam HMM reference for the motif. The
+      pattern here was written from textbook knowledge and was not fitted to an
+      alignment in this environment.
+  - name: sdr_catalytic_yxxxk
+    pattern: "Y-x(3)-K"
+    role: >-
+      Catalytic pair: the general-acid tyrosine and the lysine that lowers its
+      hydroxyl pKa and hydrogen-bonds the nicotinamide ribose hydroxyls. The
+      fixed i, i+4 spacing places both side chains on the same face of one helix.
+    evidence: >-
+      textbook: the YxxxK motif is the defining catalytic signature of the SDR
+      superfamily. A match locates a candidate pair; it does not establish that
+      the pair is catalytic in this protein, which needs the structural check in
+      the catalytic template.
+    needs_curation: true
+    curator_must_supply: >-
+      A primary reference (PMID or DOI) for the motif, and confirmation that the
+      atypical SDR subfamilies in this project's pool are not excluded by the
+      strict i, i+4 spacing.
+
+cofactor_preference:
+  NADPH: >-
+    Occurs throughout the superfamily and is the common preference among the
+    SDR ketoreductases used in biocatalysis. The determinant is local: a basic
+    residue (commonly Arg, sometimes Lys) in or just after the glycine-rich
+    loop pairs with the 2'-phosphate of NADP(H). PER-SEQUENCE QUESTION -- the
+    family does not settle it, and mining must not assume it.
+  NADH: >-
+    Also well represented. The classic Rossmann determinant is an acidic residue
+    (Asp, occasionally Glu) at the C-terminal end of the second beta-strand that
+    hydrogen-bonds the 2'- and 3'-hydroxyls of the adenosine ribose and is
+    sterically and electrostatically incompatible with a 2'-phosphate. Its
+    presence is evidence for NAD(H); its absence is not proof of NADP(H).
+
+typical_fold: >-
+  Rossmann fold (single-domain, three-layer alpha/beta/alpha dinucleotide-binding
+  fold). Distinct from the AKR TIM barrel and from the two-domain MDR/ADH
+  architecture.
+
+oligomeric_state: >-
+  Commonly homodimeric or homotetrameric; monomeric members exist. NOT
+  DETERMINED HERE for any specific enzyme. This matters for modelling: in
+  several SDRs the C-terminal substrate-binding segment of one subunit completes
+  the pocket of its neighbour, so a monomer model can be missing part of the
+  active site and will score as a shallow, open pocket that it is not.
+
+catalytic_template_ids:
+  - cat.sdr.nadph_carbonyl_reduction.v1
+
+# Empty on purpose. A seed set must be chosen by the operator from a database
+# search with a recorded snapshot; accessions written from memory would be
+# unverifiable and would silently anchor the whole mining round.
+seed_accessions: []
+
+provenance:
+  source_type: curated_database
+  identifiers:
+    - "PFAM:PF00106"
+    - "EC:1.1.1.-"
+    - "textbook:sdr_superfamily_rossmann_fold_and_yxxxk_catalytic_motif"
+  curated_by: "e-agent build agent (model-drafted from textbook biochemistry; NOT reviewed by a human curator)"
+  curated_at: "2026-10-01"
+  notes: >-
+    needs_curation: true.
+    A curator must first VERIFY the Pfam accession above against the Pfam
+    release in use -- it was written from memory and an accession that points
+    at the wrong family would mis-assign every candidate -- and must then
+    supply: (1) the InterPro accession(s) for the superfamily and
+    for the subfamilies in this project's pool; (2) the further Pfam accessions
+    that cover SDR members missed by PF00106, with the clan they sit in; (3) a
+    primary reference (PMID or DOI) for the superfamily definition and for the
+    YxxxK motif; (4) a seed accession set with the database snapshot it came
+    from; (5) one or more experimental structures of an SDR ketoreductase with
+    its cofactor bound, with ligand codes, which the catalytic template needs
+    before any geometry window can be calibrated.
+    .
+    The EC identifier is a search hint and is written in the oxidation
+    direction; it must not be used to exclude uncharacterised sequences.
+
+caveats: >-
+  The SDR superfamily is enormous and functionally heterogeneous: it contains
+  carbonyl reductases, dehydratases, epimerases, isomerases and enzymes with no
+  assigned activity. A confident SDR call therefore narrows the mechanistic
+  hypothesis to "Ser/Tyr/Lys/Asn-type hydride transfer onto a carbonyl or an
+  equivalent electrophile" and narrows nothing else. Carbonyl reductase activity
+  on a given ketone is not implied by membership and must be measured.
+  .
+  Atypical members exist in which the catalytic Tyr, the Ser or the Lys is
+  replaced; such a member can still be a functional enzyme by another route.
+  Absence of the YxxxK motif is a reason to look harder, not a reason to delete
+  the sequence from the pool, and the exclusion must be recorded either way.
+  .
+  Motif matches, HMM domain hits and catalytic-residue positions are three
+  signals of the same KIND of evidence (sequence). None of them is a
+  measurement of activity, and counting them three times does not make a
+  family call independent evidence of function.

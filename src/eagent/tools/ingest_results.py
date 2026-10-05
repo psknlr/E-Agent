@@ -1637,8 +1637,9 @@ class IngestResults(ScientificInterface):
         declared_cofactor_preferences: Mapping[str, str] | None = None,
         assay_run_id: str | None = None,
         criterion_override: Mapping[str, Any] | None = None,
+        registered_criterion_sha256: str | None = None,
         round_number: int = 1,
-        **_: Any,
+        **unknown: Any,
     ) -> ToolResult:
         """Ingest one round and write the records, the summary and the proposal."""
         if results_csv is None and rows is None:
@@ -1659,9 +1660,66 @@ class IngestResults(ScientificInterface):
             )
 
         result = ToolResult(status=Status.SUCCESS)
+        # An argument this step does not understand is not harmless. The
+        # caller passed it to change something, and dropping it silently is
+        # how a run believes it checked a thing it never checked.
+        for name in sorted(unknown):
+            result.add_flag(
+                "unknown_argument", Severity.WARN,
+                f"ingest_results was passed '{name}', which it does not "
+                f"implement, so it had no effect. An ignored argument is an "
+                f"argument that does nothing: remove it, or implement it.")
+
         criterion = PositiveCriterion.from_template(assay_template)
         deviations = self._record_criterion_override(criterion, criterion_override,
                                                      result)
+
+        # The pre-registration check. The criterion comes from whatever
+        # template is handed in here, so a template carrying the same id but a
+        # looser bar silently rescores the round. Comparing the digest is what
+        # makes "there is a pre-registered criterion" and "the result was
+        # judged by it" the same statement.
+        if registered_criterion_sha256:
+            actual = criterion.digest()
+            if actual != registered_criterion_sha256:
+                declared = any(d.get("kind") == "criterion_override"
+                               for d in deviations)
+                message = (
+                    f"the criterion applied at ingest does not match the one "
+                    f"registered when the batch was selected "
+                    f"(registered {registered_criterion_sha256[:12]}, applied "
+                    f"{actual[:12]}). Template "
+                    f"{assay_template.template_id} carries "
+                    f"{dict(criterion.raw)}.")
+                if declared:
+                    result.add_flag("criterion_changed_declared", Severity.WARN,
+                                    message + " Recorded as a declared "
+                                              "protocol deviation.")
+                    deviations.append({
+                        "kind": "criterion_replaced",
+                        "statement": message,
+                        "registered_sha256": registered_criterion_sha256,
+                        "applied_sha256": actual,
+                    })
+                else:
+                    return ToolResult.failure(
+                        self.name,
+                        message + " Refusing to classify: a bar moved after "
+                                  "the data were seen is not a pre-registered "
+                                  "endpoint. Re-run with the registered "
+                                  "template, or declare the change through "
+                                  "criterion_override so both analyses are "
+                                  "kept.",
+                        code="criterion_does_not_match_registration")
+        elif round_number > 0:
+            result.add_uncertainty(
+                "criterion_registration_unchecked",
+                "no registered criterion digest was supplied, so this round "
+                "cannot show that it was judged by the bar registered when "
+                "the batch was selected",
+                affects=[assay_template.template_id],
+                resolvable_by="pass registered_criterion_sha256 from the "
+                              "experiment plan")
 
         try:
             parsed, problems = parse_assay_rows(

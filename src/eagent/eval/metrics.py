@@ -113,6 +113,18 @@ class CriterionChangedError(EAgentError):
     """
 
 
+class ChemicalTaskMismatchError(EAgentError):
+    """Two measurements of different chemistry were about to be compared.
+
+    A parent assayed on one ketone and a variant assayed on another have not
+    been compared at all: nobody measured the parent on the variant's
+    substrate, so there is no baseline for the difference. Identical units, an
+    identical endpoint name and a tight replicate spread do not supply the
+    missing control. Cross-substrate data is useful for mapping a substrate
+    range; it is not an engineering delta.
+    """
+
+
 class UnitMismatchError(EAgentError):
     """Two measurements in different units were about to be subtracted.
 
@@ -295,12 +307,30 @@ class OutcomeRow:
     parent_sequence_sha256: str | None = None
     mutations: tuple[str, ...] = ()
     replicate_values: tuple[float, ...] = ()
+    #: What chemistry this row measured. Without it a comparison cannot tell
+    #: that a parent was assayed on one substrate and its variant on another,
+    #: and reports the difference as an engineering gain.
+    substrate_key: str | None = None
+    product_key: str | None = None
+    reaction_direction: str | None = None
     #: Empty-vector background for this row's plate and cofactor condition,
     #: as :mod:`eagent.tools.ingest_results` attached it. ``None`` means no
     #: such control was run, which makes a fold-over-background bar
     #: undecidable rather than satisfied.
     empty_vector_baseline: float | None = None
     notes: str = ""
+
+    @property
+    def chemical_task_key(self) -> tuple[str | None, str | None, str | None]:
+        """Substrate, product and direction: the task a number is about.
+
+        Two measurements are comparable as an engineering result only if they
+        are about the same chemical task. Same unit, same endpoint name and a
+        tight replicate spread say nothing about that.
+        """
+        return (_plain(self.substrate_key) or None,
+                _plain(self.product_key) or None,
+                _plain(self.reaction_direction) or None)
 
     @property
     def fold_over_empty_vector(self) -> float | None:
@@ -407,6 +437,14 @@ class OutcomeRow:
             conditions=conditions,
             cofactor_species=cofactor.name if cofactor else None,
             cofactor_state=cofactor.state.value if cofactor else None,
+            substrate_key=(record.substrate.inchikey
+                           or record.substrate.isomeric_smiles
+                           or record.substrate.name),
+            product_key=((record.product_observed.inchikey
+                          or record.product_observed.isomeric_smiles
+                          or record.product_observed.name)
+                         if record.product_observed else None),
+            reaction_direction=record.reaction_direction.value,
             sequence_sha256=record.sequence_sha256,
             parent_sequence_sha256=record.parent_sequence_sha256,
             mutations=tuple(record.mutations),
@@ -1333,6 +1371,15 @@ def variant_versus_parent(
             f"{parent.candidate_id}: they were not assayed under identical "
             f"conditions (differing: {fields}). Re-run both under one "
             f"condition set before claiming an improvement")
+    if variant.chemical_task_key != parent.chemical_task_key:
+        raise ChemicalTaskMismatchError(
+            f"{variant.candidate_id} was assayed on "
+            f"{variant.chemical_task_key} and parent {parent.candidate_id} on "
+            f"{parent.chemical_task_key}. Nobody measured the parent on the "
+            f"variant's chemistry, so there is no baseline for a difference. "
+            f"Assay both on one substrate before claiming an improvement; the "
+            f"cross-substrate pair is substrate-range evidence, not an "
+            f"engineering result.")
     if (variant.measurement_type or None) != (parent.measurement_type or None):
         raise EndpointMismatchError(
             f"{variant.candidate_id} reports endpoint "

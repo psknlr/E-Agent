@@ -496,8 +496,14 @@ class MeasurementGroup:
     #: Median empty-vector signal for this group's plate and cofactor
     #: condition, attached by :func:`attach_empty_vector_baselines`. ``None``
     #: means no such control was run, which makes a fold-over-background bar
-    #: undecidable rather than satisfied.
+    #: undecidable rather than satisfied. When the group spans plates this is
+    #: a summary only; the fold is computed from :attr:`empty_vector_by_plate`.
     empty_vector_baseline: float | None = None
+    #: Plate -> that plate's own empty-vector median. A fold must be taken
+    #: within a plate: background differs between plates, and dividing a
+    #: pooled signal by a pooled background compares wells that were never
+    #: run together.
+    empty_vector_by_plate: dict[str, float] = field(default_factory=dict)
     #: Where that baseline came from, for the record.
     empty_vector_basis: str = ""
 
@@ -598,21 +604,52 @@ class MeasurementGroup:
 
     @property
     def fold_over_empty_vector(self) -> float | None:
-        """Signal relative to the empty-vector control on the same plate.
+        """Signal relative to background, normalised within each plate first.
 
-        ``None`` whenever it cannot be computed: no baseline was run, this
-        group reported no measurement, or the baseline is zero or negative so
-        a ratio would be meaningless. Each of those is a reason the bar cannot
-        be decided, never a reason to treat it as met.
+        Each plate's tested candidate wells are divided by that plate's own
+        empty-vector median, and the per-plate folds are then combined. The
+        pooled alternative -- one median over every candidate well divided by
+        one median over every control well -- silently compares wells that
+        were never run together, and because plates differ both in background
+        and in how many wells of each kind they carry, it can turn a group
+        that reached two-fold on every plate into a tenfold result.
+
+        ``None`` whenever no plate supports a fold: no control was run, the
+        group reported no measurement, or every background read zero or less.
+        Each of those is a reason the bar cannot be decided, never a reason to
+        treat it as met.
         """
-        if self.empty_vector_baseline is None:
+        folds = self.fold_by_plate()
+        if not folds:
             return None
-        value = self.measurement_value
-        if value is None:
-            return None
-        if self.empty_vector_baseline <= 0:
-            return None
-        return value / self.empty_vector_baseline
+        return _median(list(folds.values()))
+
+    def fold_by_plate(self) -> dict[str, float]:
+        """Per-plate fold over that plate's own background.
+
+        Plates with no usable background are absent rather than defaulted, so
+        a missing control cannot contribute a number.
+        """
+        out: dict[str, float] = {}
+        for plate, baseline in self.empty_vector_by_plate.items():
+            if baseline is None or baseline <= 0:
+                continue
+            values = [r.measurement_value for r in self.tested_rows
+                      if str(r.plate or "") == plate
+                      and r.measurement_value is not None]
+            if not values:
+                continue
+            median = _median(values)
+            if median is None:
+                continue
+            out[plate] = median / baseline
+        return out
+
+    @property
+    def plates_without_background(self) -> list[str]:
+        """Plates whose wells cannot contribute to a fold, named not hidden."""
+        usable = set(self.fold_by_plate())
+        return sorted({str(r.plate or "") for r in self.tested_rows} - usable)
 
     @property
     def conversion_pct(self) -> float | None:
@@ -804,27 +841,42 @@ def attach_empty_vector_baselines(
             "fold-over-background criterion is undecidable for every well")
     unmatched: set[str] = set()
     for group in groups:
-        plates = {str(r.plate or "") for r in group.rows}
-        matched: list[float] = []
-        used: list[str] = []
+        plates = {str(r.plate or "") for r in group.tested_rows}
+        # One baseline PER PLATE. Pooling them would let a plate with a low
+        # background supply the divisor for a plate with a high one, which is
+        # how two plates that each reached two-fold become a tenfold result.
+        per_plate: dict[str, float] = {}
         for plate in sorted(plates):
-            key = (plate, group.cofactor, group.cofactor_state)
-            values = by_key.get(key)
+            values = by_key.get((plate, group.cofactor, group.cofactor_state))
             if values:
-                matched.extend(values)
-                used.append(plate)
-        if matched:
-            group.empty_vector_baseline = _median(matched)
+                median = _median(values)
+                if median is not None:
+                    per_plate[plate] = median
+        group.empty_vector_by_plate = per_plate
+        missing = sorted(plates - set(per_plate))
+        if per_plate:
+            # Kept as a summary for reporting only; the fold does not use it.
+            group.empty_vector_baseline = _median(list(per_plate.values()))
             group.empty_vector_basis = (
-                f"median of {len(matched)} empty-vector well(s) on plate(s) "
-                f"{', '.join(used)} under {group.cofactor}"
-                f"[{group.cofactor_state}]")
+                "per-plate empty-vector medians "
+                + ", ".join(f"{plate}={per_plate[plate]:g}"
+                            for plate in sorted(per_plate))
+                + f" under {group.cofactor}[{group.cofactor_state}]"
+                + (f"; no control on plate(s) {', '.join(missing)}, whose "
+                   f"wells cannot contribute a fold" if missing else ""))
         else:
             group.empty_vector_basis = (
                 f"no empty-vector control on plate(s) "
                 f"{', '.join(sorted(plates)) or '-'} under {group.cofactor}"
                 f"[{group.cofactor_state}]")
-            unmatched.update(plates)
+        unmatched.update(missing)
+        if len(per_plate) > 1:
+            notes.append(
+                f"{group.candidate_id} spans plates "
+                f"{', '.join(sorted(per_plate))} under {group.cofactor}"
+                f"[{group.cofactor_state}]; the fold is taken within each "
+                f"plate against that plate's own background and then "
+                f"combined, never pooled across plates")
     if unmatched:
         notes.append(
             f"plate(s) {', '.join(sorted(p for p in unmatched if p))} carried "
@@ -1780,9 +1832,38 @@ class IngestResults(ScientificInterface):
                     subject=group.candidate_id)
                 continue
             try:
-                records.append(self._build_record(
+                built = self._build_record(
                     ctx, group, classification, run_id, sequences,
-                    parent_sequence_hashes, assay_template))
+                    parent_sequence_hashes, assay_template)
+                clash = next((r for r in records
+                              if r.record_id == built.record_id), None)
+                if clash is not None:
+                    # Two conditions that produced different results must not
+                    # leave under one id. Downstream they would read as one
+                    # record contradicting itself, and whichever arrived
+                    # second would overwrite the first on any keyed store.
+                    result.add_flag(
+                        "duplicate_record_id", Severity.BLOCKER,
+                        f"{built.record_id} was produced twice in one round, "
+                        f"by {clash.outcome.value} and {built.outcome.value}. "
+                        f"The identity is missing something that differs "
+                        f"between these two conditions; neither is written.",
+                        subject=group.candidate_id)
+                    unresolved.append(UnresolvedRow(
+                        candidate_id=group.candidate_id,
+                        cofactor=group.cofactor,
+                        reason_code="duplicate_record_id",
+                        reason=(f"record id {built.record_id} is not unique "
+                                f"within this round"),
+                        required_to_resolve=(
+                            "extend the record identity with whatever "
+                            "distinguishes these conditions, or split the "
+                            "round"),
+                        evidence={"record_id": built.record_id,
+                                  "first_outcome": clash.outcome.value,
+                                  "second_outcome": built.outcome.value}))
+                    continue
+                records.append(built)
             except (ValueError, TypeError) as exc:
                 result.add_flag(
                     "record_rejected_by_schema", Severity.BLOCKER,
@@ -2029,7 +2110,11 @@ class IngestResults(ScientificInterface):
             experiment_activity_id=run_id,
         )
         return ExperimentRecord(
-            record_id=f"{run_id}:{group.candidate_id}:{group.cofactor}",
+            # The cofactor STATE is part of the identity. Without it the
+            # reduced and the oxidised condition of one cofactor share a
+            # record id, and two legitimately different results collide.
+            record_id=(f"{run_id}:{group.candidate_id}:{group.cofactor}"
+                       f"[{group.cofactor_state or 'unknown'}]"),
             sequence=sequence,
             accession=None,
             is_variant=is_variant,
@@ -2063,22 +2148,32 @@ class IngestResults(ScientificInterface):
                       declared: Sequence[CofactorSpec]) -> CofactorSpec | None:
         """Match the reported cofactor to a declared spec, or build a minimal one.
 
-        Matching by name first keeps the task's recorded transfer atom and
-        recycling system attached to the record. When the plate names a
-        cofactor the task never declared, a minimal spec is built from what the
-        plate says rather than from the nearest declared option -- substituting
-        NADPH's spec for a well that ran NADH would misrecord the experiment.
+        Matching on name AND oxidation state keeps the task's recorded
+        transfer atom and recycling system attached to the record without
+        rewriting what the plate says. Matching on the name alone takes the
+        first declared spec with that name and stamps its state onto every
+        well, so a plate that deliberately ran the reduced and the oxidised
+        form of one cofactor comes back as two results under one state --
+        which then reads as a contradiction under identical conditions rather
+        than as the two different conditions it was.
+
+        When the plate names a cofactor the task never declared, or declares
+        it in a state the task did not list, a minimal spec is built from what
+        the plate says rather than from the nearest declared option:
+        substituting NADPH's spec for a well that ran NADH would misrecord the
+        experiment, and so would substituting the reduced spec for an
+        oxidised well.
         """
         name = (group.cofactor or "").strip()
         if not name:
             return None
-        for spec in declared:
-            if spec.name.strip().lower() == name.lower():
-                return spec
         try:
             state = CofactorState(group.cofactor_state.strip().lower())
-        except ValueError:
+        except (ValueError, AttributeError):
             state = CofactorState.UNKNOWN
+        for spec in declared:
+            if spec.name.strip().lower() == name.lower() and spec.state is state:
+                return spec
         return CofactorSpec(name=name, state=state)
 
     @staticmethod

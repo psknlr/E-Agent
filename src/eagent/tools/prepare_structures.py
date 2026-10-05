@@ -79,6 +79,7 @@ from __future__ import annotations
 
 import enum
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Protocol, Sequence, runtime_checkable
@@ -1737,6 +1738,44 @@ class PrepareStructures(ScientificInterface):
         return self._assess(ctx, cand, entry, index, template, policy, conf_dir)
 
     # -- outputs -----------------------------------------------------------
+    @staticmethod
+    def _storage_stem(candidate_id: str, structure_id: str) -> str:
+        """A filename that identifies exactly one (candidate, structure) pair.
+
+        Joining the two ids with a separator is ambiguous whenever an id may
+        contain that separator: candidate ``enzyme__model`` with structure
+        ``v1`` and candidate ``enzyme`` with structure ``model__v1`` produce
+        the same name, so the second candidate's structure silently replaces
+        the first and both then report the same path. Whichever was written
+        last is what every later measurement reads.
+
+        A business id is also not a safe filename. One containing a path
+        separator or a parent reference would place the file outside the run
+        directory, so the readable part is restricted to characters that
+        cannot traverse and the full pair is carried by a hash appended to
+        it. The hash is what makes the name unambiguous; the readable part is
+        only there so a human can find the file.
+        """
+        safe = re.sub(r"[^A-Za-z0-9._-]+", "-",
+                      f"{candidate_id}__{structure_id}").strip("-.") or "structure"
+        return f"{safe[:96]}__{sha256_obj([candidate_id, structure_id])[:12]}"
+
+    @staticmethod
+    def _within(directory: Path, path: Path) -> Path:
+        """Return ``path``, or raise if it escapes ``directory``.
+
+        A defence in depth behind the sanitising above: if a future change
+        loosens the character set, this still refuses to write outside the
+        run.
+        """
+        resolved = path.resolve()
+        root = directory.resolve()
+        if root not in resolved.parents and resolved != root:
+            raise EAgentError(
+                f"refusing to write {resolved}: it resolves outside the run "
+                f"directory {root}")
+        return path
+
     def _store_structure(self, a: StructureAssessment, struct_dir: Path) -> None:
         """Copy the chosen structure into the run as mmCIF.
 
@@ -1746,7 +1785,9 @@ class PrepareStructures(ScientificInterface):
         the reader ignored, and then the artifact and the measurement describe
         different things. The source path stays in the QC table.
         """
-        out = struct_dir / f"{a.candidate_id}__{a.entry.structure_id}.cif"
+        out = self._within(
+            struct_dir,
+            struct_dir / f"{self._storage_stem(a.candidate_id, a.entry.structure_id)}.cif")
         out.write_text(write_mmcif_text(a.structure, a.entry.structure_id),
                        encoding="utf-8")
         a.record.path = str(out)
@@ -2036,7 +2077,9 @@ def _unobserved_catalytic_roles(a: StructureAssessment) -> list[str]:
 
 def _write_confidence_json(conf_dir: Path, a: StructureAssessment) -> Path:
     """One JSON per assessed structure, so the numbers can be re-read as data."""
-    path = conf_dir / f"{a.candidate_id}__{a.entry.structure_id}.json"
+    path = PrepareStructures._within(
+        conf_dir,
+        conf_dir / f"{PrepareStructures._storage_stem(a.candidate_id, a.entry.structure_id)}.json")
     payload = {
         "candidate_id": a.candidate_id,
         "structure_id": a.entry.structure_id,

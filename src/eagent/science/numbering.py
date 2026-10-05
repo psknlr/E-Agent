@@ -509,11 +509,42 @@ class ResidueMap:
     mismatches: list[tuple[int, str, str, AuthorPosition]] = field(default_factory=list)
     #: Observed residues that found no place in the candidate sequence.
     unmapped_structure_positions: list[AuthorPosition] = field(default_factory=list)
+    #: Candidate indices whose author assignment is not uniquely determined.
+    #: A run of identical residues that is only partly observed admits several
+    #: equal-scoring alignments; the aligner must pick one, and the one it
+    #: picks is not evidence. See :meth:`is_ambiguous`.
+    ambiguous_indices: frozenset[int] = frozenset()
     notes: list[str] = field(default_factory=list)
 
     # -- queries -----------------------------------------------------------
     def __len__(self) -> int:
         return len(self.candidate_sequence)
+
+    def is_ambiguous(self, index: int) -> bool:
+        """Whether this index's structural assignment could equally be another.
+
+        True inside a run of identical residues that the structure only
+        partly observes. Two adjacent tyrosines with coordinates for one of
+        them admit two alignments of identical score, so which tyrosine the
+        author number refers to is not determined by the sequence. The
+        aligner still has to choose, and a mutation designed against the
+        choice is a mutation at a position nobody established.
+        """
+        return index in self.ambiguous_indices
+
+    def ambiguity_note(self, index: int) -> str | None:
+        """Why this index is ambiguous, for a report or a refusal."""
+        if index not in self.ambiguous_indices:
+            return None
+        letter = self.candidate_sequence[index]
+        run = sorted(i for i in self.ambiguous_indices
+                     if self.candidate_sequence[i] == letter
+                     and abs(i - index) < len(self.candidate_sequence))
+        return (f"index {index} ({letter}{index + 1}) sits in a run of "
+                f"identical residues that the structure only partly observes "
+                f"(candidate indices {run}); several alignments score "
+                f"identically, so which one the author numbering refers to is "
+                f"not determined here")
 
     def _check_index(self, index: int) -> None:
         if not isinstance(index, int) or isinstance(index, bool):
@@ -807,6 +838,37 @@ def build_map(
             rmap.unmapped_structure_positions.append(positions[oi])
             oi += 1
 
+    # Which assignments the alignment could not have determined. A maximal
+    # run of identical residues that the structure observes only in part
+    # admits several alignments of identical score: with two adjacent
+    # tyrosines and coordinates for one, placing the observed one first or
+    # second scores the same. The aligner must still choose, and the choice
+    # it makes carries no information, so every mapped index in such a run is
+    # marked rather than silently trusted.
+    ambiguous: set[int] = set()
+    start = 0
+    while start < len(cand):
+        end = start
+        while end + 1 < len(cand) and cand[end + 1] == cand[start]:
+            end += 1
+        if end > start:
+            run = range(start, end + 1)
+            mapped = [i for i in run if i in rmap.index_to_author]
+            if mapped and len(mapped) < (end - start + 1):
+                ambiguous.update(mapped)
+        start = end + 1
+    rmap.ambiguous_indices = frozenset(ambiguous)
+    if ambiguous:
+        shown = ", ".join(str(i) for i in sorted(ambiguous)[:8])
+        rmap.notes.append(
+            f"numbering: candidate indices {shown} lie in runs of identical "
+            f"residues that the structure observes only in part, so their "
+            f"author assignment is one of several equally-scoring "
+            f"alignments. A position here is not established and must not be "
+            f"reported as observed or used to name a mutation without a "
+            f"curator resolving it"
+        )
+
     if rmap.mismatches:
         shown = ", ".join(
             f"index {i} candidate {c} vs structure {s} at {p}"
@@ -892,8 +954,10 @@ def verify_residue(
     letter, or when the candidate sequence disagrees.
 
     ``require_observed=True`` additionally rejects a position with no
-    coordinates. Use it for any proposal justified by structural evidence: a
-    pocket-contact argument about a residue nobody has seen is not evidence.
+    coordinates, and one whose assignment is ambiguous. Use it for any
+    proposal justified by structural evidence: a pocket-contact argument
+    about a residue nobody has seen is not evidence, and neither is one about
+    a residue the alignment could equally have placed elsewhere.
 
     A disagreement between the candidate and the *structure* at this position
     is reported as part of the error message when it exists, but it does not
@@ -931,5 +995,17 @@ def verify_residue(
             f"candidate index {index} ({actual}) has no coordinates in chain "
             f"{residue_map.chain_id}; a structure-based proposal cannot be made "
             f"for an unobserved residue"
+        )
+    if require_observed and residue_map.is_ambiguous(index):
+        # The index has an author position, but which residue of the run that
+        # position refers to was decided by an arbitrary tie-break. Saying
+        # "observed" here would hand structural evidence from a residue that
+        # has coordinates to one that does not, and the proposal would then
+        # name one residue and change another.
+        raise NumberingError(
+            f"candidate index {index} ({actual}) cannot be confirmed as "
+            f"observed: {residue_map.ambiguity_note(index)}. A curator must "
+            f"resolve which residue of the run the structure shows before a "
+            f"structure-based proposal is made here."
         )
     return pos

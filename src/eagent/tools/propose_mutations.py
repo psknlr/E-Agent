@@ -1917,6 +1917,20 @@ class ProposeMutations(ScientificInterface):
         excluded: list[ExcludedSite] = []
         for site in sites:
             structure_only = not (site.evidence.family or site.evidence.experimental)
+            if rmap.is_ambiguous(site.index):
+                # Unconditional, not only for structure-only sites. An
+                # ambiguous assignment is a numbering problem, not an
+                # evidence problem: whatever argues for the site, the
+                # proposal would name one residue of the run and
+                # apply_to() would change another. Family or experimental
+                # support for the position does not tell the aligner which
+                # residue of a partly-observed run the author number meant.
+                excluded.append(ExcludedSite(
+                    parent.candidate_id, site.index, site.author_token or "-",
+                    site.wild_type, site.n_classes, "numbering_ambiguous",
+                    rmap.ambiguity_note(site.index)
+                    or "the author assignment at this index is not unique"))
+                continue
             try:
                 verify_residue(rmap, site.index, site.wild_type,
                                require_observed=structure_only)

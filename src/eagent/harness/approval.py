@@ -228,6 +228,27 @@ class ApprovalRequest:
     def is_granted(self) -> bool:
         return self.decision is Decision.APPROVE
 
+    @property
+    def payload_sha256(self) -> str:
+        """Hash of what was decided, so a grant cannot migrate to other work.
+
+        An approval is an approval *of something*. Without this, the only
+        thing a later check can match on is the gate name, and every gate
+        name is shared by every batch that will ever be proposed.
+        """
+        return sha256_obj(dict(self.payload))
+
+    def covers(self, payload: Mapping[str, Any] | None) -> bool:
+        """Whether this decision was made about ``payload``.
+
+        ``None`` means the caller did not say what it is about, which cannot
+        be matched against anything and so is never covered by a specific
+        decision; the gate-level reading is left to the caller.
+        """
+        if payload is None:
+            return False
+        return self.payload_sha256 == sha256_obj(dict(payload))
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["kind"] = self.kind.value
@@ -319,20 +340,51 @@ class ApprovalQueue:
     def for_gate(self, gate: str) -> list[ApprovalRequest]:
         return [r for r in self._requests if r.gate == gate]
 
-    def is_granted(self, gate: str) -> bool:
-        """Whether this gate has a recorded grant.
+    def latest_for(self, gate: str,
+                   payload: Mapping[str, Any] | None = None) -> ApprovalRequest | None:
+        """The most recent decided request for this gate, or for this payload.
 
-        Reads both the queue and the manifest: the manifest is the record of
-        record, and a queue file restored from a backup must not be able to
-        revoke a decision the manifest already carries.
+        The most recent decision is what governs. Reading "has this gate ever
+        been granted" instead lets a grant given for a small pilot release a
+        later batch that was explicitly refused.
         """
-        if any(r.gate == gate and r.is_granted for r in self._requests):
-            return True
+        matches = [r for r in self._requests
+                   if r.gate == gate and r.decision.is_final
+                   and (payload is None or r.covers(payload))]
+        return matches[-1] if matches else None
+
+    def is_granted(self, gate: str,
+                   payload: Mapping[str, Any] | None = None) -> bool:
+        """Whether the work described by ``payload`` is approved at this gate.
+
+        With a payload, the decision must have been made about that exact
+        payload: a grant for one batch does not carry to a different one, and
+        a changed construct list, well count, budget or criterion produces a
+        different payload and therefore needs its own decision.
+
+        Without a payload this falls back to the gate-level reading, but a
+        later refusal anywhere on the gate still shuts it. An older grant
+        outranking a newer denial is how an explicitly refused batch gets
+        released.
+        """
+        if payload is not None:
+            decided = self.latest_for(gate, payload)
+            if decided is not None:
+                return decided.is_granted
+            # No decision about this payload. A grant recorded for other work
+            # says nothing about it, and neither does the manifest.
+            return False
+
+        latest = self.latest_for(gate)
+        if latest is not None:
+            return latest.is_granted
         return bool(self.manifest is not None and self.manifest.approved(gate))
 
-    def is_denied(self, gate: str) -> bool:
-        return any(r.gate == gate and r.decision is Decision.DENY
-                   for r in self._requests)
+    def is_denied(self, gate: str,
+                  payload: Mapping[str, Any] | None = None) -> bool:
+        """Whether the latest decision on this gate, or payload, was a refusal."""
+        decided = self.latest_for(gate, payload)
+        return decided is not None and decided.decision is Decision.DENY
 
     # -- mutation ----------------------------------------------------------
     def request(self, gate: str, *, requested_by: str = "controller",
@@ -409,15 +461,44 @@ class ApprovalQueue:
         if self.manifest is not None:
             detail = reason or req.detail
             self.manifest.record_approval(req.gate, decision.value, req.actor,
-                                          detail)
+                                          req.reason or req.detail,
+                                          payload_sha256=req.payload_sha256,
+                                          request_id=req.request_id)
         self.save()
         return req
 
     # -- enforcement -------------------------------------------------------
-    def require(self, gate: str, detail: str = "") -> None:
-        """Raise unless this gate carries a recorded grant."""
-        if self.is_granted(gate):
+    def require(self, gate: str, detail: str = "",
+                payload: Mapping[str, Any] | None = None) -> None:
+        """Raise unless the work described by ``payload`` is approved here.
+
+        Pass the payload wherever one exists. Requiring only the gate accepts
+        any decision ever recorded under that name, which is not the question
+        a batch about to be ordered is asking.
+        """
+        if self.is_granted(gate, payload):
             return
+        if payload is not None and self.is_denied(gate, payload):
+            raise ApprovalRequiredError(
+                gate, f"{detail} this exact request was refused; a grant "
+                      f"recorded for different work does not release it")
+        if payload is not None:
+            wanted = sha256_obj(dict(payload))
+            others = [r for r in self._requests
+                      if r.gate == gate and r.is_granted
+                      and r.payload_sha256 != wanted]
+            if others:
+                # Without this the operator is told "no request has even been
+                # raised" immediately after they approved something, and the
+                # natural reading is that the tool lost their decision rather
+                # than that the work changed under it.
+                raise ApprovalRequiredError(
+                    gate,
+                    f"{detail}a grant exists for DIFFERENT work "
+                    f"(request {others[-1].request_id}, approved by "
+                    f"{others[-1].actor}), which does not carry over to this "
+                    f"one. What is being decided changed, so it needs its own "
+                    f"decision.")
         pending = self.pending(gate)
         where = (f" request {pending[-1].request_id} is still pending"
                  if pending else " no request has even been raised")
@@ -430,7 +511,8 @@ class ApprovalQueue:
 
 def guard_batch_selection(manifest: RunManifest,
                           queue: ApprovalQueue | None = None,
-                          *, gate: str = BATCH_GATE) -> None:
+                          *, gate: str = BATCH_GATE,
+                          payload: Mapping[str, Any] | None = None) -> None:
     """Hard block in front of batch selection.
 
     Called by the controller before it will route to ``select_batch`` at all,
@@ -442,16 +524,28 @@ def guard_batch_selection(manifest: RunManifest,
 
     Raises :class:`~eagent.errors.ApprovalRequiredError`.
     """
-    grants = [a for a in manifest.approvals
-              if a.get("gate") == gate and a.get("decision") == "approve"
-              and str(a.get("actor") or "").strip()]
-    if grants:
+    wanted = sha256_obj(dict(payload)) if payload is not None else None
+    decisions = [a for a in manifest.approvals
+                 if a.get("gate") == gate
+                 and str(a.get("actor") or "").strip()
+                 and (wanted is None or a.get("payload_sha256") == wanted)]
+    # The LATEST decision governs. Scanning for any grant ever recorded lets
+    # an approval given for a small pilot release a later, different batch
+    # that a human explicitly refused.
+    if decisions and decisions[-1].get("decision") == "approve":
         return
-    denied = [a for a in manifest.approvals
-              if a.get("gate") == gate and a.get("decision") == "deny"]
+    denied = [a for a in decisions if a.get("decision") == "deny"]
     detail = (
         "batch selection spends the construct budget. The manifest carries no "
         "approval with an actor for this gate")
+    if wanted is not None:
+        detail += f" and this exact batch (payload {wanted[:12]})"
+        other = [a for a in manifest.approvals
+                 if a.get("gate") == gate and a.get("decision") == "approve"
+                 and a.get("payload_sha256") not in (None, wanted)]
+        if other:
+            detail += ("; a grant exists for a DIFFERENT batch, which does not "
+                       "carry over: re-request approval for this one")
     if denied:
         detail += (f"; it was denied by {denied[-1].get('actor')} "
                    f"({denied[-1].get('detail') or 'no reason recorded'})")

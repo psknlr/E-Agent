@@ -586,7 +586,15 @@ class MeasurementGroup:
 
     @property
     def measurement_value(self) -> float | None:
-        return _median([r.measurement_value for r in self.rows])
+        """Median over the wells that were actually measured.
+
+        Reads :attr:`tested_rows`, never ``rows``. A well marked ``tested=no``
+        routinely still carries a number: the commonest way a plate reaches
+        this code is a copy of the previous round's sheet with the untested
+        wells' old values left in place. Taking the median over every row lets
+        a stale value from a well nobody ran outvote the one that was run.
+        """
+        return _median([r.measurement_value for r in self.tested_rows])
 
     @property
     def fold_over_empty_vector(self) -> float | None:
@@ -608,11 +616,22 @@ class MeasurementGroup:
 
     @property
     def conversion_pct(self) -> float | None:
-        return _median([r.conversion_pct for r in self.rows])
+        """Median conversion over the wells that were actually measured.
+
+        See :attr:`measurement_value`: an untested well's leftover number is
+        not a measurement and must not enter an aggregate.
+        """
+        return _median([r.conversion_pct for r in self.tested_rows])
 
     @property
     def product_identity_observed(self) -> str:
-        seen = {r.product_identity_observed for r in self.rows}
+        """Worst identity observed across the measured wells.
+
+        Restricted to tested wells for the same reason as the numeric
+        aggregates: an untested well's leftover "target" is not an
+        observation.
+        """
+        seen = {r.product_identity_observed for r in self.tested_rows}
         for key in ("other", "target", "none"):
             if key in seen:
                 return key
@@ -622,20 +641,68 @@ class MeasurementGroup:
     def ee_target_pct(self) -> float | None:
         """Signed ee toward the target enantiomer, from summed peak areas.
 
+        Returns ``None`` unless BOTH enantiomer peaks were quantified in the
+        same measured well. A blank opposite-peak cell is missing data, and
+        summing it as zero turns "nobody reported the other peak" into
+        "the other enantiomer is absent", which is the strongest
+        stereochemical claim the assay can make and is manufactured here out
+        of an empty cell. An explicit non-detection is a different statement
+        and belongs in :meth:`ee_target_lower_bound`, which is bounded by the
+        detection limit rather than reported as an exact 100%.
+
         Summed rather than averaged per replicate so a replicate with almost
-        no product cannot swing the ratio; and ``None`` -- never 0.0 -- when no
-        product was quantified, because ``ee_target`` is undefined there and a
-        0 would read as "racemic".
+        no product cannot swing the ratio, and ``None`` -- never 0.0 -- when
+        nothing was quantified, because a 0 would read as "racemic".
         """
-        target = sum(r.peak_area_target for r in self.rows
-                     if r.peak_area_target is not None)
-        opposite = sum(r.peak_area_opposite for r in self.rows
-                       if r.peak_area_opposite is not None)
-        has_any = any(r.peak_area_target is not None
-                      or r.peak_area_opposite is not None for r in self.rows)
-        if not has_any or (target + opposite) <= 0:
+        usable = [r for r in self.tested_rows
+                  if r.peak_area_target is not None
+                  and r.peak_area_opposite is not None]
+        if not usable:
+            return None
+        target = sum(r.peak_area_target for r in usable)
+        opposite = sum(r.peak_area_opposite for r in usable)
+        if (target + opposite) <= 0:
             return None
         return ee_target(target, opposite)
+
+    @property
+    def ee_incomplete_peaks(self) -> bool:
+        """Whether a measured well reported one enantiomer peak but not both.
+
+        Surfaced so the caller can say "the chiral analysis is incomplete"
+        instead of silently producing no ee and letting it read as "not
+        chiral".
+        """
+        return any(
+            (r.peak_area_target is None) != (r.peak_area_opposite is None)
+            for r in self.tested_rows)
+
+    def ee_target_lower_bound(self) -> tuple[float, str] | None:
+        """Bound on signed ee when the opposite peak was explicitly not detected.
+
+        Only defensible when the well records a quantitation limit for the
+        analysis that produced the target peak: the unseen enantiomer could
+        sit anywhere up to that limit, so the honest statement is a bound
+        computed at the limit, not an exact value computed at zero.
+
+        Returns ``(lower_bound_pct, basis)``, or ``None`` when no well
+        supports even a bound.
+        """
+        best: tuple[float, str] | None = None
+        for r in self.tested_rows:
+            if r.peak_area_target is None or r.peak_area_opposite is not None:
+                continue
+            if r.product_identity_observed != "target":
+                continue
+            limit = r.limit_of_detection
+            if limit is None or limit <= 0:
+                continue
+            bound = ee_target(r.peak_area_target, limit)
+            basis = (f"opposite enantiomer not detected; bound computed at the "
+                     f"recorded limit {limit:g} {r.limit_unit or ''}".strip())
+            if best is None or bound < best[0]:
+                best = (bound, basis)
+        return best
 
     @property
     def product_signal(self) -> bool:
@@ -886,6 +953,45 @@ def classify_group(
                         "(GC-MS or chiral HPLC against an authentic standard) "
                         "before this is called a hit"),
                     evidence={
+                        "detection_method": group.detection_method,
+                        "measurement_type": group.measurement_type,
+                        "measurement_value": group.measurement_value,
+                        "conversion_pct": group.conversion_pct,
+                        "criterion_reasons": criterion_reasons,
+                    }))
+        if group.product_identity_observed != "target":
+            # Three different statements get conflated here if this check is
+            # missing: that the substrate was consumed, that the method is
+            # CAPABLE of identifying the product, and that this well's product
+            # WAS identified as the target. The branch above establishes only
+            # the second. A conversion signal is equally consistent with a side
+            # reaction, with degradation, or with the substrate decomposing, so
+            # a well that reports no identified product is not a hit however
+            # well it clears the numeric bars.
+            observed = group.product_identity_observed
+            return Classification(
+                None,
+                tuple(reasons + [
+                    f"every numeric bar was met and the method can identify "
+                    f"the product, but this well reports "
+                    f"product_identity_observed={observed!r}"]),
+                UnresolvedRow(
+                    candidate_id=group.candidate_id, cofactor=group.cofactor,
+                    reason_code="bars_met_without_identified_product",
+                    reason=(
+                        f"{group.candidate_id} meets the pre-registered "
+                        f"criterion, but the target product was not identified "
+                        f"in this well (reported {observed!r}). Substrate "
+                        f"consumption is not product formation: a side "
+                        f"reaction or degradation gives the same conversion "
+                        f"number."),
+                    required_to_resolve=(
+                        "record what the identifying method actually saw. If "
+                        "the target was observed, set it on the plate; if "
+                        "nothing was, this is a conversion without product and "
+                        "belongs in the record as such"),
+                    evidence={
+                        "product_identity_observed": observed,
                         "detection_method": group.detection_method,
                         "measurement_type": group.measurement_type,
                         "measurement_value": group.measurement_value,
@@ -1531,8 +1637,9 @@ class IngestResults(ScientificInterface):
         declared_cofactor_preferences: Mapping[str, str] | None = None,
         assay_run_id: str | None = None,
         criterion_override: Mapping[str, Any] | None = None,
+        registered_criterion_sha256: str | None = None,
         round_number: int = 1,
-        **_: Any,
+        **unknown: Any,
     ) -> ToolResult:
         """Ingest one round and write the records, the summary and the proposal."""
         if results_csv is None and rows is None:
@@ -1553,9 +1660,66 @@ class IngestResults(ScientificInterface):
             )
 
         result = ToolResult(status=Status.SUCCESS)
+        # An argument this step does not understand is not harmless. The
+        # caller passed it to change something, and dropping it silently is
+        # how a run believes it checked a thing it never checked.
+        for name in sorted(unknown):
+            result.add_flag(
+                "unknown_argument", Severity.WARN,
+                f"ingest_results was passed '{name}', which it does not "
+                f"implement, so it had no effect. An ignored argument is an "
+                f"argument that does nothing: remove it, or implement it.")
+
         criterion = PositiveCriterion.from_template(assay_template)
         deviations = self._record_criterion_override(criterion, criterion_override,
                                                      result)
+
+        # The pre-registration check. The criterion comes from whatever
+        # template is handed in here, so a template carrying the same id but a
+        # looser bar silently rescores the round. Comparing the digest is what
+        # makes "there is a pre-registered criterion" and "the result was
+        # judged by it" the same statement.
+        if registered_criterion_sha256:
+            actual = criterion.digest()
+            if actual != registered_criterion_sha256:
+                declared = any(d.get("kind") == "criterion_override"
+                               for d in deviations)
+                message = (
+                    f"the criterion applied at ingest does not match the one "
+                    f"registered when the batch was selected "
+                    f"(registered {registered_criterion_sha256[:12]}, applied "
+                    f"{actual[:12]}). Template "
+                    f"{assay_template.template_id} carries "
+                    f"{dict(criterion.raw)}.")
+                if declared:
+                    result.add_flag("criterion_changed_declared", Severity.WARN,
+                                    message + " Recorded as a declared "
+                                              "protocol deviation.")
+                    deviations.append({
+                        "kind": "criterion_replaced",
+                        "statement": message,
+                        "registered_sha256": registered_criterion_sha256,
+                        "applied_sha256": actual,
+                    })
+                else:
+                    return ToolResult.failure(
+                        self.name,
+                        message + " Refusing to classify: a bar moved after "
+                                  "the data were seen is not a pre-registered "
+                                  "endpoint. Re-run with the registered "
+                                  "template, or declare the change through "
+                                  "criterion_override so both analyses are "
+                                  "kept.",
+                        code="criterion_does_not_match_registration")
+        elif round_number > 0:
+            result.add_uncertainty(
+                "criterion_registration_unchecked",
+                "no registered criterion digest was supplied, so this round "
+                "cannot show that it was judged by the bar registered when "
+                "the batch was selected",
+                affects=[assay_template.template_id],
+                resolvable_by="pass registered_criterion_sha256 from the "
+                              "experiment plan")
 
         try:
             parsed, problems = parse_assay_rows(

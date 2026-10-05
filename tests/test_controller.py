@@ -145,11 +145,16 @@ def make_controller(tmp: Path, registry: InterfaceRegistry | None = None,
                     **ctx_kwargs: Any) -> ResearchController:
     ctx = ctx or make_ctx(tmp, **ctx_kwargs)
     queue = ApprovalQueue(Path(tmp) / "approvals.json", ctx.manifest)
+    controller = ResearchController(ctx, registry or scripted_registry(), queue,
+                                    hooks=hooks, arguments=arguments)
+    # Pre-authorise the payload the controller will actually present, not a
+    # placeholder. A grant recorded against different content is not a grant
+    # for this work, and the gate is right to refuse it -- so the fixture
+    # approves the real thing rather than the check being loosened for it.
     for gate in granted:
-        queue.request(gate, payload={"fixture": True})
+        queue.request(gate, payload=controller.gate_payload(gate))
         queue.grant(gate, actor="test.operator", reason="fixture grant")
-    return ResearchController(ctx, registry or scripted_registry(), queue,
-                              hooks=hooks, arguments=arguments)
+    return controller
 
 
 # ---------------------------------------------------------------------------

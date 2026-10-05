@@ -61,7 +61,7 @@ from pydantic import BaseModel
 from ..context import RunContext
 from ..envelope import NextAction, Severity, Status, ToolResult
 from ..errors import ApprovalRequiredError
-from ..provenance import canonical_json, sha256_obj, utc_now
+from ..provenance import canonical_json, sha256_file, sha256_obj, utc_now
 from ..tools.base import InterfaceRegistry, ScientificInterface
 from .approval import (
     APPROVAL_GATES, ApprovalQueue, BATCH_GATE, CRITERIA_GATE, REACTION_GATE,
@@ -610,6 +610,43 @@ def _default_hit_found(result: ToolResult) -> bool:
     return False
 
 
+#: Files hashed into a step's input digest, at most. Beyond this a directory
+#: argument is marked unstable, which makes the step re-run: re-running a step
+#: that did not need it costs time, while skipping one whose inputs changed
+#: costs the result.
+_MAX_HASHED_INPUT_FILES = 512
+
+
+def _path_identity(path: Path) -> Any:
+    """Identity of a path argument: what is in it, not where it is.
+
+    Hashing the path string alone lets a step be skipped on resume after its
+    input file was edited in place, because the only thing that changed is
+    the bytes. The run then reports a step as reproduced from a cached result
+    that the current inputs would not produce.
+
+    A missing path is recorded as missing rather than as its string, so
+    creating the file later invalidates the digest as it should.
+    """
+    text = str(path)
+    try:
+        if path.is_file():
+            return {"path": text, "sha256": sha256_file(path)}
+        if path.is_dir():
+            files = sorted(q for q in path.rglob("*") if q.is_file())
+            if len(files) > _MAX_HASHED_INPUT_FILES:
+                return {"path": text, "__unstable__": "directory_too_large",
+                        "n_files": len(files)}
+            return {"path": text, "contents": [
+                {"rel": str(q.relative_to(path)), "sha256": sha256_file(q)}
+                for q in files]}
+        return {"path": text, "state": "missing"}
+    except OSError as exc:
+        # Unreadable is not unchanged. Mark it unstable so the step re-runs
+        # rather than being skipped on a digest that proves nothing.
+        return {"path": text, "__unstable__": f"unreadable: {exc.__class__.__name__}"}
+
+
 def _jsonable(value: Any) -> Any:
     """Render an argument for hashing, flagging anything with an unstable form.
 
@@ -622,7 +659,7 @@ def _jsonable(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     if isinstance(value, Path):
-        return str(value)
+        return _path_identity(value)
     if isinstance(value, Mapping):
         return {str(k): _jsonable(v) for k, v in sorted(value.items(), key=str)}
     if isinstance(value, (list, tuple, set, frozenset)):
@@ -792,8 +829,27 @@ class ResearchController:
             # skipped. A record that was routed to widening or repair last time
             # is not "done", and a record written before this field existed
             # cannot prove either way, so it is re-run.
+            # A step may only be skipped if its result can be handed to the
+            # stages that read it. Skipping without restoring the payload is
+            # how a round that found a hit reaches the no-hit diagnosis after
+            # a restart: the step is marked done, the downstream stage reads
+            # nothing, and nothing in the record says the conclusion changed
+            # because of a resume rather than because of the data.
+            restorable = bool(previous.get("data_restorable"))
             if recorded == digest and \
+                    parameters.get("controller_failure") == FailureKind.NONE.value \
+                    and not restorable:
+                self.log(f"resume: re-running {step_id}; its result was not "
+                         f"stored in a restorable form, and a skipped step "
+                         f"whose output cannot be restored would silently "
+                         f"change the branch taken")
+            elif recorded == digest and \
                     parameters.get("controller_failure") == FailureKind.NONE.value:
+                restored = ToolResult(
+                    status=Status(previous.get("status", Status.SUCCESS.value)),
+                    data=dict(previous.get("data") or {}),
+                    message=previous.get("message", ""))
+                self.results[interface_name] = restored
                 self.skipped_steps.append(step_id)
                 self.attempts.append(StepAttempt(
                     step_id=step_id, stage=stage, interface=interface_name,
@@ -1103,7 +1159,20 @@ class ResearchController:
                 "declared successor to carry the shortfall into")
         return self.goto(onward, reason)
 
-    def _stage_batch_approval(self) -> Stage:
+    def gate_payload(self, gate: str) -> dict[str, Any]:
+        """What this controller would ask the operator to decide about.
+
+        Public so that an operator interface, and a test, can authorise the
+        same thing the controller will later check. A decision recorded
+        against a different payload is not a decision about this work, and
+        the gate is right to refuse it, so the way to pre-authorise is to
+        approve the real payload rather than to loosen the check.
+        """
+        if gate == BATCH_GATE:
+            return self._batch_gate_payload()
+        return {"task_id": self.ctx.task.task_id, "gate": gate}
+
+    def _batch_gate_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"task_id": self.ctx.task.task_id}
         if self.hooks.batch_payload is not None:
             payload.update(dict(self.hooks.batch_payload(self)))
@@ -1112,11 +1181,19 @@ class ResearchController:
                 "no batch cost payload was supplied; the operator is being "
                 "asked to authorise a batch whose size and price this run "
                 "cannot state")
-        if self.queue.is_granted(BATCH_GATE):
+        return payload
+
+    def _stage_batch_approval(self) -> Stage:
+        payload: dict[str, Any] = self._batch_gate_payload()
+        # The payload is what the operator is shown and therefore what they
+        # decide about. Checking the gate alone would accept a grant given for
+        # a different batch, at a different size and a different cost.
+        self._batch_payload = dict(payload)
+        if self.queue.is_granted(BATCH_GATE, payload):
             return self.goto(Stage.SELECT_BATCH,
-                             "batch authorised by a recorded decision")
-        if self.queue.is_denied(BATCH_GATE):
-            self.stop_reason = "the operator declined to authorise the batch"
+                             "this batch authorised by a recorded decision")
+        if self.queue.is_denied(BATCH_GATE, payload):
+            self.stop_reason = "the operator declined to authorise this batch"
             return self.goto(Stage.HALTED, self.stop_reason)
         self.queue.request(
             BATCH_GATE, requested_by="controller",
@@ -1136,7 +1213,8 @@ class ResearchController:
         from "somebody edited the YAML" to "genes were ordered".
         """
         try:
-            guard_batch_selection(self.manifest, self.queue)
+            guard_batch_selection(self.manifest, self.queue,
+                                  payload=getattr(self, "_batch_payload", None))
         except ApprovalRequiredError as exc:
             self.stop_reason = str(exc)
             return self.goto(Stage.AWAITING_HUMAN, self.stop_reason)

@@ -113,6 +113,62 @@ class CriterionChangedError(EAgentError):
     """
 
 
+class UnitMismatchError(EAgentError):
+    """Two measurements in different units were about to be subtracted.
+
+    One per second and sixty per minute are the same activity. Subtracting
+    the raw numbers reports a sixtyfold improvement that does not exist, and
+    because the replicate spreads are in the same unconverted units the
+    "larger than the replicate scatter" check agrees with it.
+    """
+
+
+#: Conversions this module will apply, as (from, to, factor). Deliberately
+#: short and explicit rather than a general unit library: a wrong factor here
+#: would invent an improvement, so every entry is one a reader can check at a
+#: glance. Anything not listed is refused rather than guessed.
+_UNIT_CANON: dict[str, tuple[str, float]] = {
+    # first-order rate constants -> per second
+    "s-1": ("s-1", 1.0), "s^-1": ("s-1", 1.0), "1/s": ("s-1", 1.0),
+    "sec-1": ("s-1", 1.0), "per second": ("s-1", 1.0),
+    "min-1": ("s-1", 1.0 / 60.0), "min^-1": ("s-1", 1.0 / 60.0),
+    "1/min": ("s-1", 1.0 / 60.0), "per minute": ("s-1", 1.0 / 60.0),
+    "h-1": ("s-1", 1.0 / 3600.0), "hr-1": ("s-1", 1.0 / 3600.0),
+    "1/h": ("s-1", 1.0 / 3600.0), "per hour": ("s-1", 1.0 / 3600.0),
+    # concentrations -> millimolar
+    "mm": ("mM", 1.0), "mmol/l": ("mM", 1.0),
+    "um": ("mM", 1e-3), "µm": ("mM", 1e-3), "umol/l": ("mM", 1e-3),
+    "nm": ("mM", 1e-6), "nmol/l": ("mM", 1e-6),
+    "m": ("mM", 1e3), "mol/l": ("mM", 1e3),
+    # fractions -> percent
+    "%": ("%", 1.0), "percent": ("%", 1.0), "pct": ("%", 1.0),
+    # dimensionless
+    "": ("", 1.0),
+}
+
+
+def canonical_unit(unit: str | None) -> tuple[str, float] | None:
+    """``(canonical_unit, factor)`` for a unit this module can convert.
+
+    ``None`` for anything unrecognised, which the caller must treat as a
+    refusal to compare rather than as a licence to subtract anyway.
+    """
+    if unit is None:
+        return None
+    key = " ".join(str(unit).split()).strip().lower()
+    return _UNIT_CANON.get(key)
+
+
+def convert_measurement(value: float | None, unit: str | None
+                        ) -> tuple[float | None, str] | None:
+    """Convert one value to its canonical unit, or ``None`` if it cannot be."""
+    canon = canonical_unit(unit)
+    if canon is None:
+        return None
+    name, factor = canon
+    return (None if value is None else value * factor), name
+
+
 class EndpointMismatchError(EAgentError):
     """Two measurements on different endpoints were about to be compared.
 
@@ -239,7 +295,33 @@ class OutcomeRow:
     parent_sequence_sha256: str | None = None
     mutations: tuple[str, ...] = ()
     replicate_values: tuple[float, ...] = ()
+    #: Empty-vector background for this row's plate and cofactor condition,
+    #: as :mod:`eagent.tools.ingest_results` attached it. ``None`` means no
+    #: such control was run, which makes a fold-over-background bar
+    #: undecidable rather than satisfied.
+    empty_vector_baseline: float | None = None
     notes: str = ""
+
+    @property
+    def fold_over_empty_vector(self) -> float | None:
+        """Signal relative to this row's own plate background.
+
+        Present because the pre-registered criterion may name a
+        fold-over-background bar, and :class:`PositiveCriterion` reads this
+        attribute. Without it a perfectly legal plan crashed the primary
+        endpoint with an AttributeError: the criterion object and the row it
+        scores were defined in two modules that disagreed about the fields a
+        row has. The definition matches
+        :attr:`eagent.tools.ingest_results.MeasurementGroup.fold_over_empty_vector`
+        so a bar means the same thing wherever it is evaluated.
+        """
+        if self.empty_vector_baseline is None:
+            return None
+        if self.measurement_value is None:
+            return None
+        if self.empty_vector_baseline <= 0:
+            return None
+        return self.measurement_value / self.empty_vector_baseline
 
     def __post_init__(self) -> None:
         derived = self._ee_from_areas()
@@ -1258,24 +1340,57 @@ def variant_versus_parent(
             f"reports {parent.measurement_type!r}; these are different "
             f"quantities and their difference has no meaning")
 
+    # Units before arithmetic. The endpoint check above establishes that the
+    # two measured the same quantity; it says nothing about the scale they
+    # recorded it on, and subtracting across scales invents an improvement
+    # that the replicate check then confirms, because the spreads are in the
+    # same unconverted units.
+    v_unit = _plain(variant.measurement_unit)
+    p_unit = _plain(parent.measurement_unit)
+    unit_label = variant.measurement_unit
+    v_value, p_value = variant.measurement_value, parent.measurement_value
+    v_reps = tuple(variant.replicate_values or ())
+    p_reps = tuple(parent.replicate_values or ())
+    if v_unit != p_unit:
+        v_conv = convert_measurement(v_value, variant.measurement_unit)
+        p_conv = convert_measurement(p_value, parent.measurement_unit)
+        if v_conv is None or p_conv is None or v_conv[1] != p_conv[1]:
+            raise UnitMismatchError(
+                f"{variant.candidate_id} reports "
+                f"{variant.measurement_value} {variant.measurement_unit!r} and "
+                f"parent {parent.candidate_id} reports "
+                f"{parent.measurement_value} {parent.measurement_unit!r}. These "
+                f"are not on one scale and this module will not guess a "
+                f"conversion: report both in one unit, or add the conversion "
+                f"to the table where a reader can check it.")
+        v_value, canon = v_conv
+        p_value, _ = p_conv
+        unit_label = canon
+        v_factor = canonical_unit(variant.measurement_unit)[1]
+        p_factor = canonical_unit(parent.measurement_unit)[1]
+        # The replicates move with the main value, or the scatter the
+        # reproducibility check compares against is in the old scale.
+        v_reps = tuple(r * v_factor for r in v_reps)
+        p_reps = tuple(r * p_factor for r in p_reps)
+
     def delta(a: float | None, b: float | None) -> float | None:
         return None if a is None or b is None else a - b
 
-    delta_measurement = delta(variant.measurement_value, parent.measurement_value)
+    delta_measurement = delta(v_value, p_value)
     return VariantParentComparison(
         parent_candidate_id=parent.candidate_id,
         variant_candidate_id=variant.candidate_id,
         mutations=tuple(variant.mutations),
         condition_key=variant.condition_key,
         measurement_type=variant.measurement_type,
-        measurement_unit=variant.measurement_unit,
+        measurement_unit=unit_label,
         delta_measurement=delta_measurement,
         delta_conversion_pct=delta(variant.conversion_pct, parent.conversion_pct),
         delta_ee_pct=delta(variant.ee_target_pct, parent.ee_target_pct),
         parent_outcome=parent.outcome,
         variant_outcome=variant.outcome,
         replicate_check=replicate_reproducibility(
-            parent.replicate_values, variant.replicate_values, delta_measurement),
+            p_reps, v_reps, delta_measurement),
     )
 
 

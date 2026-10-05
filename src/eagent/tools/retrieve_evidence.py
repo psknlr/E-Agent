@@ -50,6 +50,7 @@ from ..connectors.base import (
     records_in, resolve_strength,
 )
 from ..context import RunContext
+from ..datalayer.intake import direction_check
 from ..envelope import Artifact, Provenance, Severity, Status, ToolResult
 from ..provenance import canonical_json, sha256_file, sha256_obj, sha256_text, utc_now
 from ..schemas import (
@@ -813,7 +814,17 @@ class MatrixCell:
     confirmed_wild_type: int = 0
     confirmed_variant: int = 0
     confirmed_reverse_direction: int = 0
+    #: Confirmed, but the direction was never recorded. Kept apart from the
+    #: reverse bucket: not knowing which way a measurement ran is a different
+    #: state from knowing it ran the other way, and the remedies differ.
+    confirmed_direction_unknown: int = 0
+    #: Confirmed, but the record contradicts itself -- its declared direction
+    #: and its own chemistry disagree. Counted nowhere else.
+    confirmed_direction_conflict: int = 0
     not_detected: int = 0
+    #: Not detected, but measured in the reverse direction. A failure to see
+    #: the oxidation is not a failure to see the reduction.
+    not_detected_reverse_direction: int = 0
     expression_failure: int = 0
     other_product: int = 0
     not_tested: int = 0
@@ -965,7 +976,8 @@ def _count_independent(records: Sequence[ExperimentRecord]) -> tuple[int, str]:
                       "unavailable; shared campaigns are not collapsed)")
 
 
-def build_evidence_matrix(rows: Sequence[EvidenceRow]) -> EvidenceMatrix:
+def build_evidence_matrix(rows: Sequence[EvidenceRow],
+                          target_reaction: Any = None) -> EvidenceMatrix:
     """Bin rows into the family x chemotype matrix, keeping outcomes apart.
 
     A confirmed record measured in the reverse direction is counted in its own
@@ -989,18 +1001,46 @@ def build_evidence_matrix(rows: Sequence[EvidenceRow]) -> EvidenceMatrix:
             cell.max_strength = rec.max_strength
 
         outcome = rec.outcome
+        # Both signals, not just the label. A record can carry
+        # forward_as_target and describe the oxidation in its own reaction
+        # class, substrate and product; trusting the label alone counts that
+        # as evidence for the reduction. direction_check already reads both
+        # and is reused here rather than re-implemented, so the matrix cannot
+        # drift away from the intake rule.
+        verdict = (direction_check(rec, target_reaction)
+                   if target_reaction is not None else None)
+        if verdict is not None:
+            supports = verdict.supports
+            is_reverse = verdict.is_reverse
+            unknown = verdict.is_unspecified
+            conflict = not supports and not is_reverse and not unknown
+        else:
+            supports = rec.reaction_direction.supports_target_direction
+            is_reverse = (rec.reaction_direction
+                          is ReactionDirection.REVERSE_OF_TARGET)
+            unknown = not supports and not is_reverse
+            conflict = False
+
         if outcome is OutcomeClass.CONFIRMED_TARGET_PRODUCT:
-            if not rec.reaction_direction.supports_target_direction:
-                cell.confirmed_reverse_direction += 1
-            else:
+            if supports:
                 cell.confirmed += 1
                 if rec.is_variant:
                     cell.confirmed_variant += 1
                 else:
                     cell.confirmed_wild_type += 1
                 confirmed_records.setdefault(key, []).append(rec)
+            elif is_reverse:
+                cell.confirmed_reverse_direction += 1
+            elif conflict:
+                cell.confirmed_direction_conflict += 1
+            else:
+                cell.confirmed_direction_unknown += 1
         elif outcome is OutcomeClass.NO_TARGET_PRODUCT_DETECTED:
-            cell.not_detected += 1
+            if supports:
+                cell.not_detected += 1
+            else:
+                # Not seeing the oxidation is not not seeing the reduction.
+                cell.not_detected_reverse_direction += 1
         elif outcome is OutcomeClass.EXPRESSION_OR_SOLUBILITY_FAILURE:
             cell.expression_failure += 1
         elif outcome is OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION:
@@ -1115,7 +1155,10 @@ class RetrieveEvidence(ScientificInterface):
                     "cache_path": response.cache_path, "needed": [],
                 })
 
-        matrix = build_evidence_matrix(rows)
+        # The target reaction is passed so the matrix can check each
+        # record's declared direction against its own chemistry, rather
+        # than trusting the label a source happened to carry.
+        matrix = build_evidence_matrix(rows, ctx.task.reaction)
         records_artifact = self._write_records(ctx, rows)
         matrix_artifact = self._write_matrix(ctx, matrix, plan, rows, gaps)
         gaps_artifact = self._write_gaps(ctx, gaps, failures)

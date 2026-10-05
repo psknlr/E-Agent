@@ -61,7 +61,7 @@ from pydantic import BaseModel
 from ..context import RunContext
 from ..envelope import NextAction, Severity, Status, ToolResult
 from ..errors import ApprovalRequiredError
-from ..provenance import canonical_json, sha256_obj, utc_now
+from ..provenance import canonical_json, sha256_file, sha256_obj, utc_now
 from ..tools.base import InterfaceRegistry, ScientificInterface
 from .approval import (
     APPROVAL_GATES, ApprovalQueue, BATCH_GATE, CRITERIA_GATE, REACTION_GATE,
@@ -610,6 +610,43 @@ def _default_hit_found(result: ToolResult) -> bool:
     return False
 
 
+#: Files hashed into a step's input digest, at most. Beyond this a directory
+#: argument is marked unstable, which makes the step re-run: re-running a step
+#: that did not need it costs time, while skipping one whose inputs changed
+#: costs the result.
+_MAX_HASHED_INPUT_FILES = 512
+
+
+def _path_identity(path: Path) -> Any:
+    """Identity of a path argument: what is in it, not where it is.
+
+    Hashing the path string alone lets a step be skipped on resume after its
+    input file was edited in place, because the only thing that changed is
+    the bytes. The run then reports a step as reproduced from a cached result
+    that the current inputs would not produce.
+
+    A missing path is recorded as missing rather than as its string, so
+    creating the file later invalidates the digest as it should.
+    """
+    text = str(path)
+    try:
+        if path.is_file():
+            return {"path": text, "sha256": sha256_file(path)}
+        if path.is_dir():
+            files = sorted(q for q in path.rglob("*") if q.is_file())
+            if len(files) > _MAX_HASHED_INPUT_FILES:
+                return {"path": text, "__unstable__": "directory_too_large",
+                        "n_files": len(files)}
+            return {"path": text, "contents": [
+                {"rel": str(q.relative_to(path)), "sha256": sha256_file(q)}
+                for q in files]}
+        return {"path": text, "state": "missing"}
+    except OSError as exc:
+        # Unreadable is not unchanged. Mark it unstable so the step re-runs
+        # rather than being skipped on a digest that proves nothing.
+        return {"path": text, "__unstable__": f"unreadable: {exc.__class__.__name__}"}
+
+
 def _jsonable(value: Any) -> Any:
     """Render an argument for hashing, flagging anything with an unstable form.
 
@@ -622,7 +659,7 @@ def _jsonable(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     if isinstance(value, Path):
-        return str(value)
+        return _path_identity(value)
     if isinstance(value, Mapping):
         return {str(k): _jsonable(v) for k, v in sorted(value.items(), key=str)}
     if isinstance(value, (list, tuple, set, frozenset)):
@@ -792,8 +829,27 @@ class ResearchController:
             # skipped. A record that was routed to widening or repair last time
             # is not "done", and a record written before this field existed
             # cannot prove either way, so it is re-run.
+            # A step may only be skipped if its result can be handed to the
+            # stages that read it. Skipping without restoring the payload is
+            # how a round that found a hit reaches the no-hit diagnosis after
+            # a restart: the step is marked done, the downstream stage reads
+            # nothing, and nothing in the record says the conclusion changed
+            # because of a resume rather than because of the data.
+            restorable = bool(previous.get("data_restorable"))
             if recorded == digest and \
+                    parameters.get("controller_failure") == FailureKind.NONE.value \
+                    and not restorable:
+                self.log(f"resume: re-running {step_id}; its result was not "
+                         f"stored in a restorable form, and a skipped step "
+                         f"whose output cannot be restored would silently "
+                         f"change the branch taken")
+            elif recorded == digest and \
                     parameters.get("controller_failure") == FailureKind.NONE.value:
+                restored = ToolResult(
+                    status=Status(previous.get("status", Status.SUCCESS.value)),
+                    data=dict(previous.get("data") or {}),
+                    message=previous.get("message", ""))
+                self.results[interface_name] = restored
                 self.skipped_steps.append(step_id)
                 self.attempts.append(StepAttempt(
                     step_id=step_id, stage=stage, interface=interface_name,

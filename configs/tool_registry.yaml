@@ -37,10 +37,8 @@
 # check_license() refuses a commercial run on null exactly as it does on false,
 # because an unverified licence is not a permission.
 #
-# EVERY ENTRY IN THIS FILE RECORDS unknown, AND THAT IS DELIBERATE
+# AN ENTRY RECORDS unknown UNLESS A DOCUMENT WAS READ, AND SAYS WHICH
 # ----------------------------------------------------------------
-# Nothing in this environment could be read: no distribution is installed, no
-# LICENSE file was opened, no terms page was fetched, and no version is pinned.
 # Licence terms attach to a RELEASE and they change between releases, so a
 # licence string written from memory for an unspecified version would be an
 # unsourced legal claim that this pipeline would then cite in provenance. The
@@ -49,11 +47,24 @@
 # only be recorded together with a licence.
 #
 # So: license: null, license_source: null, permits_commercial_use: null and
-# needs_legal_review: true throughout, except on the facets marked NOT
-# APPLICABLE, where the artefact does not exist and there is nothing to read.
+# needs_legal_review: true, except
+#   * on the facets marked NOT APPLICABLE, where the artefact does not exist
+#     and there is nothing to read; and
+#   * on the facets whose license_source names a document that WAS read, and
+#     when. As of 2026-10-07 those are: boltz.code and boltz.model_weights
+#     (the LICENSE and README inside the boltz 2.2.1 release), the
+#     AutoDock Vina code (its repository LICENSE), the gnina code licence
+#     statement (its README), and the entries in the "Licence-constrained
+#     tools" block at the end of this file, which record restrictions
+#     reported to the project and say who reported them.
+# A recorded licence is never a legal opinion: needs_legal_review stays true
+# on every one of them, the version actually deployed must still be pinned, and
+# a document read for one release says nothing about another.
+#
 # Each entry's notes say exactly which document a curator must read. The
-# consequence of leaving them is loud and safe, not silent: every
-# allow_commercial_use=True run is blocked until someone records the terms.
+# consequence of leaving an entry unknown is loud and safe, not silent: every
+# allow_commercial_use=True run that touches it is blocked until someone
+# records the terms.
 #
 # No URL appears in this file. None could be verified here, and a plausible
 # but wrong URL would be fetched.
@@ -429,27 +440,27 @@ tool_registry:
   - key: boltz.code
     kind: code
     display_name: "Boltz structure and complex prediction code"
-    version: null
-    license: null
-    license_source: null
-    permits_commercial_use: null
+    version: "2.2.1"
+    license: "MIT"
+    license_source: "LICENSE file inside the boltz 2.2.1 wheel downloaded from PyPI (boltz-2.2.1.dist-info/licenses/LICENSE), read 2026-10-07; the repository root LICENSE on the main branch carries the same MIT text"
+    permits_commercial_use: true
     output_terms: null
     needs_legal_review: true
-    install_hint: "Not installed in this environment. Record the release or commit deployed."
+    install_hint: "Not installed in this environment (the 2.2.1 wheel was downloaded and its files read, not run). pip install boltz, and record the release actually deployed."
     citations: []
-    notes: "CURATOR MUST read the LICENSE file of the release deployed and record it with the version. Do not carry a licence finding from one Boltz release to another."
+    notes: "CURATOR MUST confirm the release deployed is the one whose LICENSE was read (2.2.1) and re-read it for any other release. The wheel's CLI, input YAML and output layout were also read to write tools/prediction_backends.py; that is documentation reading, not a run."
   - key: boltz.model_weights
     kind: model_weights
     display_name: "Boltz model checkpoints"
     version: null
-    license: null
-    license_source: null
-    permits_commercial_use: null
+    license: "MIT (as stated for the model in the project README)"
+    license_source: "License section of the README bundled as the boltz 2.2.1 wheel's METADATA, read 2026-10-07: 'Our model and code are released under MIT License, and can be freely used for both academic and commercial purposes.' The page the checkpoint is hosted on was NOT read"
+    permits_commercial_use: true
     output_terms: null
     needs_legal_review: true
-    install_hint: "Record which checkpoint file and release is installed, with its hash."
+    install_hint: "Record which checkpoint file and release is installed, with its hash. Checkpoints are downloaded on first use, which needs network access."
     citations: []
-    notes: "CURATOR MUST read the terms the checkpoint is released under, separately from the code, even when both come from the same project: a repository that is permissively licensed may ship checkpoints under different conditions, and a checkpoint is the artefact whose terms were exercised when the run happened."
+    notes: "CURATOR MUST read the terms on the page the checkpoint is actually downloaded from, separately from the code: a statement in a README is the project's claim about its model, and the checkpoint is the artefact whose terms were exercised when the run happened. The checkpoint hash is not recorded here."
   - key: boltz.input_database
     kind: input_database
     display_name: "MSA and template inputs supplied to Boltz"
@@ -461,7 +472,7 @@ tool_registry:
     needs_legal_review: true
     install_hint: "Record the MSA source and release, including any third-party MSA service used."
     citations: []
-    notes: "CURATOR MUST record the terms of the MSA databases or MSA service used. If an external MSA service is called, submission of this project's sequences to it is itself a disclosure question."
+    notes: "CURATOR MUST record the terms of the MSA databases or MSA service used. If an external MSA service is called, submission of this project's sequences to it is itself a disclosure question. tools/prediction_backends.py includes this facet in the licence check only when constructed with use_msa_server=True; the default runs single-sequence or with an MSA the caller supplies, and then the caller's MSA terms apply and must be recorded by whoever supplies it."
   - key: boltz.output
     kind: output
     display_name: "Boltz outputs (predicted complexes and confidence estimates)"
@@ -473,7 +484,7 @@ tool_registry:
     needs_legal_review: true
     install_hint: ""
     citations: []
-    notes: "CURATOR MUST confirm the output terms of the checkpoint release. Scientifically: a predicted complex is a hypothesis about placement -- recorded as LigandSource.JOINT_STRUCTURE_PREDICTION, never as an observed binding mode."
+    notes: "CURATOR MUST confirm the output terms of the checkpoint release: neither the LICENSE nor the README read on 2026-10-07 says anything about the coordinates the model produces, so this stays unknown and blocks a commercial run. Scientifically: a predicted complex is a hypothesis about placement -- recorded as LigandSource.JOINT_STRUCTURE_PREDICTION, never as an observed binding mode."
 
   # -- LigandMPNN : sequence design conditioned on structure and ligand ----
   - key: ligandmpnn.code
@@ -575,6 +586,60 @@ tool_registry:
     citations: []
     notes: "CURATOR MUST confirm the output terms before a generated backbone is taken forward to sequence design and synthesis. Scientifically: a generated backbone is a proposal with no evidence of expressibility, stability or activity."
 
+  # -- Docking engine : gnina (the engine tools/prediction_backends.py drives) --
+  # Registered as its own four entries rather than by editing the Vina ones:
+  # gnina's scoring (an empirical function, optionally re-scored or refined by
+  # CNN models) is a different scoring function, and scores are comparable only
+  # within one scoring function, receptor preparation and box.
+  - key: gnina.code
+    kind: code
+    display_name: "gnina (docking engine)"
+    version: null
+    license: "GPL and Apache-2.0, dual-licensed (as the README states; the README adds that the GPL is required by the use of OpenBabel and that Apache-only use requires removing every OpenBabel reference from the source)"
+    license_source: "License section of the README.md at the root of the gnina repository (master branch), read 2026-10-07; no LICENSE file was opened and no installed release was checked"
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed in this environment. Install gnina and record the string printed by `gnina --version`."
+    citations: []
+    notes: "CURATOR MUST decide what the dual licence means for the way gnina is deployed and redistributed: the README says the GPL applies unless OpenBabel is removed, which a stock binary does not do. permits_commercial_use is left unknown rather than inferred from either licence name. Pin the installed version."
+  - key: gnina.model_weights
+    kind: model_weights
+    display_name: "gnina CNN scoring models (built-in ensembles)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Only needed when cnn_scoring is not 'none'. Record which built-in model or ensemble was used (the README lists several by name)."
+    citations: []
+    notes: "CURATOR MUST read the terms the CNN models are distributed under, which are not stated in the README that was read. They were trained on public complex sets whose own terms are a further question. A run with cnn_scoring='none' does not use them and tools/prediction_backends.py then leaves this key out of the licence check."
+  - key: gnina.input_database
+    kind: input_database
+    display_name: "Receptors and ligand conformers prepared for gnina"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the receptor artefact (experimental or predicted, and which), the conformer source and the box definition."
+    citations: []
+    notes: "CURATOR MUST record the terms of the receptor structures used, which are inherited from the PDB entry or the prediction that produced them."
+  - key: gnina.output
+    kind: output
+    display_name: "gnina outputs (poses, minimizedAffinity and CNN scores)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm redistribution terms for poses derived from third-party receptors. Scientifically: minimizedAffinity is an empirical scoring-function value and CNNaffinity is a network's pK estimate for binding; neither is a catalytic ranking, and a pose is recorded as LigandSource.DOCKING_PREDICTED."
+
   # -- Docking engine : AutoDock Vina (the engine this project assumes) -----
   # The engine is NOT PINNED for this project. If a different engine is used,
   # register it as its own four entries rather than editing these: docking
@@ -584,14 +649,14 @@ tool_registry:
     kind: code
     display_name: "AutoDock Vina (docking engine)"
     version: null
-    license: null
-    license_source: null
-    permits_commercial_use: null
+    license: "Apache-2.0"
+    license_source: "LICENSE file at the root of the AutoDock-Vina repository (develop branch), read 2026-10-07; the version actually deployed is not pinned"
+    permits_commercial_use: true
     output_terms: null
     needs_legal_review: true
     install_hint: "Not installed in this environment. Install the docking engine and record the version it prints; also record the receptor-preparation tooling, which is frequently a separate program with its own licence and must then be registered separately."
     citations: []
-    notes: "CURATOR MUST read the LICENSE file of the installed engine, and must check whether the preparation tools used alongside it (receptor and ligand preparation, protonation, partial charges) are separately licensed -- they often are, and they change the result."
+    notes: "CURATOR MUST pin the installed version and re-read its LICENSE file, and must check whether the preparation tools used alongside it (receptor and ligand preparation, protonation, partial charges) are separately licensed -- they often are, and they change the result."
   - key: autodock_vina.model_weights
     kind: model_weights
     display_name: "AutoDock Vina -- no separately distributed weights (NOT APPLICABLE)"

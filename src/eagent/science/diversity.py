@@ -899,6 +899,7 @@ def compose_batch(
     kmer_size: int = DEFAULT_KMER_SIZE,
     reallocate_unfilled_roles: bool = False,
     rank_tiebreak: Callable[[Candidate], float | None] | None = None,
+    high_evidence_eligible: Callable[[Candidate], bool] | None = None,
 ) -> BatchPlan:
     """Fill a round's construct slots with three labelled populations, or report short.
 
@@ -922,6 +923,12 @@ def compose_batch(
     6. ``DIVERSITY`` takes the remainder, maximising pocket coverage.
 
     Quotas are enforced across the **whole** batch, not per role.
+
+    ``high_evidence_eligible`` -- when given, a candidate for which it returns
+    ``False`` is skipped for the HIGH_EVIDENCE role only (see
+    :func:`eagent.tools.open_branches.is_high_evidence_eligible`: a de novo
+    design is a hypothesis, and a slot labelled "high evidence" would say
+    otherwise). It stays eligible for the other two roles.
 
     NO PADDING
     ----------
@@ -1025,6 +1032,11 @@ def compose_batch(
     for cand in ranked:
         if n_taken_high >= n_high:
             break
+        if high_evidence_eligible is not None and not high_evidence_eligible(cand):
+            # Not a gate and not a rejection: the candidate stays eligible for
+            # the probe and diversity roles. It is only not *evidence*, so it
+            # may not occupy a slot whose label says it is.
+            continue
         if admit(cand, BatchRole.HIGH_EVIDENCE,
                  "top of the within-batch lexicographic rank under the stated "
                  "dimension priority; gates all passed"

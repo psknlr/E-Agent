@@ -693,3 +693,127 @@ tool_registry:
     install_hint: ""
     citations: []
     notes: "CURATOR MUST confirm redistribution terms for poses derived from third-party receptors. Scientifically: a docking score is a scoring-function value comparable only within one scoring function, receptor preparation and box; it is not an affinity and not a catalytic ranking, and a pose is recorded as LigandSource.DOCKING_PREDICTED."
+
+# ===========================================================================
+# Licence-constrained tools: restrictions REPORTED to the project, not read
+# ===========================================================================
+# The two tools below were named in the operator's review of competing agents,
+# with licence terms that constrain how this project may use them. Neither
+# repository was located or opened in the session that wrote these entries --
+# a web search for each returned nothing that identifies it -- so the
+# licence_source of every entry says "reported", not "read", and
+# needs_legal_review stays true.
+#
+# The asymmetry is deliberate. A reported RESTRICTION is recorded as a
+# restriction (permits_*: false): acting on it can only block work, and being
+# wrong costs a curator one look at the repository. A reported PERMISSION is
+# NOT recorded as one (permits_*: null): an unverified licence is not a
+# permission, which is the rule this whole file exists to apply.
+#
+# What the report says, in the operator's words:
+#   VenusMine -- currently CC BY-NC-ND 4.0, so it cannot be treated as MIT or
+#     Apache code, modified, and republished.
+#   AP Novo   -- the code is Apache 2.0, but the model weights and the outputs
+#     carry separate non-commercial-use terms.
+# ===========================================================================
+
+  # -- VenusMine : sequence mining ------------------------------------------
+  - key: venusmine.code
+    kind: code
+    display_name: "VenusMine (enzyme mining code)"
+    version: null
+    license: "CC BY-NC-ND 4.0 (as reported to the project; not read)"
+    license_source: "operator's written review of competing enzyme-mining agents, recorded 2026-10-07; the repository's own LICENSE file was NOT opened and the repository was not located in this session"
+    permits_commercial_use: false
+    permits_derivative_works: false
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed. Do not vendor, patch or republish it; to use it, run the unmodified distribution."
+    citations: []
+    notes: "CURATOR MUST open the repository's LICENSE and confirm the terms and the release they apply to. As reported: non-commercial and no-derivatives, which blocks both a commercial run (check_license) and any workflow that modifies and redistributes the code (check_modification). It must not be treated as MIT or Apache code."
+  - key: venusmine.model_weights
+    kind: model_weights
+    display_name: "VenusMine model parameters, if any are distributed separately"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record whether any learned parameters are distributed apart from the code, and under what terms."
+    citations: []
+    notes: "CURATOR MUST establish whether VenusMine ships separately licensed weights; nothing was reported about them, so nothing is claimed."
+  - key: venusmine.input_database
+    kind: input_database
+    display_name: "Sequence databases searched by VenusMine"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record which databases and which snapshot were searched."
+    citations: []
+    notes: "CURATOR MUST record the terms of each database actually searched; they travel with every candidate list derived from it."
+  - key: venusmine.output
+    kind: output
+    display_name: "VenusMine outputs (ranked or filtered sequence lists)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST confirm what the terms say about the lists the tool produces. Not reported, so not claimed; a commercial run that includes this key is blocked until someone records it."
+
+  # -- AP Novo : de novo design ----------------------------------------------
+  - key: ap_novo.code
+    kind: code
+    display_name: "AP Novo (de novo enzyme design code)"
+    version: null
+    license: "Apache-2.0 (as reported to the project; not read)"
+    license_source: "operator's written review of competing enzyme-design agents, recorded 2026-10-07; the repository's own LICENSE file was NOT opened and the repository was not located in this session"
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Not installed."
+    citations: []
+    notes: "CURATOR MUST open the repository's LICENSE. The code licence is reported as Apache 2.0, which would permit commercial use and derivatives; that is recorded as a licence statement only, with no permission claimed, because an unread licence is not a permission. The weights and outputs are reported to carry stricter terms, and the stricter governs a run."
+  - key: ap_novo.model_weights
+    kind: model_weights
+    display_name: "AP Novo model weights"
+    version: null
+    license: "separate non-commercial-use terms (as reported to the project; not read)"
+    license_source: "operator's written review of competing enzyme-design agents, recorded 2026-10-07; the weights' own terms were NOT opened"
+    permits_commercial_use: false
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record which checkpoint is installed, with its hash, and the page its terms were read on."
+    citations: []
+    notes: "CURATOR MUST read the weights' terms separately from the code: the report is that they are non-commercial even though the code is Apache 2.0, which is exactly the conflict four facets per tool exist to expose. Recorded as a restriction so a commercial run is blocked."
+  - key: ap_novo.input_database
+    kind: input_database
+    display_name: "Inputs supplied to AP Novo (motifs, scaffolds, templates)"
+    version: null
+    license: null
+    license_source: null
+    permits_commercial_use: null
+    output_terms: null
+    needs_legal_review: true
+    install_hint: "Record the origin of every structural input."
+    citations: []
+    notes: "CURATOR MUST record the terms of each structural input, which are inherited from the entry or prediction it came from."
+  - key: ap_novo.output
+    kind: output
+    display_name: "AP Novo outputs (designed backbones and sequences)"
+    version: null
+    license: "separate non-commercial-use terms (as reported to the project; not read)"
+    license_source: "operator's written review of competing enzyme-design agents, recorded 2026-10-07; the output terms were NOT opened"
+    permits_commercial_use: false
+    output_terms: "reported as non-commercial; read the producer's terms before any design is synthesised or published"
+    needs_legal_review: true
+    install_hint: ""
+    citations: []
+    notes: "CURATOR MUST read the producer's output terms before a generated sequence is ordered, published or licensed onward: output restrictions outlive the run that produced them. Scientifically, a generated design is a hypothesis with no evidence of expressibility, stability or activity."

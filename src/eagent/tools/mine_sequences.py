@@ -1296,6 +1296,17 @@ class RetrievalRow:
     cluster_id: str | None = None
     is_fragment: bool | None = None
     has_nonstandard_residues: bool = False
+    #: How many retrieval routes found this sequence, and how many of them
+    #: would have retained it on their own. The pair is reported because the
+    #: routes disagreeing is a fact about the search, and because a sequence
+    #: retained by one route out of four is a weaker retrieval than one
+    #: retained by all four even though both are retained.
+    n_routes: int = 1
+    n_routes_retaining: int = 0
+    #: What the routes that did not retain it objected to, when at least one
+    #: other route did. Kept so that "found by hmmsearch at 20% coverage" does
+    #: not vanish from the record just because blastp also found it.
+    dissenting_routes: str = ""
 
     columns: ClassVar[tuple[str, ...]] = (
         "candidate_id", "sequence_sha256", "accession", "length",
@@ -1303,6 +1314,7 @@ class RetrievalRow:
         "evalue", "bitscore", "source_database", "database_version",
         "family_evidence", "family_template_id", "cluster_id", "is_fragment",
         "has_nonstandard_residues", "n_methods", "n_queries", "all_queries",
+        "n_routes", "n_routes_retaining", "dissenting_routes",
         "status", "reason",
     )
 
@@ -1745,17 +1757,36 @@ class MineSequences(ScientificInterface):
         retention: RetentionPolicy,
         expectation: LengthExpectation,
     ) -> tuple[list[RetrievalRow], list[SequenceRecord], list[str]]:
-        """De-duplicate by sequence hash, apply QC, and build the records.
+        """Judge every route on its own terms, then merge by sequence hash.
 
-        Order of operations matters for honesty: hits are first collapsed by
-        ``sequence_sha256`` (the pipeline's join key -- two accessions with
-        identical residues are one protein), the *best* hit per sequence is kept
-        as its retrieval provenance, and only then is the single retention
-        decision made. There is exactly one place where a sequence is accepted
-        or rejected, so there is nowhere for a second, looser path to appear.
+        The order is the whole content of this method.
+
+        **Each hit is judged first.** A sequence found by two routes was found
+        by two independent pieces of evidence, and each route either justifies
+        keeping it or does not. Collapsing to one "best" hit before judging
+        meant the verdict depended on which route happened to rank highest:
+        a blastp hit at 80% identity over 95% of the query is kept, and adding
+        an hmmsearch route that finds the same protein at 20% coverage threw
+        it out, because a profile hit outranks a pairwise one and the profile
+        hit failed the coverage floor. Running one more search removed a
+        qualifying candidate, which no search should ever do.
+
+        **Then they merge.** A sequence is retained when any route retains it,
+        and the route that travels with it as provenance is the best of the
+        routes that *did* retain it -- never one that objected. When no route
+        retains it, the recorded reason is the objection of the route that
+        came closest, so the rejection states the best case against the
+        sequence rather than an arbitrary one.
+
+        The routes that disagreed are kept in the row either way. Four routes
+        finding a sequence and one retaining it is a weaker retrieval than
+        four out of four, and the table is where that difference lives.
+
+        Two checks are not route-level and apply however the sequence was
+        found: nonstandard residues and the length window are properties of
+        the sequence itself.
         """
-        best: dict[str, SearchHit] = {}
-        entry_for: dict[str, FastaEntry] = {}
+        routes: dict[str, list[tuple[SearchHit, FastaEntry, str, str, list[str]]]] = {}
         methods: dict[str, set[str]] = {}
         queries: dict[str, set[str]] = {}
         unresolved: list[str] = []
@@ -1769,29 +1800,47 @@ class MineSequences(ScientificInterface):
             key = entry.sequence_sha256
             methods.setdefault(key, set()).add(hit.search_method)
             queries.setdefault(key, set()).add(hit.query_id)
-            incumbent = best.get(key)
-            if incumbent is None or _hit_is_better(hit, incumbent):
-                best[key] = hit
-                # The accession that travels with the record is the one of the
-                # best hit, not of whichever duplicate was parsed last.
-                entry_for[key] = entry
+            evidence, evidence_detail = _family_evidence(hit, retention)
+            reasons = _retention_reasons(hit, retention, evidence)
+            routes.setdefault(key, []).append(
+                (hit, entry, evidence, evidence_detail, reasons))
 
         rows: list[RetrievalRow] = []
         records: list[SequenceRecord] = []
         seen_ids: dict[str, str] = {}
-        for key in sorted(best):
-            hit = best[key]
-            entry = entry_for[key]
+        for key in sorted(routes):
+            found_by = routes[key]
+            retaining = [r for r in found_by if not r[4]]
+            if retaining:
+                chosen = retaining[0]
+                for other in retaining[1:]:
+                    if _hit_is_better(other[0], chosen[0]):
+                        chosen = other
+            else:
+                # The closest route, so the rejection names the best case
+                # against the sequence. Fewest objections first; the existing
+                # hit ranking breaks the tie.
+                chosen = found_by[0]
+                for other in found_by[1:]:
+                    if len(other[4]) < len(chosen[4]) or (
+                            len(other[4]) == len(chosen[4])
+                            and _hit_is_better(other[0], chosen[0])):
+                        chosen = other
+            hit, entry, evidence, evidence_detail, route_reasons = chosen
+
             seq = entry.sequence
             nonstandard = sorted(set(seq) - STANDARD_AA)
             length_issue = expectation.classify(len(seq))
-            evidence, evidence_detail = _family_evidence(hit, retention)
-            reasons = _retention_reasons(hit, retention, evidence)
+            reasons = list(route_reasons)
             if nonstandard:
                 reasons.append(f"nonstandard_residues:{''.join(nonstandard)}")
             if length_issue:
                 reasons.append(f"{length_issue}:len={len(seq)} "
                                f"window={expectation.min_length}-{expectation.max_length}")
+
+            dissent = "; ".join(
+                f"{r[0].search_method}/{r[0].query_id}: {', '.join(r[4])}"
+                for r in found_by if r[4])
 
             row = RetrievalRow(
                 sequence_sha256=key,
@@ -1810,6 +1859,9 @@ class MineSequences(ScientificInterface):
                 n_methods=len(methods[key]),
                 n_queries=len(queries[key]),
                 all_queries=",".join(sorted(queries[key])),
+                n_routes=len(found_by),
+                n_routes_retaining=len(retaining),
+                dissenting_routes=dissent,
                 status="retained" if not reasons else "excluded",
                 reason="; ".join(reasons) if reasons else evidence_detail,
                 is_fragment=(length_issue == "fragment"),

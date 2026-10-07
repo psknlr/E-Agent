@@ -1965,9 +1965,62 @@ def sources_coverage(directory: Path | None) -> None:
         for sid, why in sorted(report.failures.items()):
             out.line(f"  {sid}: {why}")
         out.line("")
-    out.line("No source has been connectivity-tested from this environment, "
-             "and every registry endpoint is null, so a client here means code "
-             "exists to read the resource once a curator establishes its route.")
+    verified = sorted(s_.id for s_ in registry if s_.verified_capabilities)
+    out.line(f"{len(verified)} of {total} source(s) carry a recorded "
+             f"connectivity check ({', '.join(verified) or 'none'}); the rest "
+             f"have never been called from this build, so a client for them "
+             f"means code exists to read the resource once a route is "
+             f"established -- not that the route works.")
+
+
+@main.group("benchmark")
+def benchmark_group() -> None:
+    """Retrospective benchmarks on data this build has actually ingested."""
+
+
+@benchmark_group.command("sdr")
+@click.option("--data", "data_dir", required=True,
+              type=click.Path(exists=True, file_okay=False, path_type=Path),
+              help="Directory holding the four SDR files (download them with "
+                   "ZenodoConnector.download_file; every file is checked "
+                   "against the md5 the Zenodo record states).")
+@click.option("--folds", default=5, show_default=True, type=int)
+@click.option("--identity", default=0.4, show_default=True, type=float,
+              help="Sequence-identity threshold of the clusters that folds "
+                   "may not split.")
+@click.option("--seed", default=0, show_default=True, type=int)
+@click.option("--boot", default=300, show_default=True, type=int,
+              help="Cluster-bootstrap resamples per interval.")
+@click.option("--out", "out_path", type=click.Path(path_type=Path), default=None,
+              help="Write the grouped report as JSON.")
+def benchmark_sdr(data_dir: Path, folds: int, identity: float, seed: int,
+                  boot: int, out_path: Path | None) -> None:
+    """Recover annotated SDR classes from sequence, with leakage on and off.
+
+    This measures a sequence model and its calibration against ANNOTATION-
+    DERIVED labels. It says nothing about ketoreductase activity, the agent's
+    selection logic or the pipeline's gates, and its output says so first.
+    """
+    import json
+
+    from .eval.retrospective import (
+        BenchmarkProtocol, RetrospectiveError, run_sdr_suite,
+    )
+
+    out = Out()
+    try:
+        suite = run_sdr_suite(data_dir, BenchmarkProtocol(
+            n_folds=folds, identity_threshold=identity, seed=seed, n_boot=boot))
+    except RetrospectiveError as exc:
+        raise Refusal(str(exc), next_action="re-download the file through the "
+                      "verified Zenodo route", exit_code=EXIT_USAGE)
+    out.line(suite.render())
+    if out_path is not None:
+        out_path.write_text(json.dumps(suite.grouped.to_dict(), indent=2,
+                                       default=str), encoding="utf-8")
+        out.line("")
+        out.line(f"grouped report written to {out_path} "
+                 f"(digest {suite.grouped.digest[:16]})")
 
 
 if __name__ == "__main__":  # pragma: no cover - module entry point

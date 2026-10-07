@@ -534,6 +534,7 @@ def greedy_submodular_select(
     *,
     id_of: Callable[[Any], str] = _default_id_of,
     accept: Callable[[Any], bool] | None = None,
+    already_selected: Sequence[Any] = (),
 ) -> list[Any]:
     """Greedily maximise ``sum(utility) + lambda_weight * facility_location_coverage``.
 
@@ -558,6 +559,14 @@ def greedy_submodular_select(
     caps it enforces change as the batch fills -- applying them after selection
     would silently shorten the batch while a qualifying alternative was still
     available.
+
+    ``already_selected`` seeds the coverage state with items chosen outside
+    this call. It matters whenever a batch is filled in stages: a diversity
+    stage that starts from "nothing covered" can spend its slot on a near
+    duplicate of a candidate the previous stage already put in the batch, and
+    the slot then buys no coverage at all while the plan records it as having
+    been spent on diversity. Coverage is a property of the batch, not of the
+    call.
     """
     if k < 0:
         raise ValueError(f"k must be >= 0, got {k}")
@@ -580,6 +589,12 @@ def greedy_submodular_select(
     selected: list[Any] = []
     remaining = sorted(pool, key=id_of)
     coverage: dict[str, float] = {id_of(it): 0.0 for it in pool}
+    for chosen in already_selected:
+        for other in pool:
+            oid = id_of(other)
+            sim = 1.0 - distance(other, chosen)
+            if sim > coverage[oid]:
+                coverage[oid] = sim
 
     while remaining and len(selected) < k:
         best_item: Any = None
@@ -977,6 +992,11 @@ def compose_batch(
 
     members: list[BatchMember] = []
     taken: set[str] = set()
+    #: The candidates already in the batch, in admission order. Passed to each
+    #: later selection stage as its coverage baseline: a diversity slot spent
+    #: on a near duplicate of a high-evidence member buys nothing, and the
+    #: plan would still record it as having been spent on diversity.
+    chosen: list[Candidate] = []
 
     def admit(cand: Candidate, role: BatchRole, reason: str) -> bool:
         if cand.candidate_id in taken:
@@ -985,6 +1005,7 @@ def compose_batch(
             return False
         ledger.take(cand)
         taken.add(cand.candidate_id)
+        chosen.append(cand)
         members.append(BatchMember(
             slot=len(members) + 1,
             candidate_id=cand.candidate_id,
@@ -1022,7 +1043,8 @@ def compose_batch(
         )
 
     greedy_submodular_select(probe_pool, n_probe, utilities, distance,
-                             lambda_weight, accept=accept_probe)
+                             lambda_weight, accept=accept_probe,
+                             already_selected=list(chosen))
 
     # -- 3. diversity ----------------------------------------------------
     n_div = scaled.get(BatchRole.DIVERSITY, 0)
@@ -1037,7 +1059,8 @@ def compose_batch(
         )
 
     greedy_submodular_select(div_pool, n_div, utilities, distance,
-                             lambda_weight, accept=accept_diversity)
+                             lambda_weight, accept=accept_diversity,
+                             already_selected=list(chosen))
 
     # -- 4. optional reallocation of slots a role could not fill ----------
     unfilled_note = ""
@@ -1061,7 +1084,8 @@ def compose_batch(
                 )
 
             greedy_submodular_select(spare_pool, deficit, utilities, distance,
-                                     lambda_weight, accept=accept_spare)
+                                     lambda_weight, accept=accept_spare,
+                                     already_selected=list(chosen))
 
     # -- shortfall accounting --------------------------------------------
     n_selected = len(members)

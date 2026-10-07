@@ -71,7 +71,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, NamedTuple, Sequence
 
 from ..envelope import QCFlag, Severity, Uncertainty
 from ..errors import FabricationGuardError, TemplateError
@@ -113,7 +113,12 @@ __all__ = [
     "scorecard_qc_flags",
     "build_scorecard",
     "apply_scorecard",
+    "Comparable",
+    "MEASURED_SCALE",
+    "ORDINAL_SCALE",
+    "NO_SCALE",
     "comparable",
+    "objective_comparable",
     "objective_value",
     "dominates",
     "pareto_front",
@@ -1324,31 +1329,68 @@ def apply_scorecard(
 # Comparison primitives
 # ==========================================================================
 
-def comparable(dim: ScoreDimension | None) -> tuple[float | None, str]:
-    """The comparable number of a dimension and the direction that number runs in.
+#: The scale a comparable number lives on. Two numbers on different scales are
+#: not two values of one quantity, and the module refuses to order them.
+MEASURED_SCALE: str = "measured"
+ORDINAL_SCALE: str = "evidence_ordinal"
+NO_SCALE: str = "none"
 
-    Returns ``(None, direction)`` when the dimension cannot be compared at all.
-    Three rules, each avoiding a specific trap:
 
-    * ``INSUFFICIENT`` and ``CONTRADICTORY`` yield ``None`` even when a ``value``
-      is present. An axis we could not establish must not sort as a mid-range
-      number, and models that disagree must not be averaged into one.
+class Comparable(NamedTuple):
+    """One dimension reduced to a number, with the scale that number is on.
+
+    The scale is the field this used to be missing. A dimension with a value
+    is compared on that value; a dimension without one falls back to its
+    ordinal evidence rank, which runs 0-4. Those are different quantities, and
+    a comparison that puts them on one axis says a candidate with no
+    measurement and a STRONG level (4.0) beats one measured at
+    ``robustness_G = 0.9`` -- the measured candidate is then dominated and
+    drops off the Pareto front, which is the opposite of what the evidence
+    supports.
+    """
+
+    value: float | None
+    direction: str
+    scale: str = NO_SCALE
+
+    @property
+    def usable(self) -> bool:
+        return self.value is not None
+
+    def commensurable_with(self, other: "Comparable") -> bool:
+        """Whether these two numbers are two values of the same quantity."""
+        return (self.usable and other.usable and self.scale == other.scale
+                and self.direction == other.direction)
+
+
+def comparable(dim: ScoreDimension | None) -> Comparable:
+    """The comparable number of a dimension, its direction, and its scale.
+
+    Returns a ``value`` of ``None`` when the dimension cannot be compared at
+    all. Four rules, each avoiding a specific trap:
+
+    * ``INSUFFICIENT`` and ``CONTRADICTORY`` yield ``None`` even when a
+      ``value`` is present. An axis we could not establish must not sort as a
+      mid-range number, and models that disagree must not be averaged into one.
     * A dimension with a ``value`` is compared on that value, in its own
-      declared direction.
+      declared direction, on the ``measured`` scale.
     * A dimension with no ``value`` falls back to its ordinal level rank, and
-      the direction of that fallback is **always** ``higher_is_better``, because
-      an evidence level only increases with evidence. Returning the dimension's
-      declared direction here would invert a ``lower_is_better`` axis the moment
-      its scalar went missing -- a sign flip that no test on the happy path
-      would catch.
+      the direction of that fallback is **always** ``higher_is_better``,
+      because an evidence level only increases with evidence. Returning the
+      dimension's declared direction here would invert a ``lower_is_better``
+      axis the moment its scalar went missing -- a sign flip that no test on
+      the happy path would catch.
+    * The fallback is marked ``evidence_ordinal``, and callers must not order
+      it against a ``measured`` number. A pLDDT of 40 and an evidence rank of
+      4 are not 40 and 4 of one thing.
     """
     if dim is None:
-        return None, "higher_is_better"
+        return Comparable(None, "higher_is_better", NO_SCALE)
     if dim.level in (ConfidenceLevel.INSUFFICIENT, ConfidenceLevel.CONTRADICTORY):
-        return None, dim.direction
+        return Comparable(None, dim.direction, NO_SCALE)
     if dim.value is not None and dim.direction in ("higher_is_better", "lower_is_better"):
-        return dim.value, dim.direction
-    return float(dim.level.rank), "higher_is_better"
+        return Comparable(dim.value, dim.direction, MEASURED_SCALE)
+    return Comparable(float(dim.level.rank), "higher_is_better", ORDINAL_SCALE)
 
 
 def objective_value(
@@ -1365,6 +1407,18 @@ def objective_value(
     * stating a direction the dimension disagrees with -- an inverted objective
       produces a complete, plausible, exactly-backwards Pareto front.
     """
+    return objective_comparable(candidate, dimension_name, direction).value
+
+
+def objective_comparable(
+    candidate: Candidate, dimension_name: str, direction: str
+) -> Comparable:
+    """:func:`objective_value` with the scale kept, for callers that compare.
+
+    Anything that orders two candidates needs the scale: an evidence ordinal
+    and a measured value are not two readings of one quantity, and ordering
+    them lets a candidate nobody measured dominate one that was.
+    """
     if direction not in ("higher_is_better", "lower_is_better"):
         raise ValueError(
             f"direction must be 'higher_is_better' or 'lower_is_better', "
@@ -1376,16 +1430,16 @@ def objective_value(
             f"'{dimension_name}' is a feasibility gate, not an objective. Filter on "
             f"Candidate.passes_gates first; a gate is not something to trade away."
         )
-    value, own_direction = comparable(dim)
-    if value is None:
-        return None
-    if own_direction != direction:
+    reduced = comparable(dim)
+    if reduced.value is None:
+        return reduced
+    if reduced.direction != direction:
         raise ValueError(
             f"objective '{dimension_name}' was requested as {direction} but the "
-            f"dimension declares {own_direction}; one of the two is a sign error "
-            f"and guessing which would invert the ranking silently"
+            f"dimension declares {reduced.direction}; one of the two is a sign "
+            f"error and guessing which would invert the ranking silently"
         )
-    return value
+    return reduced
 
 
 def dominates(
@@ -1404,10 +1458,17 @@ def dominates(
         raise ValueError("Pareto domination needs at least one objective")
     strictly_better = False
     for dimension_name, direction in objectives:
-        va = objective_value(a, dimension_name, direction)
-        vb = objective_value(b, dimension_name, direction)
-        if va is None or vb is None:
+        ca = objective_comparable(a, dimension_name, direction)
+        cb = objective_comparable(b, dimension_name, direction)
+        # Not just "both present": both on the same scale. One candidate
+        # reduced to a measured pLDDT of 40 and the other to an evidence rank
+        # of 4 are not 40 and 4 of one quantity, and ordering them lets the
+        # candidate nobody measured dominate the one that was -- which then
+        # drops off the front with its measurement intact and unused.
+        if not ca.commensurable_with(cb):
             return False
+        va, vb = ca.value, cb.value
+        assert va is not None and vb is not None
         if direction == "lower_is_better":
             va, vb = -va, -vb
         if va < vb:
@@ -1512,11 +1573,25 @@ def lexicographic_rank(
                     f"'{dimension_name}' is a feasibility gate and cannot be a "
                     f"ranking dimension; gates are handled by the tier instead"
                 )
-            value, direction = comparable(dim)
-            if value is None:
-                parts.append((1, 0.0))
-            else:
-                parts.append((0, -value if direction == "higher_is_better" else value))
+            # Level first, scalar second. Every dimension has a level and
+            # every level is on one ordinal scale, so this comparison is
+            # always between like and like; the scalar then separates
+            # candidates whose evidence is equally strong. Sorting on
+            # comparable()'s number alone put a measured 0.9 against an
+            # evidence rank of 4 whenever one candidate had a scalar and
+            # another did not.
+            reduced = comparable(dim)
+            if reduced.value is None:
+                parts.append((1, 0.0, 0.0))
+                continue
+            level_rank = float(dim.level.rank) if dim is not None else 0.0
+            scalar = (reduced.value
+                      if reduced.scale == MEASURED_SCALE else None)
+            parts.append((
+                0, -level_rank,
+                0.0 if scalar is None
+                else (-scalar if reduced.direction == "higher_is_better"
+                      else scalar)))
         parts.append(cand.candidate_id)
         return tuple(parts)
 

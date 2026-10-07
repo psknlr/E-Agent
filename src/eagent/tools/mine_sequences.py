@@ -101,6 +101,9 @@ __all__ = [
     "LengthExpectation",
     "SequenceCluster",
     "cluster_sequences",
+    "ClusterAdapter",
+    "MMseqs2ClusterAdapter",
+    "IDENTITY_DEFINITIONS",
     "guard_external_submission",
     "RetrievalRow",
     "MineSequences",
@@ -1108,6 +1111,20 @@ class LengthExpectation(BaseModel):
 # Greedy clustering
 # ==========================================================================
 
+#: How a clusterer defines the identity its threshold is compared against.
+#: Carried with every :class:`ClusteringReport` because the thresholds are not
+#: interchangeable: 0.7 under one definition is not 0.7 under another, and a
+#: pool clustered half by one backend and half by another has no single grain.
+IDENTITY_DEFINITIONS: dict[str, str] = {
+    "greedy_pure_python": (
+        "global Needleman-Wunsch identity multiplied by the alignment coverage "
+        "of the shorter sequence"),
+    "mmseqs2_easy_cluster": (
+        "mmseqs2 --min-seq-id over the aligned region, with coverage enforced "
+        "separately by -c under the given --cov-mode"),
+}
+
+
 @dataclass
 class SequenceCluster:
     """One greedy identity cluster: a representative and its members."""
@@ -1133,6 +1150,230 @@ class ClusteringReport:
     n_prefiltered_pairs: int = 0
     budget_exhausted: bool = False
     method: str = "greedy_pure_python"
+    #: What the threshold is a threshold *on*. Two backends agreeing on 0.7
+    #: are not agreeing on a cluster grain unless they also agree on this.
+    identity_definition: str = ""
+    #: The exact command line, when a backend ran one. Nothing else makes a
+    #: clustering reproducible: --cov-mode and -c change the answer as much as
+    #: --min-seq-id does.
+    command: tuple[str, ...] = ()
+    #: Set when a requested backend could not be used and the pure-Python
+    #: fallback ran instead. Never empty on a fallback: a cruder clustering
+    #: that does not say it is cruder is the one failure this field prevents.
+    fallback_reason: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.identity_definition:
+            self.identity_definition = IDENTITY_DEFINITIONS.get(self.method, "")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "method": self.method,
+            "identity_threshold": self.identity_threshold,
+            "identity_definition": self.identity_definition,
+            "n_clusters": len(self.clusters),
+            "n_sequences": len(self.assignment),
+            "n_alignments": self.n_alignments,
+            "n_prefiltered_pairs": self.n_prefiltered_pairs,
+            "budget_exhausted": self.budget_exhausted,
+            "command": list(self.command),
+            "fallback_reason": self.fallback_reason,
+        }
+
+
+class ClusterAdapter(abc.ABC):
+    """Base class for a clustering backend, with the search adapters' rules.
+
+    The same three properties, for the same reasons: the binary is resolved
+    through ``shutil.which`` and its absence raises
+    :class:`~eagent.errors.ToolUnavailableError` with an install hint rather
+    than quietly selecting a cruder method; execution goes through an injected
+    :class:`CommandRunner`, which is how this is tested in an environment with
+    no bioinformatics binaries; and the identity definition travels with the
+    result, because a threshold means nothing without it.
+    """
+
+    method: ClassVar[str] = "unnamed"
+    binary: ClassVar[str] = ""
+    install_hint: ClassVar[str] = ""
+
+    def __init__(
+        self,
+        runner: CommandRunner | None = None,
+        executable_finder: Callable[[str], str | None] | None = None,
+        extra_args: Sequence[str] = (),
+        timeout_s: float | None = 3600.0,
+        threads: int = 1,
+    ) -> None:
+        self.runner: CommandRunner = runner or SubprocessRunner()
+        self.executable_finder: Callable[[str], str | None] = (
+            executable_finder or shutil.which)
+        self.extra_args: tuple[str, ...] = tuple(extra_args)
+        self.timeout_s = timeout_s
+        self.threads = threads
+
+    def resolve_binary(self) -> str:
+        found = self.executable_finder(self.binary)
+        if not found:
+            raise ToolUnavailableError(self.binary, self.install_hint)
+        return found
+
+    def is_available(self) -> bool:
+        return bool(self.executable_finder(self.binary))
+
+    @abc.abstractmethod
+    def cluster(self, items: Sequence[tuple[str, str]], identity_threshold: float,
+                workdir: Path) -> ClusteringReport:
+        """Cluster ``(key, sequence)`` pairs. Every key must come back assigned."""
+
+
+class MMseqs2ClusterAdapter(ClusterAdapter):
+    """mmseqs2 ``easy-cluster``: the real clusterer this module preferred in
+    its docstring and never had.
+
+    WHAT THIS CHANGES ABOUT THE POOL
+    --------------------------------
+    The pure-Python fallback is greedy, order-dependent and screened by a
+    k-mer heuristic that is not a bound, and it degrades to singletons once
+    its alignment budget runs out. Cluster size is what the diversity step
+    weights by and what the cluster cap limits, so a pool whose tail is in
+    spurious singletons spends slots on near-duplicates and reports them as
+    coverage.
+
+    WHAT IS WRITTEN DOWN
+    --------------------
+    ``--min-seq-id`` alone does not define a clustering: ``-c`` and
+    ``--cov-mode`` change which sequences join, and the defaults are mmseqs2's
+    rather than this module's opinion. All three go into the command line, the
+    command line goes into the report, and the report goes into provenance.
+
+    ``--cov-mode 0`` with ``-c 0.8`` is the choice made here: coverage of both
+    the query and the target, so a short fragment does not join a full-length
+    protein's cluster on the strength of matching part of it. That is the same
+    property the fallback gets by multiplying identity by the shorter
+    sequence's coverage, which is what makes the two grains roughly
+    comparable -- roughly, and the report says so rather than claiming they
+    are the same.
+
+    IDS DO NOT TRAVEL THROUGH THE FASTA
+    -----------------------------------
+    Pool keys are ``sha256:...`` strings, and a FASTA header is split on
+    whitespace by every tool that reads one. Surrogate ids are written instead
+    and mapped back, so a key that happens to contain a space, a tab or a
+    ``>`` cannot silently become a different key -- or two.
+    """
+
+    method = "mmseqs2_easy_cluster"
+    binary = "mmseqs"
+    install_hint = "conda install -c bioconda mmseqs2"
+
+    #: Coverage fraction required of both sequences, and the mode that means
+    #: "both". Stated as constants so a change to either is a change to a
+    #: named value rather than to a string in an argv list.
+    coverage: ClassVar[float] = 0.8
+    cov_mode: ClassVar[int] = 0
+
+    def cluster(self, items: Sequence[tuple[str, str]], identity_threshold: float,
+                workdir: Path) -> ClusteringReport:
+        if not items:
+            return ClusteringReport([], {}, identity_threshold, method=self.method)
+        exe = self.resolve_binary()
+        workdir = Path(workdir)
+        workdir.mkdir(parents=True, exist_ok=True)
+
+        surrogate_of: dict[str, str] = {}
+        key_of: dict[str, str] = {}
+        entries: list[FastaEntry] = []
+        for n, (key, sequence) in enumerate(items):
+            if key in surrogate_of:
+                raise SearchExecutionError(
+                    f"clustering received the key {key!r} twice; two sequences "
+                    f"under one key would come back as one cluster member and "
+                    f"the other would vanish")
+            surrogate = f"s{n}"
+            surrogate_of[key] = surrogate
+            key_of[surrogate] = key
+            entries.append(FastaEntry(surrogate, "", sequence))
+
+        in_path = workdir / "cluster_input.fasta"
+        write_fasta(entries, in_path)
+        prefix = workdir / "cluster"
+        tmp_dir = workdir / "cluster_tmp"
+        argv = [
+            exe, "easy-cluster", str(in_path), str(prefix), str(tmp_dir),
+            "--min-seq-id", repr(float(identity_threshold)),
+            "-c", repr(float(self.coverage)),
+            "--cov-mode", str(self.cov_mode),
+            "--threads", str(self.threads),
+        ]
+        argv.extend(self.extra_args)
+        result = self.runner(argv, cwd=workdir, timeout=self.timeout_s)
+        if result.returncode != 0:
+            raise SearchExecutionError(
+                f"mmseqs easy-cluster exited {result.returncode}: "
+                f"{(result.stderr or result.stdout or '').strip()[:500]}")
+        out_path = Path(f"{prefix}_cluster.tsv")
+        if not out_path.exists():
+            raise SearchExecutionError(
+                f"mmseqs easy-cluster reported success but wrote no "
+                f"{out_path.name}; refusing to treat a missing file as a pool "
+                f"of singletons, which is what an empty clustering looks like")
+        return self._parse(out_path.read_text(encoding="utf-8"), key_of,
+                           identity_threshold, tuple(argv))
+
+    def _parse(self, text: str, key_of: Mapping[str, str],
+               identity_threshold: float, argv: tuple[str, ...]) -> ClusteringReport:
+        """Read ``<prefix>_cluster.tsv``: representative, member, per line.
+
+        Two refusals rather than a best effort. A surrogate the input never
+        carried means the output is not this run's, and every input key must
+        appear: a sequence missing from the clustering would become a
+        clusterless row downstream, which the diversity step treats as its own
+        grain -- a silent singleton, which is exactly the artefact the
+        fallback's budget counter exists to surface.
+        """
+        members: dict[str, list[str]] = {}
+        for line in text.splitlines():
+            line = line.rstrip("\n")
+            if not line.strip():
+                continue
+            parts = line.split("\t")
+            if len(parts) != 2:
+                raise SearchExecutionError(
+                    f"mmseqs easy-cluster line has {len(parts)} column(s), "
+                    f"expected 2 (representative, member): {line[:200]!r}")
+            rep, member = (p.strip() for p in parts)
+            for surrogate in (rep, member):
+                if surrogate not in key_of:
+                    raise SearchExecutionError(
+                        f"mmseqs easy-cluster named {surrogate!r}, which this "
+                        f"run did not submit; the output belongs to another "
+                        f"clustering")
+            members.setdefault(rep, []).append(member)
+
+        missing = sorted(set(key_of) - {s for reps, ms in members.items()
+                                        for s in [reps, *ms]})
+        if missing:
+            raise SearchExecutionError(
+                f"{len(missing)} sequence(s) were submitted to mmseqs "
+                f"easy-cluster and are absent from its output "
+                f"(e.g. {', '.join(key_of[m] for m in missing[:3])}). An "
+                f"unassigned sequence becomes its own grain downstream, which "
+                f"reads as a singleton cluster rather than as a gap")
+
+        clusters: list[SequenceCluster] = []
+        assignment: dict[str, str] = {}
+        for n, rep in enumerate(sorted(members), start=1):
+            cluster_id = f"clust_{n:04d}"
+            keys = sorted({key_of[s] for s in members[rep]})
+            clusters.append(SequenceCluster(
+                cluster_id=cluster_id, representative=key_of[rep], members=keys))
+            for key in keys:
+                assignment[key] = cluster_id
+        return ClusteringReport(
+            clusters=clusters, assignment=assignment,
+            identity_threshold=identity_threshold, method=self.method,
+            command=argv)
 
 
 def cluster_sequences(
@@ -1142,12 +1383,24 @@ def cluster_sequences(
     kmer_prefilter: float | None = DEFAULT_KMER_PREFILTER_SIMILARITY,
     kmer_size: int = 3,
     max_alignments: int = DEFAULT_MAX_CLUSTER_ALIGNMENTS,
+    adapter: "ClusterAdapter | None" = None,
+    workdir: Path | None = None,
+    require_adapter: bool = False,
 ) -> ClusteringReport:
-    """Greedy single-representative clustering of ``(key, sequence)`` pairs.
+    """Cluster ``(key, sequence)`` pairs, through ``adapter`` where there is one.
 
-    **mmseqs2 ``easy-cluster`` is the preferred clusterer whenever it is
-    installed.** This fallback is cruder in three specific ways, stated so no
-    one reads its output as equivalent:
+    With an ``adapter`` that is installed -- :class:`MMseqs2ClusterAdapter` is
+    the one this module ships -- the clustering is the adapter's, and the
+    command line it ran is in the report. Without one, the greedy fallback
+    below runs and :attr:`ClusteringReport.fallback_reason` says why, because
+    a cruder clustering that does not announce itself is the failure this
+    argument exists to prevent. ``require_adapter`` turns the announcement
+    into a refusal, for a run that must not silently get the weaker grain.
+
+    THE FALLBACK, AND HOW IT DIFFERS
+    --------------------------------
+    It is cruder in three specific ways, stated so no one reads its output as
+    equivalent:
 
     1. it is greedy and order-dependent -- sequences are processed longest
        first, so the representative set depends on the length distribution, not
@@ -1171,6 +1424,27 @@ def cluster_sequences(
         raise ValueError(
             f"identity_threshold is a fraction in (0, 1], got {identity_threshold}"
         )
+    fallback_reason = ""
+    if adapter is not None:
+        if workdir is None:
+            fallback_reason = (
+                f"{adapter.method} was supplied but no working directory was; "
+                f"it writes intermediate files and cannot run without one")
+        elif not adapter.is_available():
+            fallback_reason = (
+                f"{adapter.method} was requested but '{adapter.binary}' is not "
+                f"on PATH ({adapter.install_hint}). The greedy fallback ran "
+                f"instead: its grain is coarser and its threshold means "
+                f"something different")
+        else:
+            return adapter.cluster(items, identity_threshold, workdir)
+    elif require_adapter:
+        fallback_reason = "no clustering adapter was supplied"
+    if require_adapter and fallback_reason:
+        raise ToolUnavailableError(
+            adapter.binary if adapter is not None else "a clustering backend",
+            f"{fallback_reason}; this run asked for the adapter's clustering "
+            f"and will not substitute the fallback for it")
     ordered = sorted(items, key=lambda kv: (-len(kv[1]), kv[0]))
     kmers: dict[str, frozenset[str]] = {
         key: kmer_set(seq, kmer_size) for key, seq in ordered
@@ -1210,6 +1484,7 @@ def cluster_sequences(
         clusters=clusters, assignment=assignment,
         identity_threshold=identity_threshold, n_alignments=n_align,
         n_prefiltered_pairs=n_prefiltered, budget_exhausted=exhausted,
+        fallback_reason=fallback_reason,
     )
 
 
@@ -1385,6 +1660,8 @@ class MineSequences(ScientificInterface):
         retention: RetentionPolicy | None = None,
         length_expectation: LengthExpectation | None = None,
         cluster_identity: float = DEFAULT_CLUSTER_IDENTITY,
+        clustering_adapter: "ClusterAdapter | None" = None,
+        require_clustering_adapter: bool = False,
         cache_dir: str | Path | None = None,
         allow_single_seed: bool = False,
         single_seed_justification: str = "",
@@ -1520,16 +1797,44 @@ class MineSequences(ScientificInterface):
             )
 
         # -- clustering --------------------------------------------------------
-        clustering = cluster_sequences(
-            [(r.sequence_sha256, r.sequence) for r in records],
-            identity_threshold=cluster_identity,
-            max_alignments=max_cluster_alignments,
-        ) if records else ClusteringReport([], {}, cluster_identity)
+        # Prefer the real clusterer. Cluster size is what the diversity step
+        # weights by and what the cluster cap limits, so a coarser grain is
+        # not a cosmetic difference: it spends slots on near-duplicates and
+        # reports them as coverage.
+        cluster_backend = (clustering_adapter if clustering_adapter is not None
+                           else MMseqs2ClusterAdapter())
+        try:
+            clustering = cluster_sequences(
+                [(r.sequence_sha256, r.sequence) for r in records],
+                identity_threshold=cluster_identity,
+                max_alignments=max_cluster_alignments,
+                adapter=cluster_backend,
+                workdir=ctx.path("mine_sequences", "clustering"),
+                require_adapter=require_clustering_adapter,
+            ) if records else ClusteringReport([], {}, cluster_identity)
+        except (ToolUnavailableError, SearchExecutionError) as exc:
+            if require_clustering_adapter:
+                return ToolResult.failure(
+                    self.name, str(exc), code="clustering_backend_unavailable")
+            raise
         row_by_hash = {row.sequence_sha256: row for row in rows}
         for seq_hash, cluster_id in clustering.assignment.items():
             row = row_by_hash.get(seq_hash)
             if row is not None:
                 row.cluster_id = cluster_id
+        if clustering.fallback_reason:
+            result.add_flag(
+                "clustering_fallback", Severity.WARN,
+                f"{clustering.fallback_reason}. Cluster size is the diversity "
+                f"step's weight and the cluster cap's unit, so this changes "
+                f"which candidates get slots.",
+                subject="clustering")
+            result.add_uncertainty(
+                "clustering_fallback", clustering.fallback_reason,
+                affects=["select_batch"],
+                resolvable_by=("install mmseqs2 and re-run, or pass "
+                               "require_clustering_adapter=True to refuse the "
+                               "fallback outright"))
         if clustering.budget_exhausted:
             result.add_flag(
                 "clustering_budget_exhausted", Severity.WARN,
@@ -1574,6 +1879,7 @@ class MineSequences(ScientificInterface):
                 "retention_policy": retention.model_dump(mode="json"),
                 "length_expectation": expectation.model_dump(mode="json"),
                 "cluster_identity": cluster_identity,
+                "clustering": clustering.to_dict(),
                 "cluster_method": clustering.method,
                 "cluster_prefilter_similarity": DEFAULT_KMER_PREFILTER_SIMILARITY,
                 "max_cluster_alignments": max_cluster_alignments,

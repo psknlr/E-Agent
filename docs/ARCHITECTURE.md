@@ -109,18 +109,39 @@ the boundary is a guard on the output.
 | Propose a hypothesis **with the experiment that would refute it** | Assert a quantity |
 | Interpret a results table into a next step | Compute an alignment, a coordinate, an atom mapping, a distance, an angle, a confidence, a docking score or a statistic |
 
-**`NumericGuard`** (`harness/llm.py`) inspects every model response. A line
-containing a quantity with a measurement-shaped unit — `%`, `Å`, `nm`,
-`kcal/mol`, `s⁻¹`, `mM`/`µM`/`nM`, `pLDDT`, `ee`, `kcat`, `Km`, degrees — must
-also carry an artifact citation of the form `[artifact:<name>]`,
-`[table:...]`, `[file:...]`, `[record:...]` or `[evidence:...]`. If it does not,
-the guard raises `FabricationGuardError` naming the offending tokens:
+**`NumericGuard`** (`harness/llm.py`) inspects every model response. Every
+quantity with a measurement-shaped unit — `%`, `Å`, `nm`, `kcal/mol`, `s⁻¹`,
+`mM`/`µM`/`nM`, `pLDDT`, `ee`, `kcat`, `Km`, degrees — must be followed by a
+citation saying where the number can be found again:
 
-> "the hydride transfer distance in `[artifact:catalytic_geometry.tsv]` is 3.6 Å"
-> — allowed; the value came from a file the verifier can open.
+```
+[cite artifact=candidate_scorecards sha256=9f2c1a7b4e55 row=cand_0a1b
+      field=plddt method=read]
+```
+
+Five keys, all required: which artifact, which version of it (the hash the run
+manifest recorded), which row, which field, and how the number was obtained.
+Given an `ArtifactIndex` built from the manifest, the guard **opens the file
+and compares** — so a value that contradicts its own source is refused, not
+counted as cited. Rounding is judged at the precision written: `3.6` against a
+stored `3.5987` agrees; `3.59` does not.
+
+Binding is by adjacency, not by line: a quantity belongs to the first citation
+that follows it with no other quantity in between. One citation can therefore
+not license a line, and a citation placed *before* a number backs nothing.
+`method=read` and `method=rounded` are verified against the cell;
+`method=derived:...` is counted as declared-but-unchecked, and
+`NumericGuard(require_verified=True)` refuses those too.
+
+> "the hydride transfer distance is 3.6 Å `[cite artifact=catalytic_geometry
+> sha256=… row=cand_0a1b|p1 field=hydride_transfer_distance method=rounded]`"
+> — allowed; the verifier opens the file and finds 3.5987.
 >
 > "the transfer distance is about 3.6 Å" — refused; that is an estimate wearing
 > the clothes of a measurement.
+>
+> "the distance is 3.6 Å and the pLDDT is 42 `[cite …]`" — refused; one
+> citation, two numbers, and only the second one is backed.
 
 **`ModelTurn`** restricts a response to three shapes and nothing else:
 `tool_calls` (only against registered interfaces), `hypotheses` (each needing
@@ -499,10 +520,18 @@ unverified licence is not a permission.
 分界线不是写在提示词里的——提示词只是建议，而研究型智能体最典型的失败不是拒答，而是给出
 一个读起来像测量值、实际从未被测量的数字。所以强制点在**输出端**：
 
-`NumericGuard` 检查每一行模型输出。凡是带"测量单位"的数量（`%`、Å、nm、kcal/mol、s⁻¹、
-mM/µM/nM、pLDDT、ee、kcat、Km、度），同一行必须带 `[artifact:...]` 之类的产物引用，
-否则抛 `FabricationGuardError`。"在 `[artifact:catalytic_geometry.tsv]` 里该氢负离子转移
-距离是 3.6 Å"可以；"该转移距离大约 3.6 Å"不行。
+`NumericGuard` 检查每一个模型输出的数量。凡是带"测量单位"的数量（`%`、Å、nm、kcal/mol、
+s⁻¹、mM/µM/nM、pLDDT、ee、kcat、Km、度），紧随其后必须带一条能把这个数字重新找回来的引用：
+`[cite artifact=<键> sha256=<摘要> row=<行号> field=<列名> method=read]`。五个键缺一不可：
+哪个产物、它的哪个版本（运行清单记下的哈希）、哪一行、哪一列、以及这个数字是读出来的还是算
+出来的。接上由清单构建的 `ArtifactIndex` 之后，守卫会**打开文件逐格比对**——与来源自相矛盾
+的数值被拒绝，而不是算作"已引用"。四舍五入按写出的精度判断：`3.6` 对应存储值 `3.5987` 成立，
+`3.59` 不成立。
+
+绑定按**紧邻关系**而非按行：一个数量归属于它后面第一条、且中间没有别的数量的引用。因此一条
+引用无法为整行背书，写在数字**之前**的引用什么也不支持。`method=read` 与 `method=rounded`
+会被逐格验证；`method=derived:...` 只记为"已声明未核验"，`NumericGuard(require_verified=True)`
+连这种也拒绝。
 
 `ModelTurn` 只允许三种形状：`tool_calls`（只能调已注册接口）、`hypotheses`（必须同时给出
 `test` 和 `would_falsify`，否则 `validate_turn` 判为不可证伪）、`questions`（只有人能做的

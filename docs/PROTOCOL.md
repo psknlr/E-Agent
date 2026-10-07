@@ -363,20 +363,43 @@ single-mutant controls into the same plate, or it does not go in at all.
 "96 constructs" is a synthesis order. The plate it implies is
 
 ```
-candidate wells = constructs × cofactor conditions × replicates
-control   wells = controls   × cofactor conditions × replicates
-total wells     = candidate wells + control wells
-plates          = ceil(total wells / wells per plate)
+candidate wells          = constructs × cofactor conditions × replicates
+control wells per plate  = controls   × cofactor conditions × replicates
+plates                   = ceil(candidate wells / (wells per plate
+                                                   − control wells per plate))
+control wells            = plates × control wells per plate
+total wells              = candidate wells + control wells
 ```
 
-For 96 genes at 2 cofactor conditions in triplicate that is **576 candidate wells
-before a single control** — six 96-well plates, not one. With four controls at
-the same multiplicity, 24 control wells, 600 total, seven plates.
-`MeasurementFootprint.describe()` prints exactly this, next to the order, and the
-figure goes into the batch-authorisation payload so the operator approves the
-plate they are actually buying. Discovering the multiplier after the order is
-placed means either dropping replicates (and losing the ability to call anything)
-or dropping conditions (and losing the cofactor question).
+The controls are on **every plate**, which is why the plate count has to be
+solved for rather than divided out. A background belongs to the plate it was
+read on — the lysate batch, the reader's lamp, the hour it sat on the bench —
+so a plate with no empty-vector well has no background and every
+fold-over-background bar on it is undecidable rather than met.
+
+For 96 genes at 2 cofactor conditions in triplicate that is **576 candidate
+wells before a single control** — six 96-well plates, not one. With four
+controls at the same multiplicity, each plate gives up 24 of its 96 wells, so
+72 candidate wells fit per plate, 576 need **eight** plates, and the controls
+cost 192 wells of the 768 total: a quarter of the round.
+`MeasurementFootprint.describe()` prints exactly this, overhead included, next
+to the order, and the figure goes into the batch-authorisation payload so the
+operator approves the plate they are actually buying. Counting one control set
+for the whole round instead — 600 wells on seven plates — orders a round in
+which six plates have no background at all.
+
+When the control set at the requested replication fills a plate on its own,
+`layout_feasible` is false and `select_batch` refuses, rather than quietly
+dropping controls from some plates.
+
+**Where each well sits is randomised**, with the seed and the strategy
+(`stratified-random-v1`) recorded in `experiment_plan.yaml`. Filling wells in
+the order candidates were ranked makes plate position a function of rank, and
+microplates have real position effects — edge evaporation, non-uniform optics,
+a thermal gradient — so a layout that follows the ranking confounds "ranked
+highly" with "sat in the middle of plate 1", and nothing in the data can show
+that it did. Each stratum (role × family) is dealt across the plates so a
+construct's replicates do not sit together and the families stay balanced.
 
 **Controls are genes too.** A positive-control enzyme has to be synthesised like
 everything else. If the construct count is a hard cap and the controls were not

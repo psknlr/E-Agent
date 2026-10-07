@@ -286,7 +286,8 @@ Three states only:
 | --- | --- | --- |
 | `harness/templates.py` | implemented | strict loading, calibration report, window authority, integrity problems |
 | `harness/registry.py` | implemented | strict ten-interface registry, dependency problems, manifest-ready report |
-| `harness/llm.py` | implemented | numeric guard, restricted turn shape, `EchoClient` on the tested path. **No production LLM client is wired**; `CallbackClient` is the embedding point |
+| `harness/llm.py` | implemented | numeric guard (value-to-cell binding, verified against the run's own artifacts), restricted turn shape, `EchoClient` on the tested path. **No production LLM client is wired**; `CallbackClient` is the embedding point |
+| `harness/citation.py` | implemented | citation grammar, artifact index from the manifest, per-cell verification |
 | `harness/approval.py` | implemented | three gates, named actors, persisted queue, hard batch block |
 | `harness/controller.py` | implemented | declared state machine, seven failure kinds, resume by input digest |
 | `harness/verifier.py` | implemented | nine checks, re-derived from primary material |
@@ -310,7 +311,8 @@ Three states only:
 | Reaction template (1) | implemented, **needs curation** | SMARTS never parsed in this environment; no RHEA id verified |
 | Family templates (3: SDR, AKR, MDR/ADH) | implemented, **needs curation** | `seed_accessions` and `interpro_ids` empty; no accession verified |
 | Catalytic templates (3) | implemented, **needs curation** | `reference_structures` empty in all three; **17 of 17 windows uncalibrated**, 0 gating |
-| Engineering templates | **1 of 3** | SDR only. AKR and MDR/ADH **not started** — the linter reports both, and variants cannot be proposed for those families |
+| Engineering templates (3) | implemented, **needs curation** | SDR, AKR and MDR/ADH all present; windows uncalibrated as above |
+| Family numbering schemes | **not started** | `science/family_numbering.py` and `science/pocket.py` ship the machinery; no sourced reference sequence is bundled, so pocket signatures fall back to composition and say so |
 | Assay templates (3 tiers) | implemented, **needs curation** | every numeric bar `null`; limits of detection must be measured on site |
 | `configs/tool_registry.yaml` | implemented, **needs legal review** | 11 tools × 4 facets = 44 entries; every licence `null`, every commercial permission `null`, which blocks a commercial run |
 | `configs/datasources/*.yaml` | implemented, **not connectivity-tested** | see the data-layer table above |

@@ -997,16 +997,27 @@ def group_rows(rows: Sequence[AssayRow]) -> list[MeasurementGroup]:
     return [groups[k] for k in sorted(groups)]
 
 
-#: Row ``kind``/``role`` tokens that identify an empty-vector control.
+#: Normalised ``kind``/``role`` tokens that identify an empty-vector control.
+#: Normalised means lower-cased, spaces and hyphens folded to underscores, and
+#: a trailing ``_control`` removed -- ``select_batch`` writes the role as
+#: ``"empty_vector control"`` and the kind as ``"control"``, so an exact match
+#: against the bare token recognised nothing the pipeline itself produces and
+#: every fold-over-background bar on a real plate was undecidable.
 EMPTY_VECTOR_TOKENS: frozenset[str] = frozenset({
-    "empty_vector", "empty-vector", "emptyvector", "vector_only", "no_insert",
+    "empty_vector", "emptyvector", "vector_only", "no_insert",
 })
 
 
+def _control_token(text: str | None) -> str:
+    token = str(text or "").strip().lower().replace("-", "_").replace(" ", "_")
+    while token.endswith("_control"):
+        token = token[: -len("_control")]
+    return token
+
+
 def _is_empty_vector(row: AssayRow) -> bool:
-    tokens = {str(row.kind or "").strip().lower(),
-              str(row.role or "").strip().lower()}
-    return bool(tokens & EMPTY_VECTOR_TOKENS)
+    return bool({_control_token(row.kind), _control_token(row.role)}
+                & EMPTY_VECTOR_TOKENS)
 
 
 def attach_empty_vector_baselines(

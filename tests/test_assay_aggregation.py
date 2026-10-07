@@ -299,6 +299,41 @@ class ControlWellTests(unittest.TestCase):
         self.assertTrue(group.fold_conflicts())
 
 
+class ControlRecognitionTests(unittest.TestCase):
+    """The pipeline's own spelling of a control has to be recognised.
+
+    ``select_batch`` writes ``kind="control"`` and ``role="empty_vector
+    control"``. Matching the bare token ``empty_vector`` against those two
+    fields recognised neither, so on every plate the pipeline itself produced
+    there was no background and every fold-over-background bar was
+    undecidable -- while hand-built rows in the tests, which set
+    ``kind="empty_vector"``, matched.
+    """
+
+    def baseline(self, kind: str, role: str):
+        rows = [well(well="A1", measurement_value=10.0),
+                well(well="H1", kind=kind, role=role, measurement_value=5.0)]
+        group = one_group([r for r in rows if r.kind == "candidate"])
+        attach_empty_vector_baselines([group], rows)
+        return group.fold_over_empty_vector
+
+    def test_the_role_select_batch_writes_is_recognised(self) -> None:
+        self.assertAlmostEqual(
+            self.baseline("control", "empty_vector control"), 2.0)
+
+    def test_spelling_variants_are_recognised(self) -> None:
+        for role in ("empty-vector control", "Empty Vector Control",
+                     "vector_only", "no_insert control"):
+            self.assertAlmostEqual(self.baseline("control", role), 2.0, msg=role)
+
+    def test_another_control_is_not_the_host_background(self) -> None:
+        """A no-enzyme well is abiotic background, not host background."""
+        self.assertIsNone(self.baseline("control", "no_enzyme control"))
+
+    def test_a_candidate_is_never_its_own_background(self) -> None:
+        self.assertIsNone(self.baseline("candidate", "mined candidate"))
+
+
 class UnitTableTests(unittest.TestCase):
     """The shared table, used by ingest and by evaluation alike."""
 

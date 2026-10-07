@@ -54,13 +54,16 @@ from eagent.schemas import (
     TemplateSourceType,
 )
 from eagent.tools.select_batch import (
+    ASSAY_MEASURED_COLUMNS,
     ASSAY_RESULT_COLUMNS,
+    LAYOUT_STRATEGY,
     ControlClaim,
     ControlSpec,
     MeasurementFootprint,
     SelectBatch,
     default_control_plan,
     measurement_footprint,
+    plan_plate_layout,
     select_variant_groups,
     validate_control_claims,
     well_label,
@@ -221,17 +224,56 @@ class ControlClaimTests(unittest.TestCase):
 
 
 class FootprintTests(unittest.TestCase):
+    def footprint(self, **overrides) -> MeasurementFootprint:
+        kwargs = dict(n_candidate_genes=96, n_variant_genes=0,
+                      n_control_genes=1, n_controls=4, cofactor_conditions=2,
+                      replicates=3, wells_per_plate=96)
+        kwargs.update(overrides)
+        return MeasurementFootprint(**kwargs)
+
     def test_genes_are_not_wells(self):
-        footprint = MeasurementFootprint(
-            n_candidate_genes=96, n_variant_genes=0, n_control_genes=1,
-            n_controls=4, cofactor_conditions=2, replicates=3,
-            wells_per_plate=96)
+        footprint = self.footprint()
         self.assertEqual(footprint.n_genes, 97)
         self.assertEqual(footprint.candidate_wells, 576)
-        self.assertEqual(footprint.control_wells, 24)
-        self.assertEqual(footprint.total_wells, 600)
-        self.assertEqual(footprint.plates, 7)
         self.assertIn("Genes are not wells", footprint.describe())
+
+    def test_the_controls_are_counted_on_every_plate(self):
+        """A background belongs to the plate it was read on.
+
+        4 controls x 2 cofactors x 3 replicates is 24 wells, so a 96-well
+        plate holds 72 candidate wells; 576 candidate wells need 8 plates and
+        8 control sets. Counting one control set for the round -- 600 wells on
+        7 plates -- orders a round in which six plates have no background and
+        every fold-over-background bar on them is undecidable.
+        """
+        footprint = self.footprint()
+        self.assertEqual(footprint.control_wells_per_plate, 24)
+        self.assertEqual(footprint.candidate_wells_per_plate, 72)
+        self.assertEqual(footprint.plates, 8)
+        self.assertEqual(footprint.control_wells, 192)
+        self.assertEqual(footprint.total_wells, 768)
+
+    def test_the_round_fits_the_plates_it_claims(self):
+        footprint = self.footprint()
+        self.assertLessEqual(footprint.total_wells,
+                             footprint.plates * footprint.wells_per_plate)
+
+    def test_the_control_overhead_is_reported(self):
+        footprint = self.footprint()
+        self.assertAlmostEqual(footprint.control_overhead_fraction, 192 / 768)
+        self.assertIn("every plate", footprint.describe())
+
+    def test_a_single_plate_round_pays_for_one_control_set(self):
+        footprint = self.footprint(n_candidate_genes=4)
+        self.assertEqual(footprint.plates, 1)
+        self.assertEqual(footprint.control_wells, 24)
+        self.assertEqual(footprint.total_wells, 48)
+
+    def test_a_control_set_that_fills_a_plate_is_named_not_laid_out(self):
+        footprint = self.footprint(cofactor_conditions=4, replicates=6)
+        self.assertFalse(footprint.layout_feasible)
+        self.assertEqual(footprint.plates, 0)
+        self.assertIn("fills a plate", footprint.describe())
 
 
 class VariantGroupTests(unittest.TestCase):
@@ -484,10 +526,83 @@ class ArtifactTests(unittest.TestCase):
             with open(out.artifact("assay_results_template").path,
                       encoding="utf-8") as fh:
                 rows = list(csv.DictReader(fh))
-            self.assertEqual(rows[0]["well"], "A1")
+            self.assertTrue(all(r["well"] for r in rows))
+            self.assertTrue(all(r["plate"] for r in rows))
             self.assertTrue(all(r["candidate_id"] for r in rows))
             self.assertTrue(all(r["cofactor"] for r in rows))
             self.assertEqual({r["kind"] for r in rows}, {"candidate", "control"})
+
+    def test_no_two_rows_claim_the_same_well(self):
+        """An address that repeats attributes two results to one reading."""
+        with tempfile.TemporaryDirectory() as tmp:
+            _, out = self._compose(Path(tmp))
+            with open(out.artifact("assay_results_template").path,
+                      encoding="utf-8") as fh:
+                rows = list(csv.DictReader(fh))
+            addresses = [(r["plate"], r["well"]) for r in rows]
+            self.assertEqual(len(set(addresses)), len(addresses))
+
+    def test_the_measured_columns_are_blank(self):
+        """The plan's intentions must not come back as the bench's findings."""
+        with tempfile.TemporaryDirectory() as tmp:
+            _, out = self._compose(Path(tmp))
+            with open(out.artifact("assay_results_template").path,
+                      encoding="utf-8") as fh:
+                rows = list(csv.DictReader(fh))
+            for column in ASSAY_MEASURED_COLUMNS:
+                self.assertEqual({r[column] for r in rows}, {""}, column)
+
+    def test_the_plan_columns_carry_the_protocol(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, out = self._compose(Path(tmp))
+            with open(out.artifact("assay_results_template").path,
+                      encoding="utf-8") as fh:
+                rows = list(csv.DictReader(fh))
+            self.assertTrue(all(r["plan_detection_method"] for r in rows))
+            self.assertEqual({r["plan_confirms_product_identity"]
+                              for r in rows}, {"yes"})
+
+    def test_every_plate_carries_the_full_control_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, out = self._compose(Path(tmp))
+            with open(out.artifact("assay_results_template").path,
+                      encoding="utf-8") as fh:
+                rows = list(csv.DictReader(fh))
+            controls = {r["candidate_id"] for r in rows if r["kind"] == "control"}
+            by_plate: dict[str, set[str]] = {}
+            for r in rows:
+                if r["kind"] == "control":
+                    by_plate.setdefault(r["plate"], set()).add(r["candidate_id"])
+            self.assertTrue(by_plate)
+            for plate, present in by_plate.items():
+                self.assertEqual(present, controls, plate)
+
+    def test_the_layout_seed_and_strategy_are_recorded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, out = self._compose(Path(tmp))
+            with open(out.artifact("experiment_plan").path,
+                      encoding="utf-8") as fh:
+                document = yaml.safe_load(fh)
+            layout = document["plate_layout"]
+            self.assertIsInstance(layout["seed"], int)
+            self.assertEqual(layout["strategy"], LAYOUT_STRATEGY)
+            self.assertTrue(layout["controls_on_every_plate"])
+            self.assertEqual(len(layout["wells"]),
+                             out.data["footprint"]["total_wells"])
+
+    def test_the_layout_is_reproducible_from_the_recorded_seed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, out = self._compose(Path(tmp))
+            with open(out.artifact("experiment_plan").path,
+                      encoding="utf-8") as fh:
+                document = yaml.safe_load(fh)
+            from eagent.schemas import BatchPlan
+            plan = BatchPlan(**out.data["plan"])
+            footprint = measurement_footprint(plan)
+            again = plan_plate_layout(plan, footprint,
+                                      seed=document["plate_layout"]["seed"])
+            self.assertEqual([a.to_dict() for a in again.assignments],
+                             document["plate_layout"]["wells"])
 
     def test_provenance_is_complete(self):
         with tempfile.TemporaryDirectory() as tmp:

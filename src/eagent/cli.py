@@ -2023,6 +2023,51 @@ def benchmark_group() -> None:
     """Retrospective benchmarks on data this build has actually ingested."""
 
 
+@benchmark_group.command("feedback")
+@click.option("--data", "data_dir", required=True,
+              type=click.Path(exists=True, file_okay=False, path_type=Path),
+              help="Directory holding the four SDR files.")
+@click.option("--replicates", default=20, show_default=True, type=int)
+@click.option("--rounds", default=5, show_default=True, type=int)
+@click.option("--per-round", default=8, show_default=True, type=int)
+@click.option("--seed", default=0, show_default=True, type=int)
+@click.option("--target", "targets", multiple=True,
+              help="Limit to these targets (e.g. sdr:cofactor_NADP).")
+@click.option("--out", "out_path", type=click.Path(path_type=Path), default=None,
+              help="Write both reports as JSON.")
+def benchmark_feedback(data_dir: Path, replicates: int, rounds: int,
+                       per_round: int, seed: int, targets: tuple[str, ...],
+                       out_path: Path | None) -> None:
+    """Turn the feedback loop on and off over identical replicates.
+
+    Runs on annotation-derived labels revealed as if they were assay results,
+    on the full pool and on a one-per-cluster pool; says so first.
+    """
+    import json
+
+    from .eval.feedback_simulation import SimulationProtocol, run_sdr_feedback
+    from .eval.retrospective import RetrospectiveError
+
+    out = Out()
+    try:
+        suite = run_sdr_feedback(
+            data_dir, SimulationProtocol(
+                rounds=rounds, per_round=per_round, n_replicates=replicates,
+                seed=seed), targets=targets or None)
+    except RetrospectiveError as exc:
+        raise Refusal(str(exc), next_action="re-download the file through the "
+                      "verified Zenodo route", exit_code=EXIT_USAGE)
+    out.line(suite.render())
+    if out_path is not None:
+        out_path.write_text(json.dumps(
+            {"full": suite.full.to_dict(),
+             "non_redundant": suite.non_redundant.to_dict(),
+             "clustering": dict(suite.clustering)}, indent=2, default=str),
+            encoding="utf-8")
+        out.line("")
+        out.line(f"reports written to {out_path}")
+
+
 @benchmark_group.command("sdr")
 @click.option("--data", "data_dir", required=True,
               type=click.Path(exists=True, file_okay=False, path_type=Path),

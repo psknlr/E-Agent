@@ -71,7 +71,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, NamedTuple, Sequence
+from typing import Any, Callable, Iterable, Mapping, NamedTuple, Sequence
 
 from ..envelope import QCFlag, Severity, Uncertainty
 from ..errors import FabricationGuardError, TemplateError
@@ -1533,6 +1533,7 @@ def lexicographic_rank(
     order_of_dimensions: Sequence[str] | None = None,
     *,
     require_gates: bool = True,
+    tiebreak: Callable[[Candidate], float | None] | None = None,
 ) -> list[Candidate]:
     """Total order by priority of axes: the defensible default when no model exists.
 
@@ -1559,6 +1560,14 @@ def lexicographic_rank(
     the caller makes rather than a default they never see.
 
     The final tie-break is ``candidate_id``, so the order is deterministic.
+
+    ``tiebreak`` -- for example a calibrated model probability -- is consulted
+    only between candidates that are *equal* in gate tier and in every ranking
+    dimension, immediately before ``candidate_id``. It can reorder a tie and
+    nothing else: it cannot lift a candidate over one with stronger evidence,
+    and it cannot touch a gate. Higher is earlier; ``None`` sorts after any
+    value, which is a convention for producing a list and not a claim that the
+    candidate is worse.
     """
     order = tuple(order_of_dimensions or DEFAULT_LEXICOGRAPHIC_ORDER)
     if not order:
@@ -1592,6 +1601,9 @@ def lexicographic_rank(
                 0.0 if scalar is None
                 else (-scalar if reduced.direction == "higher_is_better"
                       else scalar)))
+        if tiebreak is not None:
+            tied = tiebreak(cand)
+            parts.append((1, 0.0) if tied is None else (0, -float(tied)))
         parts.append(cand.candidate_id)
         return tuple(parts)
 

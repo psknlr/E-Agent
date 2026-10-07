@@ -1,0 +1,313 @@
+FEEDBACK SIMULATION (full pool)
+This simulation reveals ANNOTATION-DERIVED labels as if they were assay results. It shows how selection strategies compare at recovering an annotated class; it is not evidence about a real assay, the agent's gates, or ketoreductase activity.
+
+5 rounds x 8 slots = 40 selections per replicate, 20 replicates, initial labelled 24, seed 0
+
+sdr:CoA_substructure  (pool 309, prevalence 0.15; random expects 6.0 hits)
+  random                         hits   5.7 [5.0,6.3]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  23.8 [22.4,25.1]  enrichment x4.17
+  nearest_neighbour[frozen]      hits  19.9 [18.1,21.8]  enrichment x3.49
+  model[feedback]                hits  24.4 [22.9,25.9]  enrichment x4.29
+  model[frozen]                  hits  19.1 [17.6,20.9]  enrichment x3.35
+  model+explore[feedback]        hits  21.1 [20.1,22.1]  enrichment x3.71
+  explore_only                   hits   2.8 [1.9,3.4]  enrichment x0.48
+  model[feedback] - random                       +18.8 hits [+17.4,+20.1]  *
+  nearest_neighbour[feedback] - random           +18.1 hits [+16.9,+19.4]  *
+  model[feedback] - model[frozen]                +5.3 hits [+3.8,+7.2]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +3.9 hits [+2.5,+5.2]  *
+  model[feedback] - nearest_neighbour[feedback]  +0.7 hits [-0.8,+2.2]
+  model+explore[feedback] - model[feedback]      -3.3 hits [-4.3,-2.3]  *
+  model+explore[feedback] - explore_only         +18.4 hits [+17.1,+19.7]  *
+
+sdr:cofactor_NADP  (pool 286, prevalence 0.64; random expects 25.6 hits)
+  random                         hits  25.1 [23.6,26.4]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  39.5 [39.1,39.9]  enrichment x1.58
+  nearest_neighbour[frozen]      hits  39.2 [38.6,39.8]  enrichment x1.57
+  model[feedback]                hits  39.5 [39.4,39.8]  enrichment x1.58
+  model[frozen]                  hits  39.4 [39.0,39.7]  enrichment x1.57
+  model+explore[feedback]        hits  37.8 [37.5,38.0]  enrichment x1.51
+  explore_only                   hits  29.8 [28.9,30.6]  enrichment x1.19
+  model[feedback] - random                       +14.5 hits [+13.2,+15.9]  *
+  nearest_neighbour[feedback] - random           +14.5 hits [+13.1,+16.1]  *
+  model[feedback] - model[frozen]                +0.2 hits [-0.1,+0.6]
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +0.3 hits [+0.0,+0.7]
+  model[feedback] - nearest_neighbour[feedback]  +0.0 hits [-0.3,+0.3]
+  model+explore[feedback] - model[feedback]      -1.8 hits [-2.0,-1.4]  *
+  model+explore[feedback] - explore_only         +8.1 hits [+7.3,+8.8]  *
+
+sdr:phenol_substructure  (pool 309, prevalence 0.22; random expects 8.9 hits)
+  random                         hits   9.1 [8.2,10.0]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  25.2 [23.7,26.7]  enrichment x2.77
+  nearest_neighbour[frozen]      hits  22.6 [21.3,23.9]  enrichment x2.49
+  model[feedback]                hits  21.9 [20.4,23.5]  enrichment x2.41
+  model[frozen]                  hits  21.4 [19.9,22.7]  enrichment x2.35
+  model+explore[feedback]        hits  22.4 [20.9,23.6]  enrichment x2.46
+  explore_only                   hits   5.8 [5.0,6.6]  enrichment x0.64
+  model[feedback] - random                       +12.8 hits [+10.8,+15.1]  *
+  nearest_neighbour[feedback] - random           +16.1 hits [+14.4,+18.2]  *
+  model[feedback] - model[frozen]                +0.6 hits [-0.6,+1.8]
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +2.6 hits [+1.3,+4.0]  *
+  model[feedback] - nearest_neighbour[feedback]  -3.4 hits [-4.7,-2.1]  *
+  model+explore[feedback] - model[feedback]      +0.5 hits [-0.8,+1.8]
+  model+explore[feedback] - explore_only         +16.6 hits [+14.8,+18.4]  *
+
+sdr:sterol_substructure  (pool 309, prevalence 0.28; random expects 11.3 hits)
+  random                         hits  11.2 [10.7,11.9]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  30.9 [29.2,32.8]  enrichment x2.76
+  nearest_neighbour[frozen]      hits  29.5 [27.1,31.9]  enrichment x2.63
+  model[feedback]                hits  32.0 [30.4,33.5]  enrichment x2.86
+  model[frozen]                  hits  29.4 [27.5,31.3]  enrichment x2.62
+  model+explore[feedback]        hits  29.6 [28.4,30.7]  enrichment x2.65
+  explore_only                   hits   7.8 [7.0,8.8]  enrichment x0.70
+  model[feedback] - random                       +20.8 hits [+19.2,+22.5]  *
+  nearest_neighbour[feedback] - random           +19.8 hits [+17.9,+21.8]  *
+  model[feedback] - model[frozen]                +2.6 hits [+1.4,+3.8]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +1.4 hits [-0.5,+3.2]
+  model[feedback] - nearest_neighbour[feedback]  +1.1 hits [-0.3,+2.5]
+  model+explore[feedback] - model[feedback]      -2.4 hits [-3.7,-1.2]  *
+  model+explore[feedback] - explore_only         +21.8 hits [+20.2,+23.2]  *
+
+sdr:substrate_cluster_0  (pool 309, prevalence 0.11; random expects 4.5 hits)
+  random                         hits   4.3 [3.7,5.0]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  17.9 [16.2,19.4]  enrichment x4.13
+  nearest_neighbour[frozen]      hits  13.2 [12.2,14.4]  enrichment x3.05
+  model[feedback]                hits  14.8 [13.4,16.3]  enrichment x3.41
+  model[frozen]                  hits  11.6 [10.2,12.9]  enrichment x2.67
+  model+explore[feedback]        hits  13.2 [12.1,14.3]  enrichment x3.03
+  explore_only                   hits   3.2 [2.8,3.8]  enrichment x0.75
+  model[feedback] - random                       +10.5 hits [+9.2,+12.2]  *
+  nearest_neighbour[feedback] - random           +13.6 hits [+12.1,+15.1]  *
+  model[feedback] - model[frozen]                +3.2 hits [+1.9,+4.7]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +4.7 hits [+3.3,+6.2]  *
+  model[feedback] - nearest_neighbour[feedback]  -3.1 hits [-4.8,-1.1]  *
+  model+explore[feedback] - model[feedback]      -1.6 hits [-3.2,-0.4]  *
+  model+explore[feedback] - explore_only         +9.9 hits [+8.6,+11.2]  *
+
+sdr:substrate_cluster_1  (pool 309, prevalence 0.17; random expects 6.7 hits)
+  random                         hits   6.7 [6.0,7.5]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  23.8 [22.1,25.4]  enrichment x3.55
+  nearest_neighbour[frozen]      hits  21.4 [20.1,22.8]  enrichment x3.19
+  model[feedback]                hits  25.3 [23.9,26.9]  enrichment x3.78
+  model[frozen]                  hits  19.6 [18.6,20.8]  enrichment x2.93
+  model+explore[feedback]        hits  20.9 [19.8,22.0]  enrichment x3.12
+  explore_only                   hits   3.0 [2.5,3.8]  enrichment x0.46
+  model[feedback] - random                       +18.6 hits [+16.6,+20.6]  *
+  nearest_neighbour[feedback] - random           +17.1 hits [+15.3,+18.6]  *
+  model[feedback] - model[frozen]                +5.7 hits [+3.9,+7.7]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +2.5 hits [+0.8,+4.3]  *
+  model[feedback] - nearest_neighbour[feedback]  +1.5 hits [-0.6,+3.6]
+  model+explore[feedback] - model[feedback]      -4.4 hits [-6.2,-3.0]  *
+  model+explore[feedback] - explore_only         +17.9 hits [+16.5,+19.3]  *
+
+sdr:substrate_cluster_2  (pool 309, prevalence 0.31; random expects 12.3 hits)
+  random                         hits  11.8 [10.9,12.7]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  31.4 [29.4,33.1]  enrichment x2.65
+  nearest_neighbour[frozen]      hits  28.6 [25.8,30.9]  enrichment x2.41
+  model[feedback]                hits  32.1 [30.6,33.6]  enrichment x2.71
+  model[frozen]                  hits  28.1 [25.4,30.4]  enrichment x2.37
+  model+explore[feedback]        hits  28.9 [27.7,30.1]  enrichment x2.44
+  explore_only                   hits   9.3 [8.5,10.2]  enrichment x0.79
+  model[feedback] - random                       +20.3 hits [+18.5,+22.0]  *
+  nearest_neighbour[feedback] - random           +19.6 hits [+17.6,+21.6]  *
+  model[feedback] - model[frozen]                +4.1 hits [+2.5,+6.0]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +2.9 hits [+0.9,+4.7]  *
+  model[feedback] - nearest_neighbour[feedback]  +0.8 hits [-0.1,+1.8]
+  model+explore[feedback] - model[feedback]      -3.2 hits [-4.2,-2.1]  *
+  model+explore[feedback] - explore_only         +19.6 hits [+18.1,+20.9]  *
+
+sdr:substrate_cluster_3  (pool 309, prevalence 0.08; random expects 3.1 hits)
+  random                         hits   3.0 [2.1,3.8]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  17.4 [16.4,18.2]  enrichment x5.80
+  nearest_neighbour[frozen]      hits  11.4 [10.2,12.9]  enrichment x3.82
+  model[feedback]                hits  14.7 [13.1,15.9]  enrichment x4.88
+  model[frozen]                  hits  11.0 [9.6,12.6]  enrichment x3.67
+  model+explore[feedback]        hits  14.5 [12.8,16.1]  enrichment x4.83
+  explore_only                   hits   2.3 [1.8,2.8]  enrichment x0.77
+  model[feedback] - random                       +11.7 hits [+9.8,+13.5]  *
+  nearest_neighbour[feedback] - random           +14.4 hits [+12.9,+15.7]  *
+  model[feedback] - model[frozen]                +3.6 hits [+2.2,+4.9]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +6.0 hits [+4.7,+7.2]  *
+  model[feedback] - nearest_neighbour[feedback]  -2.8 hits [-4.2,-1.6]  *
+  model+explore[feedback] - model[feedback]      -0.1 hits [-1.4,+1.1]
+  model+explore[feedback] - explore_only         +12.2 hits [+10.3,+13.9]  *
+
+sdr:substrate_cluster_4  (pool 309, prevalence 0.14; random expects 5.7 hits)
+  random                         hits   5.5 [4.5,6.6]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  13.5 [12.3,14.6]  enrichment x2.45
+  nearest_neighbour[frozen]      hits  11.8 [10.7,12.8]  enrichment x2.15
+  model[feedback]                hits  13.7 [12.7,14.6]  enrichment x2.48
+  model[frozen]                  hits  11.6 [10.2,12.8]  enrichment x2.10
+  model+explore[feedback]        hits  15.1 [14.2,16.1]  enrichment x2.75
+  explore_only                   hits  11.8 [10.8,12.6]  enrichment x2.14
+  model[feedback] - random                       +8.2 hits [+7.0,+9.3]  *
+  nearest_neighbour[feedback] - random           +8.0 hits [+6.4,+9.2]  *
+  model[feedback] - model[frozen]                +2.1 hits [+1.1,+3.2]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +1.7 hits [+0.5,+2.9]  *
+  model[feedback] - nearest_neighbour[feedback]  +0.1 hits [-1.2,+1.5]
+  model+explore[feedback] - model[feedback]      +1.4 hits [+0.6,+2.4]  *
+  model+explore[feedback] - explore_only         +3.4 hits [+2.0,+4.7]  *
+
+sdr:substrate_cluster_5  (pool 309, prevalence 0.15; random expects 5.8 hits)
+  random                         hits   5.5 [4.6,6.4]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  28.6 [26.6,30.2]  enrichment x5.20
+  nearest_neighbour[frozen]      hits  26.8 [24.6,28.8]  enrichment x4.86
+  model[feedback]                hits  30.4 [28.0,32.5]  enrichment x5.52
+  model[frozen]                  hits  27.2 [25.0,29.6]  enrichment x4.95
+  model+explore[feedback]        hits  25.4 [24.3,26.4]  enrichment x4.62
+  explore_only                   hits   1.1 [0.7,1.5]  enrichment x0.19
+  model[feedback] - random                       +24.9 hits [+22.4,+26.9]  *
+  nearest_neighbour[feedback] - random           +23.1 hits [+21.1,+24.9]  *
+  model[feedback] - model[frozen]                +3.1 hits [+1.5,+5.0]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +1.9 hits [+0.4,+3.5]  *
+  model[feedback] - nearest_neighbour[feedback]  +1.8 hits [-0.3,+3.8]
+  model+explore[feedback] - model[feedback]      -5.0 hits [-6.3,-3.4]  *
+  model+explore[feedback] - explore_only         +24.4 hits [+22.8,+25.6]  *
+
+sdr:substrate_cluster_7  (pool 309, prevalence 0.31; random expects 12.4 hits)
+  random                         hits  12.7 [11.8,13.5]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  29.2 [27.4,30.9]  enrichment x2.30
+  nearest_neighbour[frozen]      hits  25.6 [23.9,27.6]  enrichment x2.02
+  model[feedback]                hits  30.4 [29.2,31.7]  enrichment x2.39
+  model[frozen]                  hits  26.7 [24.8,28.8]  enrichment x2.10
+  model+explore[feedback]        hits  27.2 [25.7,28.6]  enrichment x2.15
+  explore_only                   hits  14.9 [13.9,15.8]  enrichment x1.17
+  model[feedback] - random                       +17.7 hits [+16.3,+19.4]  *
+  nearest_neighbour[feedback] - random           +16.5 hits [+14.7,+18.3]  *
+  model[feedback] - model[frozen]                +3.7 hits [+2.0,+5.2]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +3.6 hits [+2.0,+5.0]  *
+  model[feedback] - nearest_neighbour[feedback]  +1.2 hits [-0.6,+3.3]
+  model+explore[feedback] - model[feedback]      -3.1 hits [-4.3,-2.0]  *
+  model+explore[feedback] - explore_only         +12.3 hits [+10.3,+14.3]  *
+
+* paired bootstrap interval over replicates excludes zero
+skipped sdr:substrate_cluster_6: 2 positive / 307 negative; 15 of each are required
+skipped sdr:substrate_cluster_8: 14 positive / 295 negative; 15 of each are required
+
+FEEDBACK SIMULATION (non-redundant pool)
+This simulation reveals ANNOTATION-DERIVED labels as if they were assay results. It shows how selection strategies compare at recovering an annotated class; it is not evidence about a real assay, the agent's gates, or ketoreductase activity.
+
+5 rounds x 8 slots = 40 selections per replicate, 20 replicates, initial labelled 24, seed 0
+
+sdr:cofactor_NADP  (pool 112, prevalence 0.60; random expects 23.9 hits)
+  random                         hits  24.4 [23.4,25.4]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  31.2 [30.5,31.9]  enrichment x1.28
+  nearest_neighbour[frozen]      hits  30.1 [29.1,31.1]  enrichment x1.24
+  model[feedback]                hits  33.4 [32.9,34.0]  enrichment x1.37
+  model[frozen]                  hits  31.4 [30.9,32.0]  enrichment x1.29
+  model+explore[feedback]        hits  33.0 [32.2,33.7]  enrichment x1.35
+  explore_only                   hits  29.6 [28.9,30.1]  enrichment x1.21
+  model[feedback] - random                       +9.0 hits [+8.0,+10.1]  *
+  nearest_neighbour[feedback] - random           +6.9 hits [+5.7,+8.2]  *
+  model[feedback] - model[frozen]                +1.9 hits [+1.1,+2.9]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +1.1 hits [+0.6,+1.9]  *
+  model[feedback] - nearest_neighbour[feedback]  +2.1 hits [+1.0,+3.2]  *
+  model+explore[feedback] - model[feedback]      -0.4 hits [-1.1,+0.3]
+  model+explore[feedback] - explore_only         +3.4 hits [+2.5,+4.3]  *
+
+sdr:phenol_substructure  (pool 123, prevalence 0.18; random expects 7.2 hits)
+  random                         hits   7.5 [6.5,8.3]  enrichment x1.00
+  nearest_neighbour[feedback]    hits   7.6 [6.7,8.4]  enrichment x1.01
+  nearest_neighbour[frozen]      hits   7.9 [7.0,8.9]  enrichment x1.05
+  model[feedback]                hits   7.5 [7.0,7.9]  enrichment x0.99
+  model[frozen]                  hits   7.5 [6.9,8.3]  enrichment x1.01
+  model+explore[feedback]        hits   6.8 [6.2,7.5]  enrichment x0.91
+  explore_only                   hits   8.0 [7.3,8.5]  enrichment x1.06
+  model[feedback] - random                       -0.1 hits [-1.1,+0.9]
+  nearest_neighbour[feedback] - random           +0.1 hits [-1.3,+1.4]
+  model[feedback] - model[frozen]                -0.1 hits [-1.0,+0.8]
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] -0.3 hits [-1.1,+0.4]
+  model[feedback] - nearest_neighbour[feedback]  -0.1 hits [-0.9,+0.8]
+  model+explore[feedback] - model[feedback]      -0.6 hits [-1.1,+0.0]
+  model+explore[feedback] - explore_only         -1.1 hits [-1.8,-0.5]  *
+
+sdr:sterol_substructure  (pool 123, prevalence 0.21; random expects 8.5 hits)
+  random                         hits   8.8 [7.9,9.9]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  13.1 [12.3,13.9]  enrichment x1.49
+  nearest_neighbour[frozen]      hits  10.5 [9.4,11.6]  enrichment x1.19
+  model[feedback]                hits  12.2 [11.6,12.8]  enrichment x1.39
+  model[frozen]                  hits  11.3 [10.2,12.2]  enrichment x1.28
+  model+explore[feedback]        hits  11.8 [11.2,12.3]  enrichment x1.34
+  explore_only                   hits   8.2 [7.5,8.9]  enrichment x0.93
+  model[feedback] - random                       +3.4 hits [+2.2,+4.6]  *
+  nearest_neighbour[feedback] - random           +4.3 hits [+3.0,+5.6]  *
+  model[feedback] - model[frozen]                +0.9 hits [+0.1,+1.6]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +2.6 hits [+1.5,+3.6]  *
+  model[feedback] - nearest_neighbour[feedback]  -0.9 hits [-1.9,-0.1]  *
+  model+explore[feedback] - model[feedback]      -0.5 hits [-1.1,+0.2]
+  model+explore[feedback] - explore_only         +3.5 hits [+2.7,+4.5]  *
+
+sdr:substrate_cluster_1  (pool 123, prevalence 0.14; random expects 5.5 hits)
+  random                         hits   5.4 [4.7,6.2]  enrichment x1.00
+  nearest_neighbour[feedback]    hits   9.0 [8.4,9.6]  enrichment x1.67
+  nearest_neighbour[frozen]      hits   7.2 [6.6,7.8]  enrichment x1.33
+  model[feedback]                hits   9.6 [9.2,10.0]  enrichment x1.78
+  model[frozen]                  hits   6.8 [6.1,7.7]  enrichment x1.27
+  model+explore[feedback]        hits   8.0 [7.5,8.6]  enrichment x1.48
+  explore_only                   hits   3.2 [2.7,3.9]  enrichment x0.60
+  model[feedback] - random                       +4.2 hits [+3.4,+5.0]  *
+  nearest_neighbour[feedback] - random           +3.6 hits [+2.6,+4.6]  *
+  model[feedback] - model[frozen]                +2.8 hits [+1.8,+3.7]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +1.8 hits [+1.1,+2.5]  *
+  model[feedback] - nearest_neighbour[feedback]  +0.6 hits [-0.2,+1.4]
+  model+explore[feedback] - model[feedback]      -1.6 hits [-2.3,-0.8]  *
+  model+explore[feedback] - explore_only         +4.8 hits [+4.2,+5.3]  *
+
+sdr:substrate_cluster_2  (pool 123, prevalence 0.22; random expects 8.8 hits)
+  random                         hits   8.8 [7.9,9.7]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  11.9 [11.0,12.8]  enrichment x1.35
+  nearest_neighbour[frozen]      hits  10.2 [9.4,10.9]  enrichment x1.16
+  model[feedback]                hits  12.4 [12.0,12.9]  enrichment x1.41
+  model[frozen]                  hits  11.5 [10.7,12.2]  enrichment x1.31
+  model+explore[feedback]        hits  11.5 [10.9,12.2]  enrichment x1.31
+  explore_only                   hits   8.8 [8.1,9.4]  enrichment x0.99
+  model[feedback] - random                       +3.6 hits [+2.6,+4.7]  *
+  nearest_neighbour[feedback] - random           +3.1 hits [+2.0,+4.3]  *
+  model[feedback] - model[frozen]                +0.9 hits [+0.2,+1.8]  *
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +1.7 hits [+0.5,+2.9]  *
+  model[feedback] - nearest_neighbour[feedback]  +0.6 hits [-0.2,+1.4]
+  model+explore[feedback] - model[feedback]      -0.9 hits [-1.8,-0.1]  *
+  model+explore[feedback] - explore_only         +2.8 hits [+1.9,+3.5]  *
+
+sdr:substrate_cluster_4  (pool 123, prevalence 0.22; random expects 8.8 hits)
+  random                         hits   8.7 [7.8,9.5]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  10.7 [9.8,11.4]  enrichment x1.23
+  nearest_neighbour[frozen]      hits  10.0 [9.2,10.7]  enrichment x1.16
+  model[feedback]                hits  10.9 [10.4,11.4]  enrichment x1.26
+  model[frozen]                  hits  10.7 [9.7,11.6]  enrichment x1.23
+  model+explore[feedback]        hits  11.3 [10.8,11.9]  enrichment x1.31
+  explore_only                   hits  11.7 [10.8,12.5]  enrichment x1.35
+  model[feedback] - random                       +2.2 hits [+1.2,+3.3]  *
+  nearest_neighbour[feedback] - random           +2.0 hits [+0.6,+3.3]  *
+  model[feedback] - model[frozen]                +0.2 hits [-0.6,+1.2]
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +0.7 hits [+0.2,+1.1]  *
+  model[feedback] - nearest_neighbour[feedback]  +0.2 hits [-0.6,+1.1]
+  model+explore[feedback] - model[feedback]      +0.5 hits [-0.3,+1.1]
+  model+explore[feedback] - explore_only         -0.3 hits [-1.1,+0.4]
+
+sdr:substrate_cluster_7  (pool 123, prevalence 0.34; random expects 13.7 hits)
+  random                         hits  13.5 [12.6,14.6]  enrichment x1.00
+  nearest_neighbour[feedback]    hits  15.2 [14.6,15.8]  enrichment x1.12
+  nearest_neighbour[frozen]      hits  14.2 [13.3,15.2]  enrichment x1.06
+  model[feedback]                hits  15.8 [15.3,16.4]  enrichment x1.17
+  model[frozen]                  hits  15.2 [14.3,15.9]  enrichment x1.13
+  model+explore[feedback]        hits  15.0 [14.4,15.6]  enrichment x1.11
+  explore_only                   hits  14.4 [13.7,15.1]  enrichment x1.07
+  model[feedback] - random                       +2.4 hits [+1.4,+3.4]  *
+  nearest_neighbour[feedback] - random           +1.6 hits [+0.5,+2.8]  *
+  model[feedback] - model[frozen]                +0.7 hits [-0.1,+1.5]
+  nearest_neighbour[feedback] - nearest_neighbour[frozen] +0.9 hits [-0.2,+1.8]
+  model[feedback] - nearest_neighbour[feedback]  +0.7 hits [-0.1,+1.4]
+  model+explore[feedback] - model[feedback]      -0.8 hits [-1.7,-0.1]  *
+  model+explore[feedback] - explore_only         +0.6 hits [-0.2,+1.4]
+
+* paired bootstrap interval over replicates excludes zero
+skipped sdr:CoA_substructure: 14 positive / 109 negative; 15 of each are required
+skipped sdr:substrate_cluster_0: 10 positive / 113 negative; 15 of each are required
+skipped sdr:substrate_cluster_3: 10 positive / 113 negative; 15 of each are required
+skipped sdr:substrate_cluster_5: 7 positive / 116 negative; 15 of each are required
+skipped sdr:substrate_cluster_6: 0 positive / 123 negative; 15 of each are required
+skipped sdr:substrate_cluster_8: 8 positive / 115 negative; 15 of each are required
+
+redundancy removed by one-per-cluster at identity 0.4 (greedy_pure_python); the gap between the two pools is how much of any similarity-guided method's advantage is the pool's redundancy
+
+reports written to docs/results/feedback_simulation.json

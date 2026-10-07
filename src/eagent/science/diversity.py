@@ -898,6 +898,7 @@ def compose_batch(
     lambda_weight: float = DEFAULT_LAMBDA_WEIGHT,
     kmer_size: int = DEFAULT_KMER_SIZE,
     reallocate_unfilled_roles: bool = False,
+    rank_tiebreak: Callable[[Candidate], float | None] | None = None,
 ) -> BatchPlan:
     """Fill a round's construct slots with three labelled populations, or report short.
 
@@ -986,7 +987,8 @@ def compose_batch(
         )
 
     ranked = lexicographic_rank(eligible, order_of_dimensions
-                                or DEFAULT_LEXICOGRAPHIC_ORDER)
+                                or DEFAULT_LEXICOGRAPHIC_ORDER,
+                                tiebreak=rank_tiebreak)
     utilities = rank_utility(ranked)
     ledger = _QuotaLedger(quotas, cluster_cap, _family_of, _cluster_of)
 
@@ -1025,7 +1027,10 @@ def compose_batch(
             break
         if admit(cand, BatchRole.HIGH_EVIDENCE,
                  "top of the within-batch lexicographic rank under the stated "
-                 "dimension priority; gates all passed"):
+                 "dimension priority; gates all passed"
+                 + ("; candidates equal on every dimension were ordered by the "
+                    "supplied tie-break (a model value, consulted only between "
+                    "ties)" if rank_tiebreak is not None else "")):
             n_taken_high += 1
 
     # -- 2. uncertainty probes -------------------------------------------

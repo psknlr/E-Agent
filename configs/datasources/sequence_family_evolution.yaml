@@ -71,14 +71,13 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint is recorded, because none has been established here. As a
-         starting hint for a curator and nothing more: this project's general
-         knowledge suggests a REST service under a base of the form
-         https://rest.uniprot.org, with an API help page on the provider's own
-         site. Neither string was called or opened from this environment.
-         Confirm the real base URL, confirm the SPARQL endpoint separately
-         because no SPARQL URL is recorded either, record the documentation as a
-         citation, and only then set endpoint."
+      - "The REST base URL was once only a starting hint here -- recalled, never
+         called. It has since been established: `eagent sources verify` fetched
+         one entry by accession and one search response from
+         https://rest.uniprot.org and opened the provider's API help page, and
+         the record of those calls is in connectivity.observed.yaml. The hint is
+         kept so a reader can see which it was. STILL OPEN: the SPARQL endpoint,
+         which is a separate service and has not been called."
       - "Confirm the licence and whether derived records may be redistributed."
       - "Record the release identifier used in each run so accessions resolve to
          the same entries later."

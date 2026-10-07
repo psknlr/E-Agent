@@ -206,17 +206,38 @@ class TestOfflineAndEndpoints(SequenceTestCase):
         self.assertTrue(entry.reviewed)
         self.assertEqual(entry.response.database_version, "2024_01")
 
-    def test_every_sequence_source_still_records_a_null_endpoint(self) -> None:
+    def test_an_endpoint_appears_only_with_a_verified_route(self) -> None:
         for source_id in ("uniprotkb", "uniref", "uniparc", "interpro", "pfam",
+                          "ncbi_protein", "mgnify_proteins"):
+            with self.subTest(source=source_id):
+                source = self.registry.get(source_id)
+                if source.endpoint is None:
+                    continue
+                self.assertTrue(source.connectivity_verified, source_id)
+                self.assertTrue(source.verified_capabilities, source_id)
+
+    def test_most_of_them_still_have_no_route_at_all(self) -> None:
+        for source_id in ("uniref", "uniparc", "interpro", "pfam",
                           "ncbi_protein", "mgnify_proteins"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
     def test_require_endpoint_is_a_typed_refusal(self) -> None:
         with self.assertRaises(EndpointNotEstablishedError) as ctx:
-            UniProtKBConnector(cache=self.cache).require_endpoint()
-        self.assertEqual(ctx.exception.source_id, "uniprotkb")
+            UniRefConnector(cache=self.cache).require_endpoint()
+        self.assertEqual(ctx.exception.source_id, "uniref")
         self.assertTrue(ctx.exception.curation_notes)
+
+    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
+        """UniProt's REST base is established; this client was not checked
+        against it, and the generic <base>/<key> shape is not its API."""
+        from eagent.connectors.chemistry import RequestShapeNotVerifiedError
+        connector = UniProtKBConnector(cache=self.cache)
+        self.assertEqual(connector.source.endpoint, "https://rest.uniprot.org")
+        self.assertIsNone(connector.verified_route_capability)
+        with self.assertRaises(RequestShapeNotVerifiedError) as ctx:
+            connector.require_endpoint()
+        self.assertIn("not a verified request", str(ctx.exception))
 
 
 # ---------------------------------------------------------------------------

@@ -221,6 +221,45 @@ class CapabilityNotSupportedError(ConnectorError):
             f"refuse again.")
 
 
+class RequestShapeNotVerifiedError(NetworkDisabledError):
+    """A base URL is established, but this connector's request shape is not.
+
+    The two are different facts and the second is the one that decides whether
+    a call can be made. A connectivity probe shows that *one* request, spelled
+    one way, returned the record it asked for. It says nothing about the URL
+    this connector would build: the generic ``<base>/<key>`` shape is not
+    Rhea's query-parameter API, and calling it would produce a 404 that the
+    resolver reports as a miss -- a route silently not working, which is worse
+    than a refusal.
+
+    So a connector declares the probed capability its request builder was
+    written against. Until one is declared, having an endpoint changes nothing
+    about whether it may call.
+
+    Subclasses :class:`~eagent.connectors.base.NetworkDisabledError` for the
+    same reason :class:`EndpointNotEstablishedError` does: from the caller's
+    side there is no permitted way to reach the service, and the resolver
+    already turns that into a structured miss.
+    """
+
+    def __init__(self, source_id: str, endpoint: str,
+                 verified: Sequence[str] = ()) -> None:
+        self.source_id = source_id
+        self.endpoint = endpoint
+        self.verified_capabilities = tuple(verified)
+        super().__init__(
+            f"'{source_id}' records the endpoint {endpoint} and "
+            + (f"a verified route for {', '.join(self.verified_capabilities)}"
+               if self.verified_capabilities else "no verified route")
+            + f", but this connector does not declare which probed request "
+              f"shape its client was written against. A verified base URL is "
+              f"not a verified request: set "
+              f"{type(self).__name__.replace('Error', '')!r}'s "
+              f"`verified_route_capability` on the connector once its client "
+              f"has been checked against a recorded probe, or leave it "
+              f"refusing")
+
+
 class AccessModeRefusedError(ConnectorError):
     """The source has no access mode permitting the attempted operation."""
 
@@ -462,6 +501,17 @@ class RegistryBackedConnector(Connector):
         "fetch": "exact_record_fetch",
         "search": "keyword_query",
     }
+    #: The probed capability this connector's request builder was written
+    #: against, or ``None`` while it was written against nothing.
+    #:
+    #: ``None`` is the default and the honest state for every connector here:
+    #: the clients are generic (``<base>/<key>`` for a fetch, query parameters
+    #: for a search) and no service was available to check them against when
+    #: they were written. A verified base URL does not change that -- see
+    #: :class:`RequestShapeNotVerifiedError` -- so declaring this is a separate
+    #: act from recording an endpoint, done by whoever checked the client
+    #: against a real response.
+    verified_route_capability: ClassVar[str | None] = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Keep ``Connector.name`` and :attr:`source_id` identical.
@@ -555,6 +605,12 @@ class RegistryBackedConnector(Connector):
                 f"'{self.source_id}' records an endpoint but no network access "
                 f"mode ({[m.value for m in status.access_modes]}); a bulk "
                 f"archive is not a service to be called per record")
+        if not self.verified_route_capability:
+            # An established base URL is not an established request. See
+            # RequestShapeNotVerifiedError.
+            raise RequestShapeNotVerifiedError(
+                self.source_id, str(status.endpoint),
+                self.source.verified_capabilities)
         return str(status.endpoint)
 
     # -- gated operations --------------------------------------------------

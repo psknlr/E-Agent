@@ -99,15 +99,24 @@ class TestOfflineAndRefusals(StructureTestCase):
         with self.assertRaises(LayerSemanticsError):
             connector.entry("0XYZ").as_activity_evidence()
 
-    def test_every_structure_source_still_records_a_null_endpoint(self) -> None:
+    def test_an_endpoint_appears_only_with_a_verified_route(self) -> None:
         for source_id in ("rcsb_pdb", "alphafold_db", "sifts", "wwpdb_ccd",
                           "mcsa", "alphafill"):
+            with self.subTest(source=source_id):
+                source = self.registry.get(source_id)
+                if source.endpoint is None:
+                    continue
+                self.assertTrue(source.connectivity_verified, source_id)
+                self.assertTrue(source.verified_capabilities, source_id)
+
+    def test_the_rest_still_have_no_route_at_all(self) -> None:
+        for source_id in ("alphafold_db", "sifts", "wwpdb_ccd", "mcsa",
+                          "alphafill"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
     def test_require_endpoint_is_a_typed_refusal_naming_the_curation_note(self) -> None:
-        for connector in (RCSBPDBConnector(cache=self.cache),
-                          AlphaFoldDBConnector(cache=self.cache),
+        for connector in (AlphaFoldDBConnector(cache=self.cache),
                           SIFTSConnector(cache=self.cache),
                           MCSAConnector(cache=self.cache),
                           AlphaFillConnector(cache=self.cache)):
@@ -116,6 +125,15 @@ class TestOfflineAndRefusals(StructureTestCase):
                     connector.require_endpoint()
                 self.assertEqual(ctx.exception.source_id, connector.source_id)
                 self.assertTrue(ctx.exception.curation_notes)
+
+    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
+        """RCSB's data API base is established; this client was not checked
+        against it."""
+        from eagent.connectors.chemistry import RequestShapeNotVerifiedError
+        connector = RCSBPDBConnector(cache=self.cache)
+        self.assertEqual(connector.source.endpoint, "https://data.rcsb.org")
+        with self.assertRaises(RequestShapeNotVerifiedError):
+            connector.require_endpoint()
 
     def test_a_bulk_only_source_refuses_a_per_record_call_even_with_a_url(self) -> None:
         """wwPDB CCD is registered bulk_download only: there is no service."""

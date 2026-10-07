@@ -20,6 +20,7 @@ Runs under pytest, or standalone with ``python3 tests/test_datasource_registry.p
 
 from __future__ import annotations
 
+import pathlib
 import unittest
 from pathlib import Path
 
@@ -57,6 +58,18 @@ DATASOURCE_DIR = REPO_ROOT / "configs" / "datasources"
 REGISTRY = SourceRegistry.from_directory(DATASOURCE_DIR)
 
 
+def _curated_files() -> list[pathlib.Path]:
+    """The hand-curated source files, excluding the machine-written overlay.
+
+    The observation file lives in the same directory and is written by
+    ``eagent sources verify``; counting it as a layer file would make "one
+    file per layer" fail for a reason that has nothing to do with the layers.
+    """
+    from eagent.datalayer.registry import OBSERVED_CONNECTIVITY_FILE
+    return sorted(p for p in DATASOURCE_DIR.glob("*.yaml")
+                  if p.name != OBSERVED_CONNECTIVITY_FILE)
+
+
 def _minimal_source(**overrides) -> dict:
     """A valid source dict, so a test can break exactly one thing at a time."""
     base = dict(
@@ -80,10 +93,10 @@ class TestYamlFilesLoad(unittest.TestCase):
     """Every shipped file must parse and validate into the typed model."""
 
     def test_six_files_one_per_layer(self) -> None:
-        files = sorted(p.name for p in DATASOURCE_DIR.glob("*.yaml"))
+        files = sorted(p.name for p in _curated_files())
         self.assertEqual(len(files), 6, f"expected one file per layer, got {files}")
         declared = set()
-        for p in sorted(DATASOURCE_DIR.glob("*.yaml")):
+        for p in _curated_files():
             doc = yaml.safe_load(p.read_text(encoding="utf-8"))
             declared.add(DataLayer(doc["layer"]))
         self.assertEqual(declared, set(LAYER_ORDER))
@@ -95,7 +108,7 @@ class TestYamlFilesLoad(unittest.TestCase):
             self.assertTrue(src.layers)
 
     def test_each_file_declares_the_layer_its_sources_serve(self) -> None:
-        for p in sorted(DATASOURCE_DIR.glob("*.yaml")):
+        for p in _curated_files():
             doc = yaml.safe_load(p.read_text(encoding="utf-8"))
             layer = DataLayer(doc["layer"])
             for entry in doc["sources"]:
@@ -137,14 +150,55 @@ class TestHonestyInvariants(unittest.TestCase):
         for src in REGISTRY:
             self.assertTrue(src.good_for, f"{src.id} has no good_for entries")
 
-    def test_nothing_claims_connectivity_was_verified(self) -> None:
+    def test_a_verified_source_carries_the_call_that_earned_it(self) -> None:
+        """The invariant is not "nothing is verified": it is "nothing is
+        verified without the record of a call"."""
         for src in REGISTRY:
-            self.assertFalse(src.connectivity_verified,
-                             f"{src.id} claims connectivity_verified")
+            if not src.connectivity_verified:
+                continue
+            self.assertTrue(src.connectivity_checks,
+                            f"{src.id} claims connectivity with no recorded call")
+            self.assertTrue(any(c.ok for c in src.connectivity_checks), src.id)
+            self.assertTrue(src.verified_capabilities, src.id)
 
-    def test_the_model_refuses_connectivity_verified(self) -> None:
+    def test_the_model_refuses_a_bare_verified_flag(self) -> None:
         with self.assertRaises(Exception):
             DataSource(**_minimal_source(connectivity_verified=True))
+
+    def test_a_check_recorded_against_an_unsupported_capability_is_refused(self) -> None:
+        """One half of an entry must not describe a different service."""
+        from eagent.datalayer.registry import CapabilityFlags, CapabilityState
+        check = {
+            "capability": "chemical_structure_query",
+            "url": "https://example.org/api/x", "checked_at": "2026-01-01T00:00:00Z",
+            "checked_by": "test", "ok": True, "status_code": 200,
+            "markers": ["x"],
+        }
+        with self.assertRaises(Exception):
+            DataSource(**_minimal_source(
+                endpoint="https://example.org/api",
+                citations=["https://example.org/docs (fetched HTTP 200)"],
+                capabilities=CapabilityFlags(
+                    chemical_structure_query=CapabilityState.NOT_SUPPORTED),
+                connectivity_verified=True, connectivity_checks=[check]))
+
+    def test_a_passing_check_must_name_what_it_found(self) -> None:
+        """A 200 is not a working API: a 404 page and a login wall return one."""
+        from eagent.datalayer.registry import ConnectivityCheck
+        with self.assertRaises(Exception):
+            ConnectivityCheck(capability="exact_record_fetch",
+                              url="https://example.org/x",
+                              checked_at="2026-01-01T00:00:00Z",
+                              checked_by="test", ok=True, status_code=200,
+                              markers=[])
+
+    def test_a_failed_check_must_say_why(self) -> None:
+        from eagent.datalayer.registry import ConnectivityCheck
+        with self.assertRaises(Exception):
+            ConnectivityCheck(capability="exact_record_fetch",
+                              url="https://example.org/x",
+                              checked_at="2026-01-01T00:00:00Z",
+                              checked_by="test", ok=False, failure="")
 
     def test_every_endpoint_has_a_citation(self) -> None:
         """An endpoint code will dial must be traceable to documentation.
@@ -160,19 +214,24 @@ class TestHonestyInvariants(unittest.TestCase):
                     f"{src.id} records an endpoint with no citation")
 
     def test_no_entry_asserts_an_endpoint_nobody_has_called(self) -> None:
-        """Five entries used to record a base URL recalled from memory.
+        """Entries used to record a base URL recalled from memory.
 
         A registry consumed by code must not carry a URL nobody has called: the
         failure then surfaces at call time, inside a run that has already spent
         its budget, and a planner will have preferred that route over one that
-        honestly reported uncertainty.
+        honestly reported uncertainty. An endpoint is admissible exactly when a
+        recorded call reached it.
         """
-        recorded = {s.id: s.endpoint for s in REGISTRY if s.endpoint is not None}
-        self.assertEqual(
-            recorded, {},
-            f"an endpoint is asserted for {sorted(recorded)}; nothing in this "
-            f"registry has been called from this environment, so a URL belongs "
-            f"in curation_notes as a hint until a curator confirms it")
+        for src in REGISTRY:
+            if src.endpoint is None:
+                continue
+            reached = [c for c in src.connectivity_checks
+                       if c.ok and c.url.startswith(src.endpoint)]
+            self.assertTrue(
+                reached,
+                f"{src.id} asserts the endpoint {src.endpoint} with no "
+                f"recorded call that reached it; a URL belongs in "
+                f"curation_notes as a hint until somebody dials it")
 
     def test_the_recalled_urls_survive_as_curator_hints(self) -> None:
         """Nulling the endpoint must not throw the starting point away.
@@ -181,14 +240,25 @@ class TestHonestyInvariants(unittest.TestCase):
         kept as prose that says it was never called, where no consumer can read
         it as an established route.
         """
-        for sid in ("pubmed", "europe_pmc", "pubchem", "uniprotkb",
-                    "ncbi_protein"):
+        for sid in ("pubmed", "europe_pmc", "pubchem", "ncbi_protein"):
             src = REGISTRY.get(sid)
             notes = " ".join(src.curation_notes)
             self.assertIsNone(src.endpoint, sid)
             self.assertTrue(src.needs_curation, sid)
             self.assertIn("starting hint", notes, sid)
             self.assertIn("from this environment", notes, sid)
+
+    def test_a_hint_that_has_since_been_called_keeps_its_history(self) -> None:
+        """uniprotkb was a hint and is now a verified route.
+
+        The hint stays in the curation notes. It records that the URL was once
+        only recalled, which is how a reader can tell the difference between a
+        route somebody established and one somebody remembered.
+        """
+        src = REGISTRY.get("uniprotkb")
+        self.assertEqual(src.endpoint, "https://rest.uniprot.org")
+        self.assertIn("starting hint", " ".join(src.curation_notes))
+        self.assertTrue(src.connectivity_verified)
 
     def test_no_bare_url_is_asserted_as_a_citation(self) -> None:
         """A documentation URL nobody opened is an assertion, not a citation.
@@ -200,11 +270,12 @@ class TestHonestyInvariants(unittest.TestCase):
         """
         for src in REGISTRY:
             for cite in src.citations:
-                self.assertFalse(
-                    cite.startswith("http://") or cite.startswith("https://"),
-                    f"{src.id} cites the bare URL {cite!r}; nothing here has "
-                    f"been opened from this environment, so a citation must be "
-                    f"an identifier or say explicitly that it was not read")
+                if cite.startswith(("http://", "https://")):
+                    self.assertIn(
+                        "fetched HTTP", cite,
+                        f"{src.id} cites the bare URL {cite!r}; a citation "
+                        f"must be an identifier, or say when it was opened, or "
+                        f"say explicitly that it was not read")
 
     def test_the_model_refuses_an_endpoint_without_a_citation(self) -> None:
         with self.assertRaises(Exception):
@@ -234,16 +305,26 @@ class TestHonestyInvariants(unittest.TestCase):
         it, so it is the last field that may sit beside "nobody has checked".
         """
         for src in REGISTRY:
-            asserted = [name for name, value in (
-                ("endpoint", src.endpoint),
-                ("version", src.version),
-                ("approximate_record_count", src.approximate_record_count),
-            ) if value is not None]
-            if asserted:
+            notes = " ".join(src.curation_notes)
+            if src.version is not None or src.approximate_record_count is not None:
                 self.assertFalse(
                     src.needs_curation,
-                    f"{src.id} asserts {', '.join(asserted)} while still "
+                    f"{src.id} asserts a version or a record count while still "
                     f"flagged for curation")
+            if src.endpoint is None:
+                continue
+            # An endpoint may stand while other things are still open -- the
+            # licence usually is. What it may not do is stand while a note
+            # still asks for the endpoint itself to be established: that would
+            # be the entry contradicting itself about its own most dangerous
+            # field.
+            self.assertNotIn(
+                "No endpoint", notes,
+                f"{src.id} records {src.endpoint} while a curation note still "
+                f"says no endpoint is established")
+            self.assertTrue(
+                src.connectivity_verified,
+                f"{src.id} records an endpoint without a verified route")
 
     def test_needs_curation_entries_say_what_to_confirm(self) -> None:
         for src in REGISTRY:

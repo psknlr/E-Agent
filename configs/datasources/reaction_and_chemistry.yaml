@@ -75,8 +75,10 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "Confirm the current programmatic routes and record exact base URLs for
-         the REST and SPARQL services; both are left null here rather than guessed."
+      - "The keyword-query route is established: `eagent sources verify` ran a
+         TSV query against https://www.rhea-db.org and opened the provider's
+         REST-API help page; the record is in connectivity.observed.yaml. STILL
+         OPEN: the SPARQL service is separate and has not been called."
       - "Confirm the licence and whether derived records may be redistributed."
       - "Record the release string used for a run so the reaction definitions can
          be pinned in the manifest."

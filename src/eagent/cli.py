@@ -1766,6 +1766,7 @@ def sources_show(source_id: str, directory: Path | None) -> None:
     out.kv("access modes", [m.value for m in source.access_modes])
     out.kv("endpoint", source.endpoint)
     out.kv("connectivity verified", source.connectivity_verified)
+    out.kv("verified capabilities", list(source.verified_capabilities) or None)
     out.kv("licence", source.license)
     out.kv("licence source", source.license_source)
     out.kv("needs legal review", source.needs_legal_review)
@@ -1779,9 +1780,23 @@ def sources_show(source_id: str, directory: Path | None) -> None:
     out.heading("not good for")
     for item in source.not_good_for:
         out.bullet(item)
-    out.heading("capabilities (documented, not tested here)")
+    out.heading("capabilities (documented; 'verified' means a call was recorded)")
+    verified = set(source.verified_capabilities)
     for name, state in sorted(source.capabilities.as_dict().items()):
-        out.kv(f"  {name}", state, width=30)
+        out.kv(f"  {name}",
+               f"{state} (verified)" if name in verified else state, width=30)
+    if source.connectivity_checks:
+        out.heading("recorded calls")
+        for check in source.connectivity_checks:
+            out.bullet(f"[{'ok' if check.ok else 'FAIL'}] {check.capability} "
+                       f"HTTP {check.status_code} at {check.checked_at} "
+                       f"by {check.checked_by}")
+            out.line(f"    {check.url}")
+            out.line(f"    found: "
+                     + ", ".join(repr(m) for m in check.markers))
+        out.line("    A pass is about that capability, at that URL, at that "
+                 "time, from that environment. It is not a licence and says "
+                 "nothing about the other capabilities.")
     out.heading("lineage")
     out.kv("  derived from", source.derived_from or None, width=22)
     out.kv("  lineage complete", source.derived_from_complete, width=22)
@@ -1789,6 +1804,106 @@ def sources_show(source_id: str, directory: Path | None) -> None:
     out.kv("  needs curation", source.needs_curation, width=22)
     for note in source.curation_notes:
         out.bullet(note)
+
+
+@sources_group.command("verify")
+@click.option("--dir", "directory",
+              type=click.Path(exists=True, file_okay=False, path_type=Path),
+              default=None)
+@click.option("--allow-network/--no-network", default=False,
+              help="Required. Without it nothing is called and nothing is "
+                   "claimed: a verification sweep that silently did not run "
+                   "would leave the registry asserting whatever it asserted "
+                   "last.")
+@click.option("--write/--dry-run", default=False,
+              help="Write the passing checks into the registry files. The "
+                   "default prints them and changes nothing.")
+@click.option("--checked-by", default=None,
+              help="Who is running this, recorded with each check so a stale "
+                   "claim has an owner. Defaults to the login name.")
+@click.option("--source", "source_ids", multiple=True,
+              help="Limit the sweep to these source ids.")
+def sources_verify(directory: Path | None, allow_network: bool, write: bool,
+                   checked_by: str | None, source_ids: tuple[str, ...]) -> None:
+    """Call the shipped probes and record what actually answered.
+
+    A capability flag in the registry is documentation. This is the only thing
+    that turns one into a claim about *this* environment: each probe asks for
+    one known record and passes only when the response contains what that
+    record must contain -- a 200 from a redirect to a 404 page, or from a
+    login wall, does not pass.
+
+    Failures are printed and never written. A source that did not answer today
+    keeps whatever it had, because "unreachable from this container at this
+    moment" is not the same statement as "this route does not work".
+    """
+    import getpass
+
+    from .datalayer.probe import PROBES, run_probes
+
+    out = Out()
+    registry = _load_sources(directory)
+    probes = [p for p in PROBES
+              if not source_ids or p.source_id in set(source_ids)]
+    if not probes:
+        raise Refusal(
+            "no shipped probe matches that selection",
+            next_action=("probes exist for: "
+                         + ", ".join(sorted({p.source_id for p in PROBES}))),
+            exit_code=EXIT_USAGE)
+    if not allow_network:
+        out.heading("dry run: no network")
+        out.line("These probes would run. Nothing was called, so nothing is "
+                 "claimed.")
+        for probe in probes:
+            out.bullet(f"{probe.source_id} / {probe.capability}: {probe.url}")
+            out.line(f"    expects: {', '.join(repr(m) for m in probe.markers)}")
+        return
+
+    who = checked_by or f"{getpass.getuser()} via eagent sources verify"
+    results = run_probes(probes, checked_by=who)
+    passed = failed = 0
+    out.heading("probe results")
+    for source_id in sorted(results):
+        for check in results[source_id]:
+            mark = "ok " if check.ok else "FAIL"
+            out.bullet(f"[{mark}] {source_id} / {check.capability} "
+                       f"HTTP {check.status_code} {check.response_bytes}B "
+                       f"{check.elapsed_ms}ms")
+            out.line(f"    {check.url}")
+            if check.ok:
+                passed += 1
+                out.line(f"    found: {', '.join(repr(m) for m in check.markers)}")
+            else:
+                failed += 1
+                out.line(f"    {check.failure}")
+
+    out.heading("what this does and does not establish")
+    out.line("A pass says this capability, at this URL, answered correctly at "
+             "this time, from this environment. It says nothing about the "
+             "other capabilities, about rate limits or bulk access, or about "
+             "the licence -- which stays as the registry records it.")
+
+    if not write:
+        out.line("")
+        out.line("Nothing was written (--dry-run is the default). Re-run with "
+                 "--write to record the passing checks.")
+        return
+
+    from .datalayer.probe import write_checks
+    written = write_checks(results, directory or registry.directory)
+    out.heading("recorded")
+    out.bullet(str(written))
+    out.line("    The curated source files are untouched: what was measured "
+             "goes stale on its own, what was curated does not, and a reader "
+             "has to be able to tell which is which.")
+    if failed:
+        raise Refusal(
+            f"{failed} probe(s) failed and were not recorded",
+            next_action="re-run them, or record the resource as unreachable "
+                        "from this environment in its curation notes",
+            exit_code=EXIT_FAILED)
+    out.line(f"{passed} check(s) recorded.")
 
 
 @sources_group.command("independence")

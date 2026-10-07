@@ -1,0 +1,110 @@
+# MACHINE-WRITTEN. Do not hand-edit; `eagent sources verify --write` rewrites
+# this file in full.
+#
+# WHY THIS IS NOT IN THE SOURCE FILES
+# ===================================
+# The curated entries in configs/datasources/*.yaml are judgements: what a
+# resource is good for, what it may never claim, its licence, its evidence
+# ceiling. They change when somebody decides something.
+#
+# What is below is an observation: a URL answered, at a moment, from one
+# environment. It goes stale on its own, without anybody deciding anything.
+# Merging the two would mean a nightly sweep rewriting a file full of
+# hand-written reasoning, and a reader being unable to tell which lines were
+# curated and which were measured.
+#
+# So the loader merges this onto the matching sources, and a source is
+# `connectivity_verified` exactly when a check here says so. Delete this file
+# and every source is unverified again, which is the correct state for an
+# environment nobody has run the sweep in.
+#
+# A pass says: this capability, at this URL, answered correctly at this time,
+# from this environment. It is not a licence, not permission to redistribute,
+# and not a statement about any other capability.
+
+observed_connectivity:
+- id: rcsb_pdb
+  endpoint: https://data.rcsb.org
+  citations:
+  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-07T15:28:52+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://data.rcsb.org/rest/v1/core/entry/1CDO
+    checked_at: '2026-10-07T15:28:52+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 1CDO
+    - rcsb_entry_info
+    response_sha256: sha256:ed89f2e3d6810f0eb1aee3b0038d156b8454be8d4941fe1e406407ec207eeafc
+    response_bytes: 15160
+    elapsed_ms: 187
+    documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
+    documentation_status: 200
+    failure: ''
+    note: '1CDO is a horse liver alcohol dehydrogenase structure: an NAD-dependent oxidoreductase,
+      so the record exercises the fields this project reads'
+- id: rhea
+  endpoint: https://www.rhea-db.org
+  citations:
+  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-07T15:28:53+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: keyword_query
+    url: https://www.rhea-db.org/rhea?query=ketone&columns=rhea-id,equation&format=tsv&limit=3
+    checked_at: '2026-10-07T15:28:53+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 'RHEA:'
+    - Reaction identifier
+    response_sha256: sha256:b2012ce27b6f7c944fbe3f84ca6088224f028d8f090337081303774091d9fe80
+    response_bytes: 255
+    elapsed_ms: 608
+    documentation_url: https://www.rhea-db.org/help/rest-api
+    documentation_status: 200
+    failure: ''
+    note: ''
+- id: uniprotkb
+  endpoint: https://rest.uniprot.org
+  citations:
+  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-07T15:28:50+00:00)
+  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-07T15:28:51+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://rest.uniprot.org/uniprotkb/P07846.json?fields=accession,protein_name,ec
+    checked_at: '2026-10-07T15:28:50+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - P07846
+    - primaryAccession
+    response_sha256: sha256:8480e589e15101d35c7475a6406aad9750c4db5859b132ca09600b240d025016
+    response_bytes: 1196
+    elapsed_ms: 788
+    documentation_url: https://www.uniprot.org/help/api
+    documentation_status: 200
+    failure: ''
+    note: P07846 is an alcohol dehydrogenase, chosen because it is a reviewed entry in the
+      mechanistic neighbourhood of this project's pilot task
+  - capability: version_information
+    url: https://rest.uniprot.org/uniprotkb/search?query=accession:P07846&size=1
+    checked_at: '2026-10-07T15:28:51+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - P07846
+    - results
+    response_sha256: sha256:03a7c3309efbb0d752fa7d5c1e515840e4cb63a1e20797b4adb7ceb7b37fa453
+    response_bytes: 29225
+    elapsed_ms: 653
+    documentation_url: https://www.uniprot.org/help/api
+    documentation_status: 200
+    failure: ''
+    note: ''

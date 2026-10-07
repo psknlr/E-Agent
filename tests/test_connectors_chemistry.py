@@ -610,13 +610,14 @@ class TestRegistryContract(ConnectorTestCase):
                 self.assertTrue(source.connectivity_checks, source.id)
                 self.assertTrue(any(c.ok for c in source.connectivity_checks))
 
-    def test_no_connector_here_declares_a_checked_request_shape(self) -> None:
-        """Honest state of the package: the clients are generic and unchecked.
+    #: Connectors whose client has been checked against a recorded probe.
+    #: Everything else is generic -- ``<base>/<key>`` for a fetch, query
+    #: parameters for a search -- and was written against no service, so a
+    #: verified base URL licenses nothing for it. The list grows one connector
+    #: at a time, by whoever does the checking.
+    CHECKED_CLIENTS = {"uniprotkb": "exact_record_fetch"}
 
-        This test exists to be deleted one connector at a time, by whoever
-        checks that connector's client against a recorded probe. Until then a
-        verified base URL licenses nothing.
-        """
+    def test_only_a_checked_client_declares_a_request_shape(self) -> None:
         from eagent.connectors.chemistry import RegistryBackedConnector
 
         def walk(cls):
@@ -625,10 +626,20 @@ class TestRegistryContract(ConnectorTestCase):
                 yield from walk(sub)
 
         for cls in walk(RegistryBackedConnector):
-            if not getattr(cls, "source_id", ""):
+            sid = getattr(cls, "source_id", "")
+            if not sid:
                 continue
             with self.subTest(connector=cls.__name__):
-                self.assertIsNone(cls.verified_route_capability)
+                self.assertEqual(cls.verified_route_capability,
+                                 self.CHECKED_CLIENTS.get(sid))
+
+    def test_a_checked_client_names_a_capability_its_source_has_verified(self) -> None:
+        """Declaring a shape that nothing probed would be the same assertion
+        the probe exists to replace."""
+        for sid, capability in self.CHECKED_CLIENTS.items():
+            with self.subTest(source=sid):
+                source = self.registry.get(sid)
+                self.assertIn(capability, source.verified_capabilities)
 
     def test_an_unpinned_connector_says_so(self) -> None:
         connector = ChEBIConnector(cache=self.cache)

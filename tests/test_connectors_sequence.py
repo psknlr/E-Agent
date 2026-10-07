@@ -228,16 +228,22 @@ class TestOfflineAndEndpoints(SequenceTestCase):
         self.assertEqual(ctx.exception.source_id, "uniref")
         self.assertTrue(ctx.exception.curation_notes)
 
-    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
-        """UniProt's REST base is established; this client was not checked
-        against it, and the generic <base>/<key> shape is not its API."""
-        from eagent.connectors.chemistry import RequestShapeNotVerifiedError
+    def test_uniprot_has_both_a_verified_route_and_a_checked_client(self) -> None:
         connector = UniProtKBConnector(cache=self.cache)
         self.assertEqual(connector.source.endpoint, "https://rest.uniprot.org")
-        self.assertIsNone(connector.verified_route_capability)
-        with self.assertRaises(RequestShapeNotVerifiedError) as ctx:
-            connector.require_endpoint()
-        self.assertIn("not a verified request", str(ctx.exception))
+        self.assertEqual(connector.verified_route_capability,
+                         "exact_record_fetch")
+        self.assertEqual(connector.require_endpoint(),
+                         "https://rest.uniprot.org")
+
+    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
+        """UniParc has no route at all; UniRef's client was checked against
+        nothing. Neither may call, and they refuse for different reasons."""
+        from eagent.connectors.chemistry import RequestShapeNotVerifiedError
+        self.assertIsNone(UniRefConnector.verified_route_capability)
+        self.assertIsNone(self.registry.get("uniref").endpoint)
+        with self.assertRaises(EndpointNotEstablishedError):
+            UniRefConnector(cache=self.cache).require_endpoint()
 
 
 # ---------------------------------------------------------------------------

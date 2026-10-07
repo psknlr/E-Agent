@@ -303,6 +303,136 @@ class UniProtEntry:
                 "notes": list(self.notes)}
 
 
+#: Fields asked for in the live fetch, pinned here because the field list *is*
+#: the parser: a response assembled from a different list has different keys,
+#: and a translator reading a key that is not there reports an absence rather
+#: than a missing request.
+UNIPROT_ENTRY_FIELDS: tuple[str, ...] = (
+    "accession", "id", "protein_name", "organism_name", "reviewed", "ec",
+    "cc_catalytic_activity", "cc_cofactor", "sequence", "xref_pdb",
+)
+
+
+def _reviewed_flag(entry_type: str) -> bool | None:
+    """``True`` for Swiss-Prot, ``False`` for TrEMBL, ``None`` if unstated.
+
+    Whole-word, because ``"reviewed" in "unreviewed"`` is true and that one
+    character decides whether an entry is presented as curated.
+    """
+    tokens = {t.strip("()").lower() for t in (entry_type or "").split()}
+    if "unreviewed" in tokens:
+        return False
+    if "reviewed" in tokens:
+        return True
+    return None
+
+
+def uniprot_entry_payload(entry: Mapping[str, Any]) -> dict[str, Any]:
+    """Translate one live UniProtKB JSON entry into this connector's payload.
+
+    WHY A TRANSLATOR AND NOT A PARSER IN THE CONNECTOR
+    --------------------------------------------------
+    The connector was written against a normalised shape so a curator's export
+    and a live response reach the same code. This is the half that had never
+    existed: nothing turned a real UniProt response into that shape, so the
+    live route was unreachable however reachable the host was.
+
+    WHAT IS CARRIED AND WHAT IS DROPPED
+    -----------------------------------
+    Every catalytic-activity statement is carried **with its own evidence
+    code**, because that is the one thing about a UniProt annotation that
+    decides what it may be used for: ``ECO:0000269`` cites a published
+    experiment, ``ECO:0000250`` says the statement was transferred from a
+    homologue, and the two read identically in the entry text. A statement
+    whose evidences disagree is carried once per code rather than collapsed --
+    the strongest code would otherwise speak for the weakest.
+
+    The EC numbers carried are the ones attached to a catalytic-activity
+    statement, which keeps each tied to the reaction and the evidence it came
+    with. An EC number floating on the entry is an annotation about the
+    protein's class, not about a reaction anybody measured.
+
+    The sequence is carried verbatim; its hash is computed by the connector
+    from this string, never from the accession that was asked for.
+    """
+    accession = _text(entry.get("primaryAccession"))
+    sequence = _text((entry.get("sequence") or {}).get("value"))
+    entry_type = _text(entry.get("entryType")) or ""
+    annotations: list[dict[str, Any]] = []
+    ec_numbers: list[str] = []
+    rhea_ids: list[str] = []
+
+    for comment in entry.get("comments") or ():
+        if not isinstance(comment, Mapping):
+            continue
+        kind = (_text(comment.get("commentType")) or "").strip().lower()
+        kind = kind.replace(" ", "_") or "unspecified"
+        reaction = comment.get("reaction") or {}
+        text = _text(reaction.get("name")) or _text(
+            " ".join(_text(t.get("value")) or ""
+                     for t in (comment.get("texts") or ())
+                     if isinstance(t, Mapping)))
+        ec = _text(reaction.get("ecNumber"))
+        if ec and ec not in ec_numbers:
+            ec_numbers.append(ec)
+        for xref in reaction.get("reactionCrossReferences") or ():
+            if isinstance(xref, Mapping) and xref.get("database") == "Rhea":
+                rid = _text(xref.get("id"))
+                if rid and rid.startswith("RHEA:") and rid not in rhea_ids:
+                    rhea_ids.append(rid)
+        evidences = [e for e in (reaction.get("evidences")
+                                 or comment.get("evidences") or ())
+                     if isinstance(e, Mapping)]
+        if not evidences:
+            # No code is not a weak code: it is no statement about evidence,
+            # and _evidence_category fails closed to UNSTATED.
+            annotations.append({"kind": kind, "text": text,
+                                "evidence_code": None,
+                                "source_identifier": None})
+            continue
+        for item in evidences:
+            source = _text(item.get("source"))
+            ident = _text(item.get("id"))
+            annotations.append({
+                "kind": kind,
+                "text": text,
+                "evidence_code": _text(item.get("evidenceCode")),
+                "source_identifier": (f"{source}:{ident}"
+                                      if source and ident else ident),
+            })
+
+    names = entry.get("proteinDescription") or {}
+    recommended = ((names.get("recommendedName") or {}).get("fullName")
+                   or {}).get("value")
+    submitted = next((((n.get("fullName") or {}).get("value"))
+                      for n in (names.get("submissionNames") or ())
+                      if isinstance(n, Mapping)), None)
+
+    return {
+        "accession": accession,
+        "entry_name": _text(entry.get("uniProtkbId")),
+        "protein_name": _text(recommended) or _text(submitted),
+        "sequence": sequence,
+        "organism": _text((entry.get("organism") or {}).get("scientificName")),
+        # "reviewed" is read from entryType rather than assumed: an unreviewed
+        # entry carries the same keys and a default of True would promote
+        # every TrEMBL record to Swiss-Prot in this project's own records.
+        #
+        # Matched as a whole word. The two values are "UniProtKB reviewed
+        # (Swiss-Prot)" and "UniProtKB unreviewed (TrEMBL)", and a substring
+        # test for "reviewed" is true of both.
+        "reviewed": _reviewed_flag(entry_type),
+        "ec_numbers": ec_numbers,
+        "rhea_ids": rhea_ids,
+        "annotations": annotations,
+        "pdb_ids": [
+            _text(x.get("id")) for x in (entry.get("uniProtKBCrossReferences") or ())
+            if isinstance(x, Mapping) and x.get("database") == "PDB"
+            and _text(x.get("id"))
+        ],
+    }
+
+
 class UniProtKBConnector(SequenceSearchMixin, RegistryBackedConnector):
     """UniProtKB entries, with every statement's evidence code preserved.
 
@@ -325,6 +455,40 @@ class UniProtKBConnector(SequenceSearchMixin, RegistryBackedConnector):
     source_id = "uniprotkb"
     data_layer = ConnectorLayer.SEQUENCE
     description = "UniProtKB: reviewed and unreviewed protein entries"
+    #: The one request this connector's client was written against, and the
+    #: one the shipped probe exercises:
+    #: ``/uniprotkb/<accession>.json?fields=<pinned list>``. A verified base
+    #: URL does not license any other shape; see
+    #: :class:`~eagent.connectors.chemistry.RequestShapeNotVerifiedError`.
+    verified_route_capability = "exact_record_fetch"
+
+    def _fetch_remote(self, key: str) -> tuple[Any, str | None]:
+        """Fetch one entry by accession, in the shape the probe checked.
+
+        The field list is pinned in :data:`UNIPROT_ENTRY_FIELDS` rather than
+        taken from the caller, because the list *is* the parser: a response
+        assembled from a different list has different keys, and a translator
+        reading a key that was never requested reports an absence rather than
+        a missing request.
+
+        The release is read from the response header the API documents, not
+        invented. ``None`` when the header is absent: a run pinned to a
+        version string nobody sent is not pinned.
+        """
+        import urllib.parse
+
+        base = self.require_endpoint().rstrip("/")
+        url = (f"{base}/uniprotkb/{urllib.parse.quote(str(key), safe='')}.json"
+               f"?fields={','.join(UNIPROT_ENTRY_FIELDS)}")
+        payload, version = self._http_json(url)
+        if not isinstance(payload, Mapping):
+            return payload, version
+        if not payload.get("primaryAccession"):
+            # A JSON body that is not an entry: an error object, or a search
+            # response somebody pointed at this method. Returning it would let
+            # the translator produce an entry with every field empty.
+            return None, version
+        return {"records": [uniprot_entry_payload(payload)]}, version
 
     def entry(self, accession: str) -> UniProtEntry | None:
         """Fetch one entry, or ``None`` when the cache does not hold it."""

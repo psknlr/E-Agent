@@ -546,13 +546,20 @@ class TestWrongCofactorOxidationState(_Harness):
 class TestChemoselectivity(_Harness):
     """The wrong carbonyl presented to the donor is not a target-reaction pose."""
 
-    def _run_with_competing_carbonyl(self, margin: float = 0.2):
+    #: What a calibrated margin looks like: a statement of what it was fitted
+    #: to. The value is the same 0.2 A either way; the difference is whether
+    #: anybody measured it.
+    SOURCE = "positional scatter of the in-house pose generator, n=240 redocks"
+
+    def _run_with_competing_carbonyl(self, margin: float = 0.2,
+                                     source: str = SOURCE):
         candidate = make_candidate(poses=[make_pose(
             cofactor_state=CofactorState.REDUCED)])
         return candidate, self.run_step(
             [candidate], [make_binding(competing=True)],
             {"p1": make_structure(with_competing_carbonyl=True)},
             competing_group_margin_angstrom=margin,
+            competing_group_margin_source=source,
         )
 
     def test_a_closer_non_target_carbonyl_rejects_the_pose(self) -> None:
@@ -562,6 +569,35 @@ class TestChemoselectivity(_Harness):
         self.assertIn("second_carbonyl_C9", pose["reason"])
         self.assertIn("different product", pose["reason"])
         self.assertIs(pose["gating_passed"], False)
+
+    def test_an_uncalibrated_margin_reports_but_does_not_reject(self) -> None:
+        """The margin is the whole content of the comparison.
+
+        Both distances carry the pose generator's positional scatter, so "is
+        the competitor closer" has no answer until somebody says how much
+        closer counts. Rejecting on the module default turned a number nobody
+        measured into a hard computational negative -- while every template
+        window in this module with the same provenance is explicitly not
+        allowed to reject.
+        """
+        _, (_, result) = self._run_with_competing_carbonyl(source="")
+        pose = self.pose_eval(result)
+        self.assertEqual(pose["outcome"],
+                         PoseOutcome.OUTSIDE_UNCALIBRATED_WINDOW.value)
+        self.assertIsNot(pose["gating_passed"], False)
+
+    def test_an_uncalibrated_displacement_is_still_measured_and_reported(self) -> None:
+        """Not rejecting is not the same as not noticing."""
+        _, (_, result) = self._run_with_competing_carbonyl(source="")
+        pose = self.pose_eval(result)
+        self.assertIn("second_carbonyl_C9", pose["reason"])
+        self.assertIs(pose["target_in_reactive_position"], False)
+
+    def test_an_uncalibrated_displacement_is_not_a_computational_negative(self) -> None:
+        _, (_, result) = self._run_with_competing_carbonyl(source="")
+        pose = self.pose_eval(result)
+        self.assertNotEqual(pose["record_outcome"],
+                            OutcomeClass.COMPUTATIONAL_NEGATIVE.value)
 
     def test_every_distance_and_angle_still_passes_which_is_the_point(self) -> None:
         _, (_, result) = self._run_with_competing_carbonyl()

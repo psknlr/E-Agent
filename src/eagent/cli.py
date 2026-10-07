@@ -906,11 +906,22 @@ def _unset(task: Any, dotted: str) -> bool:
                    "applies and the tighter of the two wins.")
 @click.option("--seed", type=int, default=0, show_default=True,
               help="Global seed; per-step seeds are derived from it.")
+@click.option("--llm-model", default=None,
+              help="Put a language model behind the controller's widening and "
+                   "commentary hooks (harness/planner.py). It proposes search "
+                   "terms and explanations; it executes nothing, and every "
+                   "exchange is audited under <rundir>/llm/. Reads "
+                   "ANTHROPIC_API_KEY. The model runs remotely, so this needs "
+                   "--allow-network. Not yet exercised against the live API.")
+@click.option("--llm-disclose-substrate-name", is_flag=True,
+              help="Let the model see the substrate's name. Off by default: a "
+                   "name in a prompt has been disclosed.")
 def run_command(task_file: Path, rundir: Path | None, step: str | None,
                 from_stage: str | None, until_stage: str | None,
                 dry_run: bool, offline: bool, allow_network: bool,
                 arguments_file: Path | None, template_dir: Path | None,
-                max_retries: int, seed: int) -> None:
+                max_retries: int, seed: int, llm_model: str | None,
+                llm_disclose_substrate_name: bool) -> None:
     """Drive the controller, streaming each step's status as it arrives."""
     from .context import ExecutionPolicy, RunContext
     from .harness.approval import ApprovalQueue
@@ -1019,7 +1030,23 @@ def run_command(task_file: Path, rundir: Path | None, step: str | None,
     # with the file and the field named, rather than from inside a step.
     arguments = _coerce_arguments(
         registry, _argument_map(arguments_file), arguments_file, out)
-    controller = ResearchController(ctx, registry, queue, arguments=arguments)
+    planner = None
+    hooks = None
+    if llm_model is not None:
+        if offline or not allow_network:
+            raise Refusal(
+                "--llm-model needs --allow-network: the model runs remotely "
+                "and a prompt cannot be unsent",
+                next_action="pass --allow-network, or drop --llm-model",
+                exit_code=EXIT_USAGE)
+        from .harness.llm import AnthropicMessagesClient
+        from .harness.planner import LLMPlanner
+        planner = LLMPlanner(
+            AnthropicMessagesClient(llm_model), audit_dir=run_dir / "llm",
+            disclose_substrate_name=llm_disclose_substrate_name)
+        hooks = planner.hooks()
+    controller = ResearchController(ctx, registry, queue, hooks=hooks,
+                                    arguments=arguments)
     if arguments_file is None:
         out.note("no --arguments file was given, so each step runs with its own "
                  "defaults; the harness does not invent the data flow between "
@@ -1102,6 +1129,24 @@ def run_command(task_file: Path, rundir: Path | None, step: str | None,
         out.kv("reason", escalation.reason)
         for blocker in escalation.blockers:
             out.bullet(blocker)
+
+    if planner is not None:
+        out.heading("language model")
+        summary = planner.summary()
+        out.kv("client", summary["client"])
+        out.kv("calls made", f"{summary['calls']} of {summary['max_calls']}")
+        for exchange in summary["exchanges"]:
+            out.bullet(f"#{exchange['exchange_id']} {exchange['purpose']}: "
+                       f"{exchange['decision']}"
+                       + (f" ({'; '.join(exchange['reasons'])[:160]})"
+                          if exchange["reasons"] else ""))
+        for proposal in controller.llm_proposals:
+            out.note(f"proposal [{proposal.get('status')}] "
+                     f"{proposal.get('kind')}: nothing was executed on the "
+                     f"strength of it")
+        (run_dir / "llm").mkdir(parents=True, exist_ok=True)
+        (run_dir / "llm" / "summary.json").write_text(
+            json.dumps(summary, indent=2, default=str), encoding="utf-8")
 
     out.line("")
     out.line(f"manifest: {manifest_path}")

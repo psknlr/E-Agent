@@ -594,6 +594,13 @@ class ControllerHooks:
     branch: Callable[["ResearchController", ToolResult], Branch | None] | None = None
     #: Whether the ingested results contain a confirmed hit.
     hit_found: Callable[[ToolResult], bool] | None = None
+    #: Told about an escalation after it is recorded. Observes only: it cannot
+    #: undo the escalation, and a hook that raises is logged, not propagated,
+    #: so a broken commentary step can never hide the failure it comments on.
+    on_escalation: Callable[["ResearchController", Escalation], None] | None = None
+    #: Told when a round ends (hit or no hit), before the run reaches DONE.
+    #: Observes only, under the same rule.
+    on_round_complete: Callable[["ResearchController"], None] | None = None
 
 
 def _default_hit_found(result: ToolResult) -> bool:
@@ -728,6 +735,9 @@ class ResearchController:
         self.suggested_actions: list[dict[str, Any]] = []
         self.unroutable_actions: list[dict[str, Any]] = []
         self.no_hit_diagnosis: Any = None
+        #: Proposals a language model made (see harness/planner.py). Recorded
+        #: here so the report shows them, and never acted on from here.
+        self.llm_proposals: list[dict[str, Any]] = []
         self.outcome: RunOutcome | None = None
         self.stop_reason: str = ""
 
@@ -958,7 +968,19 @@ class ResearchController:
             detail=reason, payload=esc.to_dict(),
             kind=RequestKind.OPERATOR_TASK)
         self.stop_reason = reason
+        self._notify(self.hooks.on_escalation, esc)
         return self.goto(Stage.ESCALATED, reason)
+
+    def _notify(self, hook: Callable[..., None] | None, *args: Any) -> None:
+        """Call an observer hook; a failure in it is logged and nothing more."""
+        if hook is None:
+            return
+        try:
+            hook(self, *args)
+        except Exception as exc:                      # noqa: BLE001
+            self.manifest.notes.append(
+                f"{utc_now()} an observer hook raised {type(exc).__name__}: "
+                f"{exc}; the run is unaffected")
 
     def _handle_failure(self, stage: Stage, result: ToolResult) -> Stage:
         """Apply the retry policy for one failed step and return the next stage."""
@@ -1275,6 +1297,7 @@ class ResearchController:
             self.manifest.notes.append(
                 f"{utc_now()} no-hit diagnosis recorded from ingest_results")
         self.stop_reason = "round complete: no confirmed hit, diagnosis recorded"
+        self._notify(self.hooks.on_round_complete)
         return self.goto(Stage.DONE, self.stop_reason)
 
     def _stage_local_engineering(self) -> Stage:
@@ -1283,6 +1306,7 @@ class ResearchController:
                 Branch.SUFFICIENT_SUPPORT:
             return self._handle_failure(Stage.LOCAL_ENGINEERING, result)
         self.stop_reason = "round complete: hit confirmed, variants proposed"
+        self._notify(self.hooks.on_round_complete)
         return self.goto(Stage.DONE, self.stop_reason)
 
     # -- driver ------------------------------------------------------------
@@ -1363,6 +1387,7 @@ class ResearchController:
             "cost_total": dict(self.manifest.cost_total),
             "budget_breaches": self.budget_breaches(),
             "no_hit_diagnosis": self.no_hit_diagnosis,
+            "llm_proposals": list(self.llm_proposals),
         }
 
     def write_report(self, path: str | Path | None = None) -> Path:

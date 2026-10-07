@@ -17,11 +17,14 @@ from __future__ import annotations
 
 import abc
 import json
+import os
 import re
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Sequence
 
-from ..errors import FabricationGuardError
+from ..errors import EAgentError, FabricationGuardError
 from . import citation as citation_mod
 from .citation import ArtifactIndex, Citation
 
@@ -241,6 +244,10 @@ class LLMClient(abc.ABC):
     """Provider-agnostic client. Implementations must not retry silently."""
 
     name: str = "abstract"
+    #: Whether a prompt leaves this machine. Assumed true: a client that is
+    #: local must say so, because a remote one sees everything in the prompt
+    #: and disclosure cannot be taken back.
+    runs_remotely: bool = True
 
     @abc.abstractmethod
     def complete(self, system: str, messages: list[dict[str, str]],
@@ -267,6 +274,7 @@ class EchoClient(LLMClient):
     """
 
     name = "echo"
+    runs_remotely = False
 
     def __init__(self, scripted: Iterable[str] | None = None) -> None:
         self._scripted = list(scripted or [])
@@ -292,15 +300,96 @@ class CallbackClient(LLMClient):
 
     name = "callback"
 
-    def __init__(self, fn: Callable[..., str], name: str = "callback") -> None:
+    def __init__(self, fn: Callable[..., str], name: str = "callback",
+                 runs_remotely: bool = True) -> None:
         self._fn = fn
         self.name = name
+        self.runs_remotely = runs_remotely
 
     def complete(self, system: str, messages: list[dict[str, str]],
                  tools: list[dict[str, Any]] | None = None,
                  temperature: float = 0.0, seed: int | None = None) -> str:
         return self._fn(system=system, messages=messages, tools=tools,
                         temperature=temperature, seed=seed)
+
+
+class LLMError(EAgentError):
+    """A provider call failed. Carries the provider's own message."""
+
+
+class AnthropicMessagesClient(LLMClient):
+    """The Anthropic Messages API, over plain HTTPS.
+
+    NOT YET RUN AGAINST THE LIVE API. The request shape (``POST /v1/messages``,
+    ``x-api-key`` and ``anthropic-version`` headers, a ``system`` string,
+    ``messages``, ``max_tokens``, ``temperature``; the reply's ``content``
+    blocks of type ``text``) is written from the public API reference, and the
+    tests drive it through a fake opener. Nothing here has been sent to the
+    service, because no credential was available when this was written.
+
+    * The key is read from the environment at call time and is never stored on
+      the object, logged, or written to an audit file.
+    * There is no ``seed`` parameter in the API, so ``seed`` is accepted and
+      ignored; the planner stores the response itself for exactly that reason.
+    * There are no retries. A failure is raised with the provider's message and
+      the planner records it; "implementations must not retry silently".
+    * It runs remotely, so the planner will not call it while the network is
+      disabled and will not send it a sequence.
+    """
+
+    name = "anthropic-messages"
+    runs_remotely = True
+    ENDPOINT = "https://api.anthropic.com/v1/messages"
+    API_VERSION = "2023-06-01"
+
+    def __init__(self, model: str, *, max_tokens: int = 1024,
+                 api_key_env: str = "ANTHROPIC_API_KEY",
+                 endpoint: str | None = None, timeout_s: float = 60.0,
+                 opener: Callable[..., Any] | None = None) -> None:
+        if not model or not model.strip():
+            raise ValueError("a model identifier is required; there is no default")
+        self.model = model
+        self.max_tokens = max_tokens
+        self.api_key_env = api_key_env
+        self.endpoint = endpoint or self.ENDPOINT
+        self.timeout_s = timeout_s
+        self._opener = opener or urllib.request.urlopen
+        self.name = f"anthropic-messages:{model}"
+
+    def complete(self, system: str, messages: list[dict[str, str]],
+                 tools: list[dict[str, Any]] | None = None,
+                 temperature: float = 0.0, seed: int | None = None) -> str:
+        key = os.environ.get(self.api_key_env)
+        if not key:
+            raise LLMError(f"{self.api_key_env} is not set; no request was made")
+        body = {"model": self.model, "max_tokens": self.max_tokens,
+                "system": system, "messages": messages,
+                "temperature": temperature}
+        request = urllib.request.Request(
+            self.endpoint, data=json.dumps(body).encode("utf-8"), method="POST",
+            headers={"x-api-key": key, "anthropic-version": self.API_VERSION,
+                     "content-type": "application/json"})
+        try:
+            with self._opener(request, timeout=self.timeout_s) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = ""
+            try:
+                detail = exc.read().decode("utf-8", "replace")[:500]
+            except Exception:                        # noqa: BLE001
+                pass
+            raise LLMError(f"HTTP {exc.code} from the Messages API: "
+                           f"{detail or exc.reason}") from exc
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            raise LLMError(f"the Messages API call failed: {exc}") from exc
+        blocks = payload.get("content")
+        if not isinstance(blocks, list):
+            raise LLMError("the reply has no content blocks")
+        text = "".join(b.get("text", "") for b in blocks
+                       if isinstance(b, dict) and b.get("type") == "text")
+        if not text:
+            raise LLMError("the reply holds no text block")
+        return text
 
 
 def parse_turn(raw: str) -> ModelTurn:

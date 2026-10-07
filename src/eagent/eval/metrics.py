@@ -75,6 +75,9 @@ from ..provenance import sha256_obj, utc_now
 from ..schemas.record import ExperimentRecord, OutcomeClass, ee_target
 from ..schemas.templates import AssayTemplate
 from ..science.robustness import DEFAULT_WILSON_Z, wilson_interval
+from ..science.units import (
+    UNIT_TABLE, canonical_unit, convert_measurement, normalise_unit_text,
+)
 from ..tools.ingest_results import RECOGNISED_CRITERION_KEYS, PositiveCriterion
 
 __all__ = [
@@ -135,50 +138,12 @@ class UnitMismatchError(EAgentError):
     """
 
 
-#: Conversions this module will apply, as (from, to, factor). Deliberately
-#: short and explicit rather than a general unit library: a wrong factor here
-#: would invent an improvement, so every entry is one a reader can check at a
-#: glance. Anything not listed is refused rather than guessed.
-_UNIT_CANON: dict[str, tuple[str, float]] = {
-    # first-order rate constants -> per second
-    "s-1": ("s-1", 1.0), "s^-1": ("s-1", 1.0), "1/s": ("s-1", 1.0),
-    "sec-1": ("s-1", 1.0), "per second": ("s-1", 1.0),
-    "min-1": ("s-1", 1.0 / 60.0), "min^-1": ("s-1", 1.0 / 60.0),
-    "1/min": ("s-1", 1.0 / 60.0), "per minute": ("s-1", 1.0 / 60.0),
-    "h-1": ("s-1", 1.0 / 3600.0), "hr-1": ("s-1", 1.0 / 3600.0),
-    "1/h": ("s-1", 1.0 / 3600.0), "per hour": ("s-1", 1.0 / 3600.0),
-    # concentrations -> millimolar
-    "mm": ("mM", 1.0), "mmol/l": ("mM", 1.0),
-    "um": ("mM", 1e-3), "µm": ("mM", 1e-3), "umol/l": ("mM", 1e-3),
-    "nm": ("mM", 1e-6), "nmol/l": ("mM", 1e-6),
-    "m": ("mM", 1e3), "mol/l": ("mM", 1e3),
-    # fractions -> percent
-    "%": ("%", 1.0), "percent": ("%", 1.0), "pct": ("%", 1.0),
-    # dimensionless
-    "": ("", 1.0),
-}
-
-
-def canonical_unit(unit: str | None) -> tuple[str, float] | None:
-    """``(canonical_unit, factor)`` for a unit this module can convert.
-
-    ``None`` for anything unrecognised, which the caller must treat as a
-    refusal to compare rather than as a licence to subtract anyway.
-    """
-    if unit is None:
-        return None
-    key = " ".join(str(unit).split()).strip().lower()
-    return _UNIT_CANON.get(key)
-
-
-def convert_measurement(value: float | None, unit: str | None
-                        ) -> tuple[float | None, str] | None:
-    """Convert one value to its canonical unit, or ``None`` if it cannot be."""
-    canon = canonical_unit(unit)
-    if canon is None:
-        return None
-    name, factor = canon
-    return (None if value is None else value * factor), name
+#: The conversion table lives in :mod:`eagent.science.units` so that the
+#: evaluation layer and the ingest layer cannot disagree about what a unit
+#: means. Re-exported here because callers and tests already import it from
+#: this module, and because a comparison refusing a unit should be traceable
+#: to the same table the plate was aggregated with.
+_UNIT_CANON = UNIT_TABLE
 
 
 class EndpointMismatchError(EAgentError):
@@ -1392,8 +1357,8 @@ def variant_versus_parent(
     # recorded it on, and subtracting across scales invents an improvement
     # that the replicate check then confirms, because the spreads are in the
     # same unconverted units.
-    v_unit = _plain(variant.measurement_unit)
-    p_unit = _plain(parent.measurement_unit)
+    v_unit = normalise_unit_text(_plain(variant.measurement_unit))
+    p_unit = normalise_unit_text(_plain(parent.measurement_unit))
     unit_label = variant.measurement_unit
     v_value, p_value = variant.measurement_value, parent.measurement_value
     v_reps = tuple(variant.replicate_values or ())

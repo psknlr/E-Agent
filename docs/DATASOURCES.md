@@ -7,9 +7,9 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 
 ## Read this first
 
-> **Three entries of 49 have been connectivity-tested; the rest have not.**
-> UniProtKB, RCSB PDB and Rhea were called by `eagent sources verify` and carry
-> the record of those calls — URL, timestamp, status, response digest, and the
+> **Four entries of 49 have been connectivity-tested; the rest have not.**
+> UniProtKB, RCSB PDB, Rhea and Zenodo were called by `eagent sources verify`
+> and carry the record of those calls — URL, timestamp, status, response digest, and the
 > strings that had to appear in the body. Every other `DataSource` carries
 > `connectivity_verified: false`.
 >
@@ -101,11 +101,11 @@ curation note demanding the terms be established before use.
 | Measure | Value |
 | --- | --- |
 | Registered sources | 49 (defined once each; `enzengdb` declares two layers) |
-| Entries with `connectivity_verified: true` | **3** (uniprotkb, rcsb_pdb, rhea), each with the call recorded |
+| Entries with `connectivity_verified: true` | **4** (uniprotkb, rcsb_pdb, rhea, zenodo), each with the call recorded |
 | Entries with `needs_curation: true` | 49 |
-| Entries with a recorded endpoint | **3**, each reached by a recorded call |
-| Connectors whose client was checked against a probe | **1** (uniprotkb) |
-| Network-mode entries with no endpoint | 26 |
+| Entries with a recorded endpoint | **4**, each reached by a recorded call |
+| Connectors whose client was checked against a probe and a recorded live response | **4** (uniprotkb, rcsb_pdb, rhea, zenodo) |
+| Documented as programmatically reachable, with no recorded endpoint | 27 (with no endpoint they behave as cache-only) |
 | Entries with a recorded licence | 1 (`brenda`, unverified) |
 | Entries with `needs_legal_review: true` | 49 |
 | Entries requiring human review **per record** | 9 |
@@ -115,6 +115,36 @@ curation note demanding the terms be established before use.
 | Groups countable as independent (every member fully traced) | **13** |
 | Entries whose upstream list is admittedly incomplete | 23 |
 | Rollout stage 1 / 2 / 3 | 16 / 24 / 9 |
+
+## What has actually been called, and what that found
+
+Everything below happened from one cloud container on 2026-10-07. None of it is
+a statement about another network or another day.
+
+| Source | What was done | What it found |
+| --- | --- | --- |
+| UniProtKB | probe for one entry, then a client written against the probe's exact field list | an unknown accession used to crash the client with an `HTTPError`; it is now a **miss** (404/410) versus an **error** (anything else). `Inactive` entries are flagged, not read as live. A `reviewed` flag matched inside "unreviewed" until the test was made whole-word |
+| RCSB PDB | three probes (entry, entities, a second entry) and a client | the client builds the same URL the probe checked; an entry and its entities are fetched together |
+| Rhea | two probes and a client | the Rhea CDN answered **403** to the default `urllib` user agent while the probe passed -- the probe and the client had used different headers. They now share one `USER_AGENT`, and a probe and its client must share URL shape, field list and header |
+| Zenodo | record probe, file probe, `download_file` | a download is read under a hard byte cap, hashed, compared with the checksum the record itself states, and only then written -- to a temporary name, renamed on success. A second file in one session hit an SSL EOF, which is why transient failures are retried |
+| SABIO-RK | paths its documentation names were called | **unreachable**: every path answered 302 and then 200 on the provider's own 404 page. Recorded in the entry's curation note as an *observation*, not a conclusion -- it may be a moved service, a changed path or a network policy, and the three were not told apart. The endpoint stays `null` |
+| BRENDA | not called | needs an account; unchanged |
+
+**Retries know their limits.** A 404 or 410 is a miss and is never retried. A
+failure that looks transient (a reset, an SSL EOF, a 5xx) is retried at most
+twice, after 1 s and 3 s, and the result says how many attempts it took
+(`RemoteCallFailedError.transient`, `.attempts`). A response that is an *error*
+is never written to the cache, so a bad day is not replayed as a fact.
+
+**The one dataset ingested.** The SDR substrate-classification deposit
+(Zenodo 7141435, Jinich and Rappoport, CC BY 4.0): 358 UniProt SDR sequences
+with a NAD/NADP cofactor label, three manual substrate classes and nine
+substrate clusters. Its README says the labels were derived from the substrate
+and product annotations of the UniProtKB records, so they are **annotation-level
+evidence** and the registry's ceiling for Zenodo already says so. Copies of the
+four files the benchmark reads are in `tests/fixtures/sdr` with their md5s,
+which the loader re-checks on every use; see `NOTICE.md` there and
+`docs/EVALUATION.md` for what they can and cannot support.
 
 ### Capability flag legend
 

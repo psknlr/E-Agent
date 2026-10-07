@@ -153,7 +153,36 @@ than an exception, so a long run surfaces it to the operator instead of crashing
 **`LLMClient`** is provider-agnostic and must not retry silently.
 `EchoClient` is a deterministic offline client used in tests and dry runs,
 deliberately on the executed path so the parsing and guarding code is exercised
-by the test suite rather than only in production.
+by the test suite rather than only in production. A client declares
+`runs_remotely` (assumed true), because a remote one sees everything in its
+prompt and disclosure cannot be taken back. `AnthropicMessagesClient` speaks the
+Messages API over HTTPS; **it was written from the API reference and has never
+been sent to the live service**, and the tests drive it through a fake opener.
+
+**`LLMPlanner`** (`harness/planner.py`) is what finally calls a model from the
+controller, through hooks the controller already had. The design is the list of
+what the model cannot do:
+
+* it applies exactly one kind of proposal -- extra search terms (`families`,
+  `substrate_synonyms`, `engineering_keywords`) for `retrieve_evidence`, merged
+  into the operator's arguments. Any other argument name rejects the *whole*
+  proposal: thresholds, seeds, approvals and other tools are not nameable;
+* everything else it says (an explanation of an escalation, hypotheses about a
+  finished round, questions) is recorded in the report as
+  `proposal_unapproved` and acted on by nothing;
+* the response passes `NumericGuard` against the run's artifact index and
+  `validate_turn`; a hypothesis must be falsifiable and may cite only artifacts
+  the run wrote;
+* the prompt is scanned for sequences and withheld strings, the substrate name
+  is withheld unless the operator opts in, and a remote client is not called at
+  all while `allow_network` is off;
+* every exchange -- prompt, response, hashes, decision, reasons -- is audited,
+  accepted or not;
+* a client error, a spent call budget or a cost-ceiling breach changes nothing:
+  the controller takes the path it would have taken with no model.
+
+Each guard is mutation-checked (disabling it fails a test). Whether the model's
+suggestions are *useful* has not been measured.
 
 The controller itself contains no science at all. There is no distance, no
 score, no confidence and no ranking computed anywhere in
@@ -469,11 +498,28 @@ controller escalates without retrying.
 - Every public resource: `connectors/base.OfflineConnector` is cache-first, a
   miss is a structured `MISS` naming the exact file a human must place, and **no
   code path in the package produces database content**.
-- `eval/baselines`: `family_function_prediction` and
-  `substrate_specificity_model` return `RankedSelection` with
-  `unavailable_reason` set and no picks, and `BaselineComparison.render` lists
-  them by name — a stand-in baseline that the agent then beats is the most
-  flattering possible result and means nothing.
+- `eval/baselines`: `family_function_prediction` returns a `RankedSelection`
+  with `unavailable_reason` set and no picks, and `BaselineComparison.render`
+  lists it by name — a stand-in baseline that the agent then beats is the most
+  flattering possible result and means nothing. `substrate_specificity_model`
+  is filled by `science/enzyme_substrate.candidate_scorer`, which returns `None`
+  (not a low score) for a head that earned no calibration.
+- `tools/prediction_backends.py`: `GninaDockingRunner` and
+  `BoltzComplexPredictor` implement the two `model_complexes` Protocols over the
+  same `CommandRunner` seam. Their command lines were read from the Boltz 2.2.1
+  wheel and the gnina README; they have been run against fakes that write output
+  in the documented shape and **never against the real binaries**. They refuse a
+  job that asks for a catalytic restraint (neither engine can enforce one), never
+  pass `--use_msa_server` unless built to (and then report `runs_remotely`),
+  and record that their atom names are the engine's, not the reaction's atom map.
+- `tools/open_branches.py`: open function discovery and de novo design are
+  *refusing* seams. `authorize_branch` lists every unmet condition at once --
+  reaction confirmed by a person, licences including weights and outputs,
+  derivative-works permission, network and disclosure, GPU policy, and a named
+  approver bound to this payload (an operator task, not a fourth gate). Outputs
+  carry a ceiling fixed by the branch, and `compose_batch(high_evidence_eligible=
+  is_high_evidence_eligible)` keeps a designed sequence out of the high-evidence
+  role while leaving it eligible for probe and diversity slots.
 
 Three policy guards sit on the same boundary. `ExecutionPolicy.allow_network` is
 false by default. `connectors.base.looks_like_biological_sequence` plus
@@ -484,6 +530,44 @@ public — an unreleased construct sent to a remote service is disclosed
 irreversibly, and no later policy decision undoes it. And `check_license` refuses
 a commercial run against any tool facet whose terms are unknown, because an
 unverified licence is not a permission.
+
+---
+
+## 9. Calibration and the model: what a number is allowed to be
+
+**A window's authority.** `GeometryConstraint.calibrated_on` used to be free
+text, so `["trust me"]` gave a window the power to reject an enzyme.
+`science/calibration.py` replaces trust with a record. A `calibration:<digest>`
+entry resolves to a stored record; the digest is recomputed from the record's
+contents, the verdict is **re-run** rather than read, and the template's window
+must equal the window the record proposed. A missing record, an edited record, a
+widened window, another constraint's record and a run with no store all fail
+closed to *uncalibrated*. The statistics are Wilks' distribution-free tolerance
+interval over measured *active* reference complexes -- so the record states what
+its sample size buys (seven actives support a 90% coverage claim with a
+confidence near 0.15) -- plus known inactives to show the window discriminates.
+Modelled, restrained and unmeasured references are listed as exclusions, never
+dropped. `evaluate_catalysis(calibration_store=..., strict_calibration=...)`
+applies it and flags `calibration_unverified` wherever a window rests on a claim
+it cannot show. No real reference set exists here, so all 17 shipped windows
+remain uncalibrated.
+
+**A model's probability.** `science/enzyme_substrate.py` fits one kernel-ridge
+head per target over a normalised k-mer spectrum kernel, in pure Python. A head
+reports `probability = None` unless a Platt map fitted on **grouped
+out-of-fold** scores exists *and* the out-of-fold AUROC's cluster-bootstrap
+interval excludes 0.5 -- because cross-validating a score with no signal gives a
+negative slope, and a naive fit would turn it into a confident wrong-way
+probability. Labels carry their source (`annotation` or `measured`), which caps
+what a prediction may claim, and mixing the two in one target is refused.
+`update()` returns a new model and a checkable record (training digests before
+and after, what was added, what could not be used and why).
+
+**Where the model may touch selection.** `science/acquisition.py` exploits only
+what the model *scored* and explores by novelty (distance from everything
+measured) rather than by the model's own confidence. Inside the batch composer
+the model can only be a `rank_tiebreak`, consulted between candidates that are
+equal on every evidence dimension.
 
 ---
 

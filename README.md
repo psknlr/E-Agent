@@ -180,14 +180,15 @@ A value that is not known prints as `unknown`, never as `0` or an empty cell.
 | --- | --- |
 | `eagent init <task_id>` | Scaffold a task YAML with its nulls intact and a header explaining each one. |
 | `eagent validate <task.yaml> [--gate G \| --all-gates]` | Report unresolved fields per gate, plus the assumptions on record and who authorised them. |
-| `eagent run <task.yaml> --rundir D` | Drive the controller, streaming each step's status, QC flags, uncertainties and next actions. `--dry-run`, `--step`, `--from`, `--until`, `--offline`, `--allow-network`, `--arguments`, `--templates`, `--max-retries`, `--seed`. |
+| `eagent run <task.yaml> --rundir D` | Drive the controller, streaming each step's status, QC flags, uncertainties and next actions. `--dry-run`, `--step`, `--from`, `--until`, `--offline`, `--allow-network`, `--arguments`, `--templates`, `--max-retries`, `--seed`, `--llm-model` (needs `--allow-network`; proposals only, audited under `<rundir>/llm/`). |
 | `eagent approve <gate> --actor NAME --rundir D` | Record a human decision against a *specific queued request*. `--deny` records a refusal; `--note` records the reason. Prints what the request does **not** carry before you decide. |
 | `eagent status <rundir>` | Where the state machine is, the path it took, cost recorded, approvals, pending decisions, open uncertainties, blocking QC flags. |
 | `eagent verify <rundir>` | Run the independent verifier over what the run recorded. Refuses to report a pass when there is nothing to check. |
 | `eagent bundle <rundir> --out D` | Assemble the deliverables package, recording every one of the 18 standard items as present, partial or missing with what a curator must supply. |
 | `eagent bundle-verify <bundle>` | Re-check a package anywhere: every declared file present, every hash as recorded, every unrecorded file reported. |
 | `eagent templates list \| show <id> \| lint` | Read the template library — every threshold a run uses comes from there. `lint` reports uncalibrated windows and library integrity gaps. |
-| `eagent sources list \| show <id> \| independence` | Read the data-source registry: what each resource may be used to claim, what it may not, and which sources re-integrate which others. |
+| `eagent sources list \| show <id> \| independence \| coverage \| verify` | Read the data-source registry: what each resource may be used to claim, what it may not, and which sources re-integrate which others. `verify --allow-network --write` calls the shipped probes and records what answered. |
+| `eagent benchmark sdr \| feedback --data D` | Retrospective benchmarks on the SDR deposit: label recovery with grouped folds and the leakage priced, and the feedback-loop simulation. Both open with the statement that the labels are annotation-derived. |
 
 Exit codes, so a wrapper script can tell the outcomes apart without parsing
 prose: `0` done, `2` bad invocation, `3` something is unresolved, `4` a human
@@ -227,14 +228,17 @@ missing measurement becomes a fabricated one.
 | Docking | `model_complexes` | any `DockingRunner` (`UnavailableDockingRunner` is the default) |
 | Joint complex prediction | `model_complexes` | any `ComplexPredictor` (`UnavailableComplexPredictor` is the default) |
 | Inverse folding | `propose_mutations` | LigandMPNN (`MissingLigandMPNN` is the default) |
-| Every public database | `retrieve_evidence` and the data layer | all access is cache-first `OfflineConnector`; **no data source in `configs/datasources/` has been connectivity-tested** |
+| Every public database | `retrieve_evidence` and the data layer | cache-first; four sources (UniProtKB, RCSB PDB, Rhea, Zenodo) have been called live and have checked clients, **the other 45 have not been connectivity-tested** |
 
 `configs/tool_registry.yaml` registers each external tool four times — code,
 model weights, input databases, outputs — because those four carry different
 licence terms, and several structure predictors ship permissive code with
-non-commercial weights. Every facet currently records `license: null` and
-`permits_commercial_use: null`, which **blocks** a commercial run rather than
-permitting one.
+non-commercial weights. Of the 56 facets, 4 were read from the release's own
+files, 4 are restrictions or licences *reported* to the project (VenusMine
+CC BY-NC-ND 4.0; AP Novo's non-commercial weights and outputs) and not read, and
+48 are unknown. An unknown commercial permission **blocks** a commercial run
+rather than permitting one; a no-derivatives position blocks modifying and
+republishing the artefact (`check_modification`).
 
 ---
 
@@ -285,12 +289,32 @@ docs/             the documents listed below
 
 ## Status
 
-The code is complete and tested as a harness: the whole suite passes (1614 tests plus 415 subtests at the time of writing; the tree is still growing, so run `PYTHONPATH=src python3 -m pytest tests -q` for the current figure).
-No step has ever run against a live public database, a real structure predictor,
-a real docking program or a real plate. Everything described as a refusal is a
-code path that raises or returns a typed failure; it is not a refusal that has
-been exercised on a real corpus. `docs/ROADMAP.md` has the component-by-component
-table.
+The code is complete and tested as a harness: the whole suite passes (2692 tests
+plus 693 subtests at the time of writing; the tree is still growing, so run
+`PYTHONPATH=src python3 -m pytest tests -q` for the current figure).
+
+What has been run against the outside world: four public databases (UniProtKB,
+RCSB PDB, Rhea, Zenodo) were called live and have clients checked against
+recorded responses, and one real dataset (the SDR substrate-class deposit) was
+downloaded through a checksum-verified route and benchmarked. What has **not**:
+no structure predictor, docking program, search binary or inverse-folding model
+has ever been run (the gnina, Boltz and MMseqs2 adapters were tested against
+fakes that write output in the documented shape), no language model has been
+called, and no plate has ever been read.
+
+What the repository can claim is narrow. It has a sound *machinery of claiming*;
+a simple sequence-to-annotated-class model that beats a nearest-neighbour
+baseline on a few classes and not on most, on **annotation-derived** labels,
+with test sequences held out by cluster; and a simulation showing that feeding
+labels back into selection helps on that same annotation-derived data, much less
+so once the pool's redundancy is removed. It does **not** support the statement
+that the agent has learned from experiments or validated new-enzyme discovery:
+no experiment has been run. `docs/EVALUATION.md` §9 and `docs/ROADMAP.md` §7 give
+the numbers and what each does not establish.
+
+Everything described as a refusal is a code path that raises or returns a typed
+failure; where a refusal has been exercised against real data, the docs say so.
+`docs/ROADMAP.md` has the component-by-component table.
 
 ---
 

@@ -344,8 +344,101 @@ Stated here so it does not have to be inferred:
   denominators are over the batch, not over sequence space, and an empty
   evidence base is reported as an empty evidence base — never as evidence that
   no enzyme performs the reaction.
-- **Any retrospective number at all, yet.** No data source has been
-  connectivity-tested; there is no corpus in this environment to split.
+- **Any retrospective number about *activity*.** There is one corpus in this
+  environment -- the SDR deposit -- and its labels are annotations. §9 reports
+  what it supports; none of it is a measurement of a ketoreductase.
+
+---
+
+## 9. The two retrospective benchmarks that exist, and what they can say
+
+Both run on the **SDR substrate-classification deposit** (Zenodo 7141435; 358
+UniProt SDR sequences; a NAD/NADP cofactor label, three manual substrate classes
+and nine substrate clusters). Its README says the labels were derived from the
+substrate and product annotations of UniProtKB records. They are annotation-level
+evidence. Every report opens with that sentence, and the code carries it as a
+constant (`CLAIM`) so it cannot be dropped from a rendering.
+
+```
+eagent benchmark sdr      --data tests/fixtures/sdr --out docs/results/sdr_label_recovery.json
+eagent benchmark feedback --data tests/fixtures/sdr --out docs/results/feedback_simulation.json
+```
+
+The recorded outputs are `docs/results/sdr_label_recovery.{txt,json}` and
+`docs/results/feedback_simulation.{txt,json}`; each JSON carries a digest over
+its contents.
+
+### 9.1 Label recovery (`eval/retrospective.py`)
+
+*Question:* given a sequence, how well can the annotated class be recovered when
+test sequences are held out by sequence cluster?
+
+*Controls.* Identical folds for every comparator; folds grouped by sequence
+cluster (identity 0.4, greedy pure-Python clustering -- its grain is coarser than
+MMseqs2's, and the **measured** similarity of each test sequence to its training
+folds is reported beside it); hyperparameters fixed before the run, with a ridge
+sweep reported *as a sweep*; cluster-bootstrap intervals; a second run with
+ungrouped folds to price leakage.
+
+*Result (5 folds, seed 0, 12 targets with at least 10 of each class):*
+
+| Comparator | macro AUROC | note |
+| --- | --- | --- |
+| prevalence | 0.500 | constant score, by construction |
+| nearest neighbour (k-mer cosine) | **0.710** | homology transfer |
+| spectrum-kernel model | 0.667 | better on 2 targets (NADP cofactor, one substrate cluster), worse on 1, indistinguishable on 9 (paired cluster-bootstrap interval) |
+
+* Ungrouped folds: nearest neighbour 0.967 and the model 0.948 -- **an
+  optimism of about 0.26-0.28 AUROC** from near-duplicates straddling the split.
+  Median max-similarity of a test sequence to its training set: 0.41 grouped,
+  0.70 ungrouped.
+* Calibration: only **3 of 12** targets earned a probability, because the gate
+  requires the out-of-fold AUROC's cluster-bootstrap interval to exclude 0.5. On
+  those three the Brier score beats the prevalence baseline; the macro Brier and
+  ECE are over 3 targets and say so.
+* The model does **not** beat nearest-neighbour overall. That is reported as
+  found; no hyperparameter was tuned to change it.
+
+### 9.2 The feedback loop (`eval/feedback_simulation.py`)
+
+*Question:* does feeding measured labels back into selection change what a round
+finds? "Measuring" a candidate reveals its annotated class.
+
+*Controls.* Per replicate, every strategy gets the same pool, the same stratified
+initial labelled set (at least three of each class), the same oracle, and the
+same rounds and slots. Randomness is derived from `(replicate, strategy name)`,
+so adding a strategy cannot change another's draws. A test spies on the oracle to
+show no strategy reads a label it was not shown, and fails when one is made to.
+
+*Strategies.* random; nearest neighbour and model, each with feedback and frozen;
+model plus novelty exploration; exploration only.
+
+*Result (5 rounds of 8, 20 replicates, paired bootstrap):*
+
+* **Full pool (11 classes).** The model beats random on all 11, by 8.2 to 24.9
+  hits of 40, and feedback adds 2.1 to 5.7 hits over a frozen model on 9 of the
+  11 (about zero on the other two). Against the nearest-neighbour baseline the
+  model is never significantly better and is significantly worse on three
+  (phenol, and substrate clusters 0 and 3).
+* **Non-redundant pool (one sequence per cluster; 7 classes still have enough
+  of each).** Most of that advantage disappears. The model beats random by
+  +2.2 to +4.2 hits on five of the seven, by +9.0 on the NAD/NADP cofactor
+  class, and **not at all on phenol** (-0.1, interval spans zero). Feedback
+  helps significantly on 4 of 7, by 0.9 to 2.8 hits. Against nearest neighbour
+  the model is better on the cofactor class and worse on sterol. The
+  simulation is reported on both pools because the gap between them is how much
+  of a similarity-guided method's advantage is the pool's redundancy -- which is
+  also what a campaign built from a homology search has.
+* On the non-redundant pool the 40 selections are about a third of the pool, so
+  differences are compressed by the ceiling.
+
+### 9.3 What these two do not establish
+
+They do not establish that the agent finds active enzymes, that its gates or
+ranking are right, or that anything learns from a real assay. They establish
+that the *machinery* -- grouped folds, calibration that can refuse, a feedback
+experiment that cannot peek -- works, and they give a first, honest, modest
+number for a simple model on annotation-derived labels.
 
 ---
 

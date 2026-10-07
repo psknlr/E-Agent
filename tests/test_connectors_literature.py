@@ -80,14 +80,19 @@ class TestOfflineAndRefusals(LiteratureTestCase):
         self.assertEqual(citations[0].doi, "10.1000/abc")
 
     def test_every_literature_source_still_records_a_null_endpoint(self) -> None:
-        for source_id in ("pubmed", "europe_pmc", "enzchemred", "zenodo"):
+        for source_id in ("pubmed", "europe_pmc", "enzchemred"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
+    def test_zenodo_records_an_endpoint_only_because_a_call_reached_it(self) -> None:
+        source = self.registry.get("zenodo")
+        self.assertEqual(source.endpoint, "https://zenodo.org")
+        self.assertTrue(source.connectivity_verified)
+        self.assertIn("exact_record_fetch", source.verified_capabilities)
+
     def test_require_endpoint_is_a_typed_refusal(self) -> None:
         for connector in (PubMedConnector(cache=self.cache),
-                          EuropePMCConnector(cache=self.cache),
-                          ZenodoConnector(cache=self.cache)):
+                          EuropePMCConnector(cache=self.cache)):
             with self.subTest(source=connector.source_id):
                 with self.assertRaises(EndpointNotEstablishedError) as ctx:
                     connector.require_endpoint()

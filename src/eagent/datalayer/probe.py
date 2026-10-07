@@ -321,6 +321,29 @@ PROBES: tuple[CapabilityProbe, ...] = (
         note="1CDO entity 3 is NAD, the cofactor of this alcohol dehydrogenase",
     ),
     CapabilityProbe(
+        source_id="zenodo",
+        capability="exact_record_fetch",
+        url="https://zenodo.org/api/records/7141435",
+        markers=("10.5281/zenodo.7141435", "SDR_sequences.fasta", "cc-by-4.0"),
+        description=("one deposit's metadata: DOIs, licence, and every file "
+                     "with the checksum Zenodo records for it"),
+        documentation="https://developers.zenodo.org/",
+        note=("record 7141435 is the SDR substrate-classification dataset "
+              "(Jinich and Rappoport, 2022), the first dataset this project "
+              "ingests; chosen because it is small, openly licensed and "
+              "about the enzyme family of the pilot task"),
+    ),
+    CapabilityProbe(
+        source_id="zenodo",
+        capability="exact_record_fetch",
+        url="https://zenodo.org/api/records/7141435/files/README.txt/content",
+        markers=("Enzyme Substrate Classification Dataset", "Jinich"),
+        description=("one file of a deposit, by name: the route the "
+                     "connector's download_file uses"),
+        documentation="https://developers.zenodo.org/",
+        note="a 4 KB README, so the probe itself costs nothing to run",
+    ),
+    CapabilityProbe(
         source_id="rhea",
         capability="keyword_query",
         url=("https://www.rhea-db.org/rhea?query=ec:1.1.1.1"

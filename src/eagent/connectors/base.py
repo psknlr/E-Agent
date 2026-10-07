@@ -140,11 +140,20 @@ class RemoteCallFailedError(ConnectorError):
     """
 
     def __init__(self, source_id: str, url: str, reason: str,
-                 status: int | None = None) -> None:
+                 status: int | None = None, *, transient: bool = False,
+                 attempts: int = 1) -> None:
         self.source_id = source_id
         self.url = url
         self.status = status
-        super().__init__(f"{source_id}: the call to {url} failed: {reason}")
+        #: Whether trying again could plausibly help: a dropped connection, a
+        #: timeout, a 429 or a 5xx. A 4xx, a body over its cap and a response
+        #: that is not JSON are not transient -- the same request will fail
+        #: the same way, and retrying it would only delay saying so.
+        self.transient = transient
+        self.attempts = attempts
+        suffix = f" (after {attempts} attempts)" if attempts > 1 else ""
+        super().__init__(
+            f"{source_id}: the call to {url} failed: {reason}{suffix}")
 
 
 class NetworkDisabledError(ConnectorError):

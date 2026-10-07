@@ -621,7 +621,8 @@ class TestRegistryContract(ConnectorTestCase):
     #: at a time, by whoever does the checking.
     CHECKED_CLIENTS = {"uniprotkb": "exact_record_fetch",
                        "rcsb_pdb": "exact_record_fetch",
-                       "rhea": "keyword_query"}
+                       "rhea": "keyword_query",
+                       "zenodo": "exact_record_fetch"}
 
     def test_only_a_checked_client_declares_a_request_shape(self) -> None:
         from eagent.connectors.chemistry import RegistryBackedConnector

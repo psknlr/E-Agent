@@ -178,9 +178,16 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "Endpoint deliberately left null. The deployment and base URL of the web
-         service must be checked separately before any call is written, and this
-         registry asserts nothing about where it currently lives."
+      - "Endpoint deliberately left null. OBSERVED, not concluded: the REST
+         paths this project's general knowledge associates with SABIO-RK
+         (under https://sabiork.h-its.org/sabioRestWebServices/) were called
+         from a cloud container on 2026-10-07 and each answered 302, then 200 --
+         on the provider's own 404 page. That is one environment on one day, and
+         it may be a moved service, a changed path or a network policy; none of
+         the three has been told apart. The registry asserts nothing about where
+         the service currently lives. A probe for it would have to name strings
+         only a real kinetic-law response contains, which is exactly the check a
+         status code alone would have passed."
       - "Confirm licence and redistribution terms."
       - "Confirm whether a snapshot or release identifier is available for
          provenance."

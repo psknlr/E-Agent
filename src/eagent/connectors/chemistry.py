@@ -733,42 +733,125 @@ class RegistryBackedConnector(Connector):
         sep = "&" if urllib.parse.urlparse(base).query else "?"
         return self._http_json(f"{base}{sep}{urllib.parse.urlencode(params)}")
 
-    def _http_text(self, url: str, timeout: float = 30.0,
-                   accept: str = "*/*") -> str | None:
-        """GET one URL and return the body, or ``None`` for "nothing there".
+    #: Seconds to wait before each retry of a *transient* failure; the length
+    #: is the number of retries. Two retries, not more: these are idempotent
+    #: GETs against public services, a dropped TLS handshake is the common
+    #: case, and a service still failing after three tries is down, which is a
+    #: fact the caller should hear rather than wait out.
+    retry_delays_s: ClassVar[tuple[float, ...]] = (1.0, 3.0)
 
-        The shared half of :meth:`_http_json`, for services that answer in
-        TSV. Status handling is identical because it is the same question:
-        404 and 410 say the service looked and found nothing, which is an
-        answer; every other failure is :class:`RemoteCallFailedError`, because
-        an unanswered question must not be recorded as a negative one.
+    def _sleep(self, seconds: float) -> None:
+        """Wait between retries. A method so a test can replace it."""
+        import time
+        time.sleep(seconds)
+
+    def _get(self, url: str, *, headers: Mapping[str, str], timeout: float,
+             read: Any) -> Any:
+        """One GET with bounded retries; ``read(handle)`` consumes the body.
+
+        The single place a request is made, so the policy check, the agent,
+        the status handling and the retry rule cannot differ between the text,
+        JSON and byte paths:
+
+        * ``allow_network`` is checked first, every time;
+        * 404 and 410 return ``None``: the service looked and found nothing,
+          which is an answer, and is never retried;
+        * a **transient** failure -- a dropped connection, a TLS EOF, a
+          timeout, a 429 or a 5xx -- is retried after the configured delays
+          and, if it persists, raised with the attempt count;
+        * everything else raises at once. A 4xx will fail identically, and a
+          retry would only delay saying so.
+
+        Nothing is cached on failure, so the next run asks again.
         """
         if not self.access.allow_network:
             raise NetworkDisabledError(
                 f"{self.source_id}: a remote call was attempted while "
                 f"allow_network is false")
-        request = urllib.request.Request(
-            url, method="GET",
-            headers={"Accept": accept, "User-Agent": USER_AGENT})
-        try:
-            with urllib.request.urlopen(request, timeout=timeout) as handle:  # noqa: S310
-                return handle.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            if exc.code in (404, 410):
-                return None
-            raise RemoteCallFailedError(
-                self.source_id, url,
-                f"HTTP {exc.code}" + _error_detail(exc), status=exc.code) from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise RemoteCallFailedError(
-                self.source_id, url, f"{type(exc).__name__}: {exc}") from exc
+        request = urllib.request.Request(url, method="GET", headers=dict(headers))
+        delays = list(self.retry_delays_s)
+        attempt = 0
+        while True:
+            attempt += 1
+            try:
+                with urllib.request.urlopen(request, timeout=timeout) as handle:  # noqa: S310
+                    return read(handle)
+            except RemoteCallFailedError as exc:
+                # Raised by a reader (a body over its cap). Already classified.
+                exc.attempts = attempt
+                raise
+            except urllib.error.HTTPError as exc:
+                if exc.code in (404, 410):
+                    return None
+                failure = RemoteCallFailedError(
+                    self.source_id, url, f"HTTP {exc.code}" + _error_detail(exc),
+                    status=exc.code, transient=exc.code in (429, 500, 502, 503, 504),
+                    attempts=attempt)
+                cause: BaseException = exc
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                failure = RemoteCallFailedError(
+                    self.source_id, url, f"{type(exc).__name__}: {exc}",
+                    transient=True, attempts=attempt)
+                cause = exc
+            if not failure.transient or not delays:
+                raise failure from cause
+            self._sleep(delays.pop(0))
+
+    def _http_text(self, url: str, timeout: float = 30.0,
+                   accept: str = "*/*") -> str | None:
+        """GET one URL and return the body, or ``None`` for "nothing there".
+
+        The shared half of :meth:`_http_json`, for services that answer in
+        TSV. An unanswered question must not be recorded as a negative one,
+        so only 404 and 410 are "nothing there"; see :meth:`_get`.
+        """
+        body = self._get(
+            url, headers={"Accept": accept, "User-Agent": USER_AGENT},
+            timeout=timeout, read=lambda h: h.read().decode("utf-8"))
+        return body
+
+    def _http_bytes(self, url: str, *, max_bytes: int, timeout: float = 120.0,
+                    chunk: int = 1 << 16) -> bytes | None:
+        """GET one URL as bytes, refusing anything over ``max_bytes``.
+
+        The cap is enforced *while reading*, not after: a response whose
+        declared length is wrong, or absent, must not be able to fill the disk
+        before anything notices. A cap violation is not transient and is not
+        retried.
+        """
+        source_id = self.source_id
+
+        def read(handle: Any) -> bytes:
+            headers = getattr(handle, "headers", None)
+            declared = headers.get("Content-Length") if headers is not None else None
+            if declared and str(declared).isdigit() and int(declared) > max_bytes:
+                raise RemoteCallFailedError(
+                    source_id, url,
+                    f"the response declares {declared} bytes, over the "
+                    f"{max_bytes}-byte cap; nothing was read")
+            parts: list[bytes] = []
+            total = 0
+            while True:
+                block = handle.read(chunk)
+                if not block:
+                    return b"".join(parts)
+                total += len(block)
+                if total > max_bytes:
+                    raise RemoteCallFailedError(
+                        source_id, url,
+                        f"the body passed the {max_bytes}-byte cap while being "
+                        f"read and was abandoned")
+                parts.append(block)
+
+        return self._get(url, headers={"User-Agent": USER_AGENT},
+                         timeout=timeout, read=read)
 
     def _http_json(self, url: str, timeout: float = 30.0) -> tuple[Any, str | None]:
-        """GET one URL and parse JSON. One of two outbound calls in this package.
+        """GET one URL and parse JSON; the JSON path through :meth:`_get`.
 
-        Kept in one place so the policy check cannot be forgotten in a subclass:
-        a connector that wrote its own ``urlopen`` would bypass
-        ``allow_network``. The request *shape* is as unverified as the base URL,
+        Every outbound request in this package goes through :meth:`_get`, so
+        the policy check cannot be forgotten in a subclass: a connector that
+        wrote its own ``urlopen`` would bypass ``allow_network``. The request *shape* is as unverified as the base URL,
         which is why the parsed payload is returned with ``database_version``
         ``None`` unless the service states one -- an invented release string
         would claim a reproducibility the run does not have.

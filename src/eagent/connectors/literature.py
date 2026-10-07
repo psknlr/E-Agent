@@ -33,7 +33,11 @@ DOI where a pinned one is needed.
 from __future__ import annotations
 
 import enum
+import hashlib
+import os
+import urllib.parse
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from ..datalayer.intake import (
@@ -43,6 +47,7 @@ from ..datalayer.intake import (
     ingest,
 )
 from ..datalayer.registry import CapabilityState, SourceRegistry
+from ..provenance import utc_now
 from ..schemas.chem import SubstrateSpec
 from ..schemas.record import EvidenceRef, ExperimentRecord, OutcomeClass
 from .base import CachedResponse, ConnectorLayer
@@ -68,6 +73,10 @@ __all__ = [
     "PubMedConnector",
     "ZenodoConnector",
     "ZenodoDeposit",
+    "DownloadedFile",
+    "ChecksumMismatchError",
+    "DEFAULT_MAX_DOWNLOAD_BYTES",
+    "zenodo_record_payload",
     "is_open_redistributable",
 ]
 
@@ -544,6 +553,88 @@ class EnzChemREDConnector(RegistryBackedConnector):
 # Zenodo
 # ---------------------------------------------------------------------------
 
+class ChecksumMismatchError(LayerSemanticsError):
+    """A downloaded file is not the file the record says it is.
+
+    Raised after the bytes are read and before anything is written under the
+    final name. A dataset pinned to a snapshot it does not match is the
+    failure the snapshot module exists to prevent; catching it at download
+    time means the bad file never has a name anybody could load it by.
+    """
+
+
+def zenodo_record_payload(record: Mapping[str, Any]) -> dict[str, Any]:
+    """Translate a live Zenodo record into this connector's payload.
+
+    The two DOIs are kept apart because they mean different things: ``doi`` is
+    this record's own version, ``conceptdoi`` resolves to whichever version is
+    latest. The payload's ``version_doi`` is the first and ``concept_doi`` the
+    second, never the other way round -- a run pinned to the concept DOI is not
+    pinned.
+
+    The licence is read from the deposit's own metadata and is ``None`` when
+    the deposit states none, never defaulted to an open licence. Each file
+    keeps the checksum Zenodo records for it (``md5:<hex>``), which is what a
+    download is later verified against.
+    """
+    metadata = record.get("metadata") or {}
+    licence = metadata.get("license")
+    licence_id = licence.get("id") if isinstance(licence, Mapping) else licence
+    files = []
+    for item in record.get("files") or ():
+        if not isinstance(item, Mapping) or not item.get("key"):
+            continue
+        links = item.get("links") or {}
+        files.append({
+            "filename": str(item["key"]),
+            "size": item.get("size"),
+            "checksum": item.get("checksum"),
+            "url": links.get("self"),
+        })
+    return {
+        "deposit_id": str(record.get("id") or record.get("recid") or ""),
+        "concept_doi": record.get("conceptdoi"),
+        "version_doi": record.get("doi") or metadata.get("doi"),
+        "version": metadata.get("version"),
+        "title": metadata.get("title") or record.get("title"),
+        "license": licence_id,
+        "access_right": metadata.get("access_right"),
+        "created": record.get("created"),
+        "modified": record.get("modified"),
+        "files": files,
+    }
+
+
+@dataclass(frozen=True)
+class DownloadedFile:
+    """A file fetched from a deposit and verified against its record."""
+
+    path: Path
+    filename: str
+    deposit_id: str
+    version_doi: str | None
+    license: str | None
+    size_bytes: int
+    md5: str
+    sha256: str
+    retrieved_at: str
+    source_url: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"path": str(self.path), "filename": self.filename,
+                "deposit_id": self.deposit_id, "version_doi": self.version_doi,
+                "license": self.license, "size_bytes": self.size_bytes,
+                "md5": self.md5, "sha256": self.sha256,
+                "retrieved_at": self.retrieved_at, "source_url": self.source_url}
+
+
+#: Largest single file a download will accept unless the caller raises it.
+#: Not a scientific number: it is a guard against pulling a multi-gigabyte
+#: archive into a run that asked for a table. The record states every file's
+#: size, so exceeding this is known before a byte is fetched.
+DEFAULT_MAX_DOWNLOAD_BYTES: int = 200 * 1024 * 1024
+
+
 @dataclass(frozen=True)
 class ZenodoDeposit:
     """An author data archive, with the two DOIs kept apart.
@@ -612,6 +703,102 @@ class ZenodoConnector(RegistryBackedConnector):
     source_id = "zenodo"
     data_layer = ConnectorLayer.LITERATURE
     description = "Zenodo: author-deposited datasets"
+    #: The requests this client makes are the two the shipped probes check:
+    #: ``/api/records/<id>`` and ``/api/records/<id>/files/<name>/content``.
+    verified_route_capability = "exact_record_fetch"
+
+    def _fetch_remote(self, key: str) -> tuple[Any, str | None]:
+        """One record's metadata, in the probed shape."""
+        base = self.require_endpoint().rstrip("/")
+        body, _ = self._http_json(
+            f"{base}/api/records/{urllib.parse.quote(str(key).strip(), safe='')}")
+        if not isinstance(body, Mapping) or not (body.get("id") or body.get("recid")):
+            return None, None
+        payload = zenodo_record_payload(body)
+        # The version DOI is Zenodo's own statement of which version this is;
+        # it doubles as the release string, so a cached record is pinned to
+        # the version it was read from rather than to "latest".
+        return {"records": [payload]}, payload.get("version_doi")
+
+    def download_file(self, deposit: "ZenodoDeposit", filename: str,
+                      destination: str | Path, *,
+                      max_bytes: int = DEFAULT_MAX_DOWNLOAD_BYTES,
+                      require_checksum: bool = True) -> DownloadedFile:
+        """Fetch one file of a deposit and verify it against the record.
+
+        The order is the point: read into memory under a hard cap, hash it,
+        compare with the checksum **the record states**, and only then write
+        it -- to a temporary name first, renamed on success. A file that fails
+        verification never exists under its final name, so nothing can load it
+        by accident.
+
+        Refused rather than attempted: a filename the deposit does not list,
+        a file larger than ``max_bytes`` (the record states every size, so
+        this is known before fetching), and -- unless ``require_checksum`` is
+        turned off by a caller who has decided to accept it -- a file the
+        record gives no checksum for, because a download that cannot be shown
+        to be the same file next time pins nothing.
+        """
+        entry = next((f for f in deposit.files if f.get("filename") == filename),
+                     None)
+        if entry is None:
+            raise LayerSemanticsError(
+                f"deposit {deposit.deposit_id} lists no file named "
+                f"{filename!r}; it lists "
+                f"{', '.join(sorted(str(f.get('filename')) for f in deposit.files)[:8])}")
+        size = _int(entry.get("size"))
+        if size is not None and size > max_bytes:
+            raise LayerSemanticsError(
+                f"{filename} is {size} bytes, over the {max_bytes}-byte cap; "
+                f"raise max_bytes deliberately if this is the file you want")
+        declared = _text(entry.get("checksum"))
+        if declared is None and require_checksum:
+            raise LayerSemanticsError(
+                f"the record states no checksum for {filename}, so a download "
+                f"could not be shown to be the same file next time. Pass "
+                f"require_checksum=False to accept that explicitly")
+        algorithm, _, expected = (declared or "").partition(":")
+        if declared is not None and algorithm.lower() != "md5":
+            raise LayerSemanticsError(
+                f"{filename}: checksum {declared!r} uses {algorithm!r}; this "
+                f"client verifies md5, which is what Zenodo records")
+
+        base = self.require_endpoint().rstrip("/")
+        url = (f"{base}/api/records/"
+               f"{urllib.parse.quote(deposit.deposit_id, safe='')}/files/"
+               f"{urllib.parse.quote(filename, safe='')}/content")
+        body = self._http_bytes(url, max_bytes=max_bytes)
+        if body is None:
+            raise LayerSemanticsError(
+                f"{filename} is listed by deposit {deposit.deposit_id} but the "
+                f"service returned nothing for it")
+        md5 = hashlib.md5(body, usedforsecurity=False).hexdigest()  # noqa: S324
+        if declared is not None and md5 != expected.lower():
+            raise ChecksumMismatchError(
+                f"{filename} downloaded as md5 {md5} but the record states "
+                f"{expected}. The file was not written.")
+        if size is not None and len(body) != size:
+            raise ChecksumMismatchError(
+                f"{filename} is {len(body)} bytes but the record states "
+                f"{size}. The file was not written.")
+
+        directory = Path(destination)
+        directory.mkdir(parents=True, exist_ok=True)
+        # Only a bare file name may reach the filesystem; a record that lists
+        # "../x" must not be able to write outside the destination.
+        target = (directory / Path(filename).name).resolve()
+        if directory.resolve() not in target.parents:
+            raise LayerSemanticsError(
+                f"{filename!r} would be written outside {directory}")
+        temporary = target.with_name(f".{target.name}.part")
+        temporary.write_bytes(body)
+        os.replace(temporary, target)
+        return DownloadedFile(
+            path=target, filename=filename, deposit_id=deposit.deposit_id,
+            version_doi=deposit.version_doi, license=deposit.license,
+            size_bytes=len(body), md5=md5,
+            sha256=hashlib.sha256(body).hexdigest(),
+            retrieved_at=utc_now(), source_url=url)
 
     def deposit(self, deposit_id: str) -> ZenodoDeposit | None:
         response = self.fetch(deposit_id)

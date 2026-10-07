@@ -138,6 +138,8 @@ from ..schemas import (
     cofactor_state_from_ligand_code,
 )
 from ..science import geometry as geom
+from ..science.family_numbering import FamilyNumberingScheme
+from ..science.pocket import PocketResidues, pocket_residues_for_pose
 from ..science import stereo as stereo_mod
 from ..science.robustness import (
     DEFAULT_MIN_VALID_POSES,
@@ -237,6 +239,17 @@ DEFAULT_COMPETING_GROUP_MARGIN_A: float = 0.5
 #: straight to :func:`eagent.science.geometry.clash_count`, which documents it
 #: as a screen for localising steric problems rather than as an energy.
 DEFAULT_CLASH_TOLERANCE_A: float = geom.DEFAULT_VDW_OVERLAP_TOLERANCE_A
+
+#: Radius around the substrate within which a residue is collected as part of
+#: the pocket, for the diversity signature only.
+#:
+#: NOT a claim and NOT calibrated: membership of this shell says a residue has
+#: a heavy atom within the radius in this one model, nothing more. It is a
+#: *comparison scope* -- two candidates' pockets are compared over the same
+#: radius -- and it never gates, scores or rejects anything. The value is the
+#: conventional first-and-second-shell radius; a campaign with a reason to use
+#: another one passes it.
+DEFAULT_POCKET_SHELL_A: float = 6.0
 
 #: Constraint name a catalytic template may use to state its own, sourced
 #: pocket-localisation window in place of :data:`DEFAULT_POCKET_LOCALISATION_A`.
@@ -1408,6 +1421,8 @@ class EvaluateCatalysis(ScientificInterface):
         min_valid_poses: int = DEFAULT_MIN_VALID_POSES,
         in_plane_tolerance_deg: float = stereo_mod.DEFAULT_IN_PLANE_TOLERANCE_DEG,
         infer_single_ligand_substrate: bool = True,
+        pocket_shell_angstrom: float = DEFAULT_POCKET_SHELL_A,
+        numbering_schemes: Mapping[str, FamilyNumberingScheme] | None = None,
         submit_to: str | None = None,
         **_: Any,
     ) -> ToolResult:
@@ -1433,6 +1448,8 @@ class EvaluateCatalysis(ScientificInterface):
                 code="no_candidates",
             )
 
+        self._pockets = {}
+        self._pocket_notes = {}
         binding_map = self._index_bindings(bindings)
         lookup = self._template_lookup(ctx, catalytic_templates)
         result = ToolResult(status=Status.SUCCESS)
@@ -1452,6 +1469,8 @@ class EvaluateCatalysis(ScientificInterface):
                 min_valid_poses=min_valid_poses,
                 in_plane_tolerance_deg=in_plane_tolerance_deg,
                 infer_single_ligand_substrate=infer_single_ligand_substrate,
+                pocket_shell_angstrom=pocket_shell_angstrom,
+                numbering_schemes=dict(numbering_schemes or {}),
             ))
 
         self._score_candidates(ctx, candidates, evaluations, used_templates,
@@ -1529,6 +1548,17 @@ class EvaluateCatalysis(ScientificInterface):
         self._summarise(result, evaluations)
         result.data.update({
             "evaluations": [self._evaluation_payload(e) for e in evaluations],
+            "pocket_residues": {
+                cid: p.to_dict() for cid, p in sorted(self._pockets.items())
+            },
+            "pocket_frame_note": (
+                "pocket residues are reported in the frame they were placed "
+                "in. Two candidates' positions mean the same thing only when "
+                "their frames match: author numbering shifts with construct "
+                "boundaries and tags, so an unframed pocket is comparable by "
+                "composition and by nothing else. Pass numbering_schemes to "
+                "put them in a family frame."
+            ),
             "pose_outcome_legend": {o.value: o.claim() for o in PoseOutcome},
             "pocket_localisation_note": (
                 "the pocket-localisation distance is a QC screen between the "
@@ -1738,6 +1768,8 @@ class EvaluateCatalysis(ScientificInterface):
         min_valid_poses: int,
         in_plane_tolerance_deg: float,
         infer_single_ligand_substrate: bool,
+        pocket_shell_angstrom: float,
+        numbering_schemes: Mapping[str, FamilyNumberingScheme] | None,
     ) -> CandidateEvaluation:
         """Evaluate one candidate's poses and roll them up without a total."""
         template_id = candidate.catalytic_mapping.catalytic_template_id
@@ -1823,6 +1855,8 @@ class EvaluateCatalysis(ScientificInterface):
                     competing_group_margin_angstrom=competing_group_margin_angstrom,
                     in_plane_tolerance_deg=in_plane_tolerance_deg,
                     infer_single_ligand_substrate=infer_single_ligand_substrate,
+                    pocket_shell_angstrom=pocket_shell_angstrom,
+                    numbering_schemes=numbering_schemes,
                 ))
 
         self._rollup(evaluation, min_valid_poses)
@@ -1973,6 +2007,8 @@ class EvaluateCatalysis(ScientificInterface):
         competing_group_margin_angstrom: float,
         in_plane_tolerance_deg: float,
         infer_single_ligand_substrate: bool,
+        pocket_shell_angstrom: float,
+        numbering_schemes: Mapping[str, FamilyNumberingScheme] | None,
     ) -> PoseEvaluation:
         """Measure one pose. Every early return is a *gap*, never a verdict."""
         base: dict[str, Any] = dict(
@@ -2002,6 +2038,13 @@ class EvaluateCatalysis(ScientificInterface):
             infer_single_ligand_substrate=infer_single_ligand_substrate,
         )
         resolver = context.resolver()
+        # The pocket is extracted here because this is the one place that
+        # holds the coordinates and knows which residue is the substrate.
+        # Leaving it to the selector meant nothing ever extracted it, and the
+        # diversity layer fell back to catalytic roles -- which are the
+        # conserved positions of a family and so nearly constant within one.
+        self._record_pocket(candidate, pose, context, template,
+                            pocket_shell_angstrom, numbering_schemes, result)
 
         # -- mechanism geometry, measured by the science layer ---------------
         try:
@@ -2083,6 +2126,57 @@ class EvaluateCatalysis(ScientificInterface):
         )
         self._flag_pose(result, str(base["candidate_id"]), evaluation)
         return evaluation
+
+    #: candidate id -> the pocket extracted for it, and the note describing
+    #: how. Collected across poses during one ``execute`` and reset at its
+    #: start, so a second run cannot inherit the first one's pockets.
+    _pockets: dict[str, PocketResidues]
+    _pocket_notes: dict[str, str]
+
+    def _record_pocket(
+        self, candidate: Candidate, pose: ComplexPose,
+        context: RoleContextResult, template: CatalyticTemplate,
+        radius: float,
+        schemes: Mapping[str, FamilyNumberingScheme] | None,
+        result: ToolResult,
+    ) -> None:
+        """Extract this candidate's pocket once, from the first usable pose.
+
+        One pose per candidate, not an average over poses: the pocket is a
+        property of the protein, and a union over poses would grow with how
+        many poses happened to be modelled, which would make a
+        well-sampled candidate look as though it had a larger pocket.
+
+        Failures are recorded as notes and nothing else. An unmeasured pocket
+        must stay unmeasured: an empty one would read as "no residues line
+        this site", which is a claim, and :func:`pocket_distance` treats the
+        two differently on purpose.
+        """
+        if candidate.candidate_id in self._pockets:
+            return
+        residue = context.substrate_residue
+        if residue is None:
+            self._pocket_notes.setdefault(
+                candidate.candidate_id,
+                f"{pose.pose_id}: the substrate residue could not be located, "
+                f"so no pocket was extracted")
+            return
+        scheme = (schemes or {}).get(candidate.family.family_name or "")
+        pocket, note = pocket_residues_for_pose(
+            candidate.candidate_id, candidate.sequence, context.structure,
+            residue.heavy_atoms(), max_angstrom=radius, scheme=scheme)
+        self._pocket_notes[candidate.candidate_id] = f"{pose.pose_id}: {note}"
+        if pocket is None:
+            return
+        self._pockets[candidate.candidate_id] = pocket
+        if pocket.n_lost:
+            result.add_flag(
+                "pocket_residues_unplaced", Severity.WARN,
+                f"{pocket.n_lost} of "
+                f"{len(pocket.tokens) + pocket.n_lost} pocket residue(s) could "
+                f"not be placed in frame {pocket.frame}: "
+                + "; ".join(pocket.notes[:3]),
+                candidate.candidate_id)
 
     @staticmethod
     def _load_structure(

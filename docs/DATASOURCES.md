@@ -7,10 +7,17 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 
 ## Read this first
 
-> **No entry in this registry has been connectivity-tested in this environment.**
-> Every `DataSource` carries `connectivity_verified: false`, and the model
-> *refuses* a `true` value — the field validator raises. Nothing below has been
-> called, downloaded, authenticated against or benchmarked here.
+> **Three entries of 49 have been connectivity-tested; the rest have not.**
+> UniProtKB, RCSB PDB and Rhea were called by `eagent sources verify` and carry
+> the record of those calls — URL, timestamp, status, response digest, and the
+> strings that had to appear in the body. Every other `DataSource` carries
+> `connectivity_verified: false`.
+>
+> `true` is admissible only alongside such a record. A bare boolean asserting
+> "this works" is worth nothing, which is why the model used to refuse `true`
+> outright; a pass says *this capability, at this URL, answered correctly at
+> this time, from this environment*, and nothing more. Nothing below has been
+> downloaded in bulk, authenticated against or benchmarked here.
 >
 > **Capability flags describe documentation, not verified behaviour.** A flag
 > that says `bulk_snapshot: supported` means a bulk route is documented
@@ -23,11 +30,12 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 > in `curation_notes` exactly what a curator must confirm — the model refuses an
 > unexplained curation flag.
 >
-> **No entry records an endpoint at all.** Five entries once carried a base URL
-> recalled from general knowledge rather than read from documentation. All five
-> `endpoint` keys are now `null`, and each recalled URL sits in that entry's
-> `curation_notes`, phrased as a starting hint that has never been called, so
-> no consumer can read it as an established route.
+> **An endpoint is recorded only where a call reached it.** Five entries once
+> carried a base URL recalled from general knowledge rather than read from
+> documentation; all five were nulled and the recalled URL kept in that
+> entry's `curation_notes` as a starting hint that had never been called. Three
+> endpoints are recorded now, and each was dialled: the hint for `uniprotkb`
+> stays beside the verified route so a reader can see which it was.
 >
 > A registry that admits uncertainty is useful. One with a plausible remembered
 > endpoint is dangerous, because code will call it.
@@ -42,21 +50,38 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 | `license` | A statement, with `license_source` naming who made it. | The licence has not been read. `needs_legal_review` cannot be false while `license` is null. |
 | `redistribution_allowed: unknown` | — | The licence has not been read. **It does not mean redistribution is permitted.** |
 | capability `unknown` | — | Nobody checked. It is **not** `not_supported`; a planner can prefer a verified route and schedule the unknown one for curation. |
-| `connectivity_verified` | Always `false`. | — |
+| `connectivity_verified` | `true` only with a recorded `ConnectivityCheck`. | A pass is about one capability at one URL at one time, from one environment. It is not a licence, not permission to redistribute, and says nothing about the other capabilities. |
 
-**No entry records an endpoint.** Five once did — `europe_pmc`, `ncbi_protein`,
-`pubchem`, `pubmed`, `uniprotkb` — but those URLs were recalled from general
-knowledge, not read from the providers' documentation, and the citations
-backing them were bare URLs recalled the same way and never opened from here.
-A registry consumed by code must not carry a URL nobody has called, so all five
-`endpoint` keys and all five citations are gone. Each recalled URL survives in
-that entry's `curation_notes` as a starting hint for a curator, stated as never
-having been called, together with what must be confirmed before an endpoint may
-be recorded at all.
+**Three entries record an endpoint; 46 do not.** Five once did —
+`europe_pmc`, `ncbi_protein`, `pubchem`, `pubmed`, `uniprotkb` — but those URLs
+were recalled from general knowledge, not read from the providers'
+documentation, and the citations backing them were bare URLs recalled the same
+way and never opened from here. A registry consumed by code must not carry a
+URL nobody has called, so all five were nulled and each recalled URL survives
+in that entry's `curation_notes` as a starting hint, stated as never having
+been called.
 
-Twenty-six entries therefore declare a network access mode and record **no**
+`uniprotkb` has since been dialled, along with `rcsb_pdb` and `rhea`.
+`eagent sources verify` asked each for one known record, checked that the
+response contained what only that record carries, fetched the provider's own
+documentation page in the same sweep, and wrote the result to
+`connectivity.observed.yaml` — machine-written, merged at load, and separate
+from these curated files because a reachable URL goes stale on its own while a
+curated judgement does not. The citation records when the documentation was
+opened, so it is an observation rather than an assertion that documentation
+exists.
+
+Twenty-three entries still declare a network access mode and record **no**
 endpoint; they are exactly what `SourceRegistry.without_endpoint()` returns, and
 every one must be resolved by a curator before any connector dials anything.
+
+**A verified base URL still licenses nothing.** The probe shows that one
+request, spelled one way, returned the record it asked for. It says nothing
+about the URL a connector would build: the generic `<base>/<key>` shape is not
+Rhea's query-parameter API, and calling it would produce a 404 that the
+resolver reports as a miss — a route silently not working, which is worse than
+a refusal. So a connector declares the probed capability its client was
+written against, and `uniprotkb` is the only one that does.
 
 Exactly **one** licence string is recorded anywhere in the registry: `brenda`
 carries `CC BY 4.0`, and its `license_source` says:
@@ -76,9 +101,10 @@ curation note demanding the terms be established before use.
 | Measure | Value |
 | --- | --- |
 | Registered sources | 49 (defined once each; `enzengdb` declares two layers) |
-| Entries with `connectivity_verified: true` | **0**, and the schema refuses it |
+| Entries with `connectivity_verified: true` | **3** (uniprotkb, rcsb_pdb, rhea), each with the call recorded |
 | Entries with `needs_curation: true` | 49 |
-| Entries with a recorded endpoint | **0** |
+| Entries with a recorded endpoint | **3**, each reached by a recorded call |
+| Connectors whose client was checked against a probe | **1** (uniprotkb) |
 | Network-mode entries with no endpoint | 26 |
 | Entries with a recorded licence | 1 (`brenda`, unverified) |
 | Entries with `needs_legal_review: true` | 49 |
@@ -497,11 +523,14 @@ than pretending otherwise.
 `plan.readiness(stage, registry, available_sources=...)` reports what can
 actually run. `available_sources` is what an **operator asserts is reachable in
 this environment, right now**. It is not defaulted to "everything registered"
-and it is not derived from the registry's access modes, because every entry
-carries `connectivity_verified: false` and deriving availability from the
-registry would manufacture exactly the confidence the registry refuses to state.
-Passing `None` therefore reports every source-dependent package as blocked. That
-is the honest starting state of a fresh checkout.
+and it is not derived from the registry's access modes, because an access mode
+is documentation and deriving availability from it would manufacture exactly
+the confidence the registry refuses to state. It is not derived from
+`connectivity_verified` either: a route that answered once, from one
+environment, at one moment, is not a route that is up now — and reachability
+is still not a licence, a rate limit or a bulk route. Passing `None` therefore
+reports every source-dependent package as blocked. That is the honest starting
+state of a fresh checkout.
 
 ---
 
@@ -509,11 +538,21 @@ is the honest starting state of a fresh checkout.
 
 ### 最重要的一句话
 
-**本注册表中没有任何一条做过连通性测试。** 每一条 `DataSource` 都带
-`connectivity_verified: false`，而且模式层**拒绝**写入 `true`。能力标志描述的是"文档
-上声称提供什么"，不是"已验证可用"。所有不确定的值一律写 `null` 并置
-`needs_curation: true`，同时在 `curation_notes` 里写清策展人必须确认什么——模型拒绝
-接受一个没有说明的 curation 标志。
+**49 条里只有 3 条做过连通性测试。** UniProtKB、RCSB PDB、Rhea 由
+`eagent sources verify` 在本容器里真实调用过，并把调用记录（URL、时间、状态码、
+响应摘要，以及响应体中必须出现的字符串）写进了注册表；其余每一条仍带
+`connectivity_verified: false`。
+
+`true` 只有在带着这样一条记录时才被接受。一个光秃秃的布尔值说"这条路能走"毫无价值——
+这正是模式层原先直接拒绝 `true` 的原因；一次通过只说明**这个能力、这个 URL、在这个时刻、
+从这个环境**答对了，仅此而已。能力标志描述的仍是"文档上声称提供什么"，不是"已验证可用"。
+所有不确定的值一律写 `null` 并置 `needs_curation: true`，同时在 `curation_notes` 里写清
+策展人必须确认什么——模型拒绝接受一个没有说明的 curation 标志。
+
+**而且"基址已验证"并不等于"请求已验证"。** 探针证明的是某一条写法的请求拿回了它要的那条
+记录；连接器自己拼出来的 `<base>/<key>` 并不是 Rhea 的查询式 API，调用它会得到一个 404，
+而解析层会把它报告成一次 miss——一条悄无声息失效的路线，比直接拒绝更糟。所以连接器必须
+声明自己的客户端是照着哪一条探过的请求写的，目前只有 UniProtKB 声明了。
 
 一个承认自己不确定的注册表是有用的；一个编造了看起来合理的 endpoint 的注册表是危险的，
 因为代码真的会去调用它。

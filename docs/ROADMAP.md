@@ -28,12 +28,18 @@ bundle.
 
 **Not yet demonstrated, and the gap is specific:**
 
-- **No data source has been connectivity-tested.** All 49 entries in
-  `configs/datasources/` carry `connectivity_verified: false`, 49 carry
-  `needs_curation: true`, and **0 record an endpoint**. Twenty-six are
-  registered with a network access mode but no endpoint, which means the
-  registry describes what each resource is *documented* to offer, not what has
-  been proven to work from this machine.
+- **Three data sources of 49 have been connectivity-tested.** UniProtKB,
+  RCSB PDB and Rhea were called from this container by `eagent sources verify`
+  and carry the record of those calls; the other 46 carry
+  `connectivity_verified: false` and no endpoint, and all 49 still carry
+  `needs_curation: true`. For those 46 the registry describes what each
+  resource is *documented* to offer, not what has been proven to work.
+- **One connector of them can use its route.** A verified base URL is not a
+  verified request: UniProtKB's client was written against a recorded probe
+  and declares which shape it was checked against, while every other
+  connector's client is generic and refuses with
+  `RequestShapeNotVerifiedError` rather than calling a URL nobody checked it
+  against.
 - **No search binary, structure predictor, docking program or inverse-folding
   model is installed.** Every one of those steps is a seam that reports
   `tool_unavailable`.
@@ -276,7 +282,7 @@ Three states only:
 | `datalayer/preconditions.py` | implemented | the five-step gate chain |
 | `datalayer/house_db.py` | implemented | sqlite3; four storage-layer refusals |
 | `datalayer/plan.py` | implemented | three rollout stages as typed, validated work packages |
-| **Source connectivity** | **not started** | 0 of 49 sources connectivity-tested; 0 record an endpoint; 26 registered in a network mode with no endpoint; 6 are human-import only; 23 record their lineage as admittedly incomplete |
+| **Source connectivity** | **3 of 49** | UniProtKB, RCSB PDB and Rhea verified by `eagent sources verify` with the calls recorded in `connectivity.observed.yaml`; 1 connector (UniProtKB) has a client checked against its probe; 23 record their lineage as admittedly incomplete |
 | `connectors/base.py` | implemented | cache-first contract, disclosure guard, evidence ceilings |
 | Per-resource connectors (UniProt, PDB, …) | **not started** | all ten resources wired as `OfflineConnector` |
 
@@ -315,7 +321,8 @@ Three states only:
 | Family numbering schemes | **not started** | `science/family_numbering.py` and `science/pocket.py` ship the machinery; no sourced reference sequence is bundled, so pocket signatures fall back to composition and say so |
 | Assay templates (3 tiers) | implemented, **needs curation** | every numeric bar `null`; limits of detection must be measured on site |
 | `configs/tool_registry.yaml` | implemented, **needs legal review** | 11 tools × 4 facets = 44 entries; every licence `null`, every commercial permission `null`, which blocks a commercial run |
-| `configs/datasources/*.yaml` | implemented, **not connectivity-tested** | see the data-layer table above |
+| `configs/datasources/*.yaml` | implemented, **3 of 49 tested** | see the data-layer table above |
+| `datalayer/probe.py` | implemented | shipped probes, marker checks, the observation file |
 | De novo design | **not started** | — |
 
 ### Known wart

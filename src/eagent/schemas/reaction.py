@@ -164,7 +164,12 @@ class Approval(BaseModel):
 class ReactionSpec(BaseModel):
     """What chemistry must happen, stated precisely enough to be falsifiable."""
 
-    model_config = ConfigDict(extra="forbid")
+    #: ``validate_assignment`` because this model carries an invariant between
+    #: two of its fields -- exactly one substrate path -- and the spec is
+    #: filled in by assignment as an operator resolves it. Without it the
+    #: invariant holds only at construction, which is the one moment a task
+    #: spec is empty.
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     reaction_class: ReactionClass = ReactionClass.OTHER
     atom_mapped_reaction_smiles: str | None = None
@@ -179,6 +184,41 @@ class ReactionSpec(BaseModel):
     rhea_id: str | None = None
     ec_hint: str | None = None
     notes: str = ""
+
+    @model_validator(mode="after")
+    def _exactly_one_substrate_path(self) -> "ReactionSpec":
+        """Refuse a spec that fills both substrate paths.
+
+        The field says exactly one path is used, and every reader picks one:
+        the gate table follows :attr:`substrate_kind`, which prefers the
+        biopolymer, while the structure checks used to read ``substrate``
+        regardless. A task carrying both therefore satisfied each reader with a
+        different molecule -- and adding an unrelated small molecule to a
+        peptide task *removed* a blocker, because the two readers disagreed
+        about what the substrate was.
+
+        Refused here, where both fields are visible at once, rather than in
+        each reader. A name alone counts: it is what somebody believes the
+        substrate is, and two of those is still two substrates.
+        """
+        if self.biopolymer_substrate is None:
+            return self
+        small = self.substrate
+        declared = [f for f, v in (("name", small.name),
+                                   ("isomeric_smiles", small.isomeric_smiles),
+                                   ("molfile", small.molfile),
+                                   ("inchikey", small.inchikey)) if v]
+        if declared:
+            raise ValueError(
+                f"reaction.substrate declares {', '.join(declared)} while "
+                f"reaction.biopolymer_substrate declares a "
+                f"{self.biopolymer_substrate.kind.value}. Exactly one "
+                f"substrate path is used, and every reader picks one: the gate "
+                f"table would follow the biopolymer and the structure checks "
+                f"the small molecule, so the task would pass by describing two "
+                f"different substrates. Clear whichever is not the substrate."
+            )
+        return self
 
     @property
     def substrate_kind(self) -> SubstrateKind:

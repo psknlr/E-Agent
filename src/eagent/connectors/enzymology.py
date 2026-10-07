@@ -446,28 +446,79 @@ class EngineeringCampaignRecord:
     evidence: EvidenceRef
     caveats: tuple[str, ...] = ()
 
-    def to_experiment_record(self) -> ExperimentRecord:
+    def to_experiment_record(
+        self, parent_sequence_sha256: str | None = None,
+    ) -> ExperimentRecord:
         """A variant record, refusing to exist without its parent.
 
         :class:`~eagent.schemas.record.ExperimentRecord` requires a variant to
-        name its parent sequence hash. A campaign row that does not identify its
-        parent therefore cannot become a variant record at all, which is correct:
-        a mutation without a parent is not a construct.
+        name its parent sequence hash. A campaign row that does not identify
+        its parent therefore cannot become a variant record at all, which is
+        correct: a mutation without a parent is not a construct.
+
+        WHAT THIS USED TO LOSE
+        ----------------------
+        A row carrying ``mutations=["A123V"]`` came out with
+        ``is_variant=False`` and ``accession`` set to the *parent's*
+        accession. Three consequences, none of them visible in the output:
+
+        * the record read as a measurement on the wild-type enzyme, and the
+          evidence matrix counted it as wild-type corroboration;
+        * ``group_key`` fell back to this record's own sequence hash (absent),
+          so the variant shared no lineage with its parent and a
+          leakage-controlled split could put the two on opposite sides;
+        * the campaign's PMID was dropped entirely, so the one thing that
+          makes the row checkable was gone.
+
+        A variant now needs ``parent_sequence_sha256`` -- the schema's own
+        requirement, surfaced here as an argument instead of being evaded by
+        leaving ``is_variant`` false. Without it the row stays an
+        :class:`EngineeringCampaignRecord`, which loses nothing, rather than
+        becoming a record that says something untrue.
         """
         if self.mutations and not self.parent_accession:
             raise LayerSemanticsError(
                 f"{self.source_id}:{self.record_id} lists mutations "
                 f"{list(self.mutations)} but names no parent; a mutation "
                 f"relative to an unnamed parent identifies no construct")
+        if self.mutations and not parent_sequence_sha256:
+            raise LayerSemanticsError(
+                f"{self.source_id}:{self.record_id} lists mutations "
+                f"{list(self.mutations)} relative to {self.parent_accession}, "
+                f"but no parent sequence hash was supplied. Resolve "
+                f"{self.parent_accession} to a sequence and pass its hash: a "
+                f"variant written without it comes out as a measurement on "
+                f"the wild-type enzyme, counts as wild-type corroboration in "
+                f"the evidence matrix, and shares no lineage with its parent "
+                f"in a leakage-controlled split")
+        evidence = [self.evidence]
+        if self.publication_id:
+            # The campaign's own publication, kept as its own reference. It is
+            # the primary source; the connector's row id only says where the
+            # re-curation was read. Dropping it left the row uncheckable.
+            evidence.append(self.evidence.model_copy(update={
+                "source_type": "publication",
+                "identifier": self.publication_id,
+                "source_record_id": self.publication_id,
+                "locator": (f"campaign row {self.record_id} in "
+                            f"{self.source_id}"),
+            }))
         return ExperimentRecord(
             record_id=f"{self.source_id}:{self.record_id}",
-            accession=self.parent_accession,
+            # A variant's accession is not its parent's. The parent travels in
+            # parent_sequence_sha256, where the lineage layer reads it.
+            accession=None if self.mutations else self.parent_accession,
+            is_variant=bool(self.mutations),
+            parent_sequence_sha256=(parent_sequence_sha256
+                                    if self.mutations else None),
             mutations=list(self.mutations),
+            construct_description=(f"variant of {self.parent_accession}"
+                                   if self.mutations else None),
             outcome=OutcomeClass.NOT_TESTED,
             measurement_type=self.measurement_type,
             measurement_value=self.value,
             measurement_unit=self.unit,
-            evidence=[self.evidence],
+            evidence=evidence,
             notes="; ".join(self.caveats),
         )
 

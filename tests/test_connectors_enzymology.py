@@ -511,16 +511,68 @@ class TestEnzEngDBCampaigns(EnzymologyTestCase):
         with self.assertRaises(Exception):
             campaign.to_experiment_record()
 
-    def test_an_effect_does_not_transfer_to_another_parent(self) -> None:
+    def _campaign(self, **overrides):
         connector = EnzEngDBConnector(cache=self.cache)
-        connector.store_import("search", {"q": "adh"}, {"records": [
-            {"record_id": "c1", "parent_accession": "P1",
-             "mutations": ["A123V"], "effect": "3-fold kcat"}]})
-        campaign = connector.campaigns_for({"q": "adh"})[0]
+        row = {"record_id": "c1", "parent_accession": "P1",
+               "mutations": ["A123V"], "effect": "3-fold kcat",
+               "pubmed_id": "PMID:12345678"}
+        row.update(overrides)
+        connector.store_import("search", {"q": "adh"}, {"records": [row]})
+        return connector.campaigns_for({"q": "adh"})[0]
+
+    PARENT_HASH = "sha256:" + "ab" * 32
+
+    def test_an_effect_does_not_transfer_to_another_parent(self) -> None:
+        campaign = self._campaign()
         self.assertIn("does not transfer", " ".join(campaign.caveats))
-        record = campaign.to_experiment_record()
+        record = campaign.to_experiment_record(self.PARENT_HASH)
         self.assertEqual(record.mutations, ["A123V"])
         self.assertIs(record.outcome, OutcomeClass.NOT_TESTED)
+
+    def test_a_variant_without_its_parent_sequence_is_refused(self) -> None:
+        """Left to default, is_variant came out False on a row with mutations.
+
+        The record then read as a measurement on the wild-type enzyme, counted
+        as wild-type corroboration in the evidence matrix, and shared no
+        lineage with its parent in a leakage-controlled split.
+        """
+        with self.assertRaises(Exception) as ctx:
+            self._campaign().to_experiment_record()
+        self.assertIn("parent sequence hash", str(ctx.exception))
+
+    def test_a_variant_record_says_it_is_one(self) -> None:
+        record = self._campaign().to_experiment_record(self.PARENT_HASH)
+        self.assertTrue(record.is_variant)
+        self.assertEqual(record.parent_sequence_sha256, self.PARENT_HASH)
+
+    def test_a_variant_does_not_borrow_its_parent_s_accession(self) -> None:
+        record = self._campaign().to_experiment_record(self.PARENT_HASH)
+        self.assertIsNone(record.accession)
+        self.assertIn("P1", record.construct_description or "")
+
+    def test_the_lineage_reaches_the_group_key(self) -> None:
+        record = self._campaign().to_experiment_record(self.PARENT_HASH)
+        self.assertEqual(record.group_key()[0], self.PARENT_HASH)
+
+    def test_the_campaign_s_publication_survives(self) -> None:
+        record = self._campaign().to_experiment_record(self.PARENT_HASH)
+        identifiers = {e.identifier for e in record.evidence}
+        self.assertIn("PMID:12345678", identifiers)
+        publication = next(e for e in record.evidence
+                           if e.source_type == "publication")
+        self.assertEqual(publication.source_id, "enzengdb")
+        self.assertIn("c1", publication.locator or "")
+
+    def test_a_row_with_no_publication_adds_no_reference(self) -> None:
+        record = self._campaign(pubmed_id=None).to_experiment_record(
+            self.PARENT_HASH)
+        self.assertEqual([e.source_type for e in record.evidence], ["database"])
+
+    def test_a_row_with_no_mutations_is_still_the_parent_s_record(self) -> None:
+        record = self._campaign(mutations=[]).to_experiment_record()
+        self.assertFalse(record.is_variant)
+        self.assertEqual(record.accession, "P1")
+        self.assertIsNone(record.parent_sequence_sha256)
 
 
 class TestPolicyIsHonoured(EnzymologyTestCase):

@@ -149,6 +149,7 @@ from ..science.numbering import (
     NumberingError,
     ResidueMap,
     build_map,
+    letter_of_residue_token,
     verify_residue,
 )
 from ..science.structure_io import Atom, Chain, Structure
@@ -890,8 +891,27 @@ def frozen_indices(
 
     ``extra`` lets a caller freeze additional positions (an engineered
     disulfide, a tag junction) without editing the template.
+
+    THE INDEX IS CHECKED AGAINST THE SEQUENCE
+    -----------------------------------------
+    An index is only meaningful for the sequence it was computed on. Prepend
+    a His6 tag to a parent and every index shifts by six: the freeze then
+    protects whatever now sits at the old index -- in a real case, the
+    initiator methionine -- while the catalytic tyrosine six residues further
+    on is left mutable and gets proposed on. Nothing in the output
+    distinguishes that from a verified freeze.
+
+    So each role's recorded residue letter is checked against the residue
+    actually at its index. A disagreement makes the role **unresolved**, which
+    the caller already treats as a refusal to design on this parent, with the
+    right remedy: re-run ``annotate_family`` against the sequence as it now
+    stands. A role recorded as ``X`` asserts no letter and is accepted, and a
+    role recorded without a letter at all is treated the same way -- the check
+    tightens what can be verified and invents nothing where there is nothing
+    to check.
     """
     mapping = candidate.catalytic_mapping
+    sequence = candidate.sequence or ""
     out: set[int] = set(int(i) for i in extra)
     unresolved: list[str] = []
     for role in template.frozen_roles:
@@ -899,7 +919,24 @@ def frozen_indices(
         if idx is None:
             unresolved.append(role)
             continue
-        out.add(int(idx))
+        idx = int(idx)
+        if not 0 <= idx < len(sequence):
+            unresolved.append(
+                f"{role} (recorded at index {idx}, outside a sequence of "
+                f"length {len(sequence)}: the annotation is not this "
+                f"sequence's)")
+            continue
+        expected = letter_of_residue_token(
+            mapping.role_to_residue.get(role) or mapping.substituted_roles.get(role))
+        found = sequence[idx].upper()
+        if expected not in (None, "X") and found != expected:
+            unresolved.append(
+                f"{role} (recorded as {expected} at index {idx}, but this "
+                f"sequence has {found} there: the catalytic mapping was "
+                f"computed on a different sequence, so the freeze would "
+                f"protect the wrong position)")
+            continue
+        out.add(idx)
     return out, unresolved
 
 

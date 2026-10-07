@@ -52,6 +52,7 @@ __all__ = [
     "three_to_one",
     "one_to_three",
     "residue_one_letter",
+    "letter_of_residue_token",
     "Alignment",
     "needleman_wunsch",
     "alignment_score",
@@ -192,6 +193,26 @@ def residue_one_letter(resname: str) -> str | None:
         return THREE_TO_ONE[key]
     if key in MODIFIED_RESIDUE_PARENT:
         return MODIFIED_RESIDUE_PARENT[key]
+    return None
+
+
+def letter_of_residue_token(token: str | None) -> str | None:
+    """The amino acid in a residue token like ``Y155``, ``TYR155`` or ``Y``.
+
+    ``None`` when the token names no recognisable residue. Used wherever a
+    recorded token has to be checked against a sequence: the *number* in such
+    a token is author numbering and carries no meaning outside the structure
+    it came from, while the letter is the chemistry and can be verified
+    against the residue that is actually there.
+    """
+    text = "".join(str(token or "").split()).upper()
+    if not text:
+        return None
+    stem = text.rstrip("0123456789")
+    if len(stem) == 1:
+        return stem if stem in ONE_TO_THREE else None
+    if len(stem) == 3:
+        return residue_one_letter(stem)
     return None
 
 

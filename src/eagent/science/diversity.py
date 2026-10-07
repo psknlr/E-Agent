@@ -70,6 +70,7 @@ from ..schemas import (
     ConfidenceLevel,
     ControlItem,
 )
+from .numbering import letter_of_residue_token
 from .pocket import PocketResidues, pocket_residues_from_tokens
 from .scorecard import (
     DEFAULT_LEXICOGRAPHIC_ORDER,
@@ -413,14 +414,13 @@ def _residue_letter(token: str) -> str:
     """The amino acid in a token like ``Y155``, without the number.
 
     The number is author numbering and means nothing across proteins; the
-    letter is the chemistry. A token that is already a bare letter, or that
-    this function does not recognise, comes back unchanged rather than being
-    reshaped into something that looks canonical.
+    letter is the chemistry. A token this does not recognise comes back
+    unchanged rather than being reshaped into something that looks canonical:
+    a signature built from an unparseable token is still a signature, and
+    quietly turning it into a letter would compare two things that are not
+    residues as though they were.
     """
-    text = str(token or "").strip()
-    if len(text) >= 2 and text[0].isalpha() and text[1:].strip("0123456789") == "":
-        return text[0].upper()
-    return text
+    return letter_of_residue_token(token) or str(token or "").strip()
 
 
 def _as_pocket_residues(

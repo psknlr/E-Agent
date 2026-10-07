@@ -830,6 +830,17 @@ class MatrixCell:
     not_tested: int = 0
     computational_only: int = 0
     independent_sources: int = 0
+    #: Independent sources among the **wild-type** confirmations only.
+    #:
+    #: Counted apart from :attr:`independent_sources` because the maturity
+    #: question is about wild-type enzymes. One wild-type success plus one
+    #: engineered-variant success from another source made the pooled count
+    #: reach two and the cell read "independent wild-type successes exist for
+    #: this chemotype" -- while there was exactly one wild-type success and
+    #: the second witness was about a protein somebody had already had to
+    #: engineer. That is the difference between "pick one off the shelf" and
+    #: "budget an engineering campaign".
+    independent_wild_type_sources: int = 0
     max_strength: EvidenceStrength = EvidenceStrength.COMPUTATIONAL_CONSTRUCT
     record_ids: list[str] = field(default_factory=list)
 
@@ -844,7 +855,10 @@ class MatrixCell:
         if self.confirmed_wild_type > 0:
             # Corroboration is counted in independent sources, not in records:
             # four databases re-publishing one measurement is one witness.
-            if self.independent_sources >= MIN_INDEPENDENT_SOURCES_FOR_MATURE:
+            # And in the sources of the WILD-TYPE confirmations: a variant's
+            # success corroborates the variant, not the natural enzyme.
+            if (self.independent_wild_type_sources
+                    >= MIN_INDEPENDENT_SOURCES_FOR_MATURE):
                 return Maturity.MATURE_NATURAL
             return Maturity.NATURAL_SINGLE_REPORT
         if self.confirmed_variant > 0:
@@ -874,6 +888,7 @@ class MatrixCell:
                 f"op={self.other_product} ut={self.not_tested} "
                 f"comp={self.computational_only} "
                 f"ind={self.independent_sources} "
+                f"indwt={self.independent_wild_type_sources} "
                 f"str={strength}")
 
     def to_dict(self) -> dict[str, Any]:
@@ -889,6 +904,7 @@ class MatrixCell:
             "not_tested": self.not_tested,
             "computational_only": self.computational_only,
             "independent_sources": self.independent_sources,
+            "independent_wild_type_sources": self.independent_wild_type_sources,
             "max_strength": self.max_strength.value,
             "n_records": self.n_records,
         }
@@ -1054,6 +1070,10 @@ def build_evidence_matrix(rows: Sequence[EvidenceRow],
     for key, recs in confirmed_records.items():
         n, method = _count_independent(recs)
         cells[key].independent_sources = n
+        wild_type = [r for r in recs if not r.is_variant]
+        if wild_type:
+            cells[key].independent_wild_type_sources = (
+                _count_independent(wild_type)[0])
 
     ordered_families = tuple(sorted(f for f in families if f != UNASSIGNED_FAMILY))
     if UNASSIGNED_FAMILY in families:

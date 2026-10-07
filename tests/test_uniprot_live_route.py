@@ -222,10 +222,14 @@ class TheRouteIsDeclaredAndVerified(unittest.TestCase):
         self.assertIn(".json", probe.url)
         self.assertIn("fields=", probe.url)
 
-    def test_a_connector_without_a_checked_client_still_refuses(self) -> None:
+    def test_a_verified_url_without_a_checked_client_still_refuses(self) -> None:
+        """RCSB's base URL is verified. A client that declares no probed shape
+        is refused anyway: a verified base is not a verified request."""
         from eagent.connectors.structure import RCSBPDBConnector
         with tempfile.TemporaryDirectory() as tmp:
             connector = RCSBPDBConnector(cache=FileCache(pathlib.Path(tmp)))
+            connector.verified_route_capability = None     # an unchecked client
+            self.assertIsNotNone(connector.source.endpoint)
             with self.assertRaises(RequestShapeNotVerifiedError):
                 connector.require_endpoint()
 

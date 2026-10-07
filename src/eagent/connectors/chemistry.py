@@ -72,6 +72,7 @@ import csv
 import enum
 import io
 import json
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, replace
@@ -92,6 +93,7 @@ from ..datalayer.intake import (
     direction_check,
     ingest,
 )
+from ..datalayer.probe import USER_AGENT
 from ..datalayer.registry import (
     AccessMode,
     CAPABILITY_NAMES,
@@ -115,6 +117,7 @@ from .base import (
     FileCache,
     AccessPolicy,
     NetworkDisabledError,
+    RemoteCallFailedError,
     ResponseStatus,
     records_in,
 )
@@ -171,6 +174,20 @@ class ConnectorConfigurationError(ConnectorError):
     wiring code, where it is a one-line fix, instead of in the middle of a run
     where it looks like a transient outage.
     """
+
+
+def _error_detail(exc: "urllib.error.HTTPError") -> str:
+    """The service's own explanation of an HTTP error, when it gave one.
+
+    A bare ``HTTP 400`` sends somebody to curl to find out what was wrong;
+    most APIs say so in the body. Truncated, and never trusted as anything but
+    text for a human.
+    """
+    try:
+        body = exc.read().decode("utf-8", errors="replace").strip()
+    except Exception:                                    # pragma: no cover
+        return ""
+    return f": {body[:240]}" if body else ""
 
 
 class EndpointNotEstablishedError(NetworkDisabledError):
@@ -716,8 +733,38 @@ class RegistryBackedConnector(Connector):
         sep = "&" if urllib.parse.urlparse(base).query else "?"
         return self._http_json(f"{base}{sep}{urllib.parse.urlencode(params)}")
 
+    def _http_text(self, url: str, timeout: float = 30.0,
+                   accept: str = "*/*") -> str | None:
+        """GET one URL and return the body, or ``None`` for "nothing there".
+
+        The shared half of :meth:`_http_json`, for services that answer in
+        TSV. Status handling is identical because it is the same question:
+        404 and 410 say the service looked and found nothing, which is an
+        answer; every other failure is :class:`RemoteCallFailedError`, because
+        an unanswered question must not be recorded as a negative one.
+        """
+        if not self.access.allow_network:
+            raise NetworkDisabledError(
+                f"{self.source_id}: a remote call was attempted while "
+                f"allow_network is false")
+        request = urllib.request.Request(
+            url, method="GET",
+            headers={"Accept": accept, "User-Agent": USER_AGENT})
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as handle:  # noqa: S310
+                return handle.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            if exc.code in (404, 410):
+                return None
+            raise RemoteCallFailedError(
+                self.source_id, url,
+                f"HTTP {exc.code}" + _error_detail(exc), status=exc.code) from exc
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise RemoteCallFailedError(
+                self.source_id, url, f"{type(exc).__name__}: {exc}") from exc
+
     def _http_json(self, url: str, timeout: float = 30.0) -> tuple[Any, str | None]:
-        """GET one URL and parse JSON. The only outbound call in this package.
+        """GET one URL and parse JSON. One of two outbound calls in this package.
 
         Kept in one place so the policy check cannot be forgotten in a subclass:
         a connector that wrote its own ``urlopen`` would bypass
@@ -726,13 +773,16 @@ class RegistryBackedConnector(Connector):
         ``None`` unless the service states one -- an invented release string
         would claim a reproducibility the run does not have.
         """
-        if not self.access.allow_network:
-            raise NetworkDisabledError(
-                f"{self.source_id}: a remote call was attempted while "
-                f"allow_network is false")
-        request = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(request, timeout=timeout) as handle:  # noqa: S310
-            payload = json.loads(handle.read().decode("utf-8"))
+        raw_body = self._http_text(url, timeout, accept="application/json")
+        if raw_body is None:
+            return None, None
+        try:
+            payload = json.loads(raw_body)
+        except ValueError as exc:
+            raise RemoteCallFailedError(
+                self.source_id, url,
+                "the response was not JSON; a login page or an error page "
+                "answered instead of the API") from exc
         version = None
         if isinstance(payload, Mapping):
             raw = payload.get("database_version") or payload.get("version")
@@ -1589,6 +1639,87 @@ class _DirectionProbe:
     reaction_class: ReactionClass | None
 
 
+#: Columns requested from Rhea's TSV endpoint, in order, with the header the
+#: service writes for each. The pair is the parser: the format string and the
+#: header check below are one decision written twice, so a column the service
+#: renames or reorders is refused instead of being read from the wrong field.
+RHEA_COLUMNS: tuple[str, ...] = ("rhea-id", "equation", "ec", "chebi-id")
+RHEA_HEADER: tuple[str, ...] = (
+    "Reaction identifier", "Equation", "EC number", "ChEBI identifier")
+
+#: Rows asked for per query. Pinned so a truncated answer can be recognised:
+#: a result that exactly fills the limit may have more behind it, and saying
+#: "these are the reactions for this EC" about a clipped list is a claim about
+#: the whole.
+RHEA_QUERY_LIMIT: int = 100
+
+
+def rhea_tsv_payload(text: str, *, limit: int = RHEA_QUERY_LIMIT
+                     ) -> dict[str, Any]:
+    """Translate Rhea's TSV response into this connector's payload.
+
+    WHAT THIS RESPONSE SHAPE CANNOT SAY
+    -----------------------------------
+    It carries an identifier, the equation as written, the EC numbers and a
+    flat list of ChEBI ids. It does **not** carry the reaction's direction, its
+    master id, or which ChEBI ids sit on which side of the equation.
+
+    Those are left unstated rather than derived. The registry's own curation
+    note says the relationship between Rhea's directional and bidirectional
+    entries must be confirmed "before any direction logic is written against
+    them", and nothing in this response confirms it -- the ids returned for
+    the EC 1.1.1.1 query include numbers that do not follow the id pattern one
+    would guess from the documentation, which is exactly why a guess here
+    would be a guess. ``direction`` is therefore ``"unstated"``, and
+    :meth:`RheaConnector._build` already refuses to read an unrecorded
+    direction as a forward one.
+
+    The equation's two sides are split on `` = `` only into display strings;
+    ChEBI participants stay unsided.
+    """
+    lines = text.splitlines()
+    if not lines or tuple(c.strip() for c in lines[0].split("\t")) != RHEA_HEADER:
+        raise RemoteCallFailedError(
+            "rhea", "<tsv response>",
+            f"the header {lines[0][:120]!r} is not the expected "
+            f"{list(RHEA_HEADER)}; the column list and the parser have "
+            f"diverged, and every value would be read from the wrong field"
+            if lines else "the response was empty")
+    records: list[dict[str, Any]] = []
+    for number, line in enumerate(lines[1:], start=2):
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) != len(RHEA_HEADER):
+            raise RemoteCallFailedError(
+                "rhea", "<tsv response>",
+                f"line {number} has {len(parts)} column(s), expected "
+                f"{len(RHEA_HEADER)}: {line[:120]!r}")
+        rhea_id, equation, ec_text, chebi_text = (p.strip() for p in parts)
+        if not rhea_id.startswith("RHEA:"):
+            raise RemoteCallFailedError(
+                "rhea", "<tsv response>",
+                f"line {number}: {rhea_id!r} is not a Rhea identifier")
+        sides = equation.split(" = ", 1)
+        records.append({
+            "rhea_id": rhea_id,
+            "equation": equation,
+            "equation_left_text": sides[0].strip() if len(sides) == 2 else None,
+            "equation_right_text": sides[1].strip() if len(sides) == 2 else None,
+            "ec_numbers": [e.removeprefix("EC:").strip()
+                           for e in ec_text.split(";") if e.strip()],
+            "participants": [c.strip() for c in chebi_text.split(";")
+                             if c.strip()],
+            "direction": "unstated",
+            "reaction_class": None,
+            "participants_left": [],
+            "participants_right": [],
+            "master_id": None,
+        })
+    return {"records": records, "truncated": len(records) >= limit,
+            "query_limit": limit}
+
+
 class RheaConnector(RegistryBackedConnector):
     """Rhea reactions, with the written direction preserved end to end.
 
@@ -1612,6 +1743,56 @@ class RheaConnector(RegistryBackedConnector):
     source_id = "rhea"
     data_layer = ConnectorLayer.REACTION
     description = "Rhea: expert-curated reactions with ChEBI participants"
+    #: The one request shape this client makes, and the one the shipped probes
+    #: check: ``/rhea?query=<q>&columns=<pinned>&format=tsv&limit=<n>``, where
+    #: ``<q>`` is ``RHEA:<n>`` for a fetch and ``ec:<ec>`` for an EC search.
+    verified_route_capability = "keyword_query"
+
+    def _query_url(self, query: str) -> str:
+        base = self.require_endpoint().rstrip("/")
+        return (f"{base}/rhea?query={urllib.parse.quote(query, safe=':.')}"
+                f"&columns={','.join(RHEA_COLUMNS)}&format=tsv"
+                f"&limit={RHEA_QUERY_LIMIT}")
+
+    def _fetch_remote(self, key: str) -> tuple[Any, str | None]:
+        """One reaction by identifier, through the keyword-query route.
+
+        Rhea has no per-record JSON route that answers without a browser
+        (``/rhea/<id>.json`` is a 403 from this environment), so a fetch is a
+        keyword query for the identifier. It succeeds only if exactly that
+        identifier comes back: a query that returned some *other* reaction
+        would otherwise be cached under this key.
+        """
+        wanted = str(key).strip()
+        text = self._http_text(self._query_url(wanted), accept="text/plain")
+        if text is None:
+            return None, None
+        payload = rhea_tsv_payload(text)
+        rows = [r for r in payload["records"] if r["rhea_id"] == wanted]
+        if not rows:
+            return None, None
+        return {"records": rows, "truncated": False}, None
+
+    def _search_remote(self, query: Mapping[str, Any]) -> tuple[Any, str | None]:
+        """An EC search. Any other query shape is refused, not improvised.
+
+        Only the EC query was probed. A free-text or ChEBI query would be a
+        guess at a syntax this client has not been checked against, and the
+        service answers a malformed query with an empty, successful-looking
+        table -- the failure that cannot be told from "no such reaction".
+        """
+        keys = {k for k in query if k != "op"}
+        if keys != {"ec"}:
+            raise ConnectorError(
+                f"rhea: this client supports only an EC search "
+                f"({{'ec': '1.1.1.1'}}); got {sorted(keys)}. Other query "
+                f"syntaxes have not been probed, and a malformed one returns "
+                f"an empty table that reads as 'no such reaction'")
+        text = self._http_text(self._query_url(f"ec:{str(query['ec']).strip()}"),
+                               accept="text/plain")
+        if text is None:
+            return None, None
+        return rhea_tsv_payload(text), None
 
     def reaction(self, rhea_id: str) -> RheaReaction | None:
         """Fetch one reaction, or ``None`` when it is not cached."""

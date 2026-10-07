@@ -155,6 +155,81 @@ class PDBEntryRecord:
                 "notes": list(self.notes)}
 
 
+def rcsb_entry_payload(
+    entry: Mapping[str, Any],
+    polymer_entities: Mapping[str, Mapping[str, Any]],
+    nonpolymer_entities: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Translate live RCSB core-API responses into this connector's payload.
+
+    Three response kinds, because that is how the API divides a structure: the
+    entry (method, resolution, entity ids), one record per polymer entity (the
+    sequence and the chains it occupies) and one per non-polymer entity (the
+    component id and the chains it sits on).
+
+    WHAT THE CORE API DOES NOT CARRY
+    --------------------------------
+    Ligand **occupancy** and **author residue number** live in the coordinate
+    file, not in the metadata. They are left ``None`` rather than defaulted:
+    a ligand listed in an entry is not proof it was present at full occupancy,
+    and the connector already says so in its notes whenever the field is
+    absent. Filling in 1.0 here would silence that warning with a number
+    nobody read.
+
+    A non-polymer entity occupying several chains yields one ligand per chain.
+    ZN and NAD each sit on both chains of 1CDO; collapsing them into one row
+    per component would make the second chain's cofactor invisible.
+
+    ``resolution`` is the entry's combined resolution, and ``None`` for a
+    method that has none -- an NMR ensemble does not have a resolution of 0.
+    """
+    ids = entry.get("rcsb_entry_container_identifiers") or {}
+    info = entry.get("rcsb_entry_info") or {}
+    methods = [m.get("method") for m in (entry.get("exptl") or ())
+               if isinstance(m, Mapping) and m.get("method")]
+    resolutions = [r for r in (info.get("resolution_combined") or ())
+                   if isinstance(r, (int, float))]
+
+    sequences: dict[str, str] = {}
+    chains: list[str] = []
+    for entity_id, polymer in polymer_entities.items():
+        identifiers = polymer.get("rcsb_polymer_entity_container_identifiers") or {}
+        sequence = ((polymer.get("entity_poly") or {})
+                    .get("pdbx_seq_one_letter_code_can") or "")
+        sequence = "".join(str(sequence).split())
+        for chain in identifiers.get("auth_asym_ids") or ():
+            chain = str(chain)
+            if chain not in chains:
+                chains.append(chain)
+            if sequence:
+                sequences[chain] = sequence
+
+    ligands: list[dict[str, Any]] = []
+    for entity_id, nonpolymer in nonpolymer_entities.items():
+        identifiers = (nonpolymer.get("rcsb_nonpolymer_entity_container_identifiers")
+                       or {})
+        component = (identifiers.get("nonpolymer_comp_id")
+                     or (nonpolymer.get("pdbx_entity_nonpoly") or {}).get("comp_id"))
+        if not component:
+            continue
+        for chain in identifiers.get("auth_asym_ids") or ():
+            ligands.append({"component_id": str(component), "chain": str(chain),
+                            "author_seq_id": None, "occupancy": None})
+
+    return {
+        "pdb_id": _text(ids.get("entry_id") or entry.get("rcsb_id")),
+        "method": methods[0] if methods else None,
+        "resolution": min(resolutions) if resolutions else None,
+        "chains": chains,
+        "ligands": ligands,
+        "sequences": sequences,
+        "entity_ids": {
+            "polymer": list(ids.get("polymer_entity_ids") or ()),
+            "non_polymer": list(ids.get("non_polymer_entity_ids") or ()),
+        },
+    }
+
+
 class RCSBPDBConnector(RegistryBackedConnector):
     """Experimentally determined coordinates and the ligands really in them.
 
@@ -176,6 +251,48 @@ class RCSBPDBConnector(RegistryBackedConnector):
     source_id = "rcsb_pdb"
     data_layer = ConnectorLayer.STRUCTURE
     description = "RCSB PDB: experimentally determined structures"
+    #: The requests this client makes are the three the shipped probes check:
+    #: ``/rest/v1/core/entry/<id>``, ``/core/polymer_entity/<id>/<n>`` and
+    #: ``/core/nonpolymer_entity/<id>/<n>``. A verified base URL does not
+    #: license any other shape.
+    verified_route_capability = "exact_record_fetch"
+
+    def _fetch_remote(self, key: str) -> tuple[Any, str | None]:
+        """Fetch one entry and the entities it names, in the probed shapes.
+
+        An entry is several resources: the metadata names its polymer and
+        non-polymer entities and each is a separate request. If any of them
+        fails the whole fetch fails -- a structure assembled from the entry and
+        only some of its entities would present a protein with its cofactor
+        missing, which is a different protein as far as every downstream check
+        is concerned.
+        """
+        import urllib.parse
+
+        base = self.require_endpoint().rstrip("/")
+        pdb_id = urllib.parse.quote(str(key).strip().upper(), safe="")
+        entry, version = self._http_json(f"{base}/rest/v1/core/entry/{pdb_id}")
+        if not isinstance(entry, Mapping) or not entry.get("rcsb_id"):
+            return None, version
+        ids = entry.get("rcsb_entry_container_identifiers") or {}
+        polymers: dict[str, Mapping[str, Any]] = {}
+        for entity in ids.get("polymer_entity_ids") or ():
+            body, _ = self._http_json(
+                f"{base}/rest/v1/core/polymer_entity/{pdb_id}/"
+                f"{urllib.parse.quote(str(entity), safe='')}")
+            if not isinstance(body, Mapping):
+                return None, version
+            polymers[str(entity)] = body
+        nonpolymers: dict[str, Mapping[str, Any]] = {}
+        for entity in ids.get("non_polymer_entity_ids") or ():
+            body, _ = self._http_json(
+                f"{base}/rest/v1/core/nonpolymer_entity/{pdb_id}/"
+                f"{urllib.parse.quote(str(entity), safe='')}")
+            if not isinstance(body, Mapping):
+                return None, version
+            nonpolymers[str(entity)] = body
+        return ({"records": [rcsb_entry_payload(entry, polymers, nonpolymers)]},
+                version)
 
     def entry(self, pdb_id: str) -> PDBEntryRecord | None:
         response = self.fetch(pdb_id)

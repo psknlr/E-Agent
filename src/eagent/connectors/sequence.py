@@ -244,6 +244,12 @@ class UniProtEntry:
     response: CachedResponse
     reviewed: bool | None = None
     notes: tuple[str, ...] = ()
+    #: Whether UniProt reports this accession as deleted or merged away. An
+    #: inactive entry is a real answer -- the identifier existed and no longer
+    #: names a protein -- and ``sequence`` is ``None`` because there is none,
+    #: not because the fetch was partial.
+    inactive: bool = False
+    inactive_reason: str | None = None
 
     def annotations_of(self, kind: str) -> tuple[UniProtAnnotation, ...]:
         return tuple(a for a in self.annotations if a.kind == kind)
@@ -358,6 +364,20 @@ def uniprot_entry_payload(entry: Mapping[str, Any]) -> dict[str, Any]:
     accession = _text(entry.get("primaryAccession"))
     sequence = _text((entry.get("sequence") or {}).get("value"))
     entry_type = _text(entry.get("entryType")) or ""
+    # UniProt answers a deleted or merged accession with HTTP 200 and an entry
+    # of type "Inactive" that has an accession and no sequence. It is an
+    # answer -- "this identifier no longer names a protein, and here is why"
+    # -- and it must not travel on as an entry whose sequence happens to be
+    # empty.
+    inactive = entry_type.strip().lower() == "inactive"
+    inactive_reason = None
+    if inactive:
+        reason = entry.get("inactiveReason") or {}
+        inactive_reason = " ".join(filter(None, (
+            _text(reason.get("inactiveReasonType")),
+            _text(reason.get("deletedReason")),
+            ("merged into " + ", ".join(str(m) for m in reason["mergeDemergeTo"]))
+            if reason.get("mergeDemergeTo") else None))) or "no reason given"
     annotations: list[dict[str, Any]] = []
     ec_numbers: list[str] = []
     rhea_ids: list[str] = []
@@ -425,6 +445,8 @@ def uniprot_entry_payload(entry: Mapping[str, Any]) -> dict[str, Any]:
         "ec_numbers": ec_numbers,
         "rhea_ids": rhea_ids,
         "annotations": annotations,
+        "inactive": inactive,
+        "inactive_reason": inactive_reason,
         "pdb_ids": [
             _text(x.get("id")) for x in (entry.get("uniProtKBCrossReferences") or ())
             if isinstance(x, Mapping) and x.get("database") == "PDB"
@@ -517,6 +539,11 @@ class UniProtKBConnector(SequenceSearchMixin, RegistryBackedConnector):
             "an entry annotation is an assertion about function; it is not a "
             "measurement on this sequence and must not be ingested as one",
         ]
+        if row.get("inactive"):
+            notes.insert(0,
+                f"this accession is INACTIVE ({row.get('inactive_reason')}); it "
+                f"no longer names a current protein, carries no sequence, and "
+                f"must not be used as a sequence record or as a seed")
         projected = [a for a in annotations if a.evidence.is_projected]
         if projected:
             notes.append(
@@ -546,7 +573,9 @@ class UniProtKBConnector(SequenceSearchMixin, RegistryBackedConnector):
             response=response,
             reviewed=row.get("reviewed") if isinstance(row.get("reviewed"), bool)
             else None,
-            notes=tuple(notes))
+            notes=tuple(notes),
+            inactive=bool(row.get("inactive")),
+            inactive_reason=_text(row.get("inactive_reason")))
 
 
 # ---------------------------------------------------------------------------

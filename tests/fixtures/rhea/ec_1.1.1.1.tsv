@@ -1,0 +1,4 @@
+Reaction identifier	Equation	EC number	ChEBI identifier
+RHEA:10736	a primary alcohol + NAD(+) = an aldehyde + NADH + H(+)	EC:1.1.1.1;EC:1.1.1.71	CHEBI:15734;CHEBI:57540;CHEBI:17478;CHEBI:57945;CHEBI:15378
+RHEA:10740	a secondary alcohol + NAD(+) = a ketone + NADH + H(+)	EC:1.1.1.1	CHEBI:35681;CHEBI:57540;CHEBI:17087;CHEBI:57945;CHEBI:15378
+RHEA:25290	ethanol + NAD(+) = acetaldehyde + NADH + H(+)	EC:1.1.1.1	CHEBI:16236;CHEBI:57540;CHEBI:15343;CHEBI:57945;CHEBI:15378

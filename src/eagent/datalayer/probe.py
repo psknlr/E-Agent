@@ -87,10 +87,16 @@ class ProbeError(EAgentError):
 #: failure is recorded rather than waited out.
 DEFAULT_TIMEOUT_S: float = 30.0
 
-#: Sent on every request. A shared resource is entitled to know who is calling
-#: it and where to complain, and an unidentified client is the first thing a
-#: provider blocks.
-USER_AGENT: str = "E-Agent/connectivity-probe (enzyme function mining research agent)"
+#: Sent on every request, by the probes AND by the connectors' clients -- one
+#: constant, imported by both, because a probe that identifies itself
+#: differently from the client it is meant to vouch for verifies a request
+#: nobody makes. That is not hypothetical: Rhea's CDN answers the default
+#: ``Python-urllib`` agent with 403 and this one with 200, so a probe sending
+#: one agent while the client sent the other passed while the client failed.
+#:
+#: A shared resource is also entitled to know who is calling it and where to
+#: complain, and an unidentified client is the first thing a provider blocks.
+USER_AGENT: str = "E-Agent (enzyme function mining research agent; connectors and probes)"
 
 
 @dataclass(frozen=True)
@@ -260,11 +266,14 @@ PROBES: tuple[CapabilityProbe, ...] = (
     CapabilityProbe(
         source_id="uniprotkb",
         capability="exact_record_fetch",
-        url=("https://rest.uniprot.org/uniprotkb/P07846.json"
-             "?fields=accession,protein_name,ec"),
-        markers=("P07846", "primaryAccession"),
-        description=("fetch one reviewed UniProtKB entry by accession, with an "
-                     "explicit field list"),
+        url=("https://rest.uniprot.org/uniprotkb/P07846.json?fields="
+             "accession,id,protein_name,organism_name,reviewed,ec,"
+             "cc_catalytic_activity,cc_cofactor,sequence,xref_pdb"),
+        markers=("P07846", "primaryAccession", "uniProtkbId"),
+        description=("fetch one reviewed UniProtKB entry by accession, with "
+                     "exactly the field list the connector's client requests: "
+                     "the list is the parser, so a probe that asked for fewer "
+                     "fields would verify a request nobody makes"),
         documentation="https://www.uniprot.org/help/api",
         note=("P07846 is an alcohol dehydrogenase, chosen because it is a "
               "reviewed entry in the mechanistic neighbourhood of this "
@@ -291,13 +300,50 @@ PROBES: tuple[CapabilityProbe, ...] = (
               "fields this project reads"),
     ),
     CapabilityProbe(
+        source_id="rcsb_pdb",
+        capability="exact_record_fetch",
+        url="https://data.rcsb.org/rest/v1/core/polymer_entity/1CDO/1",
+        markers=("1CDO_1", "entity_poly"),
+        description=("fetch one polymer entity of an entry: the sequence and "
+                     "the chains it occupies"),
+        documentation="https://www.rcsb.org/docs/programmatic-access/web-apis-overview",
+        note=("a client that makes this request is verified only if this "
+              "request itself was probed, not merely the entry one"),
+    ),
+    CapabilityProbe(
+        source_id="rcsb_pdb",
+        capability="exact_record_fetch",
+        url="https://data.rcsb.org/rest/v1/core/nonpolymer_entity/1CDO/3",
+        markers=("1CDO_3", "pdbx_entity_nonpoly"),
+        description=("fetch one non-polymer entity of an entry: a ligand or "
+                     "cofactor component and the chains it sits on"),
+        documentation="https://www.rcsb.org/docs/programmatic-access/web-apis-overview",
+        note="1CDO entity 3 is NAD, the cofactor of this alcohol dehydrogenase",
+    ),
+    CapabilityProbe(
         source_id="rhea",
         capability="keyword_query",
-        url=("https://www.rhea-db.org/rhea?query=ketone&columns=rhea-id,equation"
-             "&format=tsv&limit=3"),
-        markers=("RHEA:", "Reaction identifier"),
-        description="a keyword query returning reaction identifiers and equations",
+        url=("https://www.rhea-db.org/rhea?query=ec:1.1.1.1"
+             "&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100"),
+        markers=("Reaction identifier\tEquation\tEC number\tChEBI identifier",
+                 "EC:1.1.1.1"),
+        description=("an EC-number query returning the pinned column set; the "
+                     "header is part of the marker because the column list is "
+                     "the parser"),
         documentation="https://www.rhea-db.org/help/rest-api",
+        note=("EC 1.1.1.1 is alcohol dehydrogenase, the mechanistic "
+              "neighbourhood of this project's pilot task"),
+    ),
+    CapabilityProbe(
+        source_id="rhea",
+        capability="keyword_query",
+        url=("https://www.rhea-db.org/rhea?query=RHEA:10740"
+             "&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100"),
+        markers=("RHEA:10740", "secondary alcohol"),
+        description="one reaction by identifier, through the same query route",
+        documentation="https://www.rhea-db.org/help/rest-api",
+        note=("a secondary alcohol to a ketone with NAD(+): the reaction "
+              "class of the pilot task, read in the oxidation direction"),
     ),
 )
 

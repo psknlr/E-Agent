@@ -26,6 +26,7 @@ import unittest
 from pathlib import Path
 
 from eagent.connectors.base import (
+    ConnectorError,
     AccessPolicy,
     CachedResponse,
     FileCache,
@@ -162,23 +163,25 @@ class TestEndpointRefusal(ConnectorTestCase):
         self.assertTrue(status.curation_notes)
         self.assertIn("endpoint", json.dumps(status.to_dict()))
 
-    def test_remote_hooks_refuse_before_building_any_url(self) -> None:
-        """Even with the network allowed, there is no checked request to make.
-
-        Rhea's base URL is established -- a probe ran a TSV keyword query
-        against it. This client was written against nothing: its fetch builds
-        ``<base>/<key>``, which is not Rhea's API, and calling it would return
-        a 404 the resolver reports as a miss. A route silently not working is
-        worse than a refusal, so the refusal names the real gap.
-        """
-        from eagent.connectors.chemistry import RequestShapeNotVerifiedError
+    def test_remote_hooks_build_the_probed_request_for_a_checked_client(self) -> None:
+        """Rhea's base URL is established AND its client was written against
+        the probed TSV query, so it may call -- here through a stub."""
         connector = RheaConnector(cache=self.cache,
                                   access=AccessPolicy(allow_network=True))
-        self.assertIsNotNone(connector.source.endpoint)
-        with self.assertRaises(RequestShapeNotVerifiedError):
-            connector._fetch_remote("RHEA:00001")
-        with self.assertRaises(RequestShapeNotVerifiedError):
-            connector._search_remote({"op": "search", "ec": "1.1.1.1"})
+        self.assertEqual(connector.require_endpoint(), "https://www.rhea-db.org")
+        seen: list[str] = []
+        connector._http_text = lambda url, timeout=30.0, accept="*/*": (
+            seen.append(url) or None)
+        self.assertEqual(connector._fetch_remote("RHEA:10740"), (None, None))
+        self.assertTrue(seen[0].startswith(
+            "https://www.rhea-db.org/rhea?query=RHEA:10740&columns="))
+
+    def test_an_unprobed_query_shape_is_refused_not_improvised(self) -> None:
+        connector = RheaConnector(cache=self.cache,
+                                  access=AccessPolicy(allow_network=True))
+        with self.assertRaises(ConnectorError) as ctx:
+            connector._search_remote({"op": "search", "text": "ketone"})
+        self.assertIn("only an EC search", str(ctx.exception))
 
     def test_a_source_with_no_endpoint_still_refuses_on_the_endpoint(self) -> None:
         connector = PubChemConnector(cache=self.cache,
@@ -187,9 +190,10 @@ class TestEndpointRefusal(ConnectorTestCase):
             connector._fetch_remote("2244")
 
     def test_a_network_enabled_run_still_reports_a_miss_not_a_crash(self) -> None:
-        connector = RheaConnector(cache=self.cache,
-                                  access=AccessPolicy(allow_network=True))
-        response = connector.fetch("RHEA:00002")
+        """PubChem has no route at all, so a networked run refuses cleanly."""
+        connector = PubChemConnector(cache=self.cache,
+                                     access=AccessPolicy(allow_network=True))
+        response = connector.fetch("2244")
         self.assertIs(response.status, ResponseStatus.MISS)
         self.assertIsNone(response.payload)
 
@@ -615,7 +619,9 @@ class TestRegistryContract(ConnectorTestCase):
     #: parameters for a search -- and was written against no service, so a
     #: verified base URL licenses nothing for it. The list grows one connector
     #: at a time, by whoever does the checking.
-    CHECKED_CLIENTS = {"uniprotkb": "exact_record_fetch"}
+    CHECKED_CLIENTS = {"uniprotkb": "exact_record_fetch",
+                       "rcsb_pdb": "exact_record_fetch",
+                       "rhea": "keyword_query"}
 
     def test_only_a_checked_client_declares_a_request_shape(self) -> None:
         from eagent.connectors.chemistry import RegistryBackedConnector

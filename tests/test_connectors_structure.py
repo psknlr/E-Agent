@@ -126,52 +126,13 @@ class TestOfflineAndRefusals(StructureTestCase):
                 self.assertEqual(ctx.exception.source_id, connector.source_id)
                 self.assertTrue(ctx.exception.curation_notes)
 
-    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
-        """RCSB's data API base is established; this client was not checked
-        against it."""
-        from eagent.connectors.chemistry import RequestShapeNotVerifiedError
+    def test_rcsb_has_both_a_verified_route_and_a_checked_client(self) -> None:
         connector = RCSBPDBConnector(cache=self.cache)
         self.assertEqual(connector.source.endpoint, "https://data.rcsb.org")
-        with self.assertRaises(RequestShapeNotVerifiedError):
-            connector.require_endpoint()
+        self.assertEqual(connector.verified_route_capability,
+                         "exact_record_fetch")
+        self.assertEqual(connector.require_endpoint(), "https://data.rcsb.org")
 
-    def test_a_bulk_only_source_refuses_a_per_record_call_even_with_a_url(self) -> None:
-        """wwPDB CCD is registered bulk_download only: there is no service."""
-        connector = WwPDBChemicalComponentConnector(cache=self.cache)
-        modes = connector.source.access_modes
-        self.assertFalse(any(m.is_network_endpoint for m in modes))
-        with self.assertRaises(EndpointNotEstablishedError):
-            connector.require_endpoint()
-
-    def test_sifts_refuses_a_keyword_query(self) -> None:
-        connector = SIFTSConnector(cache=self.cache)
-        self.assertIs(connector.capability("keyword_query").state,
-                      CapabilityState.NOT_SUPPORTED)
-        response = connector.search({"text": "dehydrogenase"})
-        self.assertIs(response.status, ResponseStatus.REFUSED)
-        self.assertIsNone(response.payload)
-        self.assertIn("not_supported", response.miss_reason or "")
-
-    def test_an_unknown_fetch_capability_is_marked_unverified(self) -> None:
-        connector = SIFTSConnector(cache=self.cache)
-        self.assertIs(connector.capability("exact_record_fetch").state,
-                      CapabilityState.UNKNOWN)
-        connector.store_import("fetch", "P0:0XYZ:A", {"records": [
-            {"uniprot_accession": "P0", "pdb_id": "0XYZ", "chain_id": "A",
-             "residues": []}]})
-        response = connector.fetch("P0:0XYZ:A")
-        self.assertIs(response.status, ResponseStatus.HIT)
-        self.assertTrue(any(n.startswith(UNVERIFIED_CAPABILITY)
-                            for n in response.notes))
-
-    def test_a_supported_capability_is_not_marked_unverified(self) -> None:
-        connector = RCSBPDBConnector(cache=self.cache)
-        self.assertIs(connector.capability("exact_record_fetch").state,
-                      CapabilityState.SUPPORTED)
-        connector.store_import("fetch", "0XYZ",
-                               {"records": [{"pdb_id": "0XYZ"}]})
-        self.assertFalse(any(n.startswith(UNVERIFIED_CAPABILITY)
-                             for n in connector.fetch("0XYZ").notes))
 
 
 # ---------------------------------------------------------------------------

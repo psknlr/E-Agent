@@ -138,6 +138,7 @@ from ..schemas import (
     cofactor_state_from_ligand_code,
 )
 from ..science import geometry as geom
+from ..science.calibration import CalibrationContext, CalibrationStore
 from ..science.family_numbering import FamilyNumberingScheme
 from ..science.pocket import PocketResidues, pocket_residues_for_pose
 from ..science import stereo as stereo_mod
@@ -617,7 +618,9 @@ class _AtomNamespace:
 # Template authority and windows
 # ==========================================================================
 
-def template_authority(template: CatalyticTemplate) -> WindowAuthority:
+def template_authority(template: CatalyticTemplate,
+                       calibration: CalibrationContext | None = None
+                       ) -> WindowAuthority:
     """Whole-template authority, used for the per-candidate confidence downgrade.
 
     A theoretical-model template is provisional however well calibrated an
@@ -626,13 +629,16 @@ def template_authority(template: CatalyticTemplate) -> WindowAuthority:
     """
     if template.provenance.is_theoretical:
         return WindowAuthority.THEORETICAL_MODEL
-    if template.uncalibrated():
+    context = calibration or CalibrationContext()
+    if any(not context.status(c).calibrated for c in template.geometry_constraints):
         return WindowAuthority.UNCALIBRATED
     return WindowAuthority.CALIBRATED
 
 
 def constraint_authority(constraint: GeometryConstraint,
-                         template: CatalyticTemplate) -> WindowAuthority:
+                         template: CatalyticTemplate,
+                         calibration: CalibrationContext | None = None,
+                         ) -> WindowAuthority:
     """Authority of one window. Per-constraint, because real templates are mixed.
 
     A working family template usually has one or two windows fitted on a handful
@@ -640,10 +646,19 @@ def constraint_authority(constraint: GeometryConstraint,
     Judging the whole template at the level of its weakest constraint would
     throw away the calibrated ones; judging it at the level of its strongest
     would let an uncalibrated angle reject candidates.
+
+    ``calibrated_on`` used to be free text, so one hand-typed string granted a
+    window the power to reject enzymes. A ``calibration:`` entry is now
+    checked against a stored record (see :mod:`eagent.science.calibration`),
+    and fails closed -- to uncalibrated -- whenever it cannot be: no store, no
+    such record, an edited record, a window changed since, a verdict that no
+    longer meets its policy. Prose entries keep their old meaning unless the
+    context is strict.
     """
     if template.provenance.is_theoretical:
         return WindowAuthority.THEORETICAL_MODEL
-    if not constraint.is_calibrated:
+    context = calibration or CalibrationContext()
+    if not context.status(constraint).calibrated:
         return WindowAuthority.UNCALIBRATED
     return WindowAuthority.CALIBRATED
 
@@ -1456,6 +1471,8 @@ class EvaluateCatalysis(ScientificInterface):
         infer_single_ligand_substrate: bool = True,
         pocket_shell_angstrom: float = DEFAULT_POCKET_SHELL_A,
         numbering_schemes: Mapping[str, FamilyNumberingScheme] | None = None,
+        calibration_store: CalibrationStore | None = None,
+        strict_calibration: bool = False,
         submit_to: str | None = None,
         **_: Any,
     ) -> ToolResult:
@@ -1483,6 +1500,11 @@ class EvaluateCatalysis(ScientificInterface):
 
         self._pockets = {}
         self._pocket_notes = {}
+        # How this run decides whether a window's calibration counts. Held on
+        # the instance for the length of one execute, like the pockets, so the
+        # many call sites that ask for an authority all ask the same question.
+        self._calibration = CalibrationContext(
+            store=calibration_store, strict=strict_calibration)
         binding_map = self._index_bindings(bindings)
         lookup = self._template_lookup(ctx, catalytic_templates)
         result = ToolResult(status=Status.SUCCESS)
@@ -1569,7 +1591,7 @@ class EvaluateCatalysis(ScientificInterface):
                 "n_candidates": len(candidates),
                 "n_poses": sum(e.n_poses for e in evaluations),
                 "template_authority": {
-                    tid: template_authority(t).value
+                    tid: template_authority(t, self._calibration).value
                     for tid, t in sorted(used_templates.items())
                 },
                 "weighted_total_score": None,
@@ -1827,7 +1849,8 @@ class EvaluateCatalysis(ScientificInterface):
                 # template-dependent gates.
                 used_templates[template.template_id] = template
 
-        authority = (template_authority(template) if template is not None
+        authority = (template_authority(template, self._calibration)
+                     if template is not None
                      else WindowAuthority.UNCALIBRATED)
         evaluation = CandidateEvaluation(
             candidate_id=candidate.candidate_id,
@@ -2004,9 +2027,29 @@ class EvaluateCatalysis(ScientificInterface):
         template: CatalyticTemplate, authority: WindowAuthority,
     ) -> None:
         """Say, per candidate, that the windows are provisional -- and which ones."""
+        # Windows that cite a calibration which cannot be shown are named
+        # whether or not the template as a whole ends up calibrated: a window
+        # holding the power to reject on the strength of a prose string is the
+        # thing a reader of this report most needs to be told.
+        for constraint in template.geometry_constraints:
+            status = self._calibration.status(constraint)
+            if status.is_unverified_claim:
+                result.add_flag(
+                    "calibration_unverified", Severity.WARN,
+                    f"{template.template_id}.{constraint.name}: calibrated_on "
+                    f"cites {', '.join(status.evidence)[:120]!r} "
+                    + ("and the window is therefore NOT treated as calibrated: "
+                       if not status.calibrated else
+                       "which no record backs; the window is treated as "
+                       "calibrated only because this run is not strict: ")
+                    + "; ".join(status.problems or (
+                        "free-text calibrated_on is not a record anyone can "
+                        "open",))[:300],
+                    candidate.candidate_id)
         if authority is WindowAuthority.CALIBRATED:
             return
-        uncalibrated = [c.name for c in template.uncalibrated()]
+        uncalibrated = [c.name for c in template.geometry_constraints
+                        if not self._calibration.status(c).calibrated]
         listed = ", ".join(uncalibrated) if uncalibrated \
             else "the whole template is a theoretical model"
         result.add_flag(
@@ -2097,7 +2140,7 @@ class EvaluateCatalysis(ScientificInterface):
         satisfied = {c.name: c.satisfied_by(measurements.get(c.name))
                      for c in template.geometry_constraints}
         aspects = {c.name: classify_aspect(c) for c in template.geometry_constraints}
-        authorities = {c.name: constraint_authority(c, template)
+        authorities = {c.name: constraint_authority(c, template, self._calibration)
                        for c in template.geometry_constraints}
 
         cofactor = self._check_cofactor(pose, template, context, satisfied, aspects)
@@ -2170,6 +2213,8 @@ class EvaluateCatalysis(ScientificInterface):
     #: start, so a second run cannot inherit the first one's pockets.
     _pockets: dict[str, PocketResidues]
     _pocket_notes: dict[str, str]
+    #: Set at the start of every ``execute``; see there.
+    _calibration: CalibrationContext = CalibrationContext()
 
     def _record_pocket(
         self, candidate: Candidate, pose: ComplexPose,

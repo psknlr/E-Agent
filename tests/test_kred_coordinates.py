@@ -134,6 +134,67 @@ class LineagesAreDerivedFromThePinnedSequences(unittest.TestCase):
 
 
 # ==========================================================================
+class RefetchingDoesNotRewriteThePins(_Tmp):
+    """Running the fetch again must not change the data digest unless data changed."""
+
+    BODY = (FIXTURES / "1IPF_excerpt.cif").read_bytes()
+
+    def stub(self, rs, pins, *, sha_changes: bool = False):
+        import hashlib
+        from eagent.connectors.structure import StructureFile
+
+        cache = self.root / "cache"
+        cache.mkdir(exist_ok=True)
+
+        class Stub:
+            def download_structure(inner, pdb_id, destination, *, expected_sha256=None, **kw):
+                path = cache / f"{pdb_id}.cif"
+                body = EXCERPT.replace(b"1IPF", pdb_id.encode())
+                path.write_bytes(body)
+                sha = hashlib.sha256(body).hexdigest() if sha_changes else expected_sha256
+                return StructureFile(pdb_id, path, "https://example.invalid/x", len(body), sha,
+                                     "2099-01-01T00:00:00+00:00", False)
+
+            def polymer_entity_annotations(inner, pdb_id, entity_id):
+                return {"pdb_id": pdb_id, "entity_id": str(entity_id), "description": None,
+                        "ec": None, "interpro": [], "pfam": [], "go": []}
+
+        return Stub(), cache
+
+    def test_a_fetch_that_hashes_to_the_pin_keeps_the_pinned_date(self) -> None:
+        from eagent.eval.kred_coordinates import fetch_coordinates
+
+        rs = load_reference_set()
+        pins = load_coordinates_manifest(default_reference_dir())
+        stub, cache = self.stub(rs, pins)
+        again = fetch_coordinates(rs, stub, cache, pinned=pins)
+        for pid, pin in pins["files"].items():
+            self.assertEqual(again["files"][pid]["retrieved_at"], pin["retrieved_at"], pid)
+            self.assertEqual(again["files"][pid]["sha256"], pin["sha256"], pid)
+
+    def test_a_fetch_with_no_pin_dates_each_file_now(self) -> None:
+        from eagent.eval.kred_coordinates import fetch_coordinates
+
+        rs = load_reference_set()
+        pins = load_coordinates_manifest(default_reference_dir())
+        stub, cache = self.stub(rs, pins, sha_changes=True)
+        fresh = fetch_coordinates(rs, stub, cache, pinned=None)
+        self.assertTrue(all(f["retrieved_at"] == "2099-01-01T00:00:00+00:00"
+                            for f in fresh["files"].values()))
+
+    def test_a_new_hash_is_a_new_pin_and_is_dated_now(self) -> None:
+        from eagent.eval.kred_coordinates import fetch_coordinates
+
+        rs = load_reference_set()
+        pins = load_coordinates_manifest(default_reference_dir())
+        stub, cache = self.stub(rs, pins, sha_changes=True)
+        again = fetch_coordinates(rs, stub, cache, pinned=pins)
+        self.assertTrue(all(f["retrieved_at"] == "2099-01-01T00:00:00+00:00"
+                            for f in again["files"].values()))
+        self.assertNotEqual(again["files"]["1IPF"]["sha256"], pins["files"]["1IPF"]["sha256"])
+
+
+# ==========================================================================
 class TheCachedFilesAreCheckedAgainstTheirPinsAndTheWorkbook(_Tmp):
     @classmethod
     def setUpClass(cls) -> None:

@@ -230,11 +230,18 @@ def fetch_coordinates(rs: ReferenceSet, connector: RCSBPDBConnector,
         entity = scoring_entity_id(facts, entry.scoring_chain)
         annotations = (connector.polymer_entity_annotations(entry.pdb_id, entity)
                        if entity else None)
+        # When the pinned bytes were first obtained. A re-fetch that hashes to
+        # the pin keeps that date (re-running must not rewrite the pins, or the
+        # data digest would change without any data changing); a different hash
+        # is a new pin and is dated now.
+        old_pin = previous.get(entry.pdb_id) or {}
+        retrieved = (old_pin.get("retrieved_at")
+                     if old_pin.get("sha256") == got.sha256 and old_pin.get("retrieved_at")
+                     else got.retrieved_at)
         files[entry.pdb_id] = {
             "sha256": got.sha256, "bytes": got.size_bytes,
-            "url": got.source_url,
-            "retrieved_at": got.retrieved_at
-            or (previous.get(entry.pdb_id) or {}).get("retrieved_at"),
+            "url": got.source_url or old_pin.get("url") or "",
+            "retrieved_at": retrieved,
             "facts": facts,
             "annotations": annotations,
             "family_class": family_class(annotations),

@@ -1,0 +1,12 @@
+item,value,unit,label_type,use,source
+2026 unique sequences,109,sequence records,sequence coverage,Includes WT; 108 new orthologs. Not 109 experimental complex structures.,Ortholog2026_GitHub
+2026 soluble proteins,69,unique records incl. WT,soluble expression,40 insoluble entries have missing activity; do not encode catalytic inactivity.,Ortholog2026_GitHub
+2026 substrate1a,69,relative slope records,FIO_Ssal-KRED,"Clarified lysate, relative depletion slope; chemical SMILES 1a quarantined.",Ortholog2026
+2026 substrates2a–5a,276,enzyme–substrate pairs,product concentration in mM,"69×4; R/S columns are products from one assay. 10mM substrate,20h,20°C; lysate assay.",Ortholog2026_GitHub
+2026 substrate1a chemical audit,quarantine,chemical ID,source inconsistency,CSV encodes alcohol at the reaction site; paper Fig2c depicts ketone. Original retained unchanged.,Ortholog2026_Zenodo
+2026 substrate5a chemical audit,quarantine,chemical ID,source inconsistency,CSV encodes carboxylate; paper Fig2c depicts ethyl ester. Original retained unchanged.,Ortholog2026_Zenodo
+2026 ee coding,>99% / undetected,censored selectivity,signed ee,CSV +/-100 must not be presented as proven exact 100% purity; missing ee is not zero.,Ortholog2026
+SmBdh / 6XEW / WT,3.5,U/nmol (approximate),fixed-condition specific activity,"Approximate Fig8 bar reading, racemic acetoin25mM,NADH0.25mM,pH7; temperature unreported. Not kcat.",Sm2020
+7UTC,excluded,PDB candidate,DMSO inhibitor complex,Not a real ketone substrate reference; no ketone reduction label assigned.,TeSADH2022
+7UUT,excluded from matched core,PDB candidate,product / redox ambiguity,2RP=(R)-2-pentanol; no exact matched reduction kinetic label verified.,TeSADH2022
+Source data location,activity_expansion_2026/,folder in ZIP,original files + audit,"Round1/2CSV,109-sequenceFASTA,originalSMILES,source manifests andMIT license.",See source IDs above

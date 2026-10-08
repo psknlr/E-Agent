@@ -2113,5 +2113,357 @@ def benchmark_sdr(data_dir: Path, folds: int, identity: float, seed: int,
                  f"(digest {suite.grouped.digest[:16]})")
 
 
+@main.group("reference")
+def reference_group() -> None:
+    """The KRED calibration reference set: verify it, pin its files, audit it.
+
+    A delivered table set of experimental enzyme--substrate complexes and the
+    kinetic records matched to them. Nothing here calibrates a template: the
+    audit says how many of the entries could be references for which template,
+    and what a calibration on them would and would not support.
+    """
+
+
+def _reference_dir(directory: Path | None) -> Path:
+    from .eval.kred_reference import default_reference_dir
+
+    return directory or default_reference_dir()
+
+
+def _reference_cache(cache_dir: Path | None) -> Path:
+    from .eval.kred_coordinates import default_cache_dir
+
+    return cache_dir or default_cache_dir()
+
+
+_DIR_OPTION = click.option(
+    "--dir", "directory", type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None, help="The reference-set directory (default: the shipped copy).")
+_CACHE_OPTION = click.option(
+    "--cache-dir", "cache_dir", type=click.Path(file_okay=False, path_type=Path),
+    default=None, help="Where the fetched coordinate files live (default: "
+                       ".cache/kred_coordinates under the repository).")
+
+
+@reference_group.command("verify")
+@_DIR_OPTION
+@_CACHE_OPTION
+def reference_verify(directory: Path | None, cache_dir: Path | None) -> None:
+    """Check the files, the numbers and (if fetched) the coordinates.
+
+    Offline. Hashes every file against the manifest, converts the stored
+    workbook again and compares, recomputes every unit conversion, follows
+    every cross-reference both ways, and -- when the 19 coordinate files are in
+    the cache -- checks each against its pin and against the workbook's claims
+    about it. Exits non-zero on any error.
+    """
+    from .eval.kred_coordinates import (
+        lineage_findings, load_coordinates_manifest, verify_coordinates,
+    )
+    from .eval.kred_reference import Finding, load_reference_set
+
+    out = Out()
+    base = _reference_dir(directory)
+    rs = load_reference_set(base, verify=True, strict=False)
+    findings = list(rs.findings)
+    out.heading("reference set")
+    for key, value in rs.counts().items():
+        out.kv(f"  {key}", value, width=26)
+    ind = rs.independence()
+    out.kv("  independent lineages", ind["n_independent_structure_lineages"], width=26)
+    out.kv("  lineages behind core", ind["n_independent_core_lineages"], width=26)
+    out.kv("  data digest", rs.manifest_digest[:16] + "...", width=26)
+
+    pins = None
+    try:
+        pins = load_coordinates_manifest(base)
+    except (OSError, ValueError):
+        findings.append(Finding(
+            "warning", "coordinates.no_manifest", str(base),
+            "no coordinates manifest: run `eagent reference fetch-coordinates`"))
+    cache = _reference_cache(cache_dir)
+    if pins is not None:
+        findings += lineage_findings(rs, pins)
+        if cache.is_dir() and any(cache.glob("*.cif")):
+            found, _ = verify_coordinates(rs, cache, pins)
+            findings += found
+        else:
+            out.line("")
+            out.line(f"coordinates not checked: {cache} holds no files "
+                     f"(`eagent reference fetch-coordinates --allow-network`)")
+    out.heading("findings")
+    shown = [f for f in findings if f.severity != "info"]
+    for f in shown:
+        out.bullet(str(f))
+    if not shown:
+        out.line("none above information level")
+    errors = [f for f in findings if f.severity == "error"]
+    if errors:
+        raise Refusal(f"{len(errors)} error(s) in the reference set",
+                      next_action="fix the files, or regenerate the manifest "
+                                  "deliberately with `eagent reference manifest "
+                                  "--write` after reviewing the diff",
+                      exit_code=EXIT_FAILED)
+    out.line("")
+    out.line("reference set intact")
+
+
+@reference_group.command("manifest")
+@_DIR_OPTION
+@click.option("--write/--check", default=False,
+              help="Rewrite MANIFEST.json from the files on disk. Default: only "
+                   "report whether it still matches.")
+def reference_manifest(directory: Path | None, write: bool) -> None:
+    """Hash the reference-set files, or check them against the manifest.
+
+    Writing is a deliberate act: the manifest is what makes an edit to a table
+    visible, and regenerating it after an edit is how that edit is accepted.
+    Review the diff of the tables first.
+    """
+    from .eval.kred_reference import verify_manifest, write_manifest
+
+    out = Out()
+    base = _reference_dir(directory)
+    if write:
+        path = write_manifest(base)
+        out.line(f"wrote {path}")
+        return
+    problems = verify_manifest(base)
+    for f in problems:
+        out.bullet(str(f))
+    if problems:
+        raise Refusal(f"{len(problems)} file(s) differ from the manifest",
+                      exit_code=EXIT_FAILED)
+    out.line("every file matches the manifest")
+
+
+@reference_group.command("fetch-coordinates")
+@_DIR_OPTION
+@_CACHE_OPTION
+@click.option("--allow-network/--no-network", default=False,
+              help="Required. The 19 files come from files.rcsb.org, through "
+                   "the route `eagent sources verify` has probed.")
+@click.option("--repin", is_flag=True, default=False,
+              help="Accept whatever the RCSB serves now and rewrite the pins. "
+                   "Without it each file must hash to its recorded value.")
+def reference_fetch(directory: Path | None, cache_dir: Path | None,
+                    allow_network: bool, repin: bool) -> None:
+    """Fetch the 19 mmCIF files into the cache, verified against their pins."""
+    from .connectors.base import AccessPolicy
+    from .connectors.chemistry import ConnectorError
+    from .connectors.structure import RCSBPDBConnector
+    from .eval.kred_coordinates import (
+        fetch_coordinates, load_coordinates_manifest, write_coordinates_manifest,
+    )
+    from .eval.kred_reference import load_reference_set, write_manifest
+
+    out = Out()
+    if not allow_network:
+        raise Refusal("this fetches 19 files from files.rcsb.org and --allow-network "
+                      "was not given",
+                      next_action="re-run with --allow-network",
+                      exit_code=EXIT_BLOCKED)
+    base = _reference_dir(directory)
+    rs = load_reference_set(base, verify=True)
+    cache = _reference_cache(cache_dir)
+    pinned = None
+    if not repin:
+        try:
+            pinned = load_coordinates_manifest(base)
+        except (OSError, ValueError):
+            pinned = None
+    connector = RCSBPDBConnector(access=AccessPolicy(allow_network=True))
+    try:
+        manifest = fetch_coordinates(rs, connector, cache, pinned=pinned)
+    except ConnectorError as exc:
+        raise Refusal(str(exc), next_action="if the RCSB has revised an entry, "
+                      "inspect the change and pin it deliberately with --repin",
+                      exit_code=EXIT_FAILED) from exc
+    path = write_coordinates_manifest(manifest, base)
+    write_manifest(base)
+    total = sum(f["bytes"] for f in manifest["files"].values())
+    out.line(f"{len(manifest['files'])} files, {total / 1e6:.1f} MB, in {cache}")
+    out.line(f"pins written to {path}; MANIFEST.json regenerated")
+
+
+@reference_group.command("bindings")
+@_DIR_OPTION
+@_CACHE_OPTION
+@click.option("--write/--dry-run", default=False)
+def reference_bindings(directory: Path | None, cache_dir: Path | None,
+                       write: bool) -> None:
+    """Derive which atoms to measure on each entry, by rule, and show them."""
+    from .eval.kred_complexes import derive_bindings, write_bindings
+    from .eval.kred_coordinates import load_coordinates_manifest, verify_coordinates
+    from .eval.kred_reference import load_reference_set, write_manifest
+
+    out = Out()
+    base = _reference_dir(directory)
+    rs = load_reference_set(base, verify=True)
+    found, structures = verify_coordinates(
+        rs, _reference_cache(cache_dir), load_coordinates_manifest(base))
+    errors = [f for f in found if f.severity == "error"]
+    if errors:
+        raise Refusal("; ".join(str(f) for f in errors[:3]),
+                      next_action="`eagent reference fetch-coordinates "
+                                  "--allow-network`", exit_code=EXIT_UNRESOLVED)
+    bindings = derive_bindings(rs, structures)
+    for b in bindings:
+        out.bullet(f"{b.pdb_id}: {'complete' if b.complete else 'INCOMPLETE'}  "
+                   f"conformers {list(b.conformers) or '-'}  "
+                   f"substrate {b.substrate_atoms or '-'}  cofactor {b.cofactor_atoms or '-'}")
+        for why in b.failures:
+            out.line(f"      cannot bind: {why}")
+    if write:
+        path = write_bindings(bindings, base)
+        write_manifest(base)
+        out.line("")
+        out.line(f"wrote {path}; MANIFEST.json regenerated. Every binding is "
+                 f"rule-derived and unreviewed.")
+
+
+@reference_group.command("audit")
+@_DIR_OPTION
+@_CACHE_OPTION
+@click.option("--out", "out_dir", type=click.Path(file_okay=False, path_type=Path),
+              default=None,
+              help="Write kred_reference_audit.json and .txt here (e.g. docs/results).")
+def reference_audit(directory: Path | None, cache_dir: Path | None,
+                    out_dir: Path | None) -> None:
+    """Which entries could be reference complexes, and what a calibration says.
+
+    Runs the project's own calibration machinery in memory, under declared
+    policies, and writes nothing to any calibration store: no citation can come
+    out of this command.
+    """
+    import json
+
+    from .eval.kred_complexes import audit_report, load_bindings, render_report
+    from .eval.kred_coordinates import (
+        lineage_counts, load_coordinates_manifest, verify_coordinates,
+    )
+    from .eval.kred_reference import load_reference_set
+    from .harness.templates import TemplateLibrary
+
+    out = Out()
+    base = _reference_dir(directory)
+    rs = load_reference_set(base, verify=True)
+    pins = load_coordinates_manifest(base)
+    found, structures = verify_coordinates(rs, _reference_cache(cache_dir), pins)
+    errors = [f for f in found if f.severity == "error"]
+    if errors:
+        raise Refusal("; ".join(str(f) for f in errors[:3]),
+                      next_action="`eagent reference fetch-coordinates "
+                                  "--allow-network`", exit_code=EXIT_UNRESOLVED)
+    report = audit_report(
+        rs, TemplateLibrary.load().catalytic_templates, manifest=pins,
+        bindings=load_bindings(base), structures=structures,
+        identity_counts=lineage_counts(rs, pins))
+    text = render_report(report)
+    out.line(text.rstrip("\n"))
+    if out_dir is not None:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "kred_reference_audit.json").write_text(
+            json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8")
+        (out_dir / "kred_reference_audit.txt").write_text(text, encoding="utf-8")
+        out.line("")
+        out.line(f"written to {out_dir}")
+
+
+@reference_group.command("verify-sources")
+@_DIR_OPTION
+@click.option("--docs", "docs_dir", required=True,
+              type=click.Path(exists=True, file_okay=False, path_type=Path),
+              help="A directory holding the six source documents, downloaded by "
+                   "hand (see eagent.eval.kred_sources.DOCUMENTS for the URLs and "
+                   "file names). Nothing is fetched.")
+@click.option("--write/--dry-run", default=False,
+              help="Write verification/results.json and regenerate the manifest.")
+def reference_verify_sources(directory: Path | None, docs_dir: Path,
+                             write: bool) -> None:
+    """Compare the workbook's kinetic numbers with the tables they came from.
+
+    Reads documents the caller downloaded, hashes them, and checks every number
+    of the 28 kinetic records and the 10 er values against the printed table.
+    ``matches`` means the numbers are equal as numbers; a quantity nobody read
+    is ``not_checked`` and says why.
+    """
+    import json
+
+    from .eval.kred_reference import load_reference_set, write_manifest
+    from .eval.kred_sources import SourceVerificationError, verify_sources
+
+    out = Out()
+    base = _reference_dir(directory)
+    rs = load_reference_set(base, verify=True)
+    try:
+        report = verify_sources(rs, docs_dir)
+    except SourceVerificationError as exc:
+        raise Refusal(str(exc), exit_code=EXIT_USAGE) from exc
+    summary = report["summary"]
+    out.heading("kinetic records")
+    for key, value in summary["kinetic_quantities"].items():
+        out.kv(f"  {key}", value, width=14)
+    out.kv("  er values matched", summary["selectivity_quantities"]["matches"], width=14)
+    out.line("")
+    out.kv("  matched against the paper's own table",
+           len(summary["records_fully_matched_against_the_papers_own_table"]), width=44)
+    out.kv("  matched against BRENDA only",
+           len(summary["records_fully_matched_against_a_curated_database_only"]), width=44)
+    out.kv("  matched in part, rest not checked",
+           len(summary["records_matched_in_part_rest_not_checked"]), width=44)
+    bad = summary["records_with_a_mismatch_or_missing_value"]
+    for lid in bad:
+        out.bullet(f"{lid}: " + "; ".join(
+            f"{c['quantity']} {c['status']} ({c['workbook']} vs {c['source'] or 'nothing'})"
+            for c in report["kinetic_records"][lid]
+            if c["status"] in ("mismatch", "not_found")))
+    if write:
+        target = base / "verification"
+        target.mkdir(exist_ok=True)
+        (target / "results.json").write_text(
+            json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8")
+        write_manifest(base)
+        out.line("")
+        out.line(f"wrote {target / 'results.json'}; MANIFEST.json regenerated")
+    if bad:
+        raise Refusal(f"{len(bad)} record(s) disagree with, or are missing from, "
+                      f"their source", exit_code=EXIT_FAILED)
+
+
+@reference_group.command("import-workbook")
+@click.argument("workbook", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out", "out_dir", required=True, type=click.Path(path_type=Path),
+              help="An empty directory for the new version of the set.")
+def reference_import(workbook: Path, out_dir: Path) -> None:
+    """Store a delivered workbook and convert it, for a new version of the set.
+
+    Copies the workbook unchanged into ``source/``, converts its tables, writes
+    the manifest. It does not decide the new version is correct: load it with
+    ``eagent reference verify --dir`` and read the findings first.
+    """
+    import shutil
+
+    from .eval.kred_reference import write_manifest
+    from .eval.kred_workbook import WorkbookError, read_workbook, write_tables
+
+    out = Out()
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise Refusal(f"{out_dir} is not empty", exit_code=EXIT_USAGE)
+    try:
+        tables = read_workbook(workbook)
+    except WorkbookError as exc:
+        raise Refusal(str(exc), next_action="this importer is written for one "
+                      "workbook layout; a new layout needs a person to decide what "
+                      "its sheets mean", exit_code=EXIT_USAGE) from exc
+    (out_dir / "source").mkdir(parents=True)
+    shutil.copyfile(workbook, out_dir / "source" / workbook.name)
+    write_tables(tables, out_dir / "tables")
+    path = write_manifest(out_dir)
+    out.line(f"{len(tables)} tables written under {out_dir / 'tables'}; {path}")
+
+
 if __name__ == "__main__":  # pragma: no cover - module entry point
     main()

@@ -66,6 +66,31 @@ UNIT_TABLE: dict[str, tuple[str, float]] = {
     "µmol/l": ("mM", 1e-3),
     "nm": ("mM", 1e-6), "nmol/l": ("mM", 1e-6),
     "m": ("mM", 1e3), "mol/l": ("mM", 1e3),
+    # -- second-order rate constants (kcat/Km) -> per molar per second ----
+    # A catalytic efficiency is a rate constant per concentration, so it has
+    # its own canonical unit: it must not pool with a first-order constant
+    # ("s-1") or with a concentration ("mM"), and a pair across those is
+    # refused. The factors are pure arithmetic on the two unit prefixes:
+    # ``mM-1 min-1 -> M-1 s-1`` is 1000 / 60, because a millimolar is a
+    # thousandth of a molar (so a per-millimolar constant is a thousand times
+    # a per-molar one) and a minute is sixty seconds. The orderings of the two
+    # factors in a spelling ("min-1 mM-1" and "mM-1 min-1") are both in use in
+    # the papers this project reads, and both are listed rather than parsed.
+    "m-1 s-1": ("M-1 s-1", 1.0), "m^-1 s^-1": ("M-1 s-1", 1.0),
+    "m-1s-1": ("M-1 s-1", 1.0), "1/(m*s)": ("M-1 s-1", 1.0),
+    "l/(mol*s)": ("M-1 s-1", 1.0), "l mol-1 s-1": ("M-1 s-1", 1.0),
+    "s-1 m-1": ("M-1 s-1", 1.0), "s^-1 m^-1": ("M-1 s-1", 1.0),
+    "mm-1 s-1": ("M-1 s-1", 1e3), "mm^-1 s^-1": ("M-1 s-1", 1e3),
+    "s-1 mm-1": ("M-1 s-1", 1e3), "s^-1 mm^-1": ("M-1 s-1", 1e3),
+    "um-1 s-1": ("M-1 s-1", 1e6), "um^-1 s^-1": ("M-1 s-1", 1e6),
+    "µm-1 s-1": ("M-1 s-1", 1e6), "µm^-1 s^-1": ("M-1 s-1", 1e6),
+    "s-1 um-1": ("M-1 s-1", 1e6), "s^-1 um^-1": ("M-1 s-1", 1e6),
+    "m-1 min-1": ("M-1 s-1", 1.0 / 60.0), "m^-1 min^-1": ("M-1 s-1", 1.0 / 60.0),
+    "min-1 m-1": ("M-1 s-1", 1.0 / 60.0), "min^-1 m^-1": ("M-1 s-1", 1.0 / 60.0),
+    "mm-1 min-1": ("M-1 s-1", 1e3 / 60.0), "mm^-1 min^-1": ("M-1 s-1", 1e3 / 60.0),
+    "min-1 mm-1": ("M-1 s-1", 1e3 / 60.0), "min^-1 mm^-1": ("M-1 s-1", 1e3 / 60.0),
+    "um-1 min-1": ("M-1 s-1", 1e6 / 60.0), "um^-1 min^-1": ("M-1 s-1", 1e6 / 60.0),
+    "min-1 um-1": ("M-1 s-1", 1e6 / 60.0), "min^-1 um^-1": ("M-1 s-1", 1e6 / 60.0),
     # -- specific activity -> units per milligram ------------------------
     # One unit is one micromole of product per minute, so U/mg and
     # umol/min/mg are the same scale and mU/mg and nmol/min/mg are a

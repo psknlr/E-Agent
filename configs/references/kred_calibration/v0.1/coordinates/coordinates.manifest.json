@@ -1,0 +1,3458 @@
+{
+  "files": {
+    "1IPF": {
+      "annotations": {
+        "description": "TROPINONE REDUCTASE-II",
+        "ec": "1.1.1.236",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0050358",
+            "name": "tropinone reductase activity"
+          },
+          {
+            "id": "GO:0009710",
+            "name": "tropane alkaloid biosynthetic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR045000",
+            "name": "Tropinone reductase"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "1IPF",
+        "pfam": []
+      },
+      "bytes": 455755,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "TROPINONE REDUCTASE-II",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "NADPH DIHYDRO-NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "2",
+            "description": "8-METHYL-8-AZABICYCLO[3,2,1]OCTAN-3-ONE",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "62",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "1IPF",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-10-25",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "NDP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 261
+          },
+          {
+            "altlocs": [],
+            "ccd": "TNE",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 10,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 262
+          },
+          {
+            "altlocs": [],
+            "ccd": "NDP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1261
+          },
+          {
+            "altlocs": [],
+            "ccd": "TNE",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 10,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1262
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 4128,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "AGRWNLEGCTALVTGGSRGIGYGIVEELASLGASVYTCSRNQKELNDCLTQWRSKGFKVEASVCDLSSRSERQELMNTVANHFHGKLNILVNNAGIVIYKEAKDYTVEDYSLIMSINFEAAYHLSVLAHPFLKASERGNVVFISSVSGALAVPYEAVYGATKGAMDQLTRCLAFEWAKDNIRVNGVGPGVIATSLVEMTIQDPEQKENLNKLIDRCALRRMGEPKELAAMVAFLCFPAASYVTGQIIYVDGGLMANCGF",
+            "sequence_length": 259,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 2.5,
+        "revision_count": 4,
+        "title": "TROPINONE REDUCTASE-II COMPLEXED WITH NADPH AND TROPINONE"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:48:49+00:00",
+      "sha256": "8891976c267b9ea8b6d7e3752f5d3ae6f5df81ba9b37ab376de2e8740e398efa",
+      "url": "https://files.rcsb.org/download/1IPF.cif"
+    },
+    "1Y1P": {
+      "annotations": {
+        "description": "Aldehyde reductase II",
+        "ec": "1.1.1.2",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0008106",
+            "name": "alcohol dehydrogenase (NADP+) activity"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR001509",
+            "name": "NAD-dependent epimerase/dehydratase"
+          },
+          {
+            "id": "IPR050425",
+            "name": "NAD(P)-dependent dehydratase-like"
+          }
+        ],
+        "pdb_id": "1Y1P",
+        "pfam": []
+      },
+      "bytes": 695736,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "Aldehyde reductase II",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "SULFATE ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "ACETATE ION",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "2",
+            "description": "BETA-NICOTINAMIDE RIBOSE MONOPHOSPHATE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "2",
+            "description": "ADENOSINE MONOPHOSPHATE",
+            "id": "5",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "2",
+            "description": "PHOSPHATE ION",
+            "id": "6",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "733",
+            "description": "water",
+            "id": "7",
+            "type": "water"
+          }
+        ],
+        "entry_id": "1Y1P",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-03-13",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "SO4",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 5,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 801
+          },
+          {
+            "altlocs": [],
+            "ccd": "ACT",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 803
+          },
+          {
+            "altlocs": [],
+            "ccd": "NMN",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 22,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1001
+          },
+          {
+            "altlocs": [],
+            "ccd": "AMP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 22,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1002
+          },
+          {
+            "altlocs": [],
+            "ccd": "PO4",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1003
+          },
+          {
+            "altlocs": [],
+            "ccd": "SO4",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 5,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 802
+          },
+          {
+            "altlocs": [],
+            "ccd": "NMN",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 22,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 2001
+          },
+          {
+            "altlocs": [],
+            "ccd": "AMP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 22,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 2002
+          },
+          {
+            "altlocs": [],
+            "ccd": "PO4",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 2003
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 6094,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "AKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSFSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALALMPPQYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSLEILKSLGRPGWRSIEESIKDLVGSETA",
+            "sequence_length": 342,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.6,
+        "revision_count": 4,
+        "title": "X-ray structure of aldehyde reductase with NADPH"
+      },
+      "family_class": "extended_sdr_epimerase_dehydratase",
+      "retrieved_at": "2026-10-08T03:49:13+00:00",
+      "sha256": "be023e5914d7490239865fbb7d25e0c1b63df349fb281b080c03e7e9aaca0d2e",
+      "url": "https://files.rcsb.org/download/1Y1P.cif"
+    },
+    "1ZJY": {
+      "annotations": {
+        "description": "R-specific alcohol dehydrogenase",
+        "ec": "1.1.1.2",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0016491",
+            "name": "oxidoreductase activity"
+          },
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR051122",
+            "name": "SDR DHRS6-like"
+          },
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "1ZJY",
+        "pfam": []
+      },
+      "bytes": 603920,
+      "facts": {
+        "chains": [
+          "A"
+        ],
+        "entities": [
+          {
+            "copies": "1",
+            "description": "R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "1",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "(1R)-1-PHENYLETHANOL",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "1,4-DIHYDRONICOTINAMIDE ADENINE DINUCLEOTIDE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "375",
+            "description": "water",
+            "id": "5",
+            "type": "water"
+          }
+        ],
+        "entry_id": "1ZJY",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-02-14",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 1252
+          },
+          {
+            "altlocs": [],
+            "ccd": "SS2",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 9,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1260
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAI",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1270
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 2846,
+        "polymer_residues_with_altloc": 69,
+        "polymers": [
+          {
+            "chains": [
+              "A"
+            ],
+            "entity_id": "1",
+            "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+            "sequence_length": 251,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.05,
+        "revision_count": 5,
+        "title": "Structure of R-specific alcohol dehydrogenase (mutant G37D) from Lactobacillus brevis in complex with phenylethanol and NADH"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:02+00:00",
+      "sha256": "96d96c2ea950fe3742803e600ae53cf552040571dde38d0adc2ef06e836459aa",
+      "url": "https://files.rcsb.org/download/1ZJY.cif"
+    },
+    "1ZJZ": {
+      "annotations": {
+        "description": "R-specific alcohol dehydrogenase",
+        "ec": "1.1.1.2",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0016491",
+            "name": "oxidoreductase activity"
+          },
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR051122",
+            "name": "SDR DHRS6-like"
+          },
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "1ZJZ",
+        "pfam": []
+      },
+      "bytes": 614101,
+      "facts": {
+        "chains": [
+          "A"
+        ],
+        "entities": [
+          {
+            "copies": "1",
+            "description": "R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "1",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "(1R)-1-PHENYLETHANOL",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "387",
+            "description": "water",
+            "id": "5",
+            "type": "water"
+          }
+        ],
+        "entry_id": "1ZJZ",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-02-14",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 1252
+          },
+          {
+            "altlocs": [],
+            "ccd": "SS2",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 9,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1260
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1270
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 2905,
+        "polymer_residues_with_altloc": 75,
+        "polymers": [
+          {
+            "chains": [
+              "A"
+            ],
+            "entity_id": "1",
+            "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+            "sequence_length": 251,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.1,
+        "revision_count": 5,
+        "title": "Structure of R-specific alcohol dehydrogenase (mutant G37D) from Lactobacillus brevis in complex with phenylethanol and NAD"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:04+00:00",
+      "sha256": "07beb3f16e59b2be127ea240322150fe0f242e22e01b489653fb4dfdaa460156",
+      "url": "https://files.rcsb.org/download/1ZJZ.cif"
+    },
+    "1ZK0": {
+      "annotations": {
+        "description": "R-specific alcohol dehydrogenase",
+        "ec": "1.1.1.2",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0016491",
+            "name": "oxidoreductase activity"
+          },
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR051122",
+            "name": "SDR DHRS6-like"
+          },
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "1ZK0",
+        "pfam": []
+      },
+      "bytes": 555320,
+      "facts": {
+        "chains": [
+          "A"
+        ],
+        "entities": [
+          {
+            "copies": "1",
+            "description": "R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "1",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "(1R)-1-PHENYLETHANOL",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "1,4-DIHYDRONICOTINAMIDE ADENINE DINUCLEOTIDE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "374",
+            "description": "water",
+            "id": "5",
+            "type": "water"
+          }
+        ],
+        "entry_id": "1ZK0",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-02-14",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 1252
+          },
+          {
+            "altlocs": [],
+            "ccd": "SS2",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 9,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1260
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAI",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1270
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 2580,
+        "polymer_residues_with_altloc": 46,
+        "polymers": [
+          {
+            "chains": [
+              "A"
+            ],
+            "entity_id": "1",
+            "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+            "sequence_length": 251,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.55,
+        "revision_count": 5,
+        "title": "Structure of R-specific alcohol dehydrogenase (mutant G37D) from Lactobacillus brevis in complex with phenylethanol and NADH"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:05+00:00",
+      "sha256": "eec2b6c42630c8951bf6c24dfa565aaa90e92844a444a0292cffa61247bad1e0",
+      "url": "https://files.rcsb.org/download/1ZK0.cif"
+    },
+    "1ZK1": {
+      "annotations": {
+        "description": "R-specific alcohol dehydrogenase",
+        "ec": "1.1.1.2",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0016491",
+            "name": "oxidoreductase activity"
+          },
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR051122",
+            "name": "SDR DHRS6-like"
+          },
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "1ZK1",
+        "pfam": []
+      },
+      "bytes": 303270,
+      "facts": {
+        "chains": [
+          "A"
+        ],
+        "entities": [
+          {
+            "copies": "1",
+            "description": "R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "1",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "1-PHENYLETHANONE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "374",
+            "description": "water",
+            "id": "5",
+            "type": "water"
+          }
+        ],
+        "entry_id": "1ZK1",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-02-14",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 1252
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 270
+          },
+          {
+            "altlocs": [],
+            "ccd": "AC0",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 9,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 260
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 2303,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A"
+            ],
+            "entity_id": "1",
+            "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+            "sequence_length": 251,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.78,
+        "revision_count": 5,
+        "title": "Structure of R-specific alcohol dehydrogenase (mutant G37D) from Lactobacillus brevis in complex with phenylethanol and NAD"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:06+00:00",
+      "sha256": "2c0e5ad74ad2ed4ae69d95eaad35582146c8de79275f24f9fde383acc5253a39",
+      "url": "https://files.rcsb.org/download/1ZK1.cif"
+    },
+    "1ZK4": {
+      "annotations": {
+        "description": "R-specific alcohol dehydrogenase",
+        "ec": "1.1.1.2",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0016491",
+            "name": "oxidoreductase activity"
+          },
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR051122",
+            "name": "SDR DHRS6-like"
+          },
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "1ZK4",
+        "pfam": []
+      },
+      "bytes": 550804,
+      "facts": {
+        "chains": [
+          "A"
+        ],
+        "entities": [
+          {
+            "copies": "1",
+            "description": "R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "1",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "NADP NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "1-PHENYLETHANONE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "411",
+            "description": "water",
+            "id": "5",
+            "type": "water"
+          }
+        ],
+        "entry_id": "1ZK4",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-02-14",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 1252
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1270
+          },
+          {
+            "altlocs": [],
+            "ccd": "AC0",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 9,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1260
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 2522,
+        "polymer_residues_with_altloc": 35,
+        "polymers": [
+          {
+            "chains": [
+              "A"
+            ],
+            "entity_id": "1",
+            "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITGRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+            "sequence_length": 251,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.0,
+        "revision_count": 4,
+        "title": "Structure of R-specific alcohol dehydrogenase (wildtype) from Lactobacillus brevis in complex with acetophenone and NADP"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:00+00:00",
+      "sha256": "e1badbc69a37b4aca8127eb59de5259fb6097daba17459b931024b67cacef0ec",
+      "url": "https://files.rcsb.org/download/1ZK4.cif"
+    },
+    "2AE2": {
+      "annotations": {
+        "description": "PROTEIN (TROPINONE REDUCTASE-II)",
+        "ec": "1.1.1.236",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0050358",
+            "name": "tropinone reductase activity"
+          },
+          {
+            "id": "GO:0009710",
+            "name": "tropane alkaloid biosynthetic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR045000",
+            "name": "Tropinone reductase"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "2AE2",
+        "pfam": []
+      },
+      "bytes": 474617,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "PROTEIN (TROPINONE REDUCTASE-II)",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "NADP NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "2",
+            "description": "PSEUDOTROPINE",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "236",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "2AE2",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-08-23",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 261
+          },
+          {
+            "altlocs": [],
+            "ccd": "PTO",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 10,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 262
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 261
+          },
+          {
+            "altlocs": [],
+            "ccd": "PTO",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 10,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 262
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 4302,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "MAGRWNLEGCTALVTGGSRGIGYGIVEELASLGASVYTCSRNQKELNDCLTQWRSKGFKVEASVCDLSSRSERQELMNTVANHFHGKLNILVNNAGIVIYKEAKDYTVEDYSLIMSINFEAAYHLSVLAHPFLKASERGNVVFISSVSGALAVPYEAVYGATKGAMDQLTRCLAFEWAKDNIRVNGVGPGVIATSLVEMTIQDPEQKENLNKLIDRCALRRMGEPKELAAMVAFLCFPAASYVTGQIIYVDGGLMANCGF",
+            "sequence_length": 260,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.9,
+        "revision_count": 5,
+        "title": "TROPINONE REDUCTASE-II COMPLEXED WITH NADP+ AND PSEUDOTROPINE"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:48:51+00:00",
+      "sha256": "bd0102d78e65392638c13b628278a96d0b505374ae23706460ae92ee365b8260",
+      "url": "https://files.rcsb.org/download/2AE2.cif"
+    },
+    "4RF2": {
+      "annotations": {
+        "description": "NADPH dependent R-specific alcohol dehydrogenase",
+        "ec": null,
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "4RF2",
+        "pfam": []
+      },
+      "bytes": 794351,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "NADPH dependent R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "NADP NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "3",
+            "description": "MAGNESIUM ION",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "128",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "4RF2",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-09-20",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 303
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 302
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 3906,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+            "sequence_length": 272,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 2.089,
+        "revision_count": 5,
+        "title": "Crystal structure of NADP+ bound ketoreductase from Lactobacillus kefir"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:07+00:00",
+      "sha256": "0f21b1ad69780cfcfa50d65186f6100e38686d0c7893c766a1ab279c4d513a72",
+      "url": "https://files.rcsb.org/download/4RF2.cif"
+    },
+    "4RF3": {
+      "annotations": {
+        "description": "NADPH dependent R-specific alcohol dehydrogenase",
+        "ec": null,
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "4RF3",
+        "pfam": []
+      },
+      "bytes": 788235,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "NADPH dependent R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "3",
+            "description": "GLYCEROL",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "137",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "4RF3",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-09-20",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "GOL",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "GOL",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "GOL",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 303
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 3848,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIFVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+            "sequence_length": 272,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.694,
+        "revision_count": 5,
+        "title": "Crystal Structure of ketoreductase from Lactobacillus kefir, mutant A94F"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:11+00:00",
+      "sha256": "fc669e64ce5b0e1c213568c77e891a4b1798d925615df30b66de59ed270dc264",
+      "url": "https://files.rcsb.org/download/4RF3.cif"
+    },
+    "4RF4": {
+      "annotations": {
+        "description": "NADPH dependent R-specific alcohol dehydrogenase",
+        "ec": null,
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "4RF4",
+        "pfam": []
+      },
+      "bytes": 750893,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "NADPH dependent R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "36",
+            "description": "water",
+            "id": "3",
+            "type": "water"
+          }
+        ],
+        "entry_id": "4RF4",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-09-20",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 301
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 3695,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+            "sequence_length": 272,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 2.201,
+        "revision_count": 5,
+        "title": "Crystal structure of ketoreductase from Lactobacillus kefir"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:09+00:00",
+      "sha256": "2c2926c9334d467ead327e9db9d74581e11e7be8c465a69e560c047425b36914",
+      "url": "https://files.rcsb.org/download/4RF4.cif"
+    },
+    "4RF5": {
+      "annotations": {
+        "description": "NADPH dependent R-specific alcohol dehydrogenase",
+        "ec": null,
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0008206",
+            "name": "bile acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "4RF5",
+        "pfam": []
+      },
+      "bytes": 800842,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "NADPH dependent R-specific alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "MAGNESIUM ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "2",
+            "description": "GLYCEROL",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "241",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "4RF5",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-09-20",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "MG",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "GOL",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 303
+          },
+          {
+            "altlocs": [],
+            "ccd": "GOL",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 304
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 3961,
+        "polymer_residues_with_altloc": 4,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+            "sequence_length": 272,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.596,
+        "revision_count": 5,
+        "title": "Crystal structure of ketoreductase from Lactobacillus kefir, E145S mutant"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:49:12+00:00",
+      "sha256": "4d1f0e0546ce650657912425fbc757c08560ed6b6d1b54bdc474b870a2a60f0e",
+      "url": "https://files.rcsb.org/download/4RF5.cif"
+    },
+    "6XEW": {
+      "annotations": {
+        "description": "2,3-butanediol dehydrogenase",
+        "ec": "1",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0047512",
+            "name": "(S,S)-butanediol dehydrogenase activity"
+          },
+          {
+            "id": "GO:0052588",
+            "name": "diacetyl reductase ((S)-acetoin forming) (NAD+) activity"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "6XEW",
+        "pfam": []
+      },
+      "bytes": 537731,
+      "facts": {
+        "chains": [
+          "A",
+          "B"
+        ],
+        "entities": [
+          {
+            "copies": "2",
+            "description": "2,3-butanediol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "2",
+            "description": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "R,3-HYDROXYBUTAN-2-ONE",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "S,3-HYDROXYBUTAN-2-ONE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1",
+            "description": "ADENOSINE-5'-DIPHOSPHATE",
+            "id": "5",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "438",
+            "description": "water",
+            "id": "6",
+            "type": "water"
+          }
+        ],
+        "entry_id": "6XEW",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-10-18",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 0.7,
+            "occupancy_min": 0.7,
+            "resseq": 302
+          },
+          {
+            "altlocs": [
+              "A"
+            ],
+            "ccd": "HBR",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 303
+          },
+          {
+            "altlocs": [
+              "B"
+            ],
+            "ccd": "HBS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 304
+          },
+          {
+            "altlocs": [],
+            "ccd": "ADP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 27,
+            "occupancy_max": 0.7,
+            "occupancy_min": 0.3,
+            "resseq": 301
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 4303,
+        "polymer_residues_with_altloc": 9,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B"
+            ],
+            "entity_id": "1",
+            "sequence": "MHHHHHHENLYFQGRFDNKVVVITGAGNGMGEAAARRFSAEGAIVVLADWAKEAVDKVAASLPKGRAMAVHIDVSDHVAVEKMMNEVAEKLGRIDVLLNNAGVHVAGSVLETSIDDWRRIAGVDIDGVVFCSKFALPHLLKTKGCIVNTASVSGLGGDWGAAYYCAAKGAVVNLTRAMALDHGGDGVRINSVCPSLVKTNMTNGWPQEIRDKFNERIALGRAAEPEEVAAVMAFLASDDASFINGANIPVDGGATASDGQPKIV",
+            "sequence_length": 264,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 2.0,
+        "revision_count": 2,
+        "title": "Structure of Serratia marcescens 2,3-butanediol dehydrogenase"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:48:59+00:00",
+      "sha256": "249e988380b547603958be0fd21093ab2563a88c43e39335ea783d6cff2d8d3f",
+      "url": "https://files.rcsb.org/download/6XEW.cif"
+    },
+    "6ZZO": {
+      "annotations": {
+        "description": "Putative beta-hydroxybutyrate dehydrogenase",
+        "ec": "1.1.1.30",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0006629",
+            "name": "lipid metabolic process"
+          },
+          {
+            "id": "GO:0003858",
+            "name": "3-hydroxybutyrate dehydrogenase activity"
+          },
+          {
+            "id": "GO:0032787",
+            "name": "monocarboxylic acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR050259",
+            "name": "Short-chain dehydrogenases/reductases"
+          },
+          {
+            "id": "IPR011294",
+            "name": "3-hydroxybutyrate dehydrogenase"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "6ZZO",
+        "pfam": [
+          {
+            "id": "PF00106",
+            "name": "short chain dehydrogenase (adh_short)"
+          }
+        ]
+      },
+      "bytes": 995428,
+      "facts": {
+        "chains": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "entities": [
+          {
+            "copies": "4",
+            "description": "Putative beta-hydroxybutyrate dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "4",
+            "description": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "4",
+            "description": "ACETOACETIC ACID",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "1265",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "6ZZO",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-01-31",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "AAE",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 14,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "AAE",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 14,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "AAE",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 14,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "AAE",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 14,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 302
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 9376,
+        "polymer_residues_with_altloc": 41,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "entity_id": "1",
+            "sequence": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+            "sequence_length": 266,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.28,
+        "revision_count": 3,
+        "title": "Crystal structure of (R)-3-hydroxybutyrate dehydrogenase from Psychrobacter arcticus complexed with NAD+ and acetoacetate"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:48:52+00:00",
+      "sha256": "295b2835a7571b1fca038aa2620b8d84ca12d7a2eb0992b0fac77c63b90a2d45",
+      "url": "https://files.rcsb.org/download/6ZZO.cif"
+    },
+    "6ZZP": {
+      "annotations": {
+        "description": "Putative beta-hydroxybutyrate dehydrogenase",
+        "ec": "1.1.1.30",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0006629",
+            "name": "lipid metabolic process"
+          },
+          {
+            "id": "GO:0003858",
+            "name": "3-hydroxybutyrate dehydrogenase activity"
+          },
+          {
+            "id": "GO:0032787",
+            "name": "monocarboxylic acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR050259",
+            "name": "Short-chain dehydrogenases/reductases"
+          },
+          {
+            "id": "IPR011294",
+            "name": "3-hydroxybutyrate dehydrogenase"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "6ZZP",
+        "pfam": [
+          {
+            "id": "PF00106",
+            "name": "short chain dehydrogenase (adh_short)"
+          }
+        ]
+      },
+      "bytes": 949811,
+      "facts": {
+        "chains": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "entities": [
+          {
+            "copies": "4",
+            "description": "Putative beta-hydroxybutyrate dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "4",
+            "description": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "4",
+            "description": "3-oxidanylidenepentanoic acid",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "994",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "6ZZP",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-05-01",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "QT8",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 16,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 8849,
+        "polymer_residues_with_altloc": 18,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "entity_id": "1",
+            "sequence": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+            "sequence_length": 266,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.84,
+        "revision_count": 3,
+        "title": "Crystal structure of (R)-3-hydroxybutyrate dehydrogenase from Psychrobacter arcticus complexed with NAD+ and 3-oxovalerate"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:48:54+00:00",
+      "sha256": "d354d54978f48940afe983df15493f51bb6a95fa02571d5cddc998f700553819",
+      "url": "https://files.rcsb.org/download/6ZZP.cif"
+    },
+    "6ZZQ": {
+      "annotations": {
+        "description": "3-hydroxybutyrate dehydrogenase",
+        "ec": null,
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0006629",
+            "name": "lipid metabolic process"
+          },
+          {
+            "id": "GO:0003858",
+            "name": "3-hydroxybutyrate dehydrogenase activity"
+          },
+          {
+            "id": "GO:0032787",
+            "name": "monocarboxylic acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR050259",
+            "name": "Short-chain dehydrogenases/reductases"
+          },
+          {
+            "id": "IPR011294",
+            "name": "3-hydroxybutyrate dehydrogenase"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "6ZZQ",
+        "pfam": []
+      },
+      "bytes": 270644,
+      "facts": {
+        "chains": [
+          "A"
+        ],
+        "entities": [
+          {
+            "copies": "1",
+            "description": "3-hydroxybutyrate dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "1",
+            "description": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "2",
+            "description": "ACETOACETIC ACID",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "121",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "6ZZQ",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-01-31",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "AAE",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 7,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "AAE",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 7,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 303
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 2064,
+        "polymer_residues_with_altloc": 0,
+        "polymers": [
+          {
+            "chains": [
+              "A"
+            ],
+            "entity_id": "1",
+            "sequence": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+            "sequence_length": 261,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.93,
+        "revision_count": 3,
+        "title": "Crystal structure of (R)-3-hydroxybutyrate dehydrogenase from Acinetobacter baumannii complexed with NAD+ and acetoacetate"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:48:56+00:00",
+      "sha256": "9f28f019f281f9ef6fc07a8a8d66c9a7cac6d6b99a86fdeb762959755e458e19",
+      "url": "https://files.rcsb.org/download/6ZZQ.cif"
+    },
+    "6ZZS": {
+      "annotations": {
+        "description": "3-hydroxybutyrate dehydrogenase",
+        "ec": null,
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0006629",
+            "name": "lipid metabolic process"
+          },
+          {
+            "id": "GO:0003858",
+            "name": "3-hydroxybutyrate dehydrogenase activity"
+          },
+          {
+            "id": "GO:0032787",
+            "name": "monocarboxylic acid metabolic process"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR002347",
+            "name": "Short-chain dehydrogenase/reductase SDR"
+          },
+          {
+            "id": "IPR050259",
+            "name": "Short-chain dehydrogenases/reductases"
+          },
+          {
+            "id": "IPR011294",
+            "name": "3-hydroxybutyrate dehydrogenase"
+          },
+          {
+            "id": "IPR020904",
+            "name": "Short-chain dehydrogenase/reductase, conserved site"
+          }
+        ],
+        "pdb_id": "6ZZS",
+        "pfam": []
+      },
+      "bytes": 1308508,
+      "facts": {
+        "chains": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F"
+        ],
+        "entities": [
+          {
+            "copies": "6",
+            "description": "3-hydroxybutyrate dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "6",
+            "description": "NICOTINAMIDE-ADENINE-DINUCLEOTIDE",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "6",
+            "description": "3-oxidanylidenepentanoic acid",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "603",
+            "description": "water",
+            "id": "4",
+            "type": "water"
+          }
+        ],
+        "entry_id": "6ZZS",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-05-01",
+        "ligands": [
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "NAD",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 88,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "NAD",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 88,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "NAD",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 88,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 303
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "NAD",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 88,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          },
+          {
+            "altlocs": [
+              "A",
+              "B"
+            ],
+            "ccd": "NAD",
+            "chain": "E",
+            "icode": "",
+            "n_atoms": 88,
+            "occupancy_max": 0.5,
+            "occupancy_min": 0.5,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAD",
+            "chain": "F",
+            "icode": "",
+            "n_atoms": 44,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 301
+          },
+          {
+            "altlocs": [],
+            "ccd": "QT8",
+            "chain": "F",
+            "icode": "",
+            "n_atoms": 8,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 302
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 12429,
+        "polymer_residues_with_altloc": 18,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F"
+            ],
+            "entity_id": "1",
+            "sequence": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+            "sequence_length": 261,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.85,
+        "revision_count": 3,
+        "title": "Crystal structure of (R)-3-hydroxybutyrate dehydrogenase from Acinetobacter baumannii complexed with NAD+ and 3-oxovalerate"
+      },
+      "family_class": "classical_sdr",
+      "retrieved_at": "2026-10-08T03:48:57+00:00",
+      "sha256": "685c29c158d4344e7cc82c3996e3b46fe31da051a521752a5e2e0adf5968c714",
+      "url": "https://files.rcsb.org/download/6ZZS.cif"
+    },
+    "7UTC": {
+      "annotations": {
+        "description": "Secondary-alcohol dehydrogenase",
+        "ec": "1.1.1.80",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0050009",
+            "name": "isopropanol dehydrogenase (NADP+) activity"
+          },
+          {
+            "id": "GO:0008270",
+            "name": "zinc ion binding"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR002328",
+            "name": "Alcohol dehydrogenase, zinc-type, conserved site"
+          },
+          {
+            "id": "IPR013154",
+            "name": "Alcohol dehydrogenase-like, N-terminal"
+          },
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR011032",
+            "name": "GroES-like superfamily"
+          },
+          {
+            "id": "IPR013149",
+            "name": "Alcohol dehydrogenase-like, C-terminal"
+          },
+          {
+            "id": "IPR020843",
+            "name": "Enoylreductase domain"
+          }
+        ],
+        "pdb_id": "7UTC",
+        "pfam": []
+      },
+      "bytes": 2344746,
+      "facts": {
+        "chains": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "entities": [
+          {
+            "copies": "4",
+            "description": "Secondary-alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "4",
+            "description": "ZINC ION",
+            "id": "2",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "4",
+            "description": "NADP NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "35",
+            "description": "DIMETHYL SULFOXIDE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "492",
+            "description": "water",
+            "id": "5",
+            "type": "water"
+          }
+        ],
+        "entry_id": "7UTC",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2023-10-18",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.724,
+            "occupancy_min": 0.724,
+            "resseq": 401
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.772,
+            "occupancy_min": 0.772,
+            "resseq": 402
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.848,
+            "occupancy_min": 0.848,
+            "resseq": 403
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 404
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.768,
+            "occupancy_min": 0.768,
+            "resseq": 405
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 406
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 407
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 408
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 409
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 410
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 411
+          },
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.641,
+            "occupancy_min": 0.641,
+            "resseq": 401
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.784,
+            "occupancy_min": 0.784,
+            "resseq": 402
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.963,
+            "occupancy_min": 0.963,
+            "resseq": 403
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.812,
+            "occupancy_min": 0.812,
+            "resseq": 404
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.905,
+            "occupancy_min": 0.905,
+            "resseq": 405
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 406
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 407
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 408
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 409
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 410
+          },
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.696,
+            "occupancy_min": 0.696,
+            "resseq": 401
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.759,
+            "occupancy_min": 0.759,
+            "resseq": 402
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.871,
+            "occupancy_min": 0.871,
+            "resseq": 403
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 404
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 405
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 406
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.802,
+            "occupancy_min": 0.802,
+            "resseq": 407
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.855,
+            "occupancy_min": 0.855,
+            "resseq": 408
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 409
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 410
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 411
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 801
+          },
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.762,
+            "occupancy_min": 0.762,
+            "resseq": 802
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.771,
+            "occupancy_min": 0.771,
+            "resseq": 803
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 804
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 805
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 0.896,
+            "occupancy_min": 0.896,
+            "resseq": 806
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 807
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 808
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 809
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 810
+          },
+          {
+            "altlocs": [],
+            "ccd": "DMS",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 4,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 811
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 11438,
+        "polymer_residues_with_altloc": 8,
+        "polymers": [
+          {
+            "chains": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "entity_id": "1",
+            "sequence": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAITPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLAPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+            "sequence_length": 352,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.85,
+        "revision_count": 5,
+        "title": "Crystal structure of secondary alcohol dehydrogenases from the Thermoanaerobacter ethanolicus with NADP and transition-state analogue inhibitor DMSO"
+      },
+      "family_class": "zinc_adh_mdr",
+      "retrieved_at": "2026-10-08T03:49:18+00:00",
+      "sha256": "94d189354d2f19417ead3a96cb9a1f22380888ca1ce1bb24c0c59377e2ed59bc",
+      "url": "https://files.rcsb.org/download/7UTC.cif"
+    },
+    "7UUT": {
+      "annotations": {
+        "description": "Secondary-alcohol dehydrogenase",
+        "ec": "1.1.1.80",
+        "entity_id": "1",
+        "go": [
+          {
+            "id": "GO:0050009",
+            "name": "isopropanol dehydrogenase (NADP+) activity"
+          },
+          {
+            "id": "GO:0008270",
+            "name": "zinc ion binding"
+          }
+        ],
+        "interpro": [
+          {
+            "id": "IPR002328",
+            "name": "Alcohol dehydrogenase, zinc-type, conserved site"
+          },
+          {
+            "id": "IPR013154",
+            "name": "Alcohol dehydrogenase-like, N-terminal"
+          },
+          {
+            "id": "IPR036291",
+            "name": "NAD(P)-binding domain superfamily"
+          },
+          {
+            "id": "IPR011032",
+            "name": "GroES-like superfamily"
+          },
+          {
+            "id": "IPR013149",
+            "name": "Alcohol dehydrogenase-like, C-terminal"
+          },
+          {
+            "id": "IPR020843",
+            "name": "Enoylreductase domain"
+          }
+        ],
+        "pdb_id": "7UUT",
+        "pfam": []
+      },
+      "bytes": 2336082,
+      "facts": {
+        "chains": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "entities": [
+          {
+            "copies": "1",
+            "description": "Secondary-alcohol dehydrogenase",
+            "id": "1",
+            "type": "polymer"
+          },
+          {
+            "copies": "3",
+            "description": "Secondary-alcohol dehydrogenase",
+            "id": "2",
+            "type": "polymer"
+          },
+          {
+            "copies": "4",
+            "description": "ZINC ION",
+            "id": "3",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "4",
+            "description": "NADP NICOTINAMIDE-ADENINE-DINUCLEOTIDE PHOSPHATE",
+            "id": "4",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "4",
+            "description": "(2R)-pentan-2-ol",
+            "id": "5",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "4",
+            "description": "POTASSIUM ION",
+            "id": "6",
+            "type": "non-polymer"
+          },
+          {
+            "copies": "358",
+            "description": "water",
+            "id": "7",
+            "type": "water"
+          }
+        ],
+        "entry_id": "7UUT",
+        "keywords": "OXIDOREDUCTASE",
+        "last_revision_date": "2024-11-20",
+        "ligands": [
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 401
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.686,
+            "occupancy_min": 0.686,
+            "resseq": 402
+          },
+          {
+            "altlocs": [],
+            "ccd": "2RP",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 403
+          },
+          {
+            "altlocs": [],
+            "ccd": "K",
+            "chain": "A",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 404
+          },
+          {
+            "altlocs": [],
+            "ccd": "FME",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 10,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1
+          },
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.583,
+            "occupancy_min": 0.583,
+            "resseq": 401
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.621,
+            "occupancy_min": 0.621,
+            "resseq": 402
+          },
+          {
+            "altlocs": [],
+            "ccd": "2RP",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 403
+          },
+          {
+            "altlocs": [],
+            "ccd": "K",
+            "chain": "B",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 404
+          },
+          {
+            "altlocs": [],
+            "ccd": "FME",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 10,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1
+          },
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.627,
+            "occupancy_min": 0.627,
+            "resseq": 401
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.721,
+            "occupancy_min": 0.721,
+            "resseq": 402
+          },
+          {
+            "altlocs": [],
+            "ccd": "2RP",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 0.852,
+            "occupancy_min": 0.852,
+            "resseq": 403
+          },
+          {
+            "altlocs": [],
+            "ccd": "K",
+            "chain": "C",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 404
+          },
+          {
+            "altlocs": [],
+            "ccd": "FME",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 10,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 1
+          },
+          {
+            "altlocs": [],
+            "ccd": "ZN",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 0.642,
+            "occupancy_min": 0.642,
+            "resseq": 401
+          },
+          {
+            "altlocs": [],
+            "ccd": "NAP",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 48,
+            "occupancy_max": 0.621,
+            "occupancy_min": 0.621,
+            "resseq": 402
+          },
+          {
+            "altlocs": [],
+            "ccd": "2RP",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 6,
+            "occupancy_max": 0.952,
+            "occupancy_min": 0.952,
+            "resseq": 403
+          },
+          {
+            "altlocs": [],
+            "ccd": "K",
+            "chain": "D",
+            "icode": "",
+            "n_atoms": 1,
+            "occupancy_max": 1.0,
+            "occupancy_min": 1.0,
+            "resseq": 404
+          }
+        ],
+        "method": "X-RAY DIFFRACTION",
+        "n_atoms": 11273,
+        "polymer_residues_with_altloc": 20,
+        "polymers": [
+          {
+            "chains": [
+              "A"
+            ],
+            "entity_id": "1",
+            "sequence": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAATPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLCPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+            "sequence_length": 352,
+            "type": "polypeptide(L)"
+          },
+          {
+            "chains": [
+              "B",
+              "C",
+              "D"
+            ],
+            "entity_id": "2",
+            "sequence": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAATPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLCPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+            "sequence_length": 352,
+            "type": "polypeptide(L)"
+          }
+        ],
+        "resolution_a": 1.89,
+        "revision_count": 5,
+        "title": "Ternary complex crystal structure of secondary alcohol dehydrogenases from the Thermoanaerobacter ethanolicus mutants C295A and I86A provides better understanding of catalytic mechanism"
+      },
+      "family_class": "zinc_adh_mdr",
+      "retrieved_at": "2026-10-08T03:49:15+00:00",
+      "sha256": "91aed5a2f6dd99c6e663d77825251b4a8be6dca2249516ac1380490280ed6d45",
+      "url": "https://files.rcsb.org/download/7UUT.cif"
+    }
+  },
+  "licence": "CC0 1.0 -- wwPDB: 'Data files contained in the PDB archive are available under the CC0 1.0 Universal Public Domain Dedication' (https://www.wwpdb.org/about/usage-policies, read 2026-10-08)",
+  "note": "the files are not committed; they are fetched into a cache directory and must hash to the values here. The RCSB revises entries, so the same identifier can serve other bytes later.",
+  "product": "kred_calibration_reference/coordinates",
+  "route": "eagent.connectors.structure.RCSBPDBConnector.download_structure -> https://files.rcsb.org/download/<ID>.cif (the asymmetric unit; checked against a passing probe before any request)",
+  "version": "v0.1"
+}

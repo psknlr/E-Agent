@@ -1,0 +1,193 @@
+KRED calibration reference set v0.1 -- eligibility audit and calibration run
+data digest a1bcd99c01e5e6fd...  19 structures, 28 kinetic records
+independent lineages: 6 among the 19 entries; 3 behind the 22 core kinetic records; 2 with a substrate or product placed in the site
+
+== scenario: as_shipped ==
+   the shipped NADPH-SDR template and the set's conditional grades, with nothing relaxed. This is the calibration the template could cite.
+   eligible entries: ['1IPF']; lineages: ['TR-II']; independent actives: 1; known inactives: 0
+   measured 1IPF:A:- (in calibration): hydride_approach_angle_burgi_dunitz=72.61[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=4.06[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   policy coverage 0.8 / confidence 0.8 / min inactives 5:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window None; n_active=1 n_inactive=0; needs 14 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window None; n_active=1 n_inactive=0; needs 14 actives
+   policy coverage 0.9 / confidence 0.9 / min inactives 10:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window None; n_active=1 n_inactive=0; needs 38 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window None; n_active=1 n_inactive=0; needs 38 actives
+
+== scenario: oxidised_same_cofactor ==
+   NADP+ accepted for NADPH. Relaxes the oxidation state only. Measured for a reader; the result cannot be cited.
+   eligible entries: ['1IPF']; lineages: ['TR-II']; independent actives: 1; known inactives: 0
+   measured 1IPF:A:- (in calibration): hydride_approach_angle_burgi_dunitz=72.61[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=4.06[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   policy coverage 0.8 / confidence 0.8 / min inactives 5:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window None; n_active=1 n_inactive=0; needs 14 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window None; n_active=1 n_inactive=0; needs 14 actives
+   policy coverage 0.9 / confidence 0.9 / min inactives 10:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window None; n_active=1 n_inactive=0; needs 38 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window None; n_active=1 n_inactive=0; needs 38 actives
+
+== scenario: any_nicotinamide_cofactor ==
+   the cofactor requirement dropped (NAD(H)/NADP(H), either state), the family requirement kept. Measured for a reader; cannot be cited.
+   eligible entries: ['1IPF', '6ZZO']; lineages: ['HBDH', 'TR-II']; independent actives: 2; known inactives: 0
+   measured 1IPF:A:- (in calibration): hydride_approach_angle_burgi_dunitz=72.61[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=4.06[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   measured 6ZZO:B:A (in calibration): hydride_approach_angle_burgi_dunitz=81.61[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=3.45[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   policy coverage 0.8 / confidence 0.8 / min inactives 5:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window [72.61439456487507, 81.61016480687445]; n_active=2 n_inactive=0; needs 14 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window [3.448726576578668, 4.059045331109281]; n_active=2 n_inactive=0; needs 14 actives
+   policy coverage 0.9 / confidence 0.9 / min inactives 10:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window [72.61439456487507, 81.61016480687445]; n_active=2 n_inactive=0; needs 38 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window [3.448726576578668, 4.059045331109281]; n_active=2 n_inactive=0; needs 38 actives
+
+== scenario: every_graded_pose ==
+   everything the workbook places a substrate or product in the site for, both conformers, any nicotinamide cofactor. The ceiling of what the set could supply; cannot be cited.
+   eligible entries: ['1IPF', '6ZZO', '6ZZP']; lineages: ['HBDH', 'TR-II']; independent actives: 2; known inactives: 0
+   measured 1IPF:A:- (in calibration): hydride_approach_angle_burgi_dunitz=72.61[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=4.06[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   measured 6ZZO:B:A (in calibration): hydride_approach_angle_burgi_dunitz=81.61[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=3.45[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   measured 6ZZP:A:A (not counted: same lineage as a better-graded entry): hydride_approach_angle_burgi_dunitz=76.27[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=3.67[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   measured 6ZZP:A:B (not counted: same lineage as a better-graded entry): hydride_approach_angle_burgi_dunitz=77.71[OUTSIDE the shipped window], hydride_donor_to_carbonyl_carbon=3.25[inside the shipped window]
+       unmeasured (no protein residue is bound): carbonyl_oxygen_to_catalytic_ser_OG, carbonyl_oxygen_to_catalytic_tyr_OH, catalytic_lys_NZ_to_catalytic_tyr_OH
+   policy coverage 0.8 / confidence 0.8 / min inactives 5:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 14 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window [72.61439456487507, 81.61016480687445]; n_active=2 n_inactive=0; needs 14 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window [3.448726576578668, 4.059045331109281]; n_active=2 n_inactive=0; needs 14 actives
+   policy coverage 0.9 / confidence 0.9 / min inactives 10:
+     carbonyl_oxygen_to_catalytic_ser_OG: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     carbonyl_oxygen_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     catalytic_lys_NZ_to_catalytic_tyr_OH: not calibrated; window None; n_active=0 n_inactive=0; needs 38 actives
+     hydride_approach_angle_burgi_dunitz: not calibrated; window [72.61439456487507, 81.61016480687445]; n_active=2 n_inactive=0; needs 38 actives
+     hydride_donor_to_carbonyl_carbon: not calibrated; window [3.448726576578668, 4.059045331109281]; n_active=2 n_inactive=0; needs 38 actives
+
+== per-entry reasons, as shipped ==
+   1IPF: ELIGIBLE
+   2AE2: not eligible
+       - workbook_grade: geometry_use is 'conditional_product_reference' (product_state); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAP is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - substrate_state: pseudotropine is the product; a product-state structure is not a pre-reaction geometry
+       - activity_evidence: activity was measured for ['tropinone'], the ligand in the site is pseudotropine
+       - binding: substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)
+   6ZZO: not eligible
+       - cofactor: component NAD is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+   6ZZP: not eligible
+       - workbook_grade: geometry_use is 'review_clash' (pose_under_review); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAD is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - conformer: the workbook lists locations ('A', 'B'): an explicit single conformer is required
+   6ZZQ: not eligible
+       - workbook_grade: geometry_use is 'low_ligand_density' (excluded_density); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAD is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - density: lowest of ligand/cofactor RSCC is 0.775; minimum 0.8
+   6ZZS: not eligible
+       - workbook_grade: geometry_use is 'low_ligand_density' (excluded_density); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAD is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+   6XEW: not eligible
+       - workbook_grade: geometry_use is 'auxiliary_ensemble_reference' (auxiliary); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAD is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - conformer: the workbook lists locations ('B', 'A'): an explicit single conformer is required
+       - binding: 2 reaction ligand components (HBS/HBR): one substrate is required, and a racemic or mixed site is not bound
+   1ZK4: not eligible
+       - workbook_grade: geometry_use is 'low_ligand_density' (excluded_density); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAP is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - density: lowest of ligand/cofactor RSCC is 0.154; minimum 0.8
+   1ZJY: not eligible
+       - workbook_grade: geometry_use is 'low_ligand_density' (excluded_density); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAI is a reduced nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - activity_evidence: activity was measured for ['acetophenone'], the ligand in the site is (R)-1-phenylethanol
+       - density: lowest of ligand/cofactor RSCC is 0.589; minimum 0.8
+       - binding: substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)
+   1ZJZ: not eligible
+       - workbook_grade: geometry_use is 'low_ligand_density' (excluded_density); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAD is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - activity_evidence: activity was measured for ['acetophenone'], the ligand in the site is (R)-1-phenylethanol
+       - density: lowest of ligand/cofactor RSCC is 0.481; minimum 0.8
+       - binding: substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)
+   1ZK0: not eligible
+       - workbook_grade: geometry_use is 'low_ligand_density' (excluded_density); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAI is a reduced nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - activity_evidence: activity was measured for ['acetophenone'], the ligand in the site is (R)-1-phenylethanol
+       - density: lowest of ligand/cofactor RSCC is 0.513; minimum 0.8
+       - binding: substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)
+   1ZK1: not eligible
+       - workbook_grade: geometry_use is 'low_ligand_density' (excluded_density); this policy accepts ['conditional_pose_reference']
+       - cofactor: component NAD is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - density: lowest of ligand/cofactor RSCC is 0.491; minimum 0.8
+   4RF2: not eligible
+       - workbook_grade: geometry_use is 'protein_scaffold_only' (scaffold_only); this policy accepts ['conditional_pose_reference']
+       - cofactor: no cofactor residue could be bound in the scoring chain
+       - substrate_state: no reaction ligand in the entry
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - density: the workbook records no RSCC for this entry
+       - binding: no binding was derived for this entry
+   4RF4: not eligible
+       - workbook_grade: geometry_use is 'protein_scaffold_only' (scaffold_only); this policy accepts ['conditional_pose_reference']
+       - cofactor: no cofactor residue could be bound in the scoring chain
+       - substrate_state: no reaction ligand in the entry
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - density: the workbook records no RSCC for this entry
+       - binding: no binding was derived for this entry
+   4RF3: not eligible
+       - workbook_grade: geometry_use is 'protein_scaffold_only' (scaffold_only); this policy accepts ['conditional_pose_reference']
+       - cofactor: no cofactor residue could be bound in the scoring chain
+       - substrate_state: no reaction ligand in the entry
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - density: the workbook records no RSCC for this entry
+       - binding: no binding was derived for this entry
+   4RF5: not eligible
+       - workbook_grade: geometry_use is 'protein_scaffold_only' (scaffold_only); this policy accepts ['conditional_pose_reference']
+       - cofactor: no cofactor residue could be bound in the scoring chain
+       - substrate_state: no reaction ligand in the entry
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - density: the workbook records no RSCC for this entry
+       - binding: no binding was derived for this entry
+   1Y1P: not eligible
+       - workbook_grade: geometry_use is 'protein_scaffold_only' (scaffold_only); this policy accepts ['conditional_pose_reference']
+       - family: the RCSB annotates the scored entity as extended_sdr_epimerase_dehydratase; template cat.sdr.nadph_carbonyl_reduction.v1 is for classical_sdr
+       - cofactor: no cofactor residue could be bound in the scoring chain
+       - substrate_state: no reaction ligand in the entry
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - density: the workbook records no RSCC for this entry
+       - binding: no binding was derived for this entry
+   7UUT: not eligible
+       - workbook_grade: geometry_use is 'unmatched_product_excluded' (excluded); this policy accepts ['conditional_pose_reference']
+       - family: the RCSB annotates the scored entity as zinc_adh_mdr; template cat.sdr.nadph_carbonyl_reduction.v1 is for classical_sdr
+       - cofactor: component NAP is an oxidized nicotinamide cofactor; the template requires ['NDP'] (reduced)
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - density: lowest of ligand/cofactor RSCC is 0.697; minimum 0.8
+       - binding: substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)
+   7UTC: not eligible
+       - workbook_grade: geometry_use is 'inhibitor_excluded' (excluded); this policy accepts ['conditional_pose_reference']
+       - family: the RCSB annotates the scored entity as zinc_adh_mdr; template cat.sdr.nadph_carbonyl_reduction.v1 is for classical_sdr
+       - cofactor: no cofactor residue could be bound in the scoring chain
+       - activity_evidence: no kinetic record names this entry as its experimental complex for this variant; a structure of a binder is not an active reference
+       - density: the workbook records no RSCC for this entry
+       - binding: no binding was derived for this entry
+
+== what a calibration needs ==
+   coverage 0.8 at confidence 0.8: at least 14 independent active references
+   coverage 0.9 at confidence 0.9: at least 38 independent active references
+   two actives support at most: {'0.8@0.8': 0.1056, '0.9@0.9': 0.0513}
+   a Wilks tolerance interval counts independent draws; the set supplies one or two lineages with a placed substrate, and no complex shown not to turn over

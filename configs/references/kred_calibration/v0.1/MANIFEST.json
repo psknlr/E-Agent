@@ -1,0 +1,81 @@
+{
+  "data_digest": "a1bcd99c01e5e6fdf275361b3780c2544026edf69fe6ec02d3d240a6912a9e65",
+  "files": {
+    ".gitattributes": {
+      "bytes": 231,
+      "sha256": "0ba0b8c5d897529c2e6861768d5c3a948c4e192e731a5a292e33b740530ef8e3"
+    },
+    "NOTICE.md": {
+      "bytes": 5265,
+      "sha256": "6ea18a708d5153ca89b62cced25967530c13b36b9dd28116240c726329343fe9"
+    },
+    "README.md": {
+      "bytes": 8536,
+      "sha256": "8d2f471b45ab2a244a087809774a8fedc2233a3426ceb2baf8b16e12792f6ffa"
+    },
+    "bindings/bindings.json": {
+      "bytes": 11480,
+      "sha256": "6ea0849937196c8c692717824b9da5e456d4a6c8e3d2409281f146a1100fc81d"
+    },
+    "coordinates/coordinates.manifest.json": {
+      "bytes": 96711,
+      "sha256": "3638c3aafe79e44c19352112ea35203e4468c02f249c4e5ab6fbeb783f2f147d"
+    },
+    "source/KRED_Calibration_Reference_v0.1.xlsx": {
+      "bytes": 49114,
+      "sha256": "c0eac78f178ecf0a82c90f3b451ddddaef706ccd3a763ce0529a679ad25fbf52"
+    },
+    "tables/assay_conditions.csv": {
+      "bytes": 10747,
+      "sha256": "ca9145ba83cf2076bf6441be386345b45f7d84366d29751f5168e637d777c399"
+    },
+    "tables/auxiliary.csv": {
+      "bytes": 1900,
+      "sha256": "34fa21f38c7353a21bb19a551ba0d8114c72e33f791d6eaaa93f5a9af0366b0b"
+    },
+    "tables/formulas.json": {
+      "bytes": 1632,
+      "sha256": "71a8d82307889bdde8fcb788fb585f8c79d17b5a54aa87d2a70071d4ccb934d5"
+    },
+    "tables/kinetics.csv": {
+      "bytes": 14933,
+      "sha256": "0f9bf100394c67f6d269d2acdad8fdbe57c7d1699f5e8e3a6cf2b30121fd1ea8"
+    },
+    "tables/ligand_validation.csv": {
+      "bytes": 26356,
+      "sha256": "e15afd7936260de845c85fba7babe5c5802ae70975879086c93b6bc685f891be"
+    },
+    "tables/selectivity.csv": {
+      "bytes": 3009,
+      "sha256": "87ffd7ce5c83d1e71641f9d17179c65f5904b8a92fcd69818d566ccf6e459840"
+    },
+    "tables/sheet_notes.json": {
+      "bytes": 4798,
+      "sha256": "9794d0ddcd2141e352f64ff8992db5b869e6dc2a1d3be1eadbffabcd48cc5b98"
+    },
+    "tables/sources.csv": {
+      "bytes": 5790,
+      "sha256": "06279cea7b6b1c994d1c3ded6def186d5a62e621e1f16b5452eec10ad9595f0b"
+    },
+    "tables/structures.csv": {
+      "bytes": 7529,
+      "sha256": "e8526d73135775cd0054f1f9d9ffb1dda2aa8e8845c7093b8b4a938d428d98c0"
+    },
+    "tables/usage_notes.csv": {
+      "bytes": 3920,
+      "sha256": "a4e8ec183530dbf47f47db60650c1dfa65f3b1cc7090a69face8ad9634388235"
+    },
+    "verification/README.md": {
+      "bytes": 2630,
+      "sha256": "da3ff1ec95ee5db606cbcb8dae9531a1f4db74dc348050b8c8517bb32d5c6243"
+    },
+    "verification/results.json": {
+      "bytes": 25874,
+      "sha256": "b617afe25dbd2488041d4ac6bc62f166e28531a03e01b7065845b576f9481591"
+    }
+  },
+  "files_digest": "93c3c899a5eb4500f808fcea658a80113e919881a6312028def23973d42b23af",
+  "note": "written by `eagent reference manifest`; data_digest covers source, tables, bindings, coordinates and excludes documentation",
+  "product": "kred_calibration_reference",
+  "version": "v0.1"
+}

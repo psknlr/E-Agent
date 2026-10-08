@@ -1,0 +1,4 @@
+# These files are pinned by sha256 in MANIFEST.json. A checkout that rewrites
+# line endings (core.autocrlf) or expands keywords would change the bytes and
+# make every hash fail, so nothing here is treated as text by git.
+* -text

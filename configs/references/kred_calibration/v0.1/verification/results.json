@@ -1,0 +1,862 @@
+{
+  "documents": {
+    "HBDH2018_SI": {
+      "bytes": 36385,
+      "filename": "hbdh2018_si.txt",
+      "kind": "si_text",
+      "primary": true,
+      "read_for": "Tables S1-S4, 283 K rows (the SI PDF through `pdftotext -layout`)",
+      "sha256": "236b6eb8b5fc3a91b641d4e5ecfcab62100a8b475c9585cb521aedc7e997c077",
+      "url": "https://doi.org/10.1021/acs.biochem.8b01099.s001"
+    },
+    "HBDH2020": {
+      "bytes": 183607,
+      "filename": "PMC7773212.xml",
+      "kind": "jats",
+      "primary": true,
+      "read_for": "Table 4: steady-state parameters of the four HBDH mutants",
+      "sha256": "a3554d6e3cc441a14e77fbd827d00c0e43186582aec55becfac6bc3cf73bc3ca",
+      "url": "https://europepmc.org/api/service/rest/PMC7773212/fullTextXML"
+    },
+    "LbADH_BRENDA": {
+      "bytes": 27582,
+      "filename": "brenda_675348.html",
+      "kind": "brenda",
+      "primary": false,
+      "read_for": "acetophenone KM and turnover number, WT and G37D, 30 C, pH 7.0",
+      "sha256": "680f5667cc0c443d5219e0b2c086e60f99afdc0196238ccc8d5a9223b0f45f49",
+      "url": "https://brenda-enzymes.info/literature.php?e=1.1.1.2&r=675348"
+    },
+    "PNAS2015": {
+      "bytes": 194093,
+      "filename": "PMC4697376.html",
+      "kind": "html",
+      "primary": true,
+      "read_for": "Table 1: er and kcat/KM of the LkKRED variants (page HTML)",
+      "sha256": "3fda0efc3d5c635aed97595de17262f3360fb482dd9f425195685a11591d8e6e",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/"
+    },
+    "Ssal2024": {
+      "bytes": 147115,
+      "filename": "PMC10902378.xml",
+      "kind": "jats",
+      "primary": true,
+      "read_for": "Table 2: apparent KM, kcat, kcat/KM of Ssal-KRED WT and M1-M6",
+      "sha256": "460711fd1d7d3f097283cc3d4596952f1f702834194071a5ef338ae42bc8b745",
+      "url": "https://europepmc.org/api/service/rest/PMC10902378/fullTextXML"
+    },
+    "TRII_BRENDA": {
+      "bytes": 18626,
+      "filename": "brenda_654707.html",
+      "kind": "brenda",
+      "primary": false,
+      "read_for": "tropinone KM and turnover number, pH 7.5, 15 C",
+      "sha256": "54c380fbc7b4b0ddce6767dc381d49eeb5119d1c8f38a0aeac1b720629577584",
+      "url": "https://www.brenda-enzymes.org/literature.php?e=1.1.1.236&r=654707"
+    }
+  },
+  "kinetic_records": {
+    "6ZZO_PaHBDH_AAE": [
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S2, 283 K row",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "30 ± 1",
+        "status": "matches",
+        "workbook": "30 ± 1"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S2, 283 K row",
+        "primary": true,
+        "quantity": "Km",
+        "source": "0.05 ± 0.01",
+        "status": "matches",
+        "workbook": "0.05 ± 0.01"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S2, 283 K row, kcat/KM (M-1 s-1)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "630000 ± 80000",
+        "status": "matches",
+        "workbook": "630000 ± 80000"
+      }
+    ],
+    "6ZZP_PaHBDH_QT8": [
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S4, 283 K row",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "2.6 ± 0.2",
+        "status": "matches",
+        "workbook": "2.6 ± 0.2"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S4, 283 K row",
+        "primary": true,
+        "quantity": "Km",
+        "source": "0.014 ± 0.001",
+        "status": "matches",
+        "workbook": "0.014 ± 0.001"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S4, 283 K row, kcat/KM (M-1 s-1)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "180000 ± 20000",
+        "status": "matches",
+        "workbook": "180000 ± 20000"
+      }
+    ],
+    "6ZZQ_AbHBDH_AAE": [
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S1, 283 K row",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "3.4 ± 0.1",
+        "status": "matches",
+        "workbook": "3.4 ± 0.1"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S1, 283 K row",
+        "primary": true,
+        "quantity": "Km",
+        "source": "0.14 ± 0.01",
+        "status": "matches",
+        "workbook": "0.14 ± 0.01"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S1, 283 K row, kcat/KM (M-1 s-1)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "24000 ± 2000",
+        "status": "matches",
+        "workbook": "24000 ± 2000"
+      }
+    ],
+    "6ZZS_AbHBDH_QT8": [
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S3, 283 K row",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "0.21 ± 0.01",
+        "status": "matches",
+        "workbook": "0.21 ± 0.01"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S3, 283 K row",
+        "primary": true,
+        "quantity": "Km",
+        "source": "0.05 ± 0.01",
+        "status": "matches",
+        "workbook": "0.05 ± 0.01"
+      },
+      {
+        "document": "HBDH2018_SI",
+        "locator": "Table S3, 283 K row, kcat/KM (M-1 s-1)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "3800 ± 800",
+        "status": "matches",
+        "workbook": "3800 ± 800"
+      }
+    ],
+    "AbHBDH_N145A_AAE_activity_only": [
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row N145A-AbHBDH, kcat (s-1)",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "0.103 ± 0.003",
+        "status": "matches",
+        "workbook": "0.103 ± 0.003"
+      },
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row N145A-AbHBDH, KM AcAc (mM)",
+        "primary": true,
+        "quantity": "Km",
+        "source": "0.33 ± 0.04",
+        "status": "matches",
+        "workbook": "0.33 ± 0.04"
+      }
+    ],
+    "AbHBDH_N145H_AAE_activity_only": [
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row N145H-AbHBDH, kcat (s-1)",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "0.87 ± 0.03",
+        "status": "matches",
+        "workbook": "0.87 ± 0.03"
+      },
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row N145H-AbHBDH, KM AcAc (mM)",
+        "primary": true,
+        "quantity": "Km",
+        "source": "2.6 ± 0.4",
+        "status": "matches",
+        "workbook": "2.6 ± 0.4"
+      }
+    ],
+    "DSTRII_TROP_NADPH_2003": [
+      {
+        "document": "TRII_BRENDA",
+        "locator": "BRENDA literature page, turnover number, tropinone, WT",
+        "note": "BRENDA's own curated extraction of the paper; the paper's table was not read",
+        "primary": false,
+        "quantity": "kcat",
+        "source": "71.4  [- | tropinone | pH 7.5, 15°C | Datura stramonium]",
+        "status": "matches",
+        "workbook": "71.4"
+      },
+      {
+        "document": "TRII_BRENDA",
+        "locator": "BRENDA literature page, KM value, tropinone, WT",
+        "note": "BRENDA's own curated extraction of the paper; the paper's table was not read",
+        "primary": false,
+        "quantity": "Km",
+        "source": "0.0949  [- | tropinone | pH 7.5, 15°C | Datura stramonium | Organism | Organism | UniProt | Comment | Textmining | Datu]",
+        "status": "matches",
+        "workbook": "0.0949"
+      }
+    ],
+    "LB_G37D_AP_NADH_2005": [
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "BRENDA literature page, turnover number, acetophenone, G37D",
+        "note": "BRENDA's own curated extraction of the paper; the paper's table was not read",
+        "primary": false,
+        "quantity": "kcat",
+        "source": "35.7  [- | acetophenone | cofactor NADH, reduction, recombinant mutant G37Dm 30°C, pH 7.0 | Levilactobacillus brevis]",
+        "status": "matches",
+        "workbook": "35.7"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "BRENDA literature page, KM value, acetophenone, G37D",
+        "note": "BRENDA's own curated extraction of the paper; the paper's table was not read",
+        "primary": false,
+        "quantity": "Km",
+        "source": "10.9  [- | acetophenone | cofactor NADH, reduction, recombinante mutant G37D, 30°C, pH 7.0 | Levilactobacillus brevis]",
+        "status": "matches",
+        "workbook": "10.9"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "the 2005 paper / Kulishova 2010 Table 4-11",
+        "note": "from a university thesis reprint of the paper's table; neither was opened",
+        "primary": false,
+        "quantity": "efficiency",
+        "source": "",
+        "status": "not_checked",
+        "workbook": "3300"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "the 2005 paper / Kulishova 2010 Table 4-11",
+        "note": "BRENDA's page prints no error terms",
+        "primary": false,
+        "quantity": "kcat_uncertainty",
+        "source": "",
+        "status": "not_checked",
+        "workbook": "3.6"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "the 2005 paper / Kulishova 2010 Table 4-11",
+        "note": "BRENDA's page prints no error terms",
+        "primary": false,
+        "quantity": "Km_uncertainty",
+        "source": "",
+        "status": "not_checked",
+        "workbook": "1.1"
+      }
+    ],
+    "LB_WT_AP_NADPH_2005": [
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "BRENDA literature page, turnover number, acetophenone, WT",
+        "note": "BRENDA's own curated extraction of the paper; the paper's table was not read",
+        "primary": false,
+        "quantity": "kcat",
+        "source": "44.5  [- | acetophenone | cofactor NADPH, reduction, recombinant wild-type, 30°C, pH 7.0 | Levilactobacillus brevis]",
+        "status": "matches",
+        "workbook": "44.5"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "BRENDA literature page, KM value, acetophenone, WT",
+        "note": "BRENDA's own curated extraction of the paper; the paper's table was not read",
+        "primary": false,
+        "quantity": "Km",
+        "source": "2.8  [- | acetophenone | cofactor NADPH, reduction, recombinante wild-type, 30°C, pH 7.0 | Levilactobacillus brevis]",
+        "status": "matches",
+        "workbook": "2.8"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "the 2005 paper / Kulishova 2010 Table 4-11",
+        "note": "from a university thesis reprint of the paper's table; neither was opened",
+        "primary": false,
+        "quantity": "efficiency",
+        "source": "",
+        "status": "not_checked",
+        "workbook": "16000"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "the 2005 paper / Kulishova 2010 Table 4-11",
+        "note": "BRENDA's page prints no error terms",
+        "primary": false,
+        "quantity": "kcat_uncertainty",
+        "source": "",
+        "status": "not_checked",
+        "workbook": "3.7"
+      },
+      {
+        "document": "LbADH_BRENDA",
+        "locator": "the 2005 paper / Kulishova 2010 Table 4-11",
+        "note": "BRENDA's page prints no error terms",
+        "primary": false,
+        "quantity": "Km_uncertainty",
+        "source": "",
+        "status": "not_checked",
+        "workbook": "0.2"
+      }
+    ],
+    "PNAS2015_A94F_1": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row A94F, kcat/KM (3-oxacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "0.005",
+        "status": "matches",
+        "workbook": "0.005"
+      }
+    ],
+    "PNAS2015_A94F_2": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row A94F, kcat/KM (3-thiacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "0.016",
+        "status": "matches",
+        "workbook": "0.016"
+      }
+    ],
+    "PNAS2015_E145S_1": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row E145S, kcat/KM (3-oxacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "0.003",
+        "status": "matches",
+        "workbook": "0.003"
+      }
+    ],
+    "PNAS2015_E145S_2": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row E145S, kcat/KM (3-thiacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "0.772",
+        "status": "matches",
+        "workbook": "0.772"
+      }
+    ],
+    "PNAS2015_Sph_1": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Sph, kcat/KM (3-oxacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "0.004",
+        "status": "matches",
+        "workbook": "0.004"
+      }
+    ],
+    "PNAS2015_Sph_2": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Sph, kcat/KM (3-thiacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "0.703",
+        "status": "matches",
+        "workbook": "0.703"
+      }
+    ],
+    "PNAS2015_WT_1": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row WT, kcat/KM (3-oxacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "0.025",
+        "status": "matches",
+        "workbook": "0.025"
+      }
+    ],
+    "PNAS2015_WT_2": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row WT, kcat/KM (3-thiacyclopentanol)",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "1.460",
+        "status": "matches",
+        "workbook": "1.46"
+      }
+    ],
+    "PNAS2015_Y190F_1": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Y190F, kcat/KM (3-oxacyclopentanol)",
+        "note": "the source prints ND; the workbook must hold no value",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "ND",
+        "status": "matches",
+        "workbook": "ND"
+      }
+    ],
+    "PNAS2015_Y190F_2": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Y190F, kcat/KM (3-thiacyclopentanol)",
+        "note": "the source prints ND; the workbook must hold no value",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "ND",
+        "status": "matches",
+        "workbook": "ND"
+      }
+    ],
+    "PaHBDH_H150A_AAE_activity_only": [
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row H150A-PaHBDH, kcat (s-1)",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "0.54 ± 0.01",
+        "status": "matches",
+        "workbook": "0.54 ± 0.01"
+      },
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row H150A-PaHBDH, KM AcAc (mM)",
+        "primary": true,
+        "quantity": "Km",
+        "source": "1.0 ± 0.2",
+        "status": "matches",
+        "workbook": "1 ± 0.2"
+      }
+    ],
+    "PaHBDH_H150N_AAE_activity_only": [
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row H150N-PaHBDH, kcat (s-1)",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "0.0140 ± 0.0004",
+        "status": "matches",
+        "workbook": "0.014 ± 0.0004"
+      },
+      {
+        "document": "HBDH2020",
+        "locator": "Table 4, row H150N-PaHBDH, KM AcAc (mM)",
+        "primary": true,
+        "quantity": "Km",
+        "source": "<5400",
+        "status": "matches",
+        "workbook": "<5400"
+      }
+    ],
+    "Ssal2024_M1_1a": [
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M1, app. KM [µM]",
+        "primary": true,
+        "quantity": "Km",
+        "source": "162.8 ± 7.8",
+        "status": "matches",
+        "workbook": "162.8 ± 7.8"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M1, app. kcat [min-1]",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "5.8 ± 0.1",
+        "status": "matches",
+        "workbook": "5.8 ± 0.1"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M1, app. kcat/KM [min-1 mM-1]",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "35.5",
+        "status": "matches",
+        "workbook": "35.5"
+      }
+    ],
+    "Ssal2024_M2_1a": [
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M2, app. KM [µM]",
+        "primary": true,
+        "quantity": "Km",
+        "source": "175.2 ± 9.9",
+        "status": "matches",
+        "workbook": "175.2 ± 9.9"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M2, app. kcat [min-1]",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "6.2 ± 0.2",
+        "status": "matches",
+        "workbook": "6.2 ± 0.2"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M2, app. kcat/KM [min-1 mM-1]",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "35.6",
+        "status": "matches",
+        "workbook": "35.6"
+      }
+    ],
+    "Ssal2024_M3_1a": [
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M3, app. KM [µM]",
+        "primary": true,
+        "quantity": "Km",
+        "source": "299.7 ± 7.9",
+        "status": "matches",
+        "workbook": "299.7 ± 7.9"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M3, app. kcat [min-1]",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "15.3 ± 0.4",
+        "status": "matches",
+        "workbook": "15.3 ± 0.4"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M3, app. kcat/KM [min-1 mM-1]",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "51.2",
+        "status": "matches",
+        "workbook": "51.2"
+      }
+    ],
+    "Ssal2024_M4_1a": [
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M4, app. KM [µM]",
+        "primary": true,
+        "quantity": "Km",
+        "source": "1668 ± 103",
+        "status": "matches",
+        "workbook": "1668 ± 103"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M4, app. kcat [min-1]",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "45.8 ± 2.4",
+        "status": "matches",
+        "workbook": "45.8 ± 2.4"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M4, app. kcat/KM [min-1 mM-1]",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "27.5",
+        "status": "matches",
+        "workbook": "27.5"
+      }
+    ],
+    "Ssal2024_M5_1a": [
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M5, app. KM [µM]",
+        "primary": true,
+        "quantity": "Km",
+        "source": "471.7 ± 34.6",
+        "status": "matches",
+        "workbook": "471.7 ± 34.6"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M5, app. kcat [min-1]",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "21.3 ± 1.0",
+        "status": "matches",
+        "workbook": "21.3 ± 1"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M5, app. kcat/KM [min-1 mM-1]",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "45.2",
+        "status": "matches",
+        "workbook": "45.2"
+      }
+    ],
+    "Ssal2024_M6_1a": [
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M6, app. KM [µM]",
+        "primary": true,
+        "quantity": "Km",
+        "source": "143.5 ± 5.5",
+        "status": "matches",
+        "workbook": "143.5 ± 5.5"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M6, app. kcat [min-1]",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "31.5 ± 0.8",
+        "status": "matches",
+        "workbook": "31.5 ± 0.8"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row M6, app. kcat/KM [min-1 mM-1]",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "219.7",
+        "status": "matches",
+        "workbook": "219.7"
+      }
+    ],
+    "Ssal2024_WT_1a": [
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row WT, app. KM [µM]",
+        "primary": true,
+        "quantity": "Km",
+        "source": "11.9 ± 1.1",
+        "status": "matches",
+        "workbook": "11.9 ± 1.1"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row WT, app. kcat [min-1]",
+        "primary": true,
+        "quantity": "kcat",
+        "source": "0.49 ± 0.02",
+        "status": "matches",
+        "workbook": "0.49 ± 0.02"
+      },
+      {
+        "document": "Ssal2024",
+        "locator": "Table 2, row WT, app. kcat/KM [min-1 mM-1]",
+        "primary": true,
+        "quantity": "efficiency",
+        "source": "41",
+        "status": "matches",
+        "workbook": "41"
+      }
+    ]
+  },
+  "selectivity_records": {
+    "PNAS2015_A94F_1_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row A94F, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "27.5",
+        "status": "matches",
+        "workbook": "27.5"
+      }
+    ],
+    "PNAS2015_A94F_2_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row A94F, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "2.6",
+        "status": "matches",
+        "workbook": "2.6"
+      }
+    ],
+    "PNAS2015_E145S_1_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row E145S, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "4.2",
+        "status": "matches",
+        "workbook": "4.2"
+      }
+    ],
+    "PNAS2015_E145S_2_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row E145S, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "0.02",
+        "status": "matches",
+        "workbook": "0.02"
+      }
+    ],
+    "PNAS2015_Sph_1_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Sph_without_P194N, er S/R",
+        "note": "printed with the table's footnote marker(s); the number matches, and what the footnote says about which variant it belongs to is the workbook's to carry (see its selectivity note)",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "1.3*,†",
+        "status": "matches",
+        "workbook": "1.3"
+      }
+    ],
+    "PNAS2015_Sph_2_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Sph, er S/R",
+        "note": "printed with the table's footnote marker(s); the number matches, and what the footnote says about which variant it belongs to is the workbook's to carry (see its selectivity note)",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "0.004*",
+        "status": "matches",
+        "workbook": "0.004"
+      }
+    ],
+    "PNAS2015_WT_1_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row WT, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "4.2",
+        "status": "matches",
+        "workbook": "4.2"
+      }
+    ],
+    "PNAS2015_WT_2_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row WT, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "0.2",
+        "status": "matches",
+        "workbook": "0.2"
+      }
+    ],
+    "PNAS2015_Y190F_1_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Y190F, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "9.3",
+        "status": "matches",
+        "workbook": "9.3"
+      }
+    ],
+    "PNAS2015_Y190F_2_er": [
+      {
+        "document": "PNAS2015",
+        "locator": "Table 1, row Y190F, er S/R",
+        "primary": true,
+        "quantity": "er_S_over_R",
+        "source": "1.6",
+        "status": "matches",
+        "workbook": "1.6"
+      }
+    ]
+  },
+  "summary": {
+    "kinetic_quantities": {
+      "matches": 57,
+      "mismatch": 0,
+      "not_checked": 6,
+      "not_found": 0
+    },
+    "records_fully_matched_against_a_curated_database_only": [
+      "DSTRII_TROP_NADPH_2003"
+    ],
+    "records_fully_matched_against_the_papers_own_table": [
+      "6ZZO_PaHBDH_AAE",
+      "6ZZP_PaHBDH_QT8",
+      "6ZZQ_AbHBDH_AAE",
+      "6ZZS_AbHBDH_QT8",
+      "AbHBDH_N145A_AAE_activity_only",
+      "AbHBDH_N145H_AAE_activity_only",
+      "PNAS2015_A94F_1",
+      "PNAS2015_A94F_2",
+      "PNAS2015_E145S_1",
+      "PNAS2015_E145S_2",
+      "PNAS2015_Sph_1",
+      "PNAS2015_Sph_2",
+      "PNAS2015_WT_1",
+      "PNAS2015_WT_2",
+      "PNAS2015_Y190F_1",
+      "PNAS2015_Y190F_2",
+      "PaHBDH_H150A_AAE_activity_only",
+      "PaHBDH_H150N_AAE_activity_only",
+      "Ssal2024_M1_1a",
+      "Ssal2024_M2_1a",
+      "Ssal2024_M3_1a",
+      "Ssal2024_M4_1a",
+      "Ssal2024_M5_1a",
+      "Ssal2024_M6_1a",
+      "Ssal2024_WT_1a"
+    ],
+    "records_matched_in_part_rest_not_checked": [
+      "LB_G37D_AP_NADH_2005",
+      "LB_WT_AP_NADPH_2005"
+    ],
+    "records_with_a_mismatch_or_missing_value": [],
+    "selectivity_quantities": {
+      "matches": 10,
+      "mismatch": 0,
+      "not_checked": 0,
+      "not_found": 0
+    }
+  },
+  "verified_by": "eagent.eval.kred_sources.verify_sources, run by the build session on documents downloaded the same day; the values were also read by hand before the parsers were written",
+  "workbook_sha256": "c0eac78f178ecf0a82c90f3b451ddddaef706ccd3a763ce0529a679ad25fbf52"
+}

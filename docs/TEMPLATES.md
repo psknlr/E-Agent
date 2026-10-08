@@ -241,8 +241,11 @@ chemistry** instead: van der Waals contact distances, standard hydrogen-bond
 heavy-atom ranges, the Bürgi–Dunitz approach trajectory. Those are real facts
 about molecules and they are not facts about *this family's catalytically
 competent complexes*. `reference_structures` is empty in all three templates
-because no PDB entry could be verified in this environment, and that emptiness
-is precisely why nothing could be fitted.
+because no PDB entry could be verified in this environment *when the templates
+were written*, and that emptiness is why nothing could be fitted. A verified,
+hash-pinned set now exists (see the subsection below); the lists stay empty
+because deciding which entries qualify, and recording them with the ligand codes
+their files actually use, is a curator's act and not an automatic one.
 
 The shipped SDR hydride-transfer constraint shows the discipline in miniature:
 
@@ -329,6 +332,45 @@ For each window a curator must supply:
 5. only then may `severity` be raised to `gating`.
 
 Until that exists, the honest statement is the one the linter prints: *17 of 17*.
+
+### What the first real reference set found (2026-10-08)
+
+A set of 19 experimental entries and 28 kinetic records, delivered as a
+spreadsheet, is now stored and checked under `configs/references/kred_calibration/`
+(see its `README.md` and `NOTICE.md`). It was audited against this template with
+the project's own calibration machinery -- in memory, under two declared
+policies, writing no calibration record. The result, recorded in
+`docs/results/kred_reference_audit.{txt,json}`:
+
+- **The count is still 17 of 17.** One of the 19 entries (1IPF, tropinone
+  reductase II with NADPH and tropinone) meets this template's requirements as
+  shipped; there are no known-inactive references. A window needs at least two
+  independent actives to be proposed at all and **14** for a modest claim
+  (80 % coverage at 80 % confidence; 38 for 90 %/90 %).
+- **Independence is counted in lineages, not files.** The 19 entries are six
+  lineages (the two *Lactobacillus* enzymes are 88 % identical over the aligned
+  region), and only two of
+  them place a substrate or product in the site.
+- **The cofactor requirement is what excludes most of the set.** Under
+  `required_cofactor: NADPH` / `reduced` / `NDP`, the HBDH, LbADH and SmBdh
+  complexes carry NAD+ or NADP+, which is not a hydride donor. Dropping the
+  requirement admits one more entry (6ZZO, with its own caveats) and one more
+  lineage -- and still not 14.
+- **Two of the five constraints can be measured on a reference at all.** The
+  catalytic Tyr/Ser/Lys constraints stay unmeasured: binding them by proximity to
+  the ligand would make the later measurement circular, so a curator must supply
+  them from each enzyme's literature.
+- **The advisory angle band does not describe the real complexes.** Measured
+  C4N–C(carbonyl)–O angles are 72.6° (1IPF), 81.6° (6ZZO) and 76.3°/77.7°
+  (6ZZP), all below the shipped 90–130° band, and the donor-to-carbon distances
+  are 3.25–4.06 Å, all above the 2.9 Å clash floor. Three entries from two lineages
+  cannot replace the band, but they are a concrete reason it is `advisory`, and
+  must stay so, until a larger set says otherwise.
+
+Nothing in the three templates was edited: `calibrated_on` is still empty
+everywhere and `reference_structures` is still `[]`. A suggested patch -- the
+single PDB entry that qualifies, with the ligand codes its file actually uses
+(`NDP`, `TNE`) -- is a curator's decision, not an automatic one.
 
 ---
 
@@ -512,8 +554,8 @@ curated copy rather than at whatever is in the working tree.
 **为什么没标定**：`calibrated_on` 应当列出"活性已知、据其实测分布定出这个窗口"的那些体系。
 出厂窗口的依据是**普遍化学**——范德华接触距离、标准氢键重原子范围、Bürgi–Dunitz 进攻轨迹。
 这些是关于分子的真事实，但不是关于**这个家族催化活性复合物**的事实。三个催化模板的
-`reference_structures` 全为空（本环境里没有任何 PDB 条目能被核实），而这个"空"正是什么都
-拟合不出来的原因。
+`reference_structures` 全为空（写模板时本环境里没有任何 PDB 条目能被核实），而这个"空"正是什么都
+拟合不出来的原因。（现在已有一份哈希固定的参考集，见下段；列表仍为空，因为"哪些条目合格"要由人来定。）
 
 出厂的 SDR 氢负离子转移约束把这套纪律浓缩在一条里：下界 2.9 Å 可归因（两个碳的范德华半径
 之和减去几何模块容许的重叠量，低于它就是碰撞，是建模伪影）；**上界故意留 null**——"在这个
@@ -522,6 +564,14 @@ curated copy rather than at whatever is in the working tree.
 判决边界；把它抄成 gating 窗口，就是把一个课题组的惯例变成本流水线对"催化"的定义。
 Bürgi–Dunitz 角同理：**中心**（105–107°）可归因，**宽度**（90–130°）不是测量值，它被故意
 放宽，就是为了让一个未标定的角度推不走候选。
+
+**第一份真实参考集的审计结果（2026-10-08）**：用户上传的 KRED 实验复合物参考集（19 个条目、28 条动力学记录）
+已保存在 `configs/references/kred_calibration/`，并用本项目自己的标定机制按现有 SDR 模板审计（在内存中运行，
+不写任何标定记录）。结论：**仍然是 17/17 未标定**。19 个条目里只有 1IPF（NADPH + 底物）符合模板要求，
+没有已知无活性的反例；19 个条目只是 6 个谱系，真正放了底物/产物的谱系只有 2 个；80%/80% 的最低要求是 14 个
+独立阳性（90%/90% 要 38 个）。放宽辅因子要求后可多纳入 6ZZO，仍远不够。实测的接近角（72.6°–81.6°）全部落在
+模板 90–130° 咨询窗口之外——这只是 3 个条目的观察，但足以说明该窗口必须保持 `advisory`。催化残基（Tyr/Ser/Lys）
+未绑定，需要人按各酶的文献补上。没有修改任何模板。
 
 ### 为什么未标定的窗口**绝不能**淘汰候选
 

@@ -189,6 +189,7 @@ A value that is not known prints as `unknown`, never as `0` or an empty cell.
 | `eagent templates list \| show <id> \| lint` | Read the template library — every threshold a run uses comes from there. `lint` reports uncalibrated windows and library integrity gaps. |
 | `eagent sources list \| show <id> \| independence \| coverage \| verify` | Read the data-source registry: what each resource may be used to claim, what it may not, and which sources re-integrate which others. `verify --allow-network --write` calls the shipped probes and records what answered. |
 | `eagent benchmark sdr \| feedback --data D` | Retrospective benchmarks on the SDR deposit: label recovery with grouped folds and the leakage priced, and the feedback-loop simulation. Both open with the statement that the labels are annotation-derived. |
+| `eagent reference verify \| manifest \| fetch-coordinates \| bindings \| audit \| verify-sources \| import-workbook` | The KRED calibration reference set (19 experimental entries, 28 kinetic records): verify its files, numbers and cross-references offline; fetch its coordinates through the probed route and pin them by hash; derive what is measured on each entry; audit which entries could be references for which template and run the project's calibration machinery on them *in memory*; compare its kinetic numbers with their sources. Nothing here edits a template or writes a calibration record. |
 
 Exit codes, so a wrapper script can tell the outcomes apart without parsing
 prose: `0` done, `2` bad invocation, `3` something is unresolved, `4` a human
@@ -267,6 +268,8 @@ src/eagent/
 configs/
   templates/      reaction, family, catalytic, engineering, assay templates
   datasources/    49 registered sources across the six layers
+  references/     the KRED calibration reference set: workbook, tables, pins,
+                  bindings, verification record, and its NOTICE
   tasks/          the pilot task
   tool_registry.yaml
 docs/             the documents listed below
@@ -289,8 +292,8 @@ docs/             the documents listed below
 
 ## Status
 
-The code is complete and tested as a harness: the whole suite passes (2692 tests
-plus 693 subtests at the time of writing; the tree is still growing, so run
+The code is complete and tested as a harness: the whole suite passes (2919 tests
+plus 696 subtests at the time of writing; the tree is still growing, so run
 `PYTHONPATH=src python3 -m pytest tests -q` for the current figure).
 
 What has been run against the outside world: four public databases (UniProtKB,
@@ -311,6 +314,17 @@ so once the pool's redundancy is removed. It does **not** support the statement
 that the agent has learned from experiments or validated new-enzyme discovery:
 no experiment has been run. `docs/EVALUATION.md` §9 and `docs/ROADMAP.md` §7 give
 the numbers and what each does not establish.
+
+A first real reference set is also in the repository: 19 experimental KRED/SDR
+entries and 28 kinetic records, compiled by an AI assistant, stored with hashes,
+recomputed, cross-checked and compared with its sources
+(`configs/references/kred_calibration/v0.1`). It is smaller than it looks (six
+lineages; three behind the "core" records), it qualifies **one** entry for the
+shipped NADPH-SDR template with no known inactives, and it cannot calibrate any
+window -- 14 independent actives are the least a modest claim needs. The measured
+hydride-donor approach angles of the three complexes that could be measured lie
+outside the shipped advisory band. `docs/results/kred_reference_audit.txt` has the
+numbers.
 
 Everything described as a refusal is a code path that raises or returns a typed
 failure; where a refusal has been exercised against real data, the docs say so.
@@ -402,13 +416,17 @@ LigandMPNN，在本环境里**全部不存在**。它们的契约、校验、溯
 并有测试，但真程序缺席时步骤只会报 `tool_unavailable` 并且什么都不产出。控制器既不重试，
 也不换一个工具顶上——换模型顶替正是"缺失的测量变成捏造的测量"的那条路。
 
-同样地，`configs/datasources/` 里 49 个数据源**没有一个做过连通性测试**，
-`configs/tool_registry.yaml` 里每个工具的四个许可面都记为 `null`，这会**阻断**商业用途的
-运行，而不是放行。
+同样地，`configs/datasources/` 里 49 个数据源只有 **4 个**做过连通性测试（其余 45 个没有），
+`configs/tool_registry.yaml` 的 56 个许可面中 4 个读过原文、4 个是他人转述、其余 48 个记为未知，
+未知的商用许可会**阻断**商业用途的运行，而不是放行。
 
 ### 现状
 
-整个测试套件通过（写作时为 1614 个测试 + 415 个子测试；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。但没有任何一步跑过真实的公共数据库、真实的结构预测器、
-真实的对接程序或真实的实验板。文档里写"系统会拒绝 X"，意思是**存在一条会抛错或返回带类型
-失败的代码路径**，而不是这条拒绝已经在真实语料上被触发过。逐组件的状态表在
+整个测试套件通过（写作时为 2919 个测试 + 696 个子测试；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
+**对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
+一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；另有一份 KRED 实验复合物参考集
+（19 个条目、28 条动力学记录）被保存、哈希固定、重算并与原始表格比对——但它按现有模板只有 1 个条目合格，
+**不能标定任何窗口**。**没有**跑过真实的结构预测器、对接程序、搜索二进制或反向折叠模型（适配器只用"按文档格式写
+输出的假程序"测过），没有调用过语言模型，没有读过任何实验板。文档里写"系统会拒绝 X"，意思是**存在一条会抛错或返回带类型
+失败的代码路径**；拒绝在真实数据上被触发过的地方，文档会明说。逐组件的状态表在
 `docs/ROADMAP.md`。

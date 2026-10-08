@@ -5,9 +5,11 @@ can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
 **Where the project is today.** The harness is complete and tested: the whole suite
-passes (2692 tests plus 693 subtests at the time of writing). **Four public
+passes (2919 tests plus 696 subtests at the time of writing). **Four public
 databases have been called live** (UniProtKB, RCSB PDB, Rhea, Zenodo) and one
-real dataset has been downloaded through a checksum-verified route. **No
+real dataset has been downloaded through a checksum-verified route; a first
+real reference set of KRED complexes (19 entries, 28 kinetic records) has been
+stored, hash-pinned and audited, and cannot calibrate any shipped window. **No
 structure predictor, docking program, inverse-folding model or search binary has
 ever been run, and no plate has ever been read.** Milestone 1 is therefore
 *built but not demonstrated*, and milestones 2 and 3 have not started because
@@ -63,10 +65,13 @@ bundle.
   with no permission claimed; weights and outputs recorded as non-commercial).
   Every entry still has `needs_legal_review: true`, and an unknown commercial
   permission **blocks** a commercial run.
-- **No geometry window is calibrated.** 17 of 17. There is now a mechanism that
-  turns a reference set into a tamper-evident calibration record, and it is
-  tested on synthetic geometry only -- no real reference set exists here, so no
-  shipped window can pass it.
+- **No geometry window is calibrated.** 17 of 17. A mechanism turns a reference
+  set into a tamper-evident calibration record, and a first real reference set
+  (19 experimental entries, 28 kinetic records) is now in the repository,
+  hash-pinned and audited -- but against the shipped NADPH-SDR template only
+  one entry is eligible, with no known inactives, and a modest claim needs 14
+  independent actives. No shipped window can pass it. See the reference-set
+  subsection of §7.
 
 **Acceptance criteria.** All five must hold, and each can fail:
 
@@ -329,7 +334,8 @@ Three states only:
 | `eval/retrospective.py` | implemented | label recovery on the SDR deposit, grouped folds, leakage priced; **annotation-derived labels** |
 | `eval/feedback_simulation.py` | implemented | feedback on/off over identical replicates; **annotation-derived labels revealed as if assayed** |
 | `science/enzyme_substrate.py` | implemented | spectrum-kernel heads, probabilities only where a grouped out-of-fold calibration shows skill |
-| `science/calibration.py`, `tools/calibrate_windows.py` | implemented | Wilks tolerance-interval calibration records, verified by digest; **no real reference set** |
+| `science/calibration.py`, `tools/calibrate_windows.py` | implemented | Wilks tolerance-interval calibration records, verified by digest; run on a real reference set, which cannot calibrate any shipped window (§7) |
+| `eval/kred_reference.py`, `kred_workbook.py`, `kred_coordinates.py`, `kred_complexes.py`, `kred_sources.py` | implemented | the KRED reference set: converted, hash-pinned, recomputed, cross-checked, audited against the templates, and compared with its sources; `eagent reference` |
 | `tools/prediction_backends.py` | implemented, **never run on a real binary** | gnina (route A) and Boltz (route B) adapters |
 | `tools/open_branches.py` | implemented as **refusing seams** | open function discovery and de novo design; no generator installed |
 | `eval/ablations.py` | implemented | four ablations; `active_learning` reports not-evaluable without a `PriorRound` |
@@ -343,13 +349,14 @@ Three states only:
 | `configs/tasks/KRED_PILOT_001.yaml` | implemented | ships with all four gate-1 fields null, deliberately |
 | Reaction template (1) | implemented, **needs curation** | SMARTS never parsed in this environment; no RHEA id verified |
 | Family templates (3: SDR, AKR, MDR/ADH) | implemented, **needs curation** | `seed_accessions` and `interpro_ids` empty; no accession verified |
-| Catalytic templates (3) | implemented, **needs curation** | `reference_structures` empty in all three; **17 of 17 windows uncalibrated**, 0 gating |
+| Catalytic templates (3) | implemented, **needs curation** | `reference_structures` empty in all three; **17 of 17 windows uncalibrated**, 0 gating; a pinned reference set exists but qualifies one entry for one template |
+| `configs/references/kred_calibration/v0.1` | implemented, **bindings unreviewed** | 19 entries, 28 kinetic records, 10 er; 25/28 records match their paper's table, 1 matches BRENDA only, 2 partly unread; coordinates pinned (not committed); protein roles unbound |
 | Engineering templates (3) | implemented, **needs curation** | SDR, AKR and MDR/ADH all present; windows uncalibrated as above |
 | Family numbering schemes | **not started** | `science/family_numbering.py` and `science/pocket.py` ship the machinery; no sourced reference sequence is bundled, so pocket signatures fall back to composition and say so |
 | Assay templates (3 tiers) | implemented, **needs curation** | every numeric bar `null`; limits of detection must be measured on site |
 | `configs/tool_registry.yaml` | implemented, **needs legal review** | 14 tools × 4 facets = 56 entries; 4 licences read, 4 reported, 48 unknown (see Milestone 1); an unknown commercial permission blocks a commercial run |
 | `configs/datasources/*.yaml` | implemented, **4 of 49 tested** | see the data-layer table above |
-| `datalayer/probe.py` | implemented | shipped probes, marker checks, the observation file |
+| `datalayer/probe.py` | implemented | 10 shipped probes (4 of them RCSB: three data-API shapes and the file-download shape), marker checks, the observation file |
 | De novo design | **seam only** | `tools/open_branches.py` refuses until licences, a confirmed reaction and a named approver are in place; no generator is installed |
 
 ### Known wart
@@ -446,14 +453,49 @@ and a reference set, and nothing here substitutes for either.
   `AnthropicMessagesClient` works against the live API.
 - That a language model is useful in the loop. The planner is built so that it
   can do little harm; whether it does any good has not been measured.
-- A calibrated window. The mechanism exists; the reference set does not.
+- A calibrated window. The mechanism exists and a reference set now exists
+  (next section); the set cannot calibrate any shipped window.
 - Any licence beyond the four read facets and the four reported ones.
 
-**What would change this.** A reference set of experimental KRED complexes with
-activity labels (calibration); a plate of real results from a registered
-criterion (every claim about learning from experiments); the real binaries
-installed and one run recorded (the adapters); and a person reading the
-repositories of the two reported licences.
+**What would change this.** More experimental KRED complexes with activity labels
+and known inactives (calibration -- see below for how many); a plate of real
+results from a registered criterion (every claim about learning from
+experiments); the real binaries installed and one run recorded (the adapters);
+and a person reading the repositories of the two reported licences.
+
+### The KRED reference set (added 2026-10-08)
+
+A spreadsheet of 19 experimental PDB entries and 28 kinetic records, compiled by
+an AI assistant and uploaded by the repository's owner, is stored, hash-pinned and
+checked under `configs/references/kred_calibration/v0.1` (its `README.md` and
+`NOTICE.md` are the long form). This is the first real reference data in the
+repository. What it established:
+
+- **It loads honestly.** Every stated count holds; all 74 cached unit
+  conversions equal a recomputation; every cross-reference is followed both
+  ways; all 118 ligand-validation rows name residues that are in the pinned
+  coordinate files (19 files, 16 MB, fetched through a route that was probed
+  first and verified by hash, not committed).
+- **Its kinetic numbers match their sources.** 25 of 28 records match the paper's
+  own table, 1 matches BRENDA's extraction, 2 match BRENDA for `kcat`/`Km` with
+  six quantities unread; all 10 `er` values match; nothing mismatched.
+- **It is smaller than it looks.** Nineteen entries are six lineages, and the 22
+  "core" kinetic records are three; the two *Lactobacillus* enzymes the workbook
+  counts separately are 88 % identical. Only two lineages have a substrate or
+  product placed in the site.
+- **It cannot calibrate a shipped window.** Against the NADPH-SDR template one
+  entry of 19 is eligible (1IPF) and there are no known inactives; relaxing the
+  cofactor requirement admits a second lineage. A modest claim needs 14
+  independent actives, a conventional one 38. Milestone-1 criterion 5 stays
+  unmet, and the count stays 17 of 17.
+- **It already says something about one window.** The measured hydride-donor
+  approach angles (72.6°-81.6°, three entries, two lineages) all lie outside the
+  shipped advisory 90-130° band.
+
+**Not established by it:** any window; that its bindings are right (rule-derived,
+unreviewed, protein roles unbound); anything about the 2026 Ssal-KRED ortholog
+extension, whose files were not received; and any kinetic claim beyond what the
+sources print.
 
 ---
 
@@ -461,7 +503,7 @@ repositories of the two reported licences.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 2692 个测试 + 693 个子测试）。**已对 4 个公共数据库做过真实调用**
+框架已完成并通过测试（写作时 2919 个测试 + 696 个子测试）。**已对 4 个公共数据库做过真实调用**
 （UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；但**没有跑过
 任何真实的结构预测器、对接程序、反向折叠模型或搜索二进制，也没有读过任何真实的实验板**。里程碑 1
 是"已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。
@@ -470,6 +512,15 @@ repositories of the two reported licences.
 在少数类别上优于最近邻、多数类别上与之无差别；有一个模拟表明在**由标注得来的数据**上，把标签反馈
 回选择确实有帮助。**不能支持**"智能体已经从实验中学习并验证了新酶发现能力"——至今没有做过任何实验。
 详见 §7。
+
+**KRED 参考集（2026-10-08 加入）**：用户上传的 KRED 实验复合物参考集（19 个 PDB 条目、28 条动力学记录、
+10 条 er）已原样保存并哈希固定（`configs/references/kred_calibration/v0.1`），坐标文件通过先探测后下载、
+下载后按哈希核对的路径取得（19 个文件共 16 MB，不入库）。检查结果：声明的每个计数都成立；74 个缓存的单位
+换算与独立重算一致；交叉引用双向成立；动力学数值与原始表格比对，25/28 条与论文自己的表一致、1 条只与
+BRENDA 一致、2 条部分未读原文，**无不一致项**。但它**比看上去小**：19 个条目只是 6 个谱系，22 条"核心"记录
+只是 3 个谱系，真正放了底物/产物的谱系只有 2 个；按现有模板只有 1 个条目合格，**没有任何窗口能被它标定**，
+里程碑 1 的第 5 条验收标准仍未满足。实测的氢负离子供体接近角（72.6°–81.6°）全部落在模板 90–130° 的
+咨询窗口之外——3 个条目、2 个谱系，不足以替换窗口，但足以让它继续只是 `advisory`。
 
 ### 里程碑 1：证据层与可复现筛选
 
@@ -484,7 +535,9 @@ Boltz 的适配器已写好，但只用"按文档格式写输出的假程序"测
 **4 个读过原文**（Boltz 代码与权重 MIT、Vina 代码 Apache-2.0、gnina README 的双许可声明）、
 **4 个是他人转述未读原文**（VenusMine 记为 CC BY-NC-ND 4.0：限制商用与衍生；AP Novo 代码
 记为 Apache-2.0 但不声称任何许可，权重与输出记为非商用）、其余 48 个未知，未知的商用许可会
-**阻断**商业运行；17 条几何窗口**全部未标定**——标定机制已建成，但只用合成几何测过，仓库里没有真实参考集。
+**阻断**商业运行；17 条几何窗口**全部未标定**——标定机制已建成；仓库里现在有了第一份真实参考集（19 个实验条目、
+28 条动力学记录，已哈希固定并审计，见"§7 之后的 KRED 参考集"），但按现有 NADPH-SDR 模板只有 1 个条目
+合格、没有已知无活性的反例，最低要求（80%/80%）需要 14 个独立阳性，所以没有任何窗口能通过。
 
 **验收标准（五条，每条都可能失败）**：从已填充的连接器缓存跑到 `select_batch`，三个闸门由
 具名的人清掉，产出订单与非空阳性判据的 `experiment_plan.yaml`；`bundle` 报告
@@ -549,7 +602,8 @@ Boltz 的适配器已写好，但只用"按文档格式写输出的假程序"测
 - **未开始**：其余 45 个数据源的连通性验证（现为 **4 / 49**）、AKR 与 MDR/ADH 的**改造模板**
   （因此这两个家族提不出变体）、从头设计的真实生成器（现在只有会拒绝的接缝）。
 - **已实现但需要策展**：全部 11 个模板（催化模板的 `reference_structures` 全空、
-  **17 / 17 窗口未标定、0 条 gating**；检测模板的数值门槛全为 `null`）；工具注册表
+  **17 / 17 窗口未标定、0 条 gating**；检测模板的数值门槛全为 `null`）；KRED 参考集
+  （`configs/references/kred_calibration/v0.1`：绑定记录由规则导出、**未经人审**，催化残基未绑定）；工具注册表
   （14 个工具 × 4 个许可面 = 56 条：4 读过、4 转述、48 未知）。
 - **已知的瑕疵**：`eagent/tools/__init__.py` 里残留着规划期的 `INTERFACE_MODULES` 表，
   列了六个没有任何模块实现的名字。发现机制是权威的，控制器走的路径不报缺失；这是该删掉的

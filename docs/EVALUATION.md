@@ -442,6 +442,56 @@ number for a simple model on annotation-derived labels.
 
 ---
 
+## 10. The KRED reference set: what it can and cannot be used to evaluate
+
+`configs/references/kred_calibration/v0.1` holds 19 experimental PDB entries, 28
+kinetic records matched to them and 10 enantioselectivity records, compiled by an
+AI assistant and checked here (its `README.md` and `NOTICE.md` are the long form;
+the audit is `docs/results/kred_reference_audit.txt`). It is the first
+experimental data in the repository, and it is small and structured in ways that
+decide what it may be used for.
+
+**Four label types, never pooled.** Each record says which it is:
+`kcat_km_steady_state` (HBDH, LbADH, TR-II), `apparent_kcat_km_regeneration_system`
+(Ssal-KRED, with isopropanol as the regenerating substrate), `reported_efficiency`
+(the eight LkKRED `kcat/Km` values, each a single reported number with no `kcat`
+or `Km` behind it), and `kcat_only_km_bounded` (one `Km` printed as `<5400` in a
+column labelled mM). `ND` is "not determined" -- two records -- and is not a
+zero. A rank correlation computed across label types, or a regression on a column
+that mixes them, compares things the assays did not measure on one scale; the
+loader makes asking for a quantity a record does not have an error instead of a
+nearby number (`KineticRecord.require`).
+
+**Rank within an assay group only.** `KineticRecord.assay_group` is the source,
+pH, temperature, cofactor and qualification together. The WT HBDH rows come from
+a 2018 SI at 283 K and the mutant rows from a 2020 table at a nominal 10 °C: the
+same laboratory and conditions, different papers, so they are two groups and a
+comparison between them is a stated cross-source one.
+
+**Split by lineage, and expect little to split.** The 22 "core" records are three
+lineages (HBDH, the two *Lactobacillus* enzymes together, Ssal-KRED), and the 19
+structures are six. A random split of records puts the same enzyme's variants on
+both sides; a split by lineage leaves three groups. `ReferenceSet.independence()`
+computes the counts, and `kred_coordinates.lineage_findings` re-derives the
+grouping from the pinned sequences, so a lineage cannot be quietly split.
+
+**What it can support.** A smoke test that a pipeline reads a real complex, a real
+altloc, a real oxidised cofactor and a real ND without inventing a number; a
+sensitivity analysis of a ranking within one assay group; and a measurement of
+where experimental hydride-donor geometry sits relative to a shipped window (done:
+the approach angles of three entries lie outside the advisory band).
+
+**What it cannot support.** A claim of generalisation to industrial KREDs (19
+entries, six lineages, no unconditional geometry reference by the set's own audit);
+a classifier of active versus inactive (there is not one known inactive, and an
+A340 NADH-depletion efficiency does not show the product was formed -- the intake
+rules already refuse to turn it into a positive label); a calibration of any
+shipped window (one eligible entry; a modest claim needs 14 independent actives);
+or anything about the 2026 Ssal-KRED ortholog extension the delivery describes,
+whose files were not received.
+
+---
+
 ## 中文摘要
 
 ### 主要终点是实验，结构学指标只是支持性证据
@@ -552,6 +602,17 @@ number for a simple model on annotation-derived labels.
 候选"的那个变体。移除一个门不等于没通过这个门：消融在评分卡的**副本**上剥掉门，原件不变。
 每一对都报告 **Wilson 区间是否重叠**：96 个里差一两个命中，在几乎任何比较的区间内部。
 范围声明被复制进**每一份渲染出来的报告**——一个不会跟着表格一起被粘进幻灯片的告诫，不算告诫。
+
+### KRED 参考集能评估什么、不能评估什么
+
+`configs/references/kred_calibration/v0.1`（19 个实验条目、28 条动力学记录、10 条 er）是仓库里第一份实验数据，
+它的结构决定了用法：**四种标签类型绝不混用**（稳态 kcat/Km、异丙醇再生体系下的表观 kcat/Km、仅报告的催化效率、
+Km 只有 `<` 界限的 kcat）；`ND` 是"未测出"而不是 0；**只在同一测定组内排序**（WT 来自 2018 SI、突变体来自 2020 表，
+是两个组）；**按谱系划分**——22 条核心记录只有 3 个谱系，19 个结构只有 6 个，随机按记录划分会把同一个酶的变体
+放到两边。它能支持：流水线读真实复合物、真实 altloc、氧化态辅因子和 ND 时不编造数字的冒烟测试；单一测定组内
+排序的敏感性分析；实测氢负离子供体几何与出厂窗口的对照。它**不能**支持：对工业 KRED 的泛化结论、
+"有活性/无活性"分类器（没有一个已知无活性的反例，A340 NADH 消耗法的效率也不证明生成了产物）、任何窗口的标定、
+或 2026 年 Ssal-KRED 直系同源物扩展（其文件未收到）。
 
 ### 这套评估**不能**建立什么
 

@@ -118,17 +118,18 @@ curation note demanding the terms be established before use.
 
 ## What has actually been called, and what that found
 
-Everything below happened from one cloud container on 2026-10-07. None of it is
-a statement about another network or another day.
+Everything below happened from one cloud container on 2026-10-07 and 2026-10-08. None
+of it is a statement about another network or another day.
 
 | Source | What was done | What it found |
 | --- | --- | --- |
 | UniProtKB | probe for one entry, then a client written against the probe's exact field list | an unknown accession used to crash the client with an `HTTPError`; it is now a **miss** (404/410) versus an **error** (anything else). `Inactive` entries are flagged, not read as live. A `reviewed` flag matched inside "unreviewed" until the test was made whole-word |
-| RCSB PDB | three probes (entry, entities, a second entry) and a client | the client builds the same URL the probe checked; an entry and its entities are fetched together |
+| RCSB PDB | three data-API probes (entry, entities, a second entry), a client, and (2026-10-08) a fourth probe for the **file host** and `download_structure` | the client builds the same URL the probe checked; an entry and its entities are fetched together. The file host is a different service from the data API, so the download client reads the host off a recorded *passing probe of its own shape* (the connectors package holds no URL literal) and refuses without one; a body is checked to be this entry's mmCIF before it is named. 19 entries were fetched and hash-pinned for the KRED reference set |
 | Rhea | two probes and a client | the Rhea CDN answered **403** to the default `urllib` user agent while the probe passed -- the probe and the client had used different headers. They now share one `USER_AGENT`, and a probe and its client must share URL shape, field list and header |
 | Zenodo | record probe, file probe, `download_file` | a download is read under a hard byte cap, hashed, compared with the checksum the record itself states, and only then written -- to a temporary name, renamed on success. A second file in one session hit an SSL EOF, which is why transient failures are retried |
 | SABIO-RK | paths its documentation names were called | **unreachable**: every path answered 302 and then 200 on the provider's own 404 page. Recorded in the entry's curation note as an *observation*, not a conclusion -- it may be a moved service, a changed path or a network policy, and the three were not told apart. The endpoint stays `null` |
-| BRENDA | not called | needs an account; unchanged |
+| BRENDA | not called as a source route | needs an account; unchanged. Two **literature pages** (654707, 675348) were opened by hand on 2026-10-08 to check three kinetic records of the KRED reference set; each page states its licence (CC BY 4.0, Release 2026.1). That is a read of two pages, not a connector |
+| wwPDB policy page | opened 2026-10-08 | states that PDB archive data files are CC0 1.0. **Not recorded in the registry** (`rcsb_pdb.license` is still null and `needs_legal_review` true): a curator should record it with this source |
 
 **Retries know their limits.** A 404 or 410 is a miss and is never retried. A
 failure that looks transient (a reset, an SSL EOF, a 5xx) is retried at most

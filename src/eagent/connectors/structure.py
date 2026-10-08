@@ -42,15 +42,21 @@ when the record names no source.
 
 from __future__ import annotations
 
+import hashlib
+import os
+import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
+from ..provenance import utc_now
 from ..schemas.chem import CofactorSpec, CofactorState, LigandSource, \
     cofactor_state_from_ligand_code
 from ..schemas.templates import TemplateProvenance, TemplateSourceType
 from ..science.numbering import AuthorPosition
-from .base import CachedResponse, ConnectorLayer
+from .base import CachedResponse, ConnectorLayer, NetworkDisabledError
 from .chemistry import LayerSemanticsError, RegistryBackedConnector
+from .literature import ChecksumMismatchError
 
 __all__ = [
     "AlphaFillConnector",
@@ -61,6 +67,8 @@ __all__ = [
     "CCDBond",
     "CatalyticResidueRecord",
     "ChemicalComponent",
+    "DEFAULT_MAX_STRUCTURE_BYTES",
+    "FileRouteNotVerifiedError",
     "MCSAConnector",
     "MCSAEntry",
     "ModelledLigand",
@@ -72,8 +80,11 @@ __all__ = [
     "SIFTSConnector",
     "SiftsResiduePair",
     "SiftsResidueMapping",
+    "RCSB_STRUCTURE_FILE_PATH",
+    "StructureFile",
     "TransplantedLigand",
     "WwPDBChemicalComponentConnector",
+    "validate_mmcif_bytes",
 ]
 
 
@@ -230,6 +241,106 @@ def rcsb_entry_payload(
     }
 
 
+#: Coordinate files are served from a different host than the data API above,
+#: and **no host is written here**: this package holds no URL literal, because a
+#: literal is a route nobody verified. The host the client calls is whichever
+#: one the registry holds a *passing* probe for, of exactly this shape -- the
+#: ``.../download/<ID>.cif`` entry in :data:`eagent.datalayer.probe.PROBES`, which
+#: asks for the same path. A verified route for the data API is not a verified
+#: route for the file host, and until a probe of this shape has passed the
+#: client does not call anything.
+#:
+#: The asymmetric-unit file, not an assembly: author chain identifiers in the
+#: file are the ones the wwPDB validation report is written in.
+RCSB_STRUCTURE_FILE_PATH: str = "/download/{pdb_id}.cif"
+
+#: A recorded check URL of the file shape; group 1 is ``scheme://host``. Written
+#: without the scheme literal on purpose (see above).
+_FILE_CHECK_URL = re.compile(r"^([a-z]+://[^/\s]+)/download/[0-9][A-Za-z0-9]{3}\.cif$")
+
+#: A guard against pulling a ribosome into a run that asked for a kinase. Not a
+#: scientific number: the asymmetric unit of an enzyme complex is megabytes.
+DEFAULT_MAX_STRUCTURE_BYTES: int = 64 * 1024 * 1024
+
+_PDB_ID = re.compile(r"^[0-9][A-Za-z0-9]{3}$")
+
+
+class FileRouteNotVerifiedError(NetworkDisabledError):
+    """The file host has not been shown to answer the request this client makes.
+
+    A base URL for the data API is established; the file host is another
+    service. Until ``eagent sources verify`` has recorded a passing check for a
+    ``.../download/<ID>.cif`` request the client does not call it, because a
+    request shape that was never tried is a guess, and a guess that fails with a
+    404 looks like "the entry does not exist".
+    """
+
+    def __init__(self, source_id: str, verified: Sequence[str] = ()) -> None:
+        self.source_id = source_id
+        super().__init__(
+            f"'{source_id}': no passing connectivity check is recorded for the "
+            f"file download shape {RCSB_STRUCTURE_FILE_PATH} (verified so far: "
+            f"{', '.join(verified) or 'nothing'}). The data API and the file "
+            f"host are different services; run `eagent sources verify "
+            f"--allow-network --write` and try again")
+
+
+@dataclass(frozen=True)
+class StructureFile:
+    """A coordinate file on disk and the hash it is known by.
+
+    ``retrieved_at`` is ``None`` when the file was already there and was only
+    verified: nothing was fetched, and a timestamp would claim otherwise, and
+    ``source_url`` is empty for the same reason.
+    """
+
+    pdb_id: str
+    path: Path
+    source_url: str
+    size_bytes: int
+    sha256: str
+    retrieved_at: str | None
+    from_cache: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"pdb_id": self.pdb_id, "path": str(self.path),
+                "source_url": self.source_url, "size_bytes": self.size_bytes,
+                "sha256": self.sha256, "retrieved_at": self.retrieved_at,
+                "from_cache": self.from_cache}
+
+
+def validate_mmcif_bytes(body: bytes, pdb_id: str) -> str:
+    """The decoded text of an mmCIF file, or a refusal saying what it is instead.
+
+    A 200 is not a coordinate file: a CDN error page, a login wall and a
+    maintenance notice all answer 200. The check is cheap and specific -- the
+    data block is named for this entry, ``_entry.id`` agrees with it, and an
+    ``_atom_site`` loop exists -- so a file that is not the one asked for never
+    receives a name a loader would trust.
+    """
+    pid = pdb_id.strip().upper()
+    try:
+        text = body.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise LayerSemanticsError(
+            f"{pid}: the response is not UTF-8 text, so it is not an mmCIF file "
+            f"({exc.reason} at byte {exc.start})") from exc
+    first = next((ln.strip() for ln in text.splitlines()
+                  if ln.strip() and not ln.lstrip().startswith("#")), "")
+    if first.lower() != f"data_{pid}".lower():
+        raise LayerSemanticsError(
+            f"{pid}: the first data line is {first[:60]!r}, not 'data_{pid}'; "
+            f"something other than this entry's mmCIF answered")
+    entry = re.search(r"^_entry\.id\s+(\S+)", text, re.MULTILINE)
+    if entry is None or entry.group(1).strip("'\"").upper() != pid:
+        raise LayerSemanticsError(
+            f"{pid}: _entry.id is {entry.group(1) if entry else 'absent'}, not "
+            f"{pid}")
+    if "_atom_site.Cartn_x" not in text:
+        raise LayerSemanticsError(f"{pid}: the file has no _atom_site coordinates")
+    return text
+
+
 class RCSBPDBConnector(RegistryBackedConnector):
     """Experimentally determined coordinates and the ligands really in them.
 
@@ -293,6 +404,130 @@ class RCSBPDBConnector(RegistryBackedConnector):
             nonpolymers[str(entity)] = body
         return ({"records": [rcsb_entry_payload(entry, polymers, nonpolymers)]},
                 version)
+
+    def polymer_entity_annotations(self, pdb_id: str, entity_id: str | int
+                                   ) -> dict[str, Any]:
+        """The family-level annotations the RCSB attaches to one polymer entity.
+
+        Read from the ``core/polymer_entity/<id>/<n>`` response -- the request
+        shape the shipped probe checks -- and reduced to what a family question
+        needs: InterPro, Pfam, and GO identifiers with their names, the entity's
+        description and its EC number as the depositor gave it. These are the
+        RCSB's *annotations*, not a classification this project made, and the
+        returned dictionary says so by carrying nothing else.
+
+        Not cached and not routed through :meth:`fetch`: the caller records the
+        result where it is used (the reference set's coordinate manifest), which
+        is the persistent copy. Needs ``allow_network`` and a verified data-API
+        route, like every other call here.
+        """
+        import urllib.parse
+
+        pid = str(pdb_id).strip().upper()
+        if not _PDB_ID.match(pid):
+            raise LayerSemanticsError(f"{pdb_id!r} is not a four-character PDB id")
+        base = self.require_endpoint().rstrip("/")
+        body, _ = self._http_json(
+            f"{base}/rest/v1/core/polymer_entity/{pid}/"
+            f"{urllib.parse.quote(str(entity_id), safe='')}")
+        if not isinstance(body, Mapping):
+            raise LayerSemanticsError(
+                f"the RCSB has no polymer entity {entity_id} for {pid}")
+        by_type: dict[str, list[dict[str, str]]] = {"InterPro": [], "Pfam": [], "GO": []}
+        for item in body.get("rcsb_polymer_entity_annotation") or ():
+            if not isinstance(item, Mapping):
+                continue
+            kind = str(item.get("type") or "")
+            if kind in by_type and item.get("annotation_id"):
+                by_type[kind].append({"id": str(item["annotation_id"]),
+                                      "name": str(item.get("name") or "")})
+        entity = body.get("rcsb_polymer_entity") or {}
+        return {
+            "pdb_id": pid, "entity_id": str(entity_id),
+            "description": _text(entity.get("pdbx_description")),
+            "ec": _text(entity.get("pdbx_ec")),
+            "interpro": by_type["InterPro"], "pfam": by_type["Pfam"],
+            "go": by_type["GO"],
+        }
+
+    def _file_route_base(self) -> str:
+        """``scheme://host`` of the file service, from a recorded passing probe.
+
+        Never from a constant: the base is read off the registry's own record of
+        a check that passed for exactly the shape this client requests, so the
+        host called is the host that was shown to answer it.
+        """
+        source = self.source
+        for check in source.connectivity_checks:
+            hit = _FILE_CHECK_URL.match(check.url) if check.ok else None
+            if hit:
+                return hit.group(1)
+        raise FileRouteNotVerifiedError(self.source_id, source.verified_capabilities)
+
+    def download_structure(self, pdb_id: str, destination: str | Path, *,
+                           expected_sha256: str | None = None,
+                           max_bytes: int = DEFAULT_MAX_STRUCTURE_BYTES,
+                           refresh: bool = False) -> StructureFile:
+        """Fetch one entry's mmCIF file and verify it, or refuse.
+
+        The order is the point, and it is the order the Zenodo client uses:
+
+        1. a file already at the destination is **verified, not replaced**. If
+           its hash is not the expected one the call raises and leaves it
+           alone -- overwriting a file that fails verification with whatever
+           the network returns now is how a pinned input stops being pinned;
+        2. the network is touched only if ``allow_network`` is on **and** the
+           registry holds a passing check for this exact URL shape;
+        3. the body is read under a hard cap, checked to be this entry's
+           mmCIF, hashed, compared with ``expected_sha256`` when one is given,
+           and only then written -- to a temporary name, renamed on success.
+
+        The RCSB revises entries (re-refinement, remediation), so the same
+        identifier can serve different bytes next year. ``expected_sha256`` is
+        what turns "the file for 1IPF" into "the file this analysis used".
+        """
+        pid = str(pdb_id).strip().upper()
+        if not _PDB_ID.match(pid):
+            raise LayerSemanticsError(
+                f"{pdb_id!r} is not a four-character PDB identifier; refusing "
+                f"to build a URL from it")
+        expected = expected_sha256.strip().lower().removeprefix("sha256:") \
+            if expected_sha256 else None
+        directory = Path(destination)
+        target = directory / f"{pid}.cif"
+        if target.is_file() and not refresh:
+            body = target.read_bytes()
+            digest = hashlib.sha256(body).hexdigest()
+            if expected is not None and digest != expected:
+                raise ChecksumMismatchError(
+                    f"{target} has sha256 {digest} but {expected} was expected. "
+                    f"It was left in place; delete it, or pass refresh=True, to "
+                    f"fetch it again")
+            validate_mmcif_bytes(body, pid)
+            return StructureFile(pid, target, "", len(body), digest, None, True)
+
+        if not self.access.allow_network:
+            raise NetworkDisabledError(
+                f"{self.source_id}: {pid}.cif is not at {directory} and "
+                f"allow_network is false, so it cannot be fetched")
+        url = self._file_route_base() + RCSB_STRUCTURE_FILE_PATH.format(pdb_id=pid)
+        body = self._http_bytes(url, max_bytes=max_bytes)
+        if body is None:
+            raise LayerSemanticsError(
+                f"the RCSB file service has no coordinate file for {pid}")
+        validate_mmcif_bytes(body, pid)
+        digest = hashlib.sha256(body).hexdigest()
+        if expected is not None and digest != expected:
+            raise ChecksumMismatchError(
+                f"{pid}.cif downloaded as sha256 {digest} but {expected} was "
+                f"expected: the RCSB is serving a different revision of the "
+                f"entry than the one this analysis was pinned to. The file was "
+                f"not written.")
+        directory.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_name(f".{target.name}.part")
+        temporary.write_bytes(body)
+        os.replace(temporary, target)
+        return StructureFile(pid, target, url, len(body), digest, utc_now(), False)
 
     def entry(self, pdb_id: str) -> PDBEntryRecord | None:
         response = self.fetch(pdb_id)

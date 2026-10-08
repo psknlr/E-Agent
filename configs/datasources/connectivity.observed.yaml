@@ -26,13 +26,15 @@ observed_connectivity:
 - id: rcsb_pdb
   endpoint: https://data.rcsb.org
   citations:
-  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-07T15:55:06+00:00)
-  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-07T15:55:07+00:00)
+  - https://www.rcsb.org/docs/programmatic-access/file-download-services (fetched HTTP 200
+    on 2026-10-08T03:47:02+00:00)
+  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-08T03:47:00+00:00)
+  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-08T03:47:01+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: exact_record_fetch
     url: https://data.rcsb.org/rest/v1/core/entry/1CDO
-    checked_at: '2026-10-07T15:55:06+00:00'
+    checked_at: '2026-10-08T03:47:00+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -41,7 +43,7 @@ observed_connectivity:
     - rcsb_entry_info
     response_sha256: sha256:ed89f2e3d6810f0eb1aee3b0038d156b8454be8d4941fe1e406407ec207eeafc
     response_bytes: 15160
-    elapsed_ms: 197
+    elapsed_ms: 212
     documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
     documentation_status: 200
     failure: ''
@@ -49,7 +51,7 @@ observed_connectivity:
       so the record exercises the fields this project reads'
   - capability: exact_record_fetch
     url: https://data.rcsb.org/rest/v1/core/polymer_entity/1CDO/1
-    checked_at: '2026-10-07T15:55:07+00:00'
+    checked_at: '2026-10-08T03:47:00+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -58,7 +60,7 @@ observed_connectivity:
     - entity_poly
     response_sha256: sha256:cffea05b4a17a446b03fc22d3072a093153c7f52cffac05e1774ff0cd5c27a76
     response_bytes: 21954
-    elapsed_ms: 220
+    elapsed_ms: 224
     documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
     documentation_status: 200
     failure: ''
@@ -66,7 +68,7 @@ observed_connectivity:
       not merely the entry one
   - capability: exact_record_fetch
     url: https://data.rcsb.org/rest/v1/core/nonpolymer_entity/1CDO/3
-    checked_at: '2026-10-07T15:55:07+00:00'
+    checked_at: '2026-10-08T03:47:01+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -75,21 +77,39 @@ observed_connectivity:
     - pdbx_entity_nonpoly
     response_sha256: sha256:0a705893dcede9cfef94a054ddd288f30b7bc5d97837de6dc897f0b370332780
     response_bytes: 453
-    elapsed_ms: 153
+    elapsed_ms: 226
     documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
     documentation_status: 200
     failure: ''
     note: 1CDO entity 3 is NAD, the cofactor of this alcohol dehydrogenase
+  - capability: exact_record_fetch
+    url: https://files.rcsb.org/download/1IPF.cif
+    checked_at: '2026-10-08T03:47:02+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - data_1IPF
+    - _entry.id
+    - _atom_site.Cartn_x
+    response_sha256: sha256:8891976c267b9ea8b6d7e3752f5d3ae6f5df81ba9b37ab376de2e8740e398efa
+    response_bytes: 455755
+    elapsed_ms: 355
+    documentation_url: https://www.rcsb.org/docs/programmatic-access/file-download-services
+    documentation_status: 200
+    failure: ''
+    note: 1IPF is tropinone reductase II with NADPH and tropinone, the one pre-reaction ternary
+      SDR complex in the KRED calibration reference set; a 450 KB file, so the probe is cheap
 - id: rhea
   endpoint: https://www.rhea-db.org
   citations:
-  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-07T15:55:10+00:00)
-  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-07T15:55:11+00:00)
+  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-08T03:47:05+00:00)
+  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-08T03:47:06+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: keyword_query
     url: https://www.rhea-db.org/rhea?query=ec:1.1.1.1&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100
-    checked_at: '2026-10-07T15:55:10+00:00'
+    checked_at: '2026-10-08T03:47:05+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -98,7 +118,7 @@ observed_connectivity:
     - EC:1.1.1.1
     response_sha256: sha256:2ce0354bd4ad387a4d3bda01d372fae4c6ca9dc5ed006f663714d2dbf32074c5
     response_bytes: 469
-    elapsed_ms: 577
+    elapsed_ms: 562
     documentation_url: https://www.rhea-db.org/help/rest-api
     documentation_status: 200
     failure: ''
@@ -106,7 +126,7 @@ observed_connectivity:
       pilot task
   - capability: keyword_query
     url: https://www.rhea-db.org/rhea?query=RHEA:10740&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100
-    checked_at: '2026-10-07T15:55:11+00:00'
+    checked_at: '2026-10-08T03:47:06+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -115,7 +135,7 @@ observed_connectivity:
     - secondary alcohol
     response_sha256: sha256:0e0b91307ca9dad096bcdcd92a7e4c336bfa0bcc7110f9ebefb573f7a6647823
     response_bytes: 192
-    elapsed_ms: 478
+    elapsed_ms: 610
     documentation_url: https://www.rhea-db.org/help/rest-api
     documentation_status: 200
     failure: ''
@@ -124,13 +144,13 @@ observed_connectivity:
 - id: uniprotkb
   endpoint: https://rest.uniprot.org
   citations:
-  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-07T15:55:04+00:00)
-  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-07T15:55:05+00:00)
+  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-08T03:46:57+00:00)
+  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-08T03:46:59+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: exact_record_fetch
     url: https://rest.uniprot.org/uniprotkb/P07846.json?fields=accession,id,protein_name,organism_name,reviewed,ec,cc_catalytic_activity,cc_cofactor,sequence,xref_pdb
-    checked_at: '2026-10-07T15:55:04+00:00'
+    checked_at: '2026-10-08T03:46:57+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -140,7 +160,7 @@ observed_connectivity:
     - uniProtkbId
     response_sha256: sha256:c80d19c10283d5596d244e5a775b775b18f1e6dd4d9e21177d81ac3eaa68b45b
     response_bytes: 3901
-    elapsed_ms: 1302
+    elapsed_ms: 827
     documentation_url: https://www.uniprot.org/help/api
     documentation_status: 200
     failure: ''
@@ -148,7 +168,7 @@ observed_connectivity:
       mechanistic neighbourhood of this project's pilot task
   - capability: version_information
     url: https://rest.uniprot.org/uniprotkb/search?query=accession:P07846&size=1
-    checked_at: '2026-10-07T15:55:05+00:00'
+    checked_at: '2026-10-08T03:46:59+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -157,7 +177,7 @@ observed_connectivity:
     - results
     response_sha256: sha256:03a7c3309efbb0d752fa7d5c1e515840e4cb63a1e20797b4adb7ceb7b37fa453
     response_bytes: 29225
-    elapsed_ms: 614
+    elapsed_ms: 1381
     documentation_url: https://www.uniprot.org/help/api
     documentation_status: 200
     failure: ''
@@ -165,13 +185,13 @@ observed_connectivity:
 - id: zenodo
   endpoint: https://zenodo.org
   citations:
-  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-07T15:55:08+00:00)
-  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-07T15:55:09+00:00)
+  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-08T03:47:02+00:00)
+  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-08T03:47:03+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: exact_record_fetch
     url: https://zenodo.org/api/records/7141435
-    checked_at: '2026-10-07T15:55:08+00:00'
+    checked_at: '2026-10-08T03:47:02+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -179,9 +199,9 @@ observed_connectivity:
     - 10.5281/zenodo.7141435
     - SDR_sequences.fasta
     - cc-by-4.0
-    response_sha256: sha256:5965a9a4903505a6d2d0047698c8388e966537820daac65a6f0ff6165c02de04
-    response_bytes: 10275
-    elapsed_ms: 540
+    response_sha256: sha256:e667b9cce2002400606945e45bd6556e65f022866e7b2550d9c6c6f91fc2965f
+    response_bytes: 10277
+    elapsed_ms: 571
     documentation_url: https://developers.zenodo.org/
     documentation_status: 200
     failure: ''
@@ -190,7 +210,7 @@ observed_connectivity:
       and about the enzyme family of the pilot task
   - capability: exact_record_fetch
     url: https://zenodo.org/api/records/7141435/files/README.txt/content
-    checked_at: '2026-10-07T15:55:09+00:00'
+    checked_at: '2026-10-08T03:47:03+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -199,7 +219,7 @@ observed_connectivity:
     - Jinich
     response_sha256: sha256:ecd383a09cda1400a98553a3f17d2b76d4fb1f408e525336e6a5b841c31f3813
     response_bytes: 4420
-    elapsed_ms: 665
+    elapsed_ms: 667
     documentation_url: https://developers.zenodo.org/
     documentation_status: 200
     failure: ''

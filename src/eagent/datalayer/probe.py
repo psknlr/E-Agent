@@ -321,6 +321,25 @@ PROBES: tuple[CapabilityProbe, ...] = (
         note="1CDO entity 3 is NAD, the cofactor of this alcohol dehydrogenase",
     ),
     CapabilityProbe(
+        source_id="rcsb_pdb",
+        capability="exact_record_fetch",
+        url="https://files.rcsb.org/download/1IPF.cif",
+        markers=("data_1IPF", "_entry.id", "_atom_site.Cartn_x"),
+        description=("fetch one entry's asymmetric-unit mmCIF from the RCSB "
+                     "file host, in exactly the shape "
+                     "RCSBPDBConnector.download_structure requests "
+                     "(RCSB_STRUCTURE_FILE_PATH on the host this probe passed "
+                     "for): the file host is a different "
+                     "service from the data API above, so it needs its own "
+                     "probe, and the connector refuses to download until this "
+                     "one has passed"),
+        documentation=("https://www.rcsb.org/docs/programmatic-access/"
+                       "file-download-services"),
+        note=("1IPF is tropinone reductase II with NADPH and tropinone, the "
+              "one pre-reaction ternary SDR complex in the KRED calibration "
+              "reference set; a 450 KB file, so the probe is cheap"),
+    ),
+    CapabilityProbe(
         source_id="zenodo",
         capability="exact_record_fetch",
         url="https://zenodo.org/api/records/7141435",

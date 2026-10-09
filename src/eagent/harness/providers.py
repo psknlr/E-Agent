@@ -19,7 +19,8 @@ split applies here, and the honest state is the same:
   own** structured authentication error -- Anthropic's
   ``{"type":"error","error":{"type":"authentication_error"}}``, OpenAI's
   ``error.message`` naming Bearer auth, MiniMax's
-  ``base_resp.status_code 1004``. A CDN error page and a login wall do not
+  ``authorized_error`` naming Authorization on the current endpoint (the
+  earlier legacy endpoint returned ``base_resp.status_code 1004``). A CDN error page and a login wall do not
   produce those, so the host, the path and the request parsing are the real API.
   :func:`probe_route` is that check, and :data:`ROUTE_MARKERS` is what it looks
   for.
@@ -62,6 +63,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -154,7 +156,7 @@ class ProviderSpec:
 ROUTE_MARKERS: Mapping[str, tuple[str, ...]] = {
     "anthropic": ("authentication_error", "x-api-key"),
     "openai": ("Authorization", "Bearer"),
-    "minimax": ("base_resp", "Authorization"),
+    "minimax": ("authorized_error", "Authorization"),
 }
 
 
@@ -185,26 +187,24 @@ PROVIDERS: Mapping[str, ProviderSpec] = {
     "minimax": ProviderSpec(
         key="minimax", display_name="MiniMax (OpenAI-compatible endpoint)",
         wire="openai_chat", api_key_env="MINIMAX_API_KEY",
-        base_url="https://api.minimax.chat/v1",
+        base_url="https://api.minimax.io/v1",
         base_url_env="EAGENT_MINIMAX_BASE_URL",
-        documentation="https://platform.minimaxi.com/document",
+        documentation="https://platform.minimax.io/docs/api-reference/text-chat-openai",
         route_answers=True,
-        documented_models=("abab6.5s-chat",),
-        notes=("Speaks the chat-completions format at "
-               "text/chatcompletion_v2 rather than chat/completions, which is "
-               "why the path is part of the client's configuration. Both "
-               "api.minimax.chat and api.minimaxi.com answered; set "
-               "EAGENT_MINIMAX_BASE_URL to pick one. Error bodies use "
-               "base_resp.status_code rather than an HTTP status, so a failure "
-               "can arrive inside a 200 -- this client checks for it.")),
+        documented_models=("MiniMax-M2.7", "MiniMax-M3"),
+        notes=("Uses the current /v1/chat/completions endpoint. An "
+               "unauthenticated probe on 2026-10-09 returned authorized_error "
+               "naming Authorization; no authenticated completion was tested. "
+               "Reasoning is requested separately from message content. "
+               "EAGENT_MINIMAX_BASE_URL can select a regional endpoint. "
+               "Legacy base_resp errors inside HTTP 200 remain checked.")),
 }
 
 #: Path appended to a provider's base URL for the chat-completions call.
-#: MiniMax uses its own, so the path travels with the provider rather than
-#: being assumed from the wire format.
+#: Kept configurable for a regional or self-hosted compatible endpoint.
 _CHAT_PATHS: Mapping[str, str] = {
     "openai": "/chat/completions",
-    "minimax": "/text/chatcompletion_v2",
+    "minimax": "/chat/completions",
 }
 
 
@@ -288,6 +288,9 @@ class OpenAIChatClient(LLMClient):
                         + [{"role": m["role"], "content": m["content"]}
                            for m in messages],
         }
+        if self.provider == "minimax":
+            body["max_completion_tokens"] = body.pop("max_tokens")
+            body["reasoning_split"] = True
         if seed is not None:
             body["seed"] = seed
         request = urllib.request.Request(
@@ -320,6 +323,9 @@ class OpenAIChatClient(LLMClient):
         choices = payload.get("choices")
         if not isinstance(choices, list) or not choices:
             raise LLMError(f"the {self.provider} reply has no choices")
+        if choices[0].get("finish_reason") == "length":
+            raise LLMError(f"the {self.provider} reply reached its token limit; "
+                           "increase the configured output budget")
         message = (choices[0] or {}).get("message") or {}
         text = message.get("content")
         if isinstance(text, list):          # some services return content parts
@@ -327,6 +333,12 @@ class OpenAIChatClient(LLMClient):
                            if isinstance(part, Mapping))
         if not isinstance(text, str) or not text.strip():
             raise LLMError(f"the {self.provider} reply holds no message content")
+        if self.provider == "minimax":
+            # A legacy/regional endpoint may still embed thinking despite the
+            # split request. Only final content belongs in the JSON protocol.
+            text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+            if "<think>" in text or not text:
+                raise LLMError("the minimax reply holds no final message content")
         return text
 
 

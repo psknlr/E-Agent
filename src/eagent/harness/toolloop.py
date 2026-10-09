@@ -421,6 +421,20 @@ def reference_tools(reference_dir: Any = None) -> list[ReadOnlyTool]:
                 "label_ids": [k.label_id for k in records],
                 "n": len(records), "cite": cite("kred_reference", "kinetics")}
 
+    def list_structure_entries() -> dict[str, Any]:
+        """Enumerate available PDB ids before calling structure_entry."""
+        return {"entries": [{"pdb_id": entry.pdb_id, "enzyme": entry.enzyme,
+                             "variant": entry.variant, "lineage": entry.lineage}
+                            for entry in rs.structures],
+                "cite": cite("kred_reference", "structures")}
+
+    def list_activity_constructs() -> dict[str, Any]:
+        """Enumerate construct and substrate ids before calling activity_endpoint."""
+        return {"enzyme_ids": [record.enzyme_id for record in activity.records],
+                "substrate_ids": sorted(SUBSTRATES),
+                "cite": cite("kred_activity", "constructs"),
+                "note": "Listing a construct does not imply it was soluble or assayed."}
+
     def kinetic_record(label_id: str) -> dict[str, Any]:
         """One kinetic record: its numbers, its label type, and what is withheld."""
         try:
@@ -572,6 +586,10 @@ def reference_tools(reference_dir: Any = None) -> list[ReadOnlyTool]:
         ReadOnlyTool("list_kinetic_records", list_kinetic_records.__doc__ or "",
                      {"tier": "optional: core, secondary, sensitivity or nd"},
                      list_kinetic_records),
+        ReadOnlyTool("list_structure_entries", list_structure_entries.__doc__ or "",
+                     {}, list_structure_entries),
+        ReadOnlyTool("list_activity_constructs", list_activity_constructs.__doc__ or "",
+                     {}, list_activity_constructs),
         ReadOnlyTool("kinetic_record", kinetic_record.__doc__ or "",
                      {"label_id": "the record's label id"}, kinetic_record),
         ReadOnlyTool("structure_entry", structure_entry.__doc__ or "",

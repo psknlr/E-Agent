@@ -1,5 +1,8 @@
 # E-Agent
 
+**[Open E-Agent chat](https://psknlr.github.io/E-Agent/)** ·
+[Connect the MiniMax backend](docs/WEB_CHAT.md)
+
 An agent for **enzyme function mining** and **substrate-directed engineering**,
 indexed on the reaction rather than on the protein family. The pilot task is
 asymmetric ketone reduction to a chiral secondary alcohol by a ketoreductase
@@ -292,9 +295,17 @@ docs/             the documents listed below
 
 ## Status
 
-The code is complete and tested as a harness: the whole suite passes (2919 tests
-plus 696 subtests at the time of writing; the tree is still growing, so run
-`PYTHONPATH=src python3 -m pytest tests -q` for the current figure).
+The repository implements the scientific harness and a web chat interface.
+GitHub Pages serves the chat UI; a separately hosted Python backend runs the
+actual `ToolLoop` with MiniMax and the project's reference loaders. See
+[the setup instructions](docs/WEB_CHAT.md). The page's connection status comes
+from the running backend, and a model completion is marked verified only after
+that backend has completed a real request. Repository text does not indicate
+whether an agent service is currently online.
+
+Run `PYTHONPATH=src python3 -m pytest tests -q` for the current test results.
+Tests using fake provider responses verify integration contracts; they do not
+establish a live model completion.
 
 What has been run against the outside world: four public databases (UniProtKB,
 RCSB PDB, Rhea, Zenodo) were called live and have clients checked against
@@ -302,8 +313,9 @@ recorded responses, and one real dataset (the SDR substrate-class deposit) was
 downloaded through a checksum-verified route and benchmarked. What has **not**:
 no structure predictor, docking program, search binary or inverse-folding model
 has ever been run (the gnina, Boltz and MMseqs2 adapters were tested against
-fakes that write output in the documented shape), no language model has been
-called, and no plate has ever been read.
+fakes that write output in the documented shape). The included experimental
+reference data comes from published sources; this project has not performed a
+new wet-lab experiment. Live MiniMax calls require a configured backend and key.
 
 What the repository can claim is narrow. It has a sound *machinery of claiming*;
 a simple sequence-to-annotated-class model that beats a nearest-neighbour

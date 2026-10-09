@@ -109,8 +109,11 @@ The web settings also support request-scoped model configuration: select
 MiniMax, OpenAI/GPT, Anthropic/Claude or a custom compatible endpoint, then enter
 an API key, model name and complete API URL. OpenAI-compatible Chat Completions
 and Anthropic-compatible Messages are the supported custom formats. API keys
-remain in tab memory and are sent to the selected E-Agent backend only when a
-question is submitted. The backend uses a separate client and loop for each
+remain in tab memory. In the default Browser + API mode, model requests go
+directly to the selected API URL, and evidence tools and arithmetic execute in
+the browser. The API must permit cross-origin browser requests. In Python
+backend mode, the key is sent to the selected E-Agent backend only when a
+question is submitted. That backend uses a separate client and loop for each
 configuration and does not change its environment or retain the supplied key.
 Saved/imported/exported templates contain only nonsecret model settings.
 

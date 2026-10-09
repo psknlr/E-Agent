@@ -25,9 +25,14 @@ jobs:
       - name: Install agent and test dependencies
         run: python -m pip install -e '.[dev]'
       - name: Check the actual chat runtime
-        run: python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py -q
+        run: python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py tests/test_browser_bundle.py -q
+      - name: Check browser evidence matches the Python loaders
+        run: python scripts/build_browser_bundle.py --check
       - name: Check browser script
-        run: node --check web/app.js
+        run: |
+          for script in web/*.js; do node --check "$script"; done
+      - name: Check browser agent, tools and calculations
+        run: node --test tests/browser-*.test.cjs
       - name: Configure public backend URL
         env:
           EAGENT_BACKEND_URL: ${{ vars.EAGENT_BACKEND_URL }}

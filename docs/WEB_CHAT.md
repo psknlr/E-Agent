@@ -2,14 +2,54 @@
 
 Open **[E-Agent chat](https://psknlr.github.io/E-Agent/)**.
 
-The page connects to the actual Python `ToolLoop`, the same runtime used by
-`eagent model ask`. Your selected model chooses tools, the repository's loaders execute
-them over the curated enzyme reference set, and the chat displays the answer,
+The default **Browser + API** mode runs a bounded agent loop in your browser.
+Your selected model chooses local tools, the browser queries the curated enzyme
+reference data or performs arithmetic, and the chat displays the answer,
 citations, guard results and tool transcript. Follow-up questions include a
-bounded conversation history. This console reads evidence; pipeline execution,
-structure prediction, docking and experimental approvals remain in the CLI.
+bounded conversation history. A Python backend is optional.
 
-## Connect a backend and choose your model
+## Run directly in your browser
+
+1. Open the chat page and leave **Browser + API** selected. The page loads its
+   local reference tools without contacting a model or requiring a backend.
+2. Under **Model settings**, choose MiniMax, OpenAI / GPT, Anthropic / Claude,
+   or Custom endpoint.
+3. Enter your **API key**, exact **Model name**, and full **API URL**. Preset URLs
+   and model names remain editable. Custom endpoints support OpenAI Chat
+   Completions or Anthropic Messages.
+4. Send a question, for example “Inspect Ssal-KRED activity on 2a” or “Use the
+   calculator to evaluate `(2.5 + 3.5) * 4` and show the calculation.”
+5. Review the research trace to see the local tools the model actually called.
+   Chat readiness is verified only after a successful model response.
+
+The browser sends the key and model requests directly to your chosen API URL.
+Keys stay in tab memory and are excluded from saved/exported templates. The
+page does not send browser-mode requests to an E-Agent server. Use your own key
+and an API endpoint you trust.
+
+The API must allow cross-origin browser requests (CORS) from
+`https://psknlr.github.io`. OPTIONS and deliberately-invalid-key POST checks of
+the MiniMax preset endpoint allowed that origin, POST, Authorization and
+Content-Type during implementation. The POST returned HTTP 401 with the CORS
+headers intact; these are transport checks, not authenticated model completions. The app also
+implements GPT and Claude request formats, including Claude's browser-access
+header. Endpoint, account and network policies can still reject direct access.
+The page reports network/CORS failures and never uses an opaque `no-cors`
+request or a public proxy. Select an API that allows browser access, or use the
+optional backend mode below. Official
+[OpenAI browser support documentation](https://developers.openai.com/api/reference/typescript)
+and [Anthropic SDK documentation](https://platform.claude.com/docs/en/cli-sdks-libraries/typescript)
+describe their browser clients.
+
+Browser tools use a deterministic data bundle exported by the repository's
+actual Python reference loaders. Their refused quantities, missing values,
+detection limits, source citations and independence groups are preserved.
+Arithmetic is performed by a bounded expression parser, not by executing model
+code. Model numbers are checked against tool citations. This mode supports
+reference queries and arithmetic; structure prediction, docking, pipeline
+execution and experimental approvals remain in the CLI.
+
+## Optional: connect a Python backend
 
 GitHub Pages hosts the HTML, CSS and JavaScript. It does not run Python servers
 ([GitHub Pages documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)).
@@ -22,8 +62,8 @@ chat's **Model settings** for each session.
    review the displayed plan when creating it.
 2. Wait for deployment, then copy the service's public HTTPS URL. In Render's
    environment settings, copy the generated `EAGENT_CHAT_TOKEN`.
-3. On the GitHub Pages site, enter that **Backend URL** and **Backend access
-   token** under Agent connection, then connect.
+3. On the GitHub Pages site, select **Python backend**. Enter that **Backend URL**
+   and **Backend access token** under Agent connection, then connect.
 4. Under **Model settings**, select MiniMax, OpenAI / GPT, Anthropic / Claude, or
    Custom endpoint. Enter your **API key**, exact **Model name**, and full
    **API URL**. Every model name and URL is editable. Custom endpoint also lets
@@ -49,7 +89,8 @@ one of these formats. Hosted backends require public HTTPS API endpoints; a
 backend running on your own computer can also call a loopback local API.
 
 **Reusable templates** can be saved in your browser, exported as JSON, and
-imported later. They contain the provider, API format, model name and API URL.
+imported later. They contain the execution mode, provider, API format, model name
+and API URL. Version-one templates remain importable in Python backend mode.
 API keys and backend tokens are excluded; enter the API key again after loading
 a template or reloading the page. Imported files containing secret fields are
 rejected.
@@ -57,7 +98,8 @@ rejected.
 The access token and provider API key are retained only in page memory and must
 be re-entered after reloading. The backend URL and non-secret templates may be
 saved in the browser. Each chat request sends your provider key to your chosen
-E-Agent backend, which uses it to call your API URL for that run. Use a backend
+E-Agent backend in Python backend mode, which uses it to call your API URL for
+that run. Browser mode sends it directly to the API. Use a backend
 and API endpoint you trust. The backend does not save the request's key or
 conversation. Your question, history and tool results are sent to your selected
 model provider. Download the run's
@@ -86,8 +128,9 @@ python -m eagent.web --host 127.0.0.1 --port 8787
 ```
 
 Open **http://127.0.0.1:8787/** to use the same chat interface. A local loopback
-server can run without an access token. Enter the provider key, model name and
-API URL in Model settings. For hosted use, the server requires
+server can run without an access token. Select Python backend mode and enter the
+provider key, model name and API URL in Model settings. The same locally served
+page also supports Browser + API mode. For hosted use, the server requires
 `EAGENT_CHAT_TOKEN` and an HTTPS host or reverse proxy. The allowed browser
 origin defaults to `https://psknlr.github.io`; override
 `EAGENT_ALLOWED_ORIGINS` with a comma-separated list when hosting a different
@@ -99,19 +142,21 @@ variable (`MINIMAX_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`); provider
 base URL overrides are described in [MODELS.md](MODELS.md). Request settings
 never replace these server defaults or borrow their keys.
 
-## Status comes from the running agent
+## Status comes from the active runtime
 
-- **Not connected:** no backend URL has been connected.
+- **Browser tools loaded:** local tools have loaded; complete your model settings
+  before sending a question.
+- **Not connected:** Python backend mode has no connected backend.
 - **Backend unavailable:** a connection or request failed.
 - **Needs configuration:** the backend responds, but the selected model settings
   or reference loaders are not ready.
 - **Ready to verify:** the actual agent and tools are available and the selected
   settings are complete; send a question to verify the API credentials and model.
-- **Model request failed:** the backend responded, but the model request failed;
+- **Model request failed:** the API or backend responded, but the model request failed;
   check Model settings and retry.
 - **Chat ready:** the active configuration has completed a successful model request.
 
-`GET /api/health` reports configuration, actual registered tools and
+For Python backend mode, `GET /api/health` reports configuration, actual registered tools and
 `runtime_ready` and `completion_verified`. The default completion flag concerns
 only Server default; a DIY configuration is verified by its own chat response.
 Health checks do not spend tokens to check a model. A provider
@@ -122,10 +167,12 @@ partial answer is not silently presented as a completed run.
 
 ```sh
 python -m pip install -e '.[dev]'
-python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py -q
-node --check web/app.js
+python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py tests/test_browser_bundle.py -q
+for script in web/*.js; do node --check "$script"; done
+python scripts/build_browser_bundle.py --check
+node --test tests/browser-*.test.cjs
 ```
 
 Automated provider tests simulate HTTP completions. A live model completion
-requires a running backend and valid key; passing these tests alone does
+requires a valid key and reachable API endpoint; passing these tests alone does
 not prove that your account can use the selected model.

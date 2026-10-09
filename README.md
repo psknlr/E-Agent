@@ -1,7 +1,7 @@
 # E-Agent
 
 **[Open E-Agent chat](https://psknlr.github.io/E-Agent/)** ·
-[Connect the MiniMax backend](docs/WEB_CHAT.md)
+[Configure your model and backend](docs/WEB_CHAT.md)
 
 An agent for **enzyme function mining** and **substrate-directed engineering**,
 indexed on the reaction rather than on the protein family. The pilot task is
@@ -297,7 +297,9 @@ docs/             the documents listed below
 
 The repository implements the scientific harness and a web chat interface.
 GitHub Pages serves the chat UI; a separately hosted Python backend runs the
-actual `ToolLoop` with MiniMax and the project's reference loaders. See
+actual `ToolLoop` with your selected model and the project's reference loaders.
+The chat settings include provider presets, API key, model name and editable
+API URL for MiniMax, GPT, Claude and compatible custom services. See
 [the setup instructions](docs/WEB_CHAT.md). The page's connection status comes
 from the running backend, and a model completion is marked verified only after
 that backend has completed a real request. Repository text does not indicate

@@ -104,8 +104,17 @@ discover the actual readers. Read-only catalogs enumerate structure and activity
 identifiers before individual records are requested. The web backend uses strict
 citation checks and exposes the full tool transcript, including refusals.
 
-[WEB_CHAT.md](WEB_CHAT.md) describes MiniMax hosting and connection settings.
-The public page contains no model key. Runtime health reports configured status
+[WEB_CHAT.md](WEB_CHAT.md) describes backend hosting and connection settings.
+The web settings also support request-scoped model configuration: select
+MiniMax, OpenAI/GPT, Anthropic/Claude or a custom compatible endpoint, then enter
+an API key, model name and complete API URL. OpenAI-compatible Chat Completions
+and Anthropic-compatible Messages are the supported custom formats. API keys
+remain in tab memory and are sent to the selected E-Agent backend only when a
+question is submitted. The backend uses a separate client and loop for each
+configuration and does not change its environment or retain the supplied key.
+Saved/imported/exported templates contain only nonsecret model settings.
+
+The public repository contains no model key. Runtime health reports configured status
 separately from a successful provider completion; it supersedes static prose
 as evidence of whether your backend is available.
 

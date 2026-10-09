@@ -49,6 +49,47 @@
         </form>
       </section>
 
+      <section class="model-card" aria-labelledby="model-title">
+        <details id="model-settings" open>
+          <summary id="model-title">Model settings <span>DIY configuration</span></summary>
+          <label for="model-provider">Provider preset</label>
+          <select id="model-provider" aria-describedby="provider-help">
+            <option value="minimax" selected>MiniMax</option>
+            <option value="openai">OpenAI / GPT</option>
+            <option value="anthropic">Anthropic / Claude</option>
+            <option value="custom">Custom endpoint</option>
+            <option value="server_default">Server default</option>
+          </select>
+          <p id="provider-help" class="field-help">Presets fill the API URL. You can edit the model and URL.</p>
+          <div id="manual-model-fields">
+            <label for="provider-key">API key</label>
+            <input id="provider-key" type="password" placeholder="Your model provider API key" autocomplete="off" spellcheck="false" maxlength="4096" aria-describedby="provider-key-help">
+            <p id="provider-key-help" class="field-help">Kept only in this tab. Each request sends it to your E-Agent backend, which calls the API URL below. Trust both endpoints. Remote connections use HTTPS; local connections may use HTTP.</p>
+            <label for="model-name">Model name</label>
+            <input id="model-name" type="text" placeholder="Your exact model name" autocomplete="off" spellcheck="false" maxlength="200">
+            <label for="api-url">API URL · full endpoint</label>
+            <input id="api-url" type="url" inputmode="url" placeholder="https://provider.example/v1/chat/completions" autocomplete="off" spellcheck="false" maxlength="2048" aria-describedby="api-url-help">
+            <p id="api-url-help" class="field-help">Include the full request path. Use HTTPS and the selected API format. HTTP is allowed for a local endpoint.</p>
+            <div id="custom-protocol-field" hidden>
+              <label for="model-protocol">API format</label>
+              <select id="model-protocol"><option value="openai_chat">OpenAI Chat Completions</option><option value="anthropic_messages">Anthropic Messages</option></select>
+            </div>
+          </div>
+          <p id="server-model-help" class="field-help" hidden>Uses the provider, API key, model and URL configured on your backend.</p>
+          <details class="template-settings">
+            <summary>Reusable templates</summary>
+            <label for="saved-template">Saved template</label>
+            <select id="saved-template"><option value="">Choose a template…</option></select>
+            <label for="template-name">Template name</label>
+            <input id="template-name" type="text" placeholder="My model settings" maxlength="80" autocomplete="off">
+            <div class="template-actions"><button id="save-template" type="button">Save</button><button id="export-template" type="button">Export JSON</button><button id="import-template" type="button">Import JSON</button></div>
+            <input id="template-file" type="file" accept="application/json,.json" hidden>
+            <p class="field-help">Templates save the provider, format, model and API URL. API keys and backend tokens are never saved or exported.</p>
+          </details>
+          <p id="model-feedback" class="field-help" role="status" aria-live="polite"></p>
+        </details>
+      </section>
+
       <section id="tools-panel" class="tools-panel" aria-labelledby="tools-title" hidden>
         <h3 id="tools-title" class="eyebrow">CONNECTED PYTHON TOOLS</h3>
         <ul id="tools-list"></ul>

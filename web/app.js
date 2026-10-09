@@ -9,9 +9,23 @@
     tools: byId("tools-list"), toolsPanel: byId("tools-panel"), welcome: byId("welcome"), messages: byId("messages"),
     progress: byId("request-progress"), form: byId("chat-form"), message: byId("message"), send: byId("send-button"),
     cancel: byId("cancel-request"), reset: byId("reset-chat"), notice: byId("composer-notice"), scroll: byId("conversation-scroll"),
+    provider: byId("model-provider"), apiKey: byId("provider-key"), model: byId("model-name"), apiUrl: byId("api-url"),
+    protocol: byId("model-protocol"), manual: byId("manual-model-fields"), protocolField: byId("custom-protocol-field"),
+    serverHelp: byId("server-model-help"), feedback: byId("model-feedback"), modelSettings: byId("model-settings"),
+    savedTemplate: byId("saved-template"), templateName: byId("template-name"), saveTemplate: byId("save-template"),
+    exportTemplate: byId("export-template"), importTemplate: byId("import-template"), templateFile: byId("template-file"),
   };
   const state = { backend: "", token: "", health: null, history: [], verified: false, busy: false, connecting: false, controller: null, generation: 0 };
   const storageKey = "eagent.backend_url";
+  const templatesKey = "eagent.model_templates.v1";
+  const presets = {
+    minimax: { protocol: "openai_chat", model: "MiniMax-M2.7", api_url: "https://api.minimax.io/v1/chat/completions" },
+    openai: { protocol: "openai_chat", model: "", api_url: "https://api.openai.com/v1/chat/completions" },
+    anthropic: { protocol: "anthropic_messages", model: "", api_url: "https://api.anthropic.com/v1/messages" },
+    custom: { protocol: "openai_chat", model: "", api_url: "" },
+    server_default: { protocol: "openai_chat", model: "", api_url: "" },
+  };
+  let templates = [];
   const localHost = (hostname) => ["localhost", "127.0.0.1", "[::1]"].includes(hostname.toLowerCase());
   const make = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -44,8 +58,59 @@
     return state.backend ? !localHost(new URL(state.backend).hostname) : true;
   }
 
+  function validateApiUrl(value) {
+    const input = value.trim();
+    if (!input) throw new Error("Enter the full model API URL in Model settings.");
+    if (input.length > 2048) throw new Error("The API URL is too long.");
+    let url;
+    try { url = new URL(input); } catch (_) { throw new Error("Enter a complete model API URL, including https:// and its request path."); }
+    if (url.username || url.password || url.search || url.hash) throw new Error("API URLs cannot contain credentials, query parameters, or fragments.");
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && localHost(url.hostname))) throw new Error("Use HTTPS for a remote API. HTTP is allowed only on localhost.");
+    if (url.pathname === "/") throw new Error("Include the full API request path, such as /v1/chat/completions.");
+    return url.href;
+  }
+
+  function publicProfile() {
+    const provider = ui.provider.value;
+    if (!Object.hasOwn(presets, provider)) throw new Error("Choose a supported provider preset.");
+    const protocol = provider === "custom" ? ui.protocol.value : presets[provider].protocol;
+    if (!["openai_chat", "anthropic_messages"].includes(protocol)) throw new Error("Choose a supported API format.");
+    if (provider === "server_default") return { provider, protocol, model: "", api_url: "" };
+    const model = ui.model.value.trim();
+    if (!model || model.length > 200 || /[\x00-\x1f\x7f]/.test(model)) throw new Error("Enter your exact model name in Model settings (up to 200 characters).");
+    return { provider, protocol, model, api_url: validateApiUrl(ui.apiUrl.value) };
+  }
+
+  function modelConfig() {
+    const profile = publicProfile();
+    if (profile.provider === "server_default") return null;
+    const apiKey = ui.apiKey.value.trim();
+    if (!apiKey || apiKey.length > 4096 || /[\x00-\x1f\x7f]/.test(apiKey)) throw new Error("Enter your provider API key in Model settings.");
+    return { ...profile, api_key: apiKey };
+  }
+
+  function configurationIssue() {
+    if (!state.health) return "Connect your backend in Agent connection to begin.";
+    if (ui.provider.value === "server_default") return state.health.ready ? "" : state.health.reason || "The server default model needs configuration on your backend.";
+    if (state.health.runtime_ready !== true) return state.health.runtime_ready === false ? state.health.runtime_reason || "The backend’s Python tools are not ready." : "Update your E-Agent backend to enable DIY model settings.";
+    try { modelConfig(); } catch (error) { return error.message; }
+    return "";
+  }
+
+  function refreshConfigurationStatus() {
+    if (!state.health || state.busy || state.connecting) { syncComposer(); return; }
+    const issue = configurationIssue();
+    const manual = ui.provider.value !== "server_default";
+    ui.meta.hidden = false;
+    ui.meta.textContent = manual ? [ui.provider.options[ui.provider.selectedIndex].text, ui.model.value.trim()].filter(Boolean).join(" · ") : [state.health.provider, state.health.model].filter(Boolean).join(" · ");
+    if (issue) status("Needs configuration", issue, "error");
+    else if (state.verified) status("Chat ready", "A successful response verified the selected model in this conversation.", "ready");
+    else status("Ready to verify", "Backend connected. Send a question to verify the selected model and its API settings.", "configured");
+  }
+
   function syncComposer() {
-    const configured = state.health && state.health.ready === true;
+    const issue = configurationIssue();
+    const configured = !issue;
     const hasToken = !requiresToken() || ui.token.value.trim().length > 0;
     ui.send.disabled = state.busy || state.connecting || !configured || !hasToken || !ui.message.value.trim();
     ui.cancel.hidden = !state.busy;
@@ -55,10 +120,11 @@
     ui.url.disabled = state.busy;
     ui.token.disabled = state.busy;
     ui.reset.disabled = state.busy;
+    for (const input of [ui.provider, ui.apiKey, ui.model, ui.apiUrl, ui.protocol, ui.savedTemplate, ui.templateName, ui.saveTemplate, ui.exportTemplate, ui.importTemplate]) input.disabled = state.busy || state.connecting;
     if (state.busy) ui.notice.textContent = "A model request is running. Its tool trace will appear with the response. You can cancel at any time.";
-    else if (!configured) ui.notice.textContent = "Connect your backend in Agent connection to begin.";
+    else if (!configured) ui.notice.textContent = issue;
     else if (!hasToken) ui.notice.textContent = "Enter your backend access token in Agent connection to send a question.";
-    else if (!state.verified) ui.notice.textContent = "Backend configured. The first successful model response will verify chat readiness.";
+    else if (!state.verified) ui.notice.textContent = "Model settings complete. The first successful response will verify chat readiness.";
     else ui.notice.textContent = "Chat ready · Questions run through the connected backend and its registered Python tools.";
   }
 
@@ -79,16 +145,134 @@
   }
 
   function showHealth(data) {
-    state.verified = state.verified && data.completion_verified === true;
     state.health = data;
-    ui.meta.hidden = false;
-    ui.meta.textContent = [data.provider, data.model].filter(Boolean).join(" · ");
     ui.tools.replaceChildren();
     for (const tool of Array.isArray(data.tools) ? data.tools : []) ui.tools.append(make("li", "", tool));
     ui.toolsPanel.hidden = ui.tools.childElementCount === 0;
-    if (data.ready !== true) status("Needs configuration", data.reason || "The backend has not configured a model provider yet.", "error");
-    else if (state.verified) status("Chat ready", "A successful model response verified this conversation’s connection.", "ready");
-    else status("Backend configured", data.completion_verified ? "The backend reports a verified model. Send a question to verify this conversation." : "The backend is reachable. Its model has not yet completed a verified request.", "configured");
+    refreshConfigurationStatus();
+  }
+
+  function updateModelFields() {
+    const manual = ui.provider.value !== "server_default";
+    ui.manual.hidden = !manual;
+    ui.serverHelp.hidden = manual;
+    ui.protocolField.hidden = ui.provider.value !== "custom";
+    ui.model.placeholder = ui.provider.value === "anthropic" ? "Your Claude model name" : ui.provider.value === "openai" ? "Your GPT model name" : "Your exact model name";
+  }
+
+  function modelChanged(clearHistory) {
+    state.verified = false;
+    if (clearHistory) {
+      const draft = ui.message.value;
+      clearConversation();
+      ui.message.value = draft;
+      resizeInput();
+    }
+    templateFeedback("Settings changed. Send a question to verify this model.");
+    refreshConfigurationStatus();
+  }
+
+  function applyProfile(profile) {
+    ui.provider.value = profile.provider;
+    ui.protocol.value = profile.protocol;
+    ui.model.value = profile.model;
+    ui.apiUrl.value = profile.api_url;
+    ui.apiKey.value = "";
+    ui.templateName.value = profile.name || "";
+    updateModelFields();
+    modelChanged(true);
+  }
+
+  function currentTemplate() {
+    const name = ui.templateName.value.trim() || "My " + ui.provider.options[ui.provider.selectedIndex].text + " settings";
+    if (name.length > 80 || /[\x00-\x1f\x7f]/.test(name)) throw new Error("Use a template name of up to 80 characters.");
+    return { schema: "eagent-model-template", version: 1, name, ...publicProfile() };
+  }
+
+  function validateTemplate(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Choose an exported E-Agent model template JSON file.");
+    const allowed = ["schema", "version", "name", "provider", "protocol", "model", "api_url"];
+    if (Object.keys(value).some((key) => /key|token|secret|password/i.test(key))) throw new Error("This file contains a key or token field. Remove secrets before importing; enter your API key in the password field instead.");
+    if (Object.keys(value).some((key) => !allowed.includes(key)) || allowed.some((key) => !Object.hasOwn(value, key))) throw new Error("The template has unrecognized or missing fields. Import an exported E-Agent model template.");
+    if (value.schema !== "eagent-model-template" || value.version !== 1 || typeof value.provider !== "string" || !Object.hasOwn(presets, value.provider)) throw new Error("This E-Agent template format or provider is not supported.");
+    if (typeof value.name !== "string" || !value.name.trim() || value.name.length > 80 || /[\x00-\x1f\x7f]/.test(value.name)) throw new Error("The template needs a valid name of up to 80 characters.");
+    if (!["openai_chat", "anthropic_messages"].includes(value.protocol)) throw new Error("This API format is not supported.");
+    if (value.provider !== "custom" && value.protocol !== presets[value.provider].protocol) throw new Error("The template’s API format does not match its provider preset. Use Custom endpoint for another format.");
+    if (typeof value.model !== "string" || typeof value.api_url !== "string") throw new Error("Model name and API URL must be text.");
+    if (value.provider === "server_default") {
+      if (value.model !== "" || value.api_url !== "") throw new Error("Server default templates must leave model and API URL empty.");
+    } else {
+      if (!value.model.trim() || value.model.length > 200 || /[\x00-\x1f\x7f]/.test(value.model)) throw new Error("The template needs a valid model name of up to 200 characters.");
+      validateApiUrl(value.api_url);
+    }
+    // Copy only allowed public fields, even for files loaded from local storage.
+    return { schema: value.schema, version: value.version, name: value.name.trim(), provider: value.provider, protocol: value.protocol, model: value.model.trim(), api_url: value.provider === "server_default" ? "" : validateApiUrl(value.api_url) };
+  }
+
+  function refreshTemplates(selected = "") {
+    ui.savedTemplate.replaceChildren(make("option", "", "Choose a template…"));
+    ui.savedTemplate.firstElementChild.value = "";
+    templates.forEach((template, index) => {
+      const option = make("option", "", template.name);
+      option.value = String(index);
+      ui.savedTemplate.append(option);
+    });
+    ui.savedTemplate.value = selected;
+  }
+
+  function templateFeedback(message, error = false) {
+    ui.feedback.textContent = message;
+    ui.feedback.className = error ? "field-error" : "field-help";
+  }
+
+  function loadTemplates() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(templatesKey) || "[]");
+      if (!Array.isArray(stored) || stored.length > 50) throw new Error("Invalid stored templates.");
+      templates = stored.map(validateTemplate);
+    } catch (_) { templates = []; }
+    refreshTemplates();
+  }
+
+  function saveTemplate() {
+    try {
+      const template = currentTemplate();
+      const index = templates.findIndex((entry) => entry.name === template.name);
+      if (index < 0 && templates.length >= 50) throw new Error("You can save up to 50 templates. Use an existing name to replace one.");
+      const updated = templates.slice();
+      if (index < 0) updated.push(template); else updated[index] = template;
+      localStorage.setItem(templatesKey, JSON.stringify(updated));
+      templates = updated;
+      refreshTemplates(String(index < 0 ? templates.length - 1 : index));
+      templateFeedback("Template saved on this browser. API key and backend token were excluded.");
+    } catch (error) { templateFeedback(error.message || "This browser could not save the template.", true); }
+  }
+
+  function exportTemplate() {
+    try {
+      const template = currentTemplate();
+      const blobUrl = URL.createObjectURL(new Blob([safeJson(template) + "\n"], { type: "application/json" }));
+      const link = make("a");
+      link.href = blobUrl;
+      link.download = "eagent-" + template.name.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 60) + ".json";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      templateFeedback("Template exported. API key and backend token were excluded.");
+    } catch (error) { templateFeedback(error.message, true); }
+  }
+
+  async function importTemplate() {
+    const file = ui.templateFile.files[0];
+    ui.templateFile.value = "";
+    if (!file || state.busy || state.connecting) return;
+    try {
+      if (file.size > 16384) throw new Error("Choose a model template JSON file smaller than 16 KB.");
+      const profile = validateTemplate(JSON.parse(await file.text()));
+      if (state.busy || state.connecting) return;
+      applyProfile(profile);
+      ui.savedTemplate.value = "";
+      templateFeedback("Template loaded. Enter your API key again; Save keeps a copy on this browser.");
+    } catch (error) { templateFeedback(error instanceof SyntaxError ? "This file is not valid JSON." : error.message, true); }
   }
 
   async function jsonRequest(url, options, timeout) {
@@ -140,7 +324,7 @@
       if (!data || data.service !== "eagent" || typeof data.ready !== "boolean") throw new Error("This URL did not return an E-Agent health response.");
       try { localStorage.setItem(storageKey, backend); } catch (_) { /* URL storage is optional. */ }
       showHealth(data);
-      if (data.ready && (!requiresToken() || state.token)) hideSettings(true);
+      if (!configurationIssue() && (!requiresToken() || state.token)) hideSettings(true);
     } catch (error) {
       if (generation !== state.generation) return;
       state.health = null;
@@ -151,7 +335,7 @@
       if (generation === state.generation) {
         state.connecting = false;
         ui.connect.replaceChildren(document.createTextNode("Connect backend "), make("span", "", "↗"));
-        syncComposer();
+        refreshConfigurationStatus();
       }
     }
   }
@@ -252,7 +436,11 @@
     article.append(trace);
   }
 
-  function recentHistory(message) {
+  function requestPayload(message, history, configuration) {
+    return configuration ? { message, history, model_config: configuration } : { message, history };
+  }
+
+  function recentHistory(message, configuration) {
     // Keep complete exchanges and the displayed conversation. The transport has
     // separate message-count, character-count, and UTF-8 request-size limits.
     const history = [];
@@ -264,7 +452,7 @@
       const additional = exchange.reduce((sum, entry) => sum + entry.content.length, 0);
       if (characters + additional > 24000) break;
       const candidate = [...exchange, ...history];
-      if (new TextEncoder().encode(JSON.stringify({ message, history: candidate })).length > 64000) break;
+      if (new TextEncoder().encode(JSON.stringify(requestPayload(message, candidate, configuration))).length > 64000) break;
       history.unshift(...exchange);
       characters += additional;
     }
@@ -274,10 +462,17 @@
   async function send(event) {
     event.preventDefault();
     const message = ui.message.value.trim();
-    if (state.busy || !message || !state.health?.ready || (requiresToken() && !ui.token.value.trim())) return;
+    if (state.busy || state.connecting || !message || configurationIssue() || (requiresToken() && !ui.token.value.trim())) return;
+    let configuration;
+    try { configuration = modelConfig(); } catch (error) { templateFeedback(error.message, true); refreshConfigurationStatus(); return; }
     state.token = ui.token.value.trim();
     const generation = state.generation;
-    const history = recentHistory(message);
+    const history = recentHistory(message, configuration);
+    const payload = JSON.stringify(requestPayload(message, history, configuration));
+    if (new TextEncoder().encode(payload).length > 64000) {
+      templateFeedback("The request exceeds the backend’s 64 KB limit. Shorten your question or model settings.", true);
+      return;
+    }
     const question = appendMessage("user", message);
     if (history.length < state.history.length) question.append(make("div", "run-notice neutral", "Older conversation context was omitted to fit the backend’s input limits. This request includes the most recent " + (history.length / 2) + " complete exchange" + (history.length === 2 ? "" : "s") + ". The full conversation remains visible here."));
     ui.message.value = "";
@@ -288,13 +483,14 @@
     try {
       const headers = { "Content-Type": "application/json", Accept: "application/json" };
       if (state.token) headers.Authorization = "Bearer " + state.token;
-      const data = await jsonRequest(state.backend + "/api/chat", { method: "POST", headers, body: JSON.stringify({ message, history }) }, 245000);
+      const data = await jsonRequest(state.backend + "/api/chat", { method: "POST", headers, body: payload }, 245000);
       if (generation !== state.generation) return;
       if (typeof data.answer !== "string" || !data.answer.trim()) throw new Error("The backend returned no answer. Check the server trace before retrying.");
       const article = appendMessage("assistant", data.answer);
       addTrace(article, data.transcript, data);
       state.history.push({ role: "user", content: message }, { role: "assistant", content: data.answer });
       state.verified = data.completion_verified === true;
+      if (data.model_config && typeof data.model_config === "object") ui.meta.textContent = [data.model_config.provider, data.model_config.model].filter((value) => typeof value === "string").join(" · ");
       if (state.verified) status("Chat ready", "A real model response completed through the connected E-Agent backend.", "ready");
       else status("Backend configured", "A response was returned, but the backend did not verify model completion. Review the trace.", "configured");
     } catch (error) {
@@ -307,13 +503,15 @@
         status("Needs configuration", "The backend rejected the access token. Update the token and reconnect.", "error");
         hideSettings(false);
       } else if (error.status === 400 || error.status === 413 || error.status === 429) {
-        status("Backend configured", error.message + " Model completion was not verified for this request.", "configured");
+        status("Model request failed", error.message + " Check your settings and retry; model completion was not verified.", "error");
       } else if (error.status === 503) {
         state.health = null;
         status("Needs configuration", error.message, "error");
         hideSettings(false);
       } else if (error.message.startsWith("Request cancelled")) {
         status("Backend configured", "The request was cancelled. Chat readiness will be verified by the next successful model response.", "configured");
+      } else if (error.status) {
+        status("Model request failed", error.message + " Check Model settings and retry. The backend is still connected.", "error");
       } else {
         state.health = null;
         status("Backend unavailable", error.message, "error");
@@ -343,9 +541,31 @@
   ui.message.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); if (!ui.send.disabled) ui.form.requestSubmit(); }
   });
-  ui.token.addEventListener("input", () => { state.token = ui.token.value.trim(); syncComposer(); });
+  ui.token.addEventListener("input", () => { state.token = ui.token.value.trim(); state.verified = false; refreshConfigurationStatus(); });
+  ui.provider.addEventListener("change", () => {
+    const provider = ui.provider.value;
+    applyProfile({ provider, ...presets[provider] });
+    ui.savedTemplate.value = "";
+  });
+  for (const input of [ui.model, ui.apiUrl]) input.addEventListener("input", () => { ui.savedTemplate.value = ""; modelChanged(true); });
+  ui.protocol.addEventListener("change", () => { ui.savedTemplate.value = ""; modelChanged(true); });
+  ui.apiKey.addEventListener("input", () => modelChanged(false));
+  ui.savedTemplate.addEventListener("change", () => {
+    const template = templates[Number(ui.savedTemplate.value)];
+    if (ui.savedTemplate.value !== "" && template) {
+      applyProfile(template);
+      templateFeedback("Template loaded. Enter your API key again.");
+    }
+  });
+  ui.saveTemplate.addEventListener("click", saveTemplate);
+  ui.exportTemplate.addEventListener("click", exportTemplate);
+  ui.importTemplate.addEventListener("click", () => ui.templateFile.click());
+  ui.templateFile.addEventListener("change", importTemplate);
   ui.url.addEventListener("input", () => {
-    if (!state.backend) return;
+    ui.apiKey.value = "";
+    ui.token.value = "";
+    state.token = "";
+    state.verified = false;
     let edited;
     try { edited = validateBackend(ui.url.value); } catch (_) { edited = ""; }
     if (edited !== state.backend) {
@@ -360,8 +580,9 @@
       ui.toolsPanel.hidden = true;
       clearConversation();
       ui.connect.replaceChildren(document.createTextNode("Connect backend "), make("span", "", "↗"));
-      status("Not connected", "Backend changed. The conversation and access token were cleared. Connect to check this backend.");
+      status("Not connected", "Backend changed. The conversation, API key and access token were cleared. Connect to check this backend.");
     }
+    refreshConfigurationStatus();
   });
   ui.cancel.addEventListener("click", () => state.controller?.abort());
   ui.reset.addEventListener("click", () => {
@@ -379,7 +600,13 @@
   }));
 
   async function initialize() {
-    if (window.matchMedia("(max-width: 650px)").matches) hideSettings(true);
+    applyProfile({ provider: "minimax", ...presets.minimax });
+    ui.feedback.textContent = "";
+    loadTemplates();
+    if (window.matchMedia("(max-width: 650px)").matches) {
+      hideSettings(true);
+      ui.modelSettings.open = false;
+    }
     let saved = "";
     try { saved = localStorage.getItem(storageKey) || ""; } catch (_) { /* URL storage is optional. */ }
     let configured = "";

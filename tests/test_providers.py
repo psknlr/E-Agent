@@ -233,7 +233,21 @@ class TheTwoWireFormatsAreBuiltCorrectly(unittest.TestCase):
         self.assertEqual(OpenAIChatClient("m", provider="openai").endpoint,
                          "https://api.openai.com/v1/chat/completions")
         self.assertEqual(OpenAIChatClient("m", provider="minimax").endpoint,
-                         "https://api.minimax.chat/v1/text/chatcompletion_v2")
+                         "https://api.minimax.io/v1/chat/completions")
+
+    def test_minimax_separates_thinking_and_uses_current_token_budget(self) -> None:
+        body = self.body_of(OpenAIChatClient("MiniMax-M2.7", provider="minimax"),
+                            {"MINIMAX_API_KEY": KEY})
+        self.assertTrue(body["reasoning_split"])
+        self.assertEqual(body["max_completion_tokens"], 1024)
+        self.assertNotIn("max_tokens", body)
+
+    def test_minimax_legacy_thinking_is_not_returned_as_final_content(self) -> None:
+        client = OpenAIChatClient("MiniMax-M2.7", provider="minimax", opener=opener_for(
+            {"choices": [{"message": {"content": '<think>private</think>{"reasoning":"ok"}'}}]}))
+        with mock.patch.dict("os.environ", {"MINIMAX_API_KEY": KEY}, clear=True):
+            self.assertEqual(client.complete("s", [{"role": "user", "content": "x"}]),
+                             '{"reasoning":"ok"}')
 
     def test_a_provider_with_no_entry_and_no_url_is_refused(self) -> None:
         with self.assertRaisesRegex(ValueError, "does not guess a URL"):
@@ -297,6 +311,12 @@ class AFailureIsRaisedNotRetriedAndNotParsedAsAnAnswer(unittest.TestCase):
         with self.assertRaisesRegex(LLMError, "no message content"):
             self.call({"choices": [{"message": {"content": "   "}}]})
 
+    def test_a_truncated_reply_is_not_presented_as_a_complete_answer(self) -> None:
+        with self.assertRaisesRegex(LLMError, "token limit"):
+            self.call({"choices": [{"finish_reason": "length",
+                                    "message": {"content": "partial answer"}}]},
+                      provider="minimax")
+
     def test_a_transport_failure_is_raised_once_with_no_retry(self) -> None:
         attempts: list[Any] = []
 
@@ -328,11 +348,10 @@ class TheRouteProbeChecksForTheProvidersOwnError(unittest.TestCase):
                          sorted(ROUTE_MARKERS["anthropic"]))
         self.assertIn("NOT that the request body", result["establishes"])
 
-    def test_a_200_with_the_markers_passes_too(self) -> None:
-        """MiniMax reports the auth failure inside a 200."""
+    def test_the_current_minimax_authentication_error_is_recognized(self) -> None:
         result = probe_route("minimax", opener=opener_for(
-            {"base_resp": {"status_code": 1004,
-                           "status_msg": "carry the key in Authorization"}}))
+            {"error": {"type": "authorized_error",
+                       "message": "carry the key in Authorization"}}))
         self.assertTrue(result["ok"])
         self.assertEqual(result["status"], 200)
 
@@ -354,8 +373,8 @@ class TheRouteProbeChecksForTheProvidersOwnError(unittest.TestCase):
 
     def test_the_probe_needs_no_credential(self) -> None:
         sent: list[Any] = []
-        body = io.BytesIO(b'{"base_resp": {"status_code": 1004, '
-                          b'"status_msg": "Authorization"}}')
+        body = io.BytesIO(b'{"error": {"type": "authorized_error", '
+                          b'"message": "Authorization"}}')
         failure = urllib.error.HTTPError("u", 401, "x", {}, body)
         with mock.patch.dict("os.environ", {}, clear=True):
             probe_route("minimax", opener=opener_for(failure, sent))

@@ -46,7 +46,7 @@ A model given the CSV would have read `5400` and reported a Michaelis constant.
 |---|---|---|---|
 | `anthropic` | Messages API (system prompt is its own field) | `ANTHROPIC_API_KEY` | `https://api.anthropic.com` (`EAGENT_ANTHROPIC_BASE_URL`) |
 | `openai` | chat completions (system prompt is the first message) | `OPENAI_API_KEY` | `https://api.openai.com/v1` (`EAGENT_OPENAI_BASE_URL`) |
-| `minimax` | chat completions, at `text/chatcompletion_v2` | `MINIMAX_API_KEY` | `https://api.minimax.chat/v1` (`EAGENT_MINIMAX_BASE_URL`) |
+| `minimax` | chat completions, at `chat/completions` | `MINIMAX_API_KEY` | `https://api.minimax.io/v1` (`EAGENT_MINIMAX_BASE_URL`) |
 
 `OpenAIChatClient` is one client with a configurable base URL, so any service
 speaking the chat-completions format — a different vendor, a self-hosted model
@@ -78,7 +78,8 @@ connector layer makes between a verified route and a verified request shape:
 * **The route answers.** Each provider was sent one unauthenticated request on
   2026-10-09 and replied with **its own** structured authentication error —
   Anthropic's `authentication_error`, OpenAI's Bearer instruction, MiniMax's
-  `base_resp.status_code 1004`. A CDN page or a login wall produces none of
+  `authorized_error` naming the Authorization header on the current endpoint.
+  A CDN page or a login wall produces none of
   those, so the host, the path and the request parsing are the real API.
   `eagent model providers --probe --allow-network` re-runs that check.
 * **No request shape is verified.** No provider credential existed in the
@@ -88,9 +89,25 @@ connector layer makes between a verified route and a verified request shape:
   `shape_verified` is `False` for all three and is a field, not a footnote, so
   a run can record it.
 
-One thing the live probes did change: MiniMax returns authentication failures
-inside an HTTP 200 with `base_resp.status_code`, so the client checks that
-before reading the reply rather than parsing a refusal as an empty completion.
+Older MiniMax responses reported failures inside HTTP 200 using
+`base_resp.status_code`; the client still checks that field. The current
+MiniMax integration uses `max_completion_tokens` and `reasoning_split` so
+thinking text is separate from the harness JSON answer, following
+[MiniMax's API reference](https://platform.minimax.io/docs/api-reference/text-chat-openai).
+
+## Web chat
+
+[The GitHub Pages interface](https://psknlr.github.io/E-Agent/) connects to
+`python -m eagent.web`, which executes this same console over the reference set.
+The backend includes tool schemas in the system prompt so the model can
+discover the actual readers. Read-only catalogs enumerate structure and activity
+identifiers before individual records are requested. The web backend uses strict
+citation checks and exposes the full tool transcript, including refusals.
+
+[WEB_CHAT.md](WEB_CHAT.md) describes MiniMax hosting and connection settings.
+The public page contains no model key. Runtime health reports configured status
+separately from a successful provider completion; it supersedes static prose
+as evidence of whether your backend is available.
 
 ## 中文摘要
 
@@ -114,4 +131,6 @@ before reading the reply rather than parsing a refusal as an empty completion.
 **已确认与未确认**：三个提供方的路由都真实存在——各自返回了自己的结构化认证错误（2026-10-09 实测），
 所以主机、路径和请求解析是真的 API。但**没有任何一个请求体被验证过**：本环境里没有任何提供方密钥，
 所以没有向任何提供方发出过一次真实补全，`shape_verified` 三个都是 `false`。实测唯一改变了代码的一点：
-MiniMax 把认证失败放在 HTTP 200 里的 `base_resp.status_code`，客户端因此先检查它，避免把拒绝当成空回复。
+旧版 MiniMax 把认证失败放在 HTTP 200 里的 `base_resp.status_code`，客户端仍检查它。当前端点为
+`https://api.minimax.io/v1/chat/completions`，实测返回 `authorized_error`。
+网页聊天通过 Python 后端运行同一控制台；实时连接状态与实际补全验证分开显示，部署方法见 `WEB_CHAT.md`。

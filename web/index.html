@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f3ed">
+  <meta name="description" content="Chat with E-Agent about curated enzyme evidence, with real Python tool calls and a visible research audit trail.">
+  <title>E-Agent · Enzyme research, with evidence</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%231b4132'/%3E%3Cpath d='M22 19h24M22 32h19M22 45h24M22 19v26' fill='none' stroke='%23f4f3ed' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#message">Skip to chat</a>
+  <div class="workspace">
+    <aside class="sidebar" aria-label="Research context and connection">
+      <a class="brand" href="./" aria-label="E-Agent home">
+        <span class="brand-mark" aria-hidden="true">E<span>·</span></span>
+        <span>E-Agent<small>ENZYME RESEARCH</small></span>
+      </a>
+
+      <div class="sidebar-intro">
+        <span class="eyebrow">YOUR RESEARCH WORKSPACE</span>
+        <h2>A question.<br>A traceable answer.</h2>
+        <p>Explore curated enzyme evidence with the tools behind E-Agent.</p>
+      </div>
+
+      <section class="connection-card" aria-labelledby="connection-title">
+        <div class="section-heading">
+          <h3 id="connection-title">Agent connection</h3>
+          <button id="settings-toggle" class="icon-button" type="button" aria-label="Open connection settings" aria-expanded="true" aria-controls="connection-settings">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--paper)"/><circle cx="15" cy="17" r="3" fill="var(--paper)"/></svg>
+          </button>
+        </div>
+        <div class="status-row"><span id="status-dot" class="status-dot"></span><span id="status-label">Not connected</span></div>
+        <p id="status-detail" class="status-detail" role="status" aria-live="polite">Connect a running E-Agent backend to start chatting.</p>
+        <div id="backend-meta" class="backend-meta" hidden></div>
+        <form id="connection-settings" class="connection-settings">
+          <label for="backend-url">Backend URL</label>
+          <input id="backend-url" type="url" inputmode="url" placeholder="https://your-backend.example" autocomplete="off" spellcheck="false" aria-describedby="backend-help">
+          <p id="backend-help" class="field-help">Use HTTPS, or HTTP on localhost.</p>
+          <label for="access-token">Backend access token</label>
+          <input id="access-token" type="password" placeholder="Backend token, not a provider API key" autocomplete="off" spellcheck="false" aria-describedby="token-help">
+          <p id="token-help" class="field-help">Kept only in this tab’s memory. Never enter a model provider API key here.</p>
+          <button id="connect-button" class="connect-button" type="submit">Connect backend <span aria-hidden="true">↗</span></button>
+          <p id="connection-error" class="field-error" role="alert" hidden></p>
+          <a class="setup-link" href="https://github.com/psknlr/E-Agent/blob/main/docs/WEB_CHAT.md" target="_blank" rel="noopener noreferrer">Backend setup instructions <span aria-hidden="true">↗</span></a>
+        </form>
+      </section>
+
+      <section id="tools-panel" class="tools-panel" aria-labelledby="tools-title" hidden>
+        <h3 id="tools-title" class="eyebrow">CONNECTED PYTHON TOOLS</h3>
+        <ul id="tools-list"></ul>
+      </section>
+
+      <div class="scope-note"><span class="scope-icon" aria-hidden="true">✳</span><p>Ask about curated enzyme evidence. Uses E-Agent’s Python tools; research conclusions require review.</p></div>
+      <nav class="sidebar-footer" aria-label="Project links">
+        <a href="https://github.com/psknlr/E-Agent" target="_blank" rel="noopener noreferrer">Repository ↗</a>
+        <a href="https://github.com/psknlr/E-Agent/blob/main/README.md" target="_blank" rel="noopener noreferrer">Read the science ↗</a>
+      </nav>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="workspace-title"><span class="mini-mark" aria-hidden="true">E·</span><span>Research conversation</span><span class="workspace-tag">EVIDENCE FIRST</span></div>
+        <button id="reset-chat" class="text-button" type="button" title="Clear this conversation">New conversation <span aria-hidden="true">+</span></button>
+      </header>
+
+      <div id="conversation-scroll" class="conversation-scroll">
+        <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+          <div class="welcome-heading">
+            <div class="welcome-copy">
+              <div class="welcome-kicker"><span class="short-rule"></span> THE ENZYME RESEARCH AGENT</div>
+              <h1 id="welcome-title">From a reaction<br>to <em>evidence.</em></h1>
+              <p>Bring your enzyme question. Explore what is known, what is missing, and what the evidence can actually support.</p>
+            </div>
+            <svg class="molecule" viewBox="0 0 230 245" fill="none" aria-hidden="true">
+              <circle cx="117" cy="117" r="91" stroke="#dfe3d8" stroke-dasharray="2 7"/>
+              <circle cx="117" cy="117" r="64" stroke="#e8e8de"/>
+              <path d="m75 84 51-27 51 28v58l-51 29-51-29V84Zm0 0L36 62m141 23 29-15M126 172v41M36 62V29" stroke="#789180" stroke-width="2"/>
+              <path d="m87 91 39-22 39 23m0 41-39 23m-39-21V97" stroke="#789180" stroke-width="1.5"/>
+              <circle cx="75" cy="84" r="8" fill="#1b4132"/><circle cx="126" cy="57" r="7" fill="#1b4132"/><circle cx="177" cy="85" r="8" fill="#1b4132"/><circle cx="177" cy="143" r="7" fill="#1b4132"/><circle cx="126" cy="172" r="8" fill="#1b4132"/><circle cx="75" cy="143" r="7" fill="#1b4132"/>
+              <circle cx="36" cy="62" r="10" fill="#b3c4b1"/><circle cx="36" cy="29" r="5" fill="#b3c4b1"/><circle cx="206" cy="70" r="10" fill="#c5ac76"/><circle cx="126" cy="213" r="10" fill="#b3c4b1"/>
+              <circle cx="117" cy="117" r="17" fill="#f4f3ed"/><path d="M111 110h13m-13 7h10m-10 7h13m-13-14v14" stroke="#1b4132" stroke-width="2" stroke-linecap="round"/>
+              <path d="M201 194h12m-6-6v12M51 196h8m-4-4v8" stroke="#c5ac76" stroke-width="1.5"/>
+            </svg>
+          </div>
+
+          <div class="starter-heading"><h2>A place to begin</h2><span>Or ask a question of your own</span></div>
+          <div class="starter-grid">
+            <button class="starter-card" type="button" data-prompt="Audit the curated KRED reference set. Which entries are supported by experimental evidence, and what are the calibration limits?">
+              <span class="starter-number">01 <span aria-hidden="true">↗</span></span><strong>Explore the evidence</strong><span>Audit the curated KRED reference set and its calibration limits.</span>
+            </button>
+            <button class="starter-card" type="button" data-prompt="List the audited structures and inspect 6ZZO. What evidence and limitations are recorded for its cofactor and ligand?">
+              <span class="starter-number">02 <span aria-hidden="true">↗</span></span><strong>Inspect a structure</strong><span>Explore 6ZZO, its cofactor, its ligand, and the recorded limitations.</span>
+            </button>
+            <button class="starter-card" type="button" data-prompt="Inspect Ssal-KRED activity on 2a. Explain missing values and detection limits before comparing it with other constructs.">
+              <span class="starter-number">03 <span aria-hidden="true">↗</span></span><strong>Understand a measurement</strong><span>Check Ssal-KRED activity, missing values, and detection limits.</span>
+            </button>
+          </div>
+          <div class="principles"><span><i aria-hidden="true"></i> Uncertainty stays visible</span><span><i aria-hidden="true"></i> Tool calls stay traceable</span><span><i aria-hidden="true"></i> Missing evidence stays missing</span></div>
+        </section>
+
+        <section id="messages" class="messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></section>
+        <div id="request-progress" class="request-progress" role="status" hidden><span class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Working with the connected E-Agent tools…</span></div>
+      </div>
+
+      <div class="composer-area">
+        <div id="composer-notice" class="composer-notice">Connect your backend in Agent connection to begin.</div>
+        <form id="chat-form" class="composer">
+          <label class="visually-hidden" for="message">Your enzyme research question</label>
+          <textarea id="message" rows="2" maxlength="8000" placeholder="Ask about an enzyme, a reaction, or the evidence…" aria-describedby="composer-help"></textarea>
+          <div class="composer-bottom"><span id="composer-help">Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line</span><button id="cancel-request" class="cancel-button" type="button" hidden>Cancel</button><button id="send-button" class="send-button" type="submit" disabled><span>Send question</span><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 16V4m-5 5 5-5 5 5"/></svg></button></div>
+        </form>
+        <p class="composer-footnote">Model responses are research assistance. Check the tool trace and original evidence before using conclusions.</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

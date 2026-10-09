@@ -139,6 +139,23 @@ class TheLoopIsBounded(unittest.TestCase):
 
 
 class ARefusalIsRecordedNotRaised(unittest.TestCase):
+    def test_structure_ids_can_be_discovered_then_read_from_actual_data(self) -> None:
+        tools = {tool.name: tool for tool in reference_tools()}
+        entries = tools["list_structure_entries"].run()["entries"]
+        self.assertTrue(entries)
+        for entry in entries:
+            record = tools["structure_entry"].run(pdb_id=entry["pdb_id"])
+            self.assertEqual(record["enzyme"], entry["enzyme"])
+
+    def test_activity_ids_can_be_discovered_before_a_real_endpoint_read(self) -> None:
+        tools = {tool.name: tool for tool in reference_tools()}
+        catalog = tools["list_activity_constructs"].run()
+        self.assertTrue(catalog["enzyme_ids"])
+        self.assertIn("2a", catalog["substrate_ids"])
+        for enzyme_id in catalog["enzyme_ids"]:
+            endpoint = tools["activity_endpoint"].run(enzyme_id=enzyme_id, substrate_id="2a")
+            self.assertEqual(endpoint["enzyme_id"], enzyme_id)
+
     def test_an_unknown_tool_lists_the_real_ones(self) -> None:
         transcript = loop_with(script({"tool_calls": [call("no_such_tool")]},
                                       {"reasoning": "done"})).run("q")

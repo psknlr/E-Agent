@@ -1,0 +1,22 @@
+# The MiniMax API key is entered in Render, never committed to this repository.
+services:
+  - type: web
+    name: eagent-chat
+    runtime: python
+    plan: free
+    buildCommand: python -m pip install -e .
+    startCommand: python -m eagent.web --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: EAGENT_PROVIDER
+        value: minimax
+      - key: EAGENT_MODEL
+        value: MiniMax-M2.7
+      - key: MINIMAX_API_KEY
+        sync: false
+      - key: EAGENT_CHAT_TOKEN
+        generateValue: true
+      - key: EAGENT_ALLOWED_ORIGINS
+        value: https://psknlr.github.io

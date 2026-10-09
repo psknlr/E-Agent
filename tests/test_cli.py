@@ -99,7 +99,8 @@ class CLICase(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 COMMANDS = ("init", "validate", "run", "approve", "status", "verify",
-            "bundle", "bundle-verify", "templates", "sources", "reference")
+            "bundle", "bundle-verify", "templates", "sources", "reference",
+            "model")
 
 
 class HelpTests(CLICase):
@@ -782,6 +783,92 @@ class ReferenceTests(CLICase):
         result = self.invoke(["reference", "import-workbook", str(bad),
                               "--out", str(self.tmp / "new")])
         self.assertEqual(result.exit_code, EXIT_USAGE)
+
+
+# ---------------------------------------------------------------------------
+# model providers and the read-only tool loop
+# ---------------------------------------------------------------------------
+
+class ModelTests(CLICase):
+    """The provider surface runs offline; anything remote needs the flag."""
+
+    def test_the_subcommands_are_listed(self) -> None:
+        result = self.invoke(["model", "--help"])
+        for sub in ("providers", "ask"):
+            self.assertIn(sub, result.output)
+
+    def test_providers_runs_offline_and_states_what_is_unverified(self) -> None:
+        result = self.invoke(["model", "providers"])
+        self.assertEqual(result.exit_code, EXIT_OK, result.output)
+        for provider in ("anthropic", "openai", "minimax"):
+            self.assertIn(provider, result.output)
+        self.assertIn("shape verified:    no", result.output)
+        self.assertIn("route answers:     yes", result.output)
+
+    def test_providers_names_the_variable_to_set(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=False) as environ:
+            for name in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "MINIMAX_API_KEY"):
+                environ.pop(name, None)
+            result = self.invoke(["model", "providers"])
+        self.assertIn("set OPENAI_API_KEY", result.output)
+        self.assertIn("no provider key is set", result.output)
+
+    def test_probing_needs_the_network_flag(self) -> None:
+        result = self.invoke(["model", "providers", "--probe"])
+        self.assertEqual(result.exit_code, EXIT_BLOCKED)
+        self.assertIn("--allow-network", result.output)
+
+    def test_asking_needs_the_network_flag_and_says_what_leaves(self) -> None:
+        result = self.invoke(["model", "ask", "how many lineages?",
+                              "--provider", "openai", "--model", "gpt-4o"])
+        self.assertEqual(result.exit_code, EXIT_BLOCKED)
+        self.assertIn("leave this", result.output)
+
+    def test_asking_an_unconfigured_provider_refuses_with_the_variable(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=False) as environ:
+            environ.pop("OPENAI_API_KEY", None)
+            result = self.invoke(["model", "ask", "q", "--provider", "openai",
+                                  "--model", "gpt-4o", "--allow-network"],
+                                 offline=False)
+        self.assertEqual(result.exit_code, EXIT_UNRESOLVED)
+        self.assertIn("OPENAI_API_KEY", result.output)
+
+    def test_asking_an_unknown_provider_is_a_usage_error(self) -> None:
+        result = self.invoke(["model", "ask", "q", "--provider", "nope",
+                              "--model", "m", "--allow-network"], offline=False)
+        self.assertEqual(result.exit_code, EXIT_USAGE)
+
+    def test_the_model_must_be_named(self) -> None:
+        result = self.invoke(["model", "ask", "q", "--provider", "openai",
+                              "--allow-network"], offline=False)
+        self.assertEqual(result.exit_code, EXIT_USAGE)
+
+    def test_the_whole_loop_runs_against_a_scripted_client(self) -> None:
+        """No network: the client is replaced, so the CLI path itself is exercised."""
+        import json as _json
+
+        from eagent.harness.llm import EchoClient
+
+        scripted = EchoClient([
+            _json.dumps({"reasoning": "checking",
+                         "tool_calls": [{"interface": "reference_summary",
+                                         "arguments": {}}]}),
+            _json.dumps({"reasoning": "Six lineages among the entries."}),
+        ])
+        out_path = self.tmp / "transcript.json"
+        with mock.patch("eagent.harness.providers.build_client",
+                        return_value=scripted):
+            result = self.invoke(["model", "ask", "how many lineages?",
+                                  "--provider", "openai", "--model", "gpt-4o",
+                                  "--allow-network", "--out", str(out_path)],
+                                 offline=False)
+        self.assertEqual(result.exit_code, EXIT_OK, result.output)
+        self.assertIn("reference_summary", result.output)
+        self.assertIn("Six lineages among the entries.", result.output)
+        self.assertIn("nothing was written", result.output)
+        transcript = _json.loads(out_path.read_text(encoding="utf-8"))
+        self.assertEqual(transcript["tool_calls_made"], 1)
+        self.assertEqual(transcript["question"], "how many lineages?")
 
 
 # ---------------------------------------------------------------------------

@@ -2616,5 +2616,157 @@ def reference_import(workbook: Path, out_dir: Path) -> None:
     out.line(f"{len(tables)} tables written under {out_dir / 'tables'}; {path}")
 
 
+@main.group("model")
+def model_group() -> None:
+    """Which model providers are wired, and asking one to read the data.
+
+    A model is used here for reading and joining tables that carry rules, never
+    for producing a quantity. The tools it is given are this project's own
+    loaders, which refuse a withheld value instead of returning a plausible
+    one, and they are read-only: nothing a model asks for can write a
+    calibration record, edit a template or reach the network.
+    """
+
+
+@model_group.command("providers")
+@click.option("--probe/--no-probe", default=False,
+              help="Send one unauthenticated request per provider to confirm "
+                   "its own API answers. Needs the network; establishes the "
+                   "route, not the request shape.")
+@click.option("--allow-network/--no-network", default=False,
+              help="Required by --probe.")
+def model_providers(probe: bool, allow_network: bool) -> None:
+    """What each provider needs, and what has actually been established."""
+    from .harness.providers import PROVIDERS, probe_route, provider_report
+
+    out = Out()
+    report = provider_report()
+    out.heading("providers")
+    for key, info in report["providers"].items():
+        state = "key set" if info["key_present"] else f"set {info['api_key_env']}"
+        out.bullet(f"{key:10s} {info['display_name']}")
+        out.kv("    wire", info["wire"], width=22)
+        out.kv("    base url", info["base_url_in_effect"], width=22)
+        out.kv("    override with", info["base_url_env"], width=22)
+        out.kv("    credential", state, width=22)
+        out.kv("    route answers", info["route_answers"], width=22)
+        out.kv("    shape verified", info["shape_verified"], width=22)
+        if info["documented_models"]:
+            out.kv("    documented models", ", ".join(info["documented_models"]),
+                   width=22)
+        if info["notes"]:
+            out.line(f"      {info['notes']}")
+    out.heading("what those two flags mean")
+    out.line(report["what_route_answers_means"])
+    out.line("")
+    out.line(report["what_shape_verified_means"])
+    out.heading("configured here")
+    out.line(", ".join(report["configured"]) or "none: no provider key is set "
+             "in this environment")
+    if not probe:
+        return
+    if not allow_network:
+        raise Refusal("--probe sends one request per provider and "
+                      "--allow-network was not given",
+                      next_action="re-run with --probe --allow-network",
+                      exit_code=EXIT_BLOCKED)
+    out.heading("route probes")
+    failed = 0
+    for key in PROVIDERS:
+        result = probe_route(key)
+        mark = "ok " if result["ok"] else "FAIL"
+        out.bullet(f"[{mark}] {key}: HTTP {result['status']} at {result['url']}")
+        if result["ok"]:
+            out.line(f"      found {result['markers_found']}")
+        else:
+            failed += 1
+            out.line(f"      {result['failure']}")
+    out.line("")
+    out.line("A pass says the host, the path and the request parsing are that "
+             "provider's own API. It does not say the body this project sends "
+             "is accepted, or that the reply is parsed correctly: both need a "
+             "credential, and none is set here.")
+    if failed:
+        raise Refusal(f"{failed} provider route(s) did not answer as themselves",
+                      exit_code=EXIT_FAILED)
+
+
+@model_group.command("ask")
+@click.argument("question")
+@click.option("--provider", required=True,
+              help="anthropic, openai or minimax (see `eagent model providers`).")
+@click.option("--model", "model_id", required=True,
+              help="The model identifier. There is no default: a run that does "
+                   "not name its model is not reproducible.")
+@click.option("--allow-network/--no-network", default=False,
+              help="Required. The question and every tool result are sent to "
+                   "the provider.")
+@click.option("--max-turns", default=6, show_default=True, type=int)
+@click.option("--max-calls", default=20, show_default=True, type=int)
+@click.option("--strict-citations/--lenient-citations", default=False,
+              help="Refuse the model's answer when a quantity in it carries no "
+                   "citation naming the row. Off by default because this "
+                   "console has no artifact index to check a value against.")
+@click.option("--out", "out_path", type=click.Path(path_type=Path), default=None,
+              help="Write the full transcript as JSON.")
+def model_ask(question: str, provider: str, model_id: str, allow_network: bool,
+              max_turns: int, max_calls: int, strict_citations: bool,
+              out_path: Path | None) -> None:
+    """Ask a model a question about the reference set, through read-only tools.
+
+    Everything the model is shown and everything it asked for is recorded. The
+    answer is a reading of the data, not a measurement: a quantity in it without
+    a citation naming its row is not sourced, and the transcript says so.
+    """
+    import json
+
+    from .harness.llm import LLMError, NumericGuard
+    from .harness.providers import ProviderNotConfiguredError, build_client
+    from .harness.toolloop import LoopLimits, ToolLoop, reference_tools
+
+    out = Out()
+    if not allow_network:
+        raise Refusal(
+            "this sends your question and every tool result to the provider, "
+            "and --allow-network was not given",
+            next_action="re-run with --allow-network once you are content for "
+                        "the question and the data it returns to leave this "
+                        "machine",
+            exit_code=EXIT_BLOCKED)
+    try:
+        client = build_client(provider, model_id)
+    except ProviderNotConfiguredError as exc:
+        raise Refusal(str(exc), next_action=f"export {exc.api_key_env}=...",
+                      exit_code=EXIT_UNRESOLVED) from exc
+    except LLMError as exc:
+        raise Refusal(str(exc), exit_code=EXIT_USAGE) from exc
+
+    loop = ToolLoop(client, limits=LoopLimits(max_turns=max_turns,
+                                              max_calls_total=max_calls),
+                    guard=NumericGuard(strict=strict_citations))
+    loop.register_all(reference_tools())
+    transcript = loop.run(question)
+
+    out.heading("tool calls")
+    for turn in transcript["turns"]:
+        for result in turn.get("results", []):
+            mark = "ok " if result["ok"] else "refused"
+            out.bullet(f"[{mark}] {result['tool']}({json.dumps(result['arguments'])})")
+            if not result["ok"]:
+                out.line(f"      {result['refusal']}")
+    out.heading("answer")
+    out.line(transcript["answer"] or "(the model gave no answer)")
+    out.heading("provenance")
+    out.kv("  provider", transcript["provider"], width=22)
+    out.kv("  tool calls", transcript["tool_calls_made"], width=22)
+    out.kv("  stopped because", transcript["stopped_because"], width=22)
+    out.line(f"    {transcript['caveat']}")
+    if out_path is not None:
+        out_path.write_text(json.dumps(transcript, indent=2, sort_keys=True,
+                                       default=str) + "\n", encoding="utf-8")
+        out.line("")
+        out.line(f"full transcript written to {out_path}")
+
+
 if __name__ == "__main__":  # pragma: no cover - module entry point
     main()

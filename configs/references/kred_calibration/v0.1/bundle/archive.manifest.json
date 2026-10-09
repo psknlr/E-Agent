@@ -1,0 +1,1319 @@
+{
+  "archive": "KRED_Calibration_Reference_v0.1.zip",
+  "archive_audit_date": "2026-10-07",
+  "archive_root": "KRED_Calibration_Reference_v0.1/",
+  "archive_sha256": "0b32db1402150ac9bcde2a8c4aac8c4da5b8eae13428f35b24a25f25c9266025",
+  "disposition_bytes": {
+    "committed": 1625777,
+    "committed_upstream": 119874,
+    "dropped_duplicate": 787417,
+    "duplicate_of_source": 49114,
+    "pinned": 46050026
+  },
+  "disposition_counts": {
+    "committed": 54,
+    "committed_upstream": 8,
+    "dropped_duplicate": 1,
+    "duplicate_of_source": 1,
+    "pinned": 129
+  },
+  "members": {
+    "KRED_Calibration_Reference_v0.1.xlsx": {
+      "bytes": 49114,
+      "disposition": "duplicate_of_source",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "c0eac78f178ecf0a82c90f3b451ddddaef706ccd3a763ce0529a679ad25fbf52"
+    },
+    "NOTICE.txt": {
+      "bytes": 558,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "45e1684e93eb35f86b92a726679c21a4775889c2c28f1cce4d8418ca6dcf1303"
+    },
+    "README.zh-CN.txt": {
+      "bytes": 8206,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "c0b487ef62e4b51e34c3c0ed775967f2a6d736f754d44acdbc2c30b2545609c4"
+    },
+    "activity_expansion_2026/LICENSE": {
+      "bytes": 1067,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "c3cbc7f6039e343161887df9b05e365786834ff9fcd859cfc829a5d28f632303",
+      "source_url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/LICENSE"
+    },
+    "activity_expansion_2026/curation_audit.json": {
+      "bytes": 6234,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "11f9fe880650567593c7fe15d62b7845949d837112d4f1f5e90b05bd36f68113"
+    },
+    "activity_expansion_2026/github_README.md": {
+      "bytes": 11436,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "ae1de966cf21ce25088d4687b4bc1f9fa7c184d5b234e558fce1dad89994d697",
+      "source_url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/README.md"
+    },
+    "activity_expansion_2026/manifest.json": {
+      "bytes": 2977,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "d12d7c1feb32154a3e959858c06f707d02957773993100fe3f06bb7490061978"
+    },
+    "activity_expansion_2026/ortholog_sequences.fasta": {
+      "bytes": 38228,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "30ba4ec44b342dc482cbbac8ecefb546cf5464cd44bf03738e02acd649d0b6df",
+      "source_url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/All_ortholog_homologs_UniProt/Ssal-KRED_ortholog_library_sequences.fasta"
+    },
+    "activity_expansion_2026/round_1.csv": {
+      "bytes": 22405,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "734970d57da0015144f6c47472af50bc520c954c47e8146fd76b08558cce9cc2",
+      "source_url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/Heatmaps_with_dendogram/Orthologs_Experimental_Data_Round_1.csv"
+    },
+    "activity_expansion_2026/round_2.csv": {
+      "bytes": 30325,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "1390757baa11e1393a2c97b3748f0f93db963ffcc4f8670dcad0780ac6693126",
+      "source_url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/Heatmaps_with_dendogram/Orthologs_Experimental_Data_Round_2.csv"
+    },
+    "activity_expansion_2026/zenodo_README.txt": {
+      "bytes": 3763,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "00a3e99797efbb0f3fe46074f826fc75f49afa9684ee5037e3948b30267d7657",
+      "source_url": "https://zenodo.org/api/records/19574983/files/README.txt/content"
+    },
+    "activity_expansion_2026/zenodo_metadata.json": {
+      "bytes": 12353,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "fab8e6a3041d951c42f3f86b440ca2c5c9e758563040108659fc1cc772b8038f",
+      "source_url": "https://zenodo.org/api/records/19574983"
+    },
+    "activity_expansion_2026/zenodo_substrate_SMILES.csv": {
+      "bytes": 297,
+      "disposition": "committed_upstream",
+      "kind": "upstream_original",
+      "sha256": "f7578ee785271759d8971bfffa7f401d120f02a535c627068209c54d016f3b43",
+      "source_url": "https://zenodo.org/api/records/19574983/files/substrate_SMILES.csv/content"
+    },
+    "chemical_components/AAE.json": {
+      "bytes": 5800,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "1253bbb6b4dd14e67d198ecaa37d6fbf4f15e47c5801bb9046074d4c5362c44e",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/AAE"
+    },
+    "chemical_components/AC0.json": {
+      "bytes": 7718,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "c42ee73a2ec37e04987b3f2b5146acaf9348c348a91e8d38175d4d3d8f22c640",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/AC0"
+    },
+    "chemical_components/AMP.json": {
+      "bytes": 18787,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "65fb409420a55423ace9e6acbaa7101ff22f29bcc55d727160b36844f9e5a5b9",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/AMP"
+    },
+    "chemical_components/HBR.json": {
+      "bytes": 3824,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b3634a24a98f09585792107518a808c46a671e3d42388374d424c09db8166f08",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/HBR"
+    },
+    "chemical_components/HBS.json": {
+      "bytes": 3496,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "ef1dce4dce6108a49930180d2418716090b139a21e3e5f23affdacfc21583aa5",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/HBS"
+    },
+    "chemical_components/NAD.json": {
+      "bytes": 10741,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "14043ff2eb2798994587fe660e785770ea5181b52f064e2aa4c09c990d747020",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAD"
+    },
+    "chemical_components/NAI.json": {
+      "bytes": 41099,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "c18ba91ce6b0b81f9e12effc7450c9c4e2d6fc2c0983e76b9cd450ed12badc62",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAI"
+    },
+    "chemical_components/NAP.json": {
+      "bytes": 18762,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "a9c225cef28aad36d01325424979f61ab943cfebcc79b06cc66b032c0d9a244d",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAP"
+    },
+    "chemical_components/NDP.json": {
+      "bytes": 7305,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "07077d064d6954c3b973922656997a536d515cf21c6512d18532cb788db8193c",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NDP"
+    },
+    "chemical_components/NMN.json": {
+      "bytes": 5337,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "2f72d216e351cef94a487de1ef1275d0b2ccbd3646c07d770b1afeb848b2b9a5",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NMN"
+    },
+    "chemical_components/PO4.json": {
+      "bytes": 3970,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "f9fbab7b35db10602b9bff92c5696734f82d156c24a8182a1b628ba85ab79315",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/PO4"
+    },
+    "chemical_components/PTO.json": {
+      "bytes": 4046,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "28ab4db3b0ee7e621223f16e004e7af949a9e5238dd67632409028ded731b449",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/PTO"
+    },
+    "chemical_components/QT8.json": {
+      "bytes": 3047,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "c42e668ac797787b3d6c833f02924a4e5298b1d46f1bf562bf93ac8c5eae8e08",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/QT8"
+    },
+    "chemical_components/SS2.json": {
+      "bytes": 5684,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "4c612fa4206f0d1bbb8115a61dc5ecf01a5a017d059e70206472b3a545908378",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/SS2"
+    },
+    "chemical_components/TNE.json": {
+      "bytes": 4082,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "53e2d53134476f484a038ed4d6dde2ecc10bfd0b2f97215eaa785807d3531e7b",
+      "source_url": "https://data.rcsb.org/rest/v1/core/chemcomp/TNE"
+    },
+    "data/activity_labels.csv": {
+      "bytes": 23324,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "a895428f999c9473a0f999a96a0dfed6cf7e1250c4204a9a7af9af39bb0ec0aa"
+    },
+    "data/activity_labels.json": {
+      "bytes": 51064,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "5923aa6c98ee1ae27e7df40858d1e5942518e287d82a5a99e82c343f6926be56"
+    },
+    "data/additional_candidate_exclusions.json": {
+      "bytes": 2321,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "abdc9b04eb8f9261ea8ba1b4fa24dfaedf334d2809ecd73ac54098a223b888b1"
+    },
+    "data/all_reference_sequences.fasta": {
+      "bytes": 14458,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "c049f58498fc7bcf0864885161ebb4b811cdf287543a5ddcc3d3fa4a3cb87676"
+    },
+    "data/assay_conditions.csv": {
+      "bytes": 42642,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "a4a8b47f35d9b14398e6e2915937abd9ba06019d36ea6432c5a30fd41a66c397"
+    },
+    "data/assay_conditions.json": {
+      "bytes": 53526,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "3a98b1b488b75c49292284605d96c64df7935f9adc600cb5c7e27f6b57a5c02b"
+    },
+    "data/assembly_and_chemcomp_manifest.json": {
+      "bytes": 90784,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "80b290208b527829b63e31ba81a3a677396e1198ef73c64d43996c6080617770"
+    },
+    "data/auxiliary_activity_labels.csv": {
+      "bytes": 1462,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "f0c07cbf20ec940c09f12aa5a5b114a812a8d22cc07ad169cd902eaaa96f3638"
+    },
+    "data/auxiliary_activity_labels.json": {
+      "bytes": 1810,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "ea34d37854819dc6b399a9607e2558d0775484da9483fc61898b24dbd66c7666"
+    },
+    "data/chemical_components.csv": {
+      "bytes": 6825,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "742a93cdad567f1f704d02b6b38e2832ac96de94b662191ddbfc995657b243a6"
+    },
+    "data/chemical_components.json": {
+      "bytes": 9661,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "e9377d13c1429b6bf6fa894782272a772d91db1f0e517d3b656716645b5d822c"
+    },
+    "data/collection_summary.json": {
+      "bytes": 2767,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "114476ea53aa6735696f32de423eb3e52ffb9a7577e232d837a5c776ecef9435"
+    },
+    "data/data_dictionary.json": {
+      "bytes": 2063,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "234f066d904537168342c0fb274ffc46a3a64f648952926d8eb3d842c6311e5f"
+    },
+    "data/ligand_validation.csv": {
+      "bytes": 26882,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "957c34f4be62727518c60d5edbc6ac3b36391f518546237dce0da353bc91fee6"
+    },
+    "data/ligand_validation.json": {
+      "bytes": 62074,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "09a483c997242cb514daee7e934479b810fcb7f4859a4e4acc797e589402318a"
+    },
+    "data/pdb_construct_sequences.fasta": {
+      "bytes": 6958,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "561d4d6eee4c16c873010559a6cd39e5a58a7ffbeaddf1a9694884c7d7a70ccb"
+    },
+    "data/selectivity_labels.csv": {
+      "bytes": 4011,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "3f53fe7c369ebd4e189275b02234cd6bf524e79c59ff4634f623488c4d6aec38"
+    },
+    "data/selectivity_labels.json": {
+      "bytes": 7333,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "1a85aa9861248a8aa86e776429bbcbe8ee5abd9c4a594e0ea8fed170011621fc"
+    },
+    "data/sequence_manifest.csv": {
+      "bytes": 14610,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "fc66e30f62a4227f6c0686076c53d585cbaa4271d18e79e8ba58b2de0bc39cb0"
+    },
+    "data/sequence_manifest.json": {
+      "bytes": 31290,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "a2b7a0a57d562be31a53a583ab8966ab54a960f1ac62da1784df1cc593ac73e8"
+    },
+    "data/sources.csv": {
+      "bytes": 5812,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "8efd74267d7f0df063c5abf4e4198f3c80ef50a02d09bd5f4d3113dfb04486b1"
+    },
+    "data/sources.json": {
+      "bytes": 8188,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "369b3972c0f0705cb539e183b2dedb76a29574c3b6e1596f572a7a49de762ea9"
+    },
+    "data/ssal2024_reported_sequences.fasta": {
+      "bytes": 3255,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "a01f199548e86209032f7842ca09dd55b982da04d15ce691e95b984e4a748159"
+    },
+    "data/structure_audit_raw.json": {
+      "bytes": 787417,
+      "disposition": "dropped_duplicate",
+      "dropped_because": "a list of the 19 structures/<ID>/audit_metadata.json files, which are committed individually; checked equal entry by entry at import",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "4d874ee969f164f8c1ebf78969ef71799f3f94e008b0c311d89ef447ece32c60"
+    },
+    "data/structure_manifest.csv": {
+      "bytes": 14560,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "282896590a926ef5f81a228b8709809f55e2ac07cb246695eff85bded7c047ff"
+    },
+    "data/structure_manifest.json": {
+      "bytes": 32972,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "dbc86bdbdf602098dc2223a0d9d23603e380086d02527af22cae8a2a88ea2975"
+    },
+    "data/usage_rules.csv": {
+      "bytes": 3949,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "7dfb4251787e1d6b2fab2b16e845f3b4445a8c7b30a37118f5be8340a5c31210"
+    },
+    "data/usage_rules.json": {
+      "bytes": 4983,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "d8683f09333b16335548fb50229fc2bd1eacc749b0d76cf8669f6338392a2604"
+    },
+    "data/verification_summary.json": {
+      "bytes": 1152,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "1df3913564a4e56fd2b820578e8c3121b1aa1eab6c6375201534b86dca72f3dd"
+    },
+    "evidence/hbdh_evidence.json": {
+      "bytes": 230148,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "5588fda1759ee5bc30aec8c864ee4684371dccbdc082677b6c862d74a816af9a"
+    },
+    "evidence/industrial_activity_evidence.json": {
+      "bytes": 82735,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "55d83f6be868a3a1139418a1b661c8494136e1fa1d3a40aba2dae22233a7edac"
+    },
+    "evidence/ternary_evidence.json": {
+      "bytes": 31096,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "311d267f3d1e21a6a0de07ad0e761bfe7a966c5afab8e8cb9c37c07635010cc9"
+    },
+    "structures/1IPF/1IPF.cif": {
+      "bytes": 455755,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "8891976c267b9ea8b6d7e3752f5d3ae6f5df81ba9b37ab376de2e8740e398efa",
+      "source_url": "https://files.rcsb.org/download/1IPF.cif"
+    },
+    "structures/1IPF/1IPF_validation.xml.gz": {
+      "bytes": 27068,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "dcf663b39dca75659a8dcd7c34be6f76d28848a96fbebe6b8f09dfe4fa7b4805",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/ip/1ipf/1ipf_validation.xml.gz"
+    },
+    "structures/1IPF/assembly1.cif": {
+      "bytes": 447712,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "398d25808d04505987706208285873fe41956978874378edf542dfc6506eca96",
+      "source_url": "https://files.rcsb.org/download/1IPF-assembly1.cif"
+    },
+    "structures/1IPF/assembly1.json": {
+      "bytes": 3455,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "d47a295a9dda9d0fa5da82e0c2e3f4e21e5be652697270fdfb0091a913c354fe",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/1IPF/1"
+    },
+    "structures/1IPF/audit_metadata.json": {
+      "bytes": 42283,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "a8b6f5c8a3205de8fd99c7b99582ef83265fffe75f7a1f2e4aa6766660edc9e4"
+    },
+    "structures/1IPF/entry.json": {
+      "bytes": 13530,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "79d78b3f86d746def35474481cee20048a295a310fc48f63fc46c0befa34f91b",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/1IPF"
+    },
+    "structures/1IPF/polymer_entity_1.json": {
+      "bytes": 17821,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "45ea2accd4679ac346390497af127b03649bc546d0d123656aa35fab21cd9ab7",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1IPF/1"
+    },
+    "structures/1Y1P/1Y1P.cif": {
+      "bytes": 695736,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "be023e5914d7490239865fbb7d25e0c1b63df349fb281b080c03e7e9aaca0d2e",
+      "source_url": "https://files.rcsb.org/download/1Y1P.cif"
+    },
+    "structures/1Y1P/1Y1P_validation.xml.gz": {
+      "bytes": 42040,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "1c6cd249a041d4a1ebe036acd736c73ce665c477a11f53b9f04816ea46109565",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/y1/1y1p/1y1p_validation.xml.gz"
+    },
+    "structures/1Y1P/assembly1.cif": {
+      "bytes": 362089,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "07eae3e4e9cdae646311a68591e0b83c520351c6c7408d0e110dd8b9ce8fe3e7",
+      "source_url": "https://files.rcsb.org/download/1Y1P-assembly1.cif"
+    },
+    "structures/1Y1P/assembly1.json": {
+      "bytes": 2424,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "f87f217ed7a6ba65cf759ca7b5dfbba2f92b7e6b76b98a40cb59aba0eee55afb",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/1Y1P/1"
+    },
+    "structures/1Y1P/audit_metadata.json": {
+      "bytes": 25609,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "8aa098688deafe6449cbd870cdc82305d20c29abc6a657694a437c30a62a2c55"
+    },
+    "structures/1Y1P/entry.json": {
+      "bytes": 12967,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "7226d7d7293c02c27c36edc09618850916cd138f6b09c3f869e84a01ab2e0907",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/1Y1P"
+    },
+    "structures/1Y1P/polymer_entity_1.json": {
+      "bytes": 16447,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "92ce41e5e0db581ac7d8385bc1fe5b17113df1040a74521587443a5de7a1c2e7",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1Y1P/1"
+    },
+    "structures/1ZJY/1ZJY.cif": {
+      "bytes": 603920,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "96d96c2ea950fe3742803e600ae53cf552040571dde38d0adc2ef06e836459aa",
+      "source_url": "https://files.rcsb.org/download/1ZJY.cif"
+    },
+    "structures/1ZJY/1ZJY_validation.xml.gz": {
+      "bytes": 21119,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "bb5fb1f24b2753c379ff44ccc0dd94dfb8f3faefaea57af540ee1fb570f50a59",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zj/1zjy/1zjy_validation.xml.gz"
+    },
+    "structures/1ZJY/assembly1.cif": {
+      "bytes": 2508366,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "e3d6994d894ef89ef81832eec7b16f339ea1eff338116cc831572bd482448cfd",
+      "source_url": "https://files.rcsb.org/download/1ZJY-assembly1.cif"
+    },
+    "structures/1ZJY/assembly1.json": {
+      "bytes": 4216,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "1e3f7eecf70e28b1b6d0fef49f41842fa632a62057eb4823f876f623496e6126",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZJY/1"
+    },
+    "structures/1ZJY/audit_metadata.json": {
+      "bytes": 27204,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "12b89d35337524152947611206f1ca8b89123da8c35b5e3bc193c0d4c762f1bb"
+    },
+    "structures/1ZJY/entry.json": {
+      "bytes": 20609,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "6f6e5d231e84c1cf761ed0deb08102e6c10ae75e920b364428031c26f95cb3d4",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/1ZJY"
+    },
+    "structures/1ZJY/polymer_entity_1.json": {
+      "bytes": 17502,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "41b98af34711a97cb837703ea8d66bcf04b9b94efdee30c8836191bff8627eed",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZJY/1"
+    },
+    "structures/1ZJZ/1ZJZ.cif": {
+      "bytes": 614101,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "07beb3f16e59b2be127ea240322150fe0f242e22e01b489653fb4dfdaa460156",
+      "source_url": "https://files.rcsb.org/download/1ZJZ.cif"
+    },
+    "structures/1ZJZ/1ZJZ_validation.xml.gz": {
+      "bytes": 20945,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "d4e4e1d6fa09ea7acd37057ecde23dfab0cfd9b9cccb1a63559ee507d7fbc148",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zj/1zjz/1zjz_validation.xml.gz"
+    },
+    "structures/1ZJZ/assembly1.cif": {
+      "bytes": 2557299,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "1dccf216e014ef5114e3414fce41bd4de9e9cd50035af0095f273b199f5fad89",
+      "source_url": "https://files.rcsb.org/download/1ZJZ-assembly1.cif"
+    },
+    "structures/1ZJZ/assembly1.json": {
+      "bytes": 4212,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "ce630130161e097ab08ac1ec13c2fdd06dcf871a13dbd25de461ad2ca3448c63",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZJZ/1"
+    },
+    "structures/1ZJZ/audit_metadata.json": {
+      "bytes": 26181,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "12e9c84177d5cf804ca484dbf9d770193578b30d6e5b8388706476be764703c2"
+    },
+    "structures/1ZJZ/entry.json": {
+      "bytes": 20680,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "27cacf5a47b4c1956157c96c64d811fcba9c8c2a5467db2b7b6a3f5d301f9a9b",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/1ZJZ"
+    },
+    "structures/1ZJZ/polymer_entity_1.json": {
+      "bytes": 17406,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "48e7e28073a90994c354c9494bfb2be09b39c1059a8785c989c381718d1e86ca",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZJZ/1"
+    },
+    "structures/1ZK0/1ZK0.cif": {
+      "bytes": 555320,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "eec2b6c42630c8951bf6c24dfa565aaa90e92844a444a0292cffa61247bad1e0",
+      "source_url": "https://files.rcsb.org/download/1ZK0.cif"
+    },
+    "structures/1ZK0/1ZK0_validation.xml.gz": {
+      "bytes": 20680,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b640eb98f27637aa38fe173e893c117e2ee21bf9cbae70a380b309d456bf7908",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zk/1zk0/1zk0_validation.xml.gz"
+    },
+    "structures/1ZK0/assembly1.cif": {
+      "bytes": 2284065,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "7a4bef8fdb0410303f9f77e9c983ffdecd7c563155cca877e05bce5042b53ed3",
+      "source_url": "https://files.rcsb.org/download/1ZK0-assembly1.cif"
+    },
+    "structures/1ZK0/assembly1.json": {
+      "bytes": 4214,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "adeef1fa1b83e5880a0a10da7e481678f6efe6ff839d9ab8df3f1a73488b23c9",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK0/1"
+    },
+    "structures/1ZK0/audit_metadata.json": {
+      "bytes": 35846,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "034221ccee841ad0536baa6a2a8e58c2e8eea5cda4e688f14e014fa12801cb12"
+    },
+    "structures/1ZK0/entry.json": {
+      "bytes": 20374,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "3b4e84c154165c17db4ac80e382715a8af472953084b388c80978692dd0095c0",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/1ZK0"
+    },
+    "structures/1ZK0/polymer_entity_1.json": {
+      "bytes": 17502,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "f378b2b68a9a881f9e7c1d2660faab750a7796e865b7baa5482f03eb2f5028ec",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZK0/1"
+    },
+    "structures/1ZK1/1ZK1.cif": {
+      "bytes": 303270,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "2c0e5ad74ad2ed4ae69d95eaad35582146c8de79275f24f9fde383acc5253a39",
+      "source_url": "https://files.rcsb.org/download/1ZK1.cif"
+    },
+    "structures/1ZK1/1ZK1_validation.xml.gz": {
+      "bytes": 19885,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "37c5218aef5ffa15351e1d67816797fb3c80c9f17b79cefdcfb970abd9418205",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zk/1zk1/1zk1_validation.xml.gz"
+    },
+    "structures/1ZK1/assembly1.cif": {
+      "bytes": 1085390,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b54af0da7f82c9311b0b959a8016221348a1decdf4b3451584acc33161309743",
+      "source_url": "https://files.rcsb.org/download/1ZK1-assembly1.cif"
+    },
+    "structures/1ZK1/assembly1.json": {
+      "bytes": 4212,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "93ed5d179853726e75b2252ce628605ab33d8aafb766f874383007dadab8b660",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK1/1"
+    },
+    "structures/1ZK1/audit_metadata.json": {
+      "bytes": 34443,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "bde9940eb16d473e8a7cda7d875d871d53a67f07d85a2c33742342aa0aa71077"
+    },
+    "structures/1ZK1/entry.json": {
+      "bytes": 17690,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "af4a812a831a52eb89c875248054d06c9023d563ba19d284ee51412281a5b3f8",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/1ZK1"
+    },
+    "structures/1ZK1/polymer_entity_1.json": {
+      "bytes": 17502,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "405bd6e48503b90df87a6a1947c902695716ed56a5b85654a07f38dfe32a793e",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZK1/1"
+    },
+    "structures/1ZK4/1ZK4.cif": {
+      "bytes": 550804,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "e1badbc69a37b4aca8127eb59de5259fb6097daba17459b931024b67cacef0ec",
+      "source_url": "https://files.rcsb.org/download/1ZK4.cif"
+    },
+    "structures/1ZK4/1ZK4_validation.xml.gz": {
+      "bytes": 20353,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "3b0332035faac987a2888f54633b720420c5b391bbeb31d23b8186a26a615f9b",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zk/1zk4/1zk4_validation.xml.gz"
+    },
+    "structures/1ZK4/assembly1.cif": {
+      "bytes": 2252037,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "9acb22eea13986f5ba6fef9dba02880280e4266f725040932270751eac53e754",
+      "source_url": "https://files.rcsb.org/download/1ZK4-assembly1.cif"
+    },
+    "structures/1ZK4/assembly1.json": {
+      "bytes": 4215,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "4373450cf3e1edc5041d2f255311d93c248a93362bc1aaa9a583f91d252ec9ab",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK4/1"
+    },
+    "structures/1ZK4/audit_metadata.json": {
+      "bytes": 27158,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "2063b93294bbf1fc6f3f4d8da01c492fd10a6f8829d4ad8ef2e0e8fc4a8aaffb"
+    },
+    "structures/1ZK4/entry.json": {
+      "bytes": 20500,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "e945a121f68e7a14134e4fe57bec8d1b0f88a477b826b62c98778b671696c812",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/1ZK4"
+    },
+    "structures/1ZK4/polymer_entity_1.json": {
+      "bytes": 17214,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "6a4204a4600793c2215653c8328ec385bbbca688eace5c7a7669c1d90dd9de55",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZK4/1"
+    },
+    "structures/2AE2/2AE2.cif": {
+      "bytes": 474617,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "bd0102d78e65392638c13b628278a96d0b505374ae23706460ae92ee365b8260",
+      "source_url": "https://files.rcsb.org/download/2AE2.cif"
+    },
+    "structures/2AE2/2AE2_validation.xml.gz": {
+      "bytes": 28338,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b562ad7a3bf1deffda64dc1b4b1f05be1236e26330fc119f535fd9e808851273",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/ae/2ae2/2ae2_validation.xml.gz"
+    },
+    "structures/2AE2/assembly1.cif": {
+      "bytes": 465878,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "64c71e524ba666078f5ae637ad4fd4469eb8448603834e60ea1a38e51b9890aa",
+      "source_url": "https://files.rcsb.org/download/2AE2-assembly1.cif"
+    },
+    "structures/2AE2/assembly1.json": {
+      "bytes": 3464,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "a7188d42f2e359c455f90da243c6021732db11c0c2b15772f033346fa2d7d08a",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/2AE2/1"
+    },
+    "structures/2AE2/audit_metadata.json": {
+      "bytes": 41485,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "5f656be129f3e9572ec1bf48a8300de5ccf5a9e1db0f9fca5536b07fd8090161"
+    },
+    "structures/2AE2/entry.json": {
+      "bytes": 14238,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "52ba27f109662e21ed48115899b50e96747b553b0f402ccafd6c7366c17bae75",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/2AE2"
+    },
+    "structures/2AE2/polymer_entity_1.json": {
+      "bytes": 17803,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "8b70136c546be6acb93cd8470406c82087d30e22deeb63fcd67ea925b47d5048",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/2AE2/1"
+    },
+    "structures/4RF2/4RF2.cif": {
+      "bytes": 794351,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "0f21b1ad69780cfcfa50d65186f6100e38686d0c7893c766a1ab279c4d513a72",
+      "source_url": "https://files.rcsb.org/download/4RF2.cif"
+    },
+    "structures/4RF2/4RF2_validation.xml.gz": {
+      "bytes": 25216,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "307adae117418fe4d71d6a4938590c6ca55693588d390c97c5477198f0c715ca",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/rf/4rf2/4rf2_validation.xml.gz"
+    },
+    "structures/4RF2/assembly1.cif": {
+      "bytes": 1676182,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "193ec547781606502300ed6ec370db95d438e196300357c9a97bfc3a5e56110c",
+      "source_url": "https://files.rcsb.org/download/4RF2-assembly1.cif"
+    },
+    "structures/4RF2/assembly1.json": {
+      "bytes": 3841,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "c4305a9c9017ac7317dfc6355e74ef352acda80ae44e0485f999dffcb6a95fee",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF2/1"
+    },
+    "structures/4RF2/audit_metadata.json": {
+      "bytes": 40015,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "91b4896e371f410d5a35a3e5b4a1aab18f393dbcf02b834512ec8ce5f7da5e03"
+    },
+    "structures/4RF2/entry.json": {
+      "bytes": 21334,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "ecc9a414c019cdebcfec1e3aa840a4a900de4715749561bc4ad5281fc684b06c",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/4RF2"
+    },
+    "structures/4RF2/polymer_entity_1.json": {
+      "bytes": 16616,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "e3d1573b9d705073852f7b5308fda625b365f6922f71da33c121579353275c37",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF2/1"
+    },
+    "structures/4RF3/4RF3.cif": {
+      "bytes": 788235,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "fc669e64ce5b0e1c213568c77e891a4b1798d925615df30b66de59ed270dc264",
+      "source_url": "https://files.rcsb.org/download/4RF3.cif"
+    },
+    "structures/4RF3/4RF3_validation.xml.gz": {
+      "bytes": 23394,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "6f574336765304cbf8f54e4b154e1df9d2f41a1690170e5986b4b9b1708f710b",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/rf/4rf3/4rf3_validation.xml.gz"
+    },
+    "structures/4RF3/assembly1.cif": {
+      "bytes": 1659645,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "4b12fa540199ba60a8793f0d5f1e396ca2d386658c70ed7475fb5653df8add4d",
+      "source_url": "https://files.rcsb.org/download/4RF3-assembly1.cif"
+    },
+    "structures/4RF3/assembly1.json": {
+      "bytes": 3811,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "760fdb7d05223df8ca9824bd13efb8d95a4fe1f1ab3f3680aab5747d6c989cb4",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF3/1"
+    },
+    "structures/4RF3/audit_metadata.json": {
+      "bytes": 14075,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "47ec8b1a977d72cfb282a1113d0cd909890461268059d4c756e1da256edb03b3"
+    },
+    "structures/4RF3/entry.json": {
+      "bytes": 21898,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "e4ad1ac2908139dbcfc41e547e149803ba68fd9f35106e260227af4184a1b8c1",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/4RF3"
+    },
+    "structures/4RF3/polymer_entity_1.json": {
+      "bytes": 16865,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "623591b53c6dbe0cbb339afc25a123e84d3580a83c9ab3db3ab73752e73e8bbc",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF3/1"
+    },
+    "structures/4RF4/4RF4.cif": {
+      "bytes": 750893,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "2c2926c9334d467ead327e9db9d74581e11e7be8c465a69e560c047425b36914",
+      "source_url": "https://files.rcsb.org/download/4RF4.cif"
+    },
+    "structures/4RF4/4RF4_validation.xml.gz": {
+      "bytes": 21982,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "18dc16175e57c7abb4b513a791af080cdd3e9fa4735bc2dd1acb718d71dc20bc",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/rf/4rf4/4rf4_validation.xml.gz"
+    },
+    "structures/4RF4/assembly1.cif": {
+      "bytes": 1588215,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "c93acd17e32fe2e702da394d470921aa034c69cfb73b07bd9296485a687182f9",
+      "source_url": "https://files.rcsb.org/download/4RF4-assembly1.cif"
+    },
+    "structures/4RF4/assembly1.json": {
+      "bytes": 3832,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b725878243ac004e1ac1b23b1a91e0ce41582df43063a092935ca263cd64d7e4",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF4/1"
+    },
+    "structures/4RF4/audit_metadata.json": {
+      "bytes": 13982,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "8f514955ca5ff70abb9736136447ae594b9b08129584f8d9d49bb1584ba5b5e2"
+    },
+    "structures/4RF4/entry.json": {
+      "bytes": 21549,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "fb13683bae3c6df0cb8a6c81bdee2de4e7531dc1756b84d83cae8f5d08fe53cb",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/4RF4"
+    },
+    "structures/4RF4/polymer_entity_1.json": {
+      "bytes": 16616,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "8153df7aad818c5308d2074c07f3cc24e2e72185e8b3873b2f8d1ba74b7c7cff",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF4/1"
+    },
+    "structures/4RF5/4RF5.cif": {
+      "bytes": 800842,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "4d1f0e0546ce650657912425fbc757c08560ed6b6d1b54bdc474b870a2a60f0e",
+      "source_url": "https://files.rcsb.org/download/4RF5.cif"
+    },
+    "structures/4RF5/4RF5_validation.xml.gz": {
+      "bytes": 24753,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "1f3049fa05d04efdb7299d7b8d191bad28b52d9c59e2d4c5846f71a464ff3c86",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/rf/4rf5/4rf5_validation.xml.gz"
+    },
+    "structures/4RF5/assembly1.cif": {
+      "bytes": 1697932,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "a578575bb080a9d63653fbaecc77b392149adde5fc988f4ecc80760544248279",
+      "source_url": "https://files.rcsb.org/download/4RF5-assembly1.cif"
+    },
+    "structures/4RF5/assembly1.json": {
+      "bytes": 3834,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "f3d25c555c6e3702ed6ee3efcb8a4f7a46b375cc0b36b050cb4e42089b1355e9",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF5/1"
+    },
+    "structures/4RF5/audit_metadata.json": {
+      "bytes": 14074,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "b3c6df7f66c37698d43cc0e4c6969cf5a780f677b0e03d4d5efd3a8062a9d447"
+    },
+    "structures/4RF5/entry.json": {
+      "bytes": 21683,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "efbd4a844542397067bf0a2e90c12fc5b8747b6f67f62bf0324e7e31875ae692",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/4RF5"
+    },
+    "structures/4RF5/polymer_entity_1.json": {
+      "bytes": 16858,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "405920fdea3fd269421abdfa8824d3e543b47840d883cdb1ba47dfefaec66001",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF5/1"
+    },
+    "structures/6XEW/6XEW.cif": {
+      "bytes": 537731,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "249e988380b547603958be0fd21093ab2563a88c43e39335ea783d6cff2d8d3f",
+      "source_url": "https://files.rcsb.org/download/6XEW.cif"
+    },
+    "structures/6XEW/6XEW_validation.xml.gz": {
+      "bytes": 29325,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "5e2697c421b5a51ce9dcf967aa707b9508cfd40a387df9e45edcbe2d90fc6f76",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/xe/6xew/6xew_validation.xml.gz"
+    },
+    "structures/6XEW/assembly1.cif": {
+      "bytes": 1034352,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "4f786b824cc156aca06ae593bcc5ca1056a58bd99113a4a7d67000a557221a5e",
+      "source_url": "https://files.rcsb.org/download/6XEW-assembly1.cif"
+    },
+    "structures/6XEW/assembly1.json": {
+      "bytes": 3956,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b7662ae129aed800788aa0539a76fb3f1c987643870f6909a79b98fd1012fedb",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/6XEW/1"
+    },
+    "structures/6XEW/audit_metadata.json": {
+      "bytes": 26748,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "0101f8aefee3abc5629dad222b9c1ea337dba28a36cd775d3a8ddfc760687040"
+    },
+    "structures/6XEW/entry.json": {
+      "bytes": 14195,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "11143faf2e930f9138b70d47f5cad7aa3b4c9fddf836d8ae99a5cdb907b7a065",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/6XEW"
+    },
+    "structures/6XEW/polymer_entity_1.json": {
+      "bytes": 17061,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "3ad3c92e4d80642685c3da2fecf646de63c01b7125ae5b4a5abe001f71e4409e",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6XEW/1"
+    },
+    "structures/6ZZO/6ZZO.cif": {
+      "bytes": 995428,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "295b2835a7571b1fca038aa2620b8d84ca12d7a2eb0992b0fac77c63b90a2d45",
+      "source_url": "https://files.rcsb.org/download/6ZZO.cif"
+    },
+    "structures/6ZZO/6ZZO_validation.xml.gz": {
+      "bytes": 62563,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "ad0d7c67dbd78dd8b8805fb0f27ee158f550ef59252c8e4ab0e68da6e4d6c09c",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zz/6zzo/6zzo_validation.xml.gz"
+    },
+    "structures/6ZZO/assembly1.cif": {
+      "bytes": 1028467,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "4b37634d49dd80b6813c4ebb59290a76c9881eb965b463cec58ba4e62b430c57",
+      "source_url": "https://files.rcsb.org/download/6ZZO-assembly1.cif"
+    },
+    "structures/6ZZO/assembly1.json": {
+      "bytes": 4246,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "77aafaa8fc3bc66a45ec8d6d5d5b9ac1a1eb11bf0be8080e326d41606d455f35",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZO/1"
+    },
+    "structures/6ZZO/audit_metadata.json": {
+      "bytes": 39098,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "55120a40d023da8db1c571b70e6d6eba7769c2d86dd002214f6d3bbe39d1c6db"
+    },
+    "structures/6ZZO/entry.json": {
+      "bytes": 14160,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "009499936f108740363dcf03f1ae968991f42b1720c7185d38e3ea3ffb59ccc9",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/6ZZO"
+    },
+    "structures/6ZZO/polymer_entity_1.json": {
+      "bytes": 16588,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "136fdfc7b5f8c474c248b277b62e72886fd57e45ec50ca1468bbf3198c15dab6",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZO/1"
+    },
+    "structures/6ZZP/6ZZP.cif": {
+      "bytes": 949811,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "d354d54978f48940afe983df15493f51bb6a95fa02571d5cddc998f700553819",
+      "source_url": "https://files.rcsb.org/download/6ZZP.cif"
+    },
+    "structures/6ZZP/6ZZP_validation.xml.gz": {
+      "bytes": 58716,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "45881b84056e0afa8999e8c047ee8b4569447fa45a66fae15d843126e95680ea",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zz/6zzp/6zzp_validation.xml.gz"
+    },
+    "structures/6ZZP/assembly1.cif": {
+      "bytes": 1033503,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "baf787869d8fd9b9fd78a13c9ea5af50cf96731c49879e998410c9336a1da466",
+      "source_url": "https://files.rcsb.org/download/6ZZP-assembly1.cif"
+    },
+    "structures/6ZZP/assembly1.json": {
+      "bytes": 4255,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "f3adb2631450e80a869d6e8f4a176773b03232a209259fbce796054f2cb6f13a",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZP/1"
+    },
+    "structures/6ZZP/audit_metadata.json": {
+      "bytes": 41444,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "9f05fe15171baf454bd9280e2b188504f6493231464aea2267fbc4c12612dee0"
+    },
+    "structures/6ZZP/entry.json": {
+      "bytes": 14308,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "cd99c57b7c0b16a6088b3e69241aea55f3340d8fc6f86edfae6427036cb9db92",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/6ZZP"
+    },
+    "structures/6ZZP/polymer_entity_1.json": {
+      "bytes": 16588,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "09c9af140830d8317736854d9fa15dfa1f56a8bf580adc300ab4189f5cb64b83",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZP/1"
+    },
+    "structures/6ZZQ/6ZZQ.cif": {
+      "bytes": 270644,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "9f28f019f281f9ef6fc07a8a8d66c9a7cac6d6b99a86fdeb762959755e458e19",
+      "source_url": "https://files.rcsb.org/download/6ZZQ.cif"
+    },
+    "structures/6ZZQ/6ZZQ_validation.xml.gz": {
+      "bytes": 15500,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "8f7b786fe1d1a2f117d507cfd96890033d36de67cf6f66b4eadc6e2ce01fc2bd",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zz/6zzq/6zzq_validation.xml.gz"
+    },
+    "structures/6ZZQ/assembly1.cif": {
+      "bytes": 923570,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "a2cfda7936a8d7323b758fad04a3e3554fbab73b6577ac82c1f0cb5584513102",
+      "source_url": "https://files.rcsb.org/download/6ZZQ-assembly1.cif"
+    },
+    "structures/6ZZQ/assembly1.json": {
+      "bytes": 4630,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "6838c9f28c37f5bb1a225f83a2b51c72279ecd6af3e4fc98b625c62e71d6be4d",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZQ/1"
+    },
+    "structures/6ZZQ/audit_metadata.json": {
+      "bytes": 24814,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "a290c313fe18fdf0397510ff547157bab390c2f472f9005530d6b855475f8e8d"
+    },
+    "structures/6ZZQ/entry.json": {
+      "bytes": 14139,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "5bea8397bf88dfe31464acccc9b5e000aaacf8ca0bc1590c5c3f8814786de800",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/6ZZQ"
+    },
+    "structures/6ZZQ/polymer_entity_1.json": {
+      "bytes": 15965,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "757f03322e2c29e80cc28196415dde6c8f0b1ae64409623aff0b8c0b5e6f29da",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZQ/1"
+    },
+    "structures/6ZZS/6ZZS.cif": {
+      "bytes": 1308508,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "685c29c158d4344e7cc82c3996e3b46fe31da051a521752a5e2e0adf5968c714",
+      "source_url": "https://files.rcsb.org/download/6ZZS.cif"
+    },
+    "structures/6ZZS/6ZZS_validation.xml.gz": {
+      "bytes": 76634,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "bc65a88b2d04717fe72dc971fddba666dfd76102f198ca4ceb4573430e69d04a",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/zz/6zzs/6zzs_validation.xml.gz"
+    },
+    "structures/6ZZS/assembly1.cif": {
+      "bytes": 922247,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "39ce09e44d9e969a6a38ac29ab57f1b5ff355ced3bc500443dae592b20d66df3",
+      "source_url": "https://files.rcsb.org/download/6ZZS-assembly1.cif"
+    },
+    "structures/6ZZS/assembly1.json": {
+      "bytes": 3997,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "fccf3d0f8735a9eb737e805c936d55aa1cde37f0957ff0efe291c5274be2d024",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZS/1"
+    },
+    "structures/6ZZS/audit_metadata.json": {
+      "bytes": 70470,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "d69e3ebb6874437ae6c503caf2247c85bb97d337c1c9ab33041b84cdb5001673"
+    },
+    "structures/6ZZS/entry.json": {
+      "bytes": 14658,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "d1ba1eb7a49117eecc5580cf58a5382c87127305f83f06715e3f6d1ac12de6f9",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/6ZZS"
+    },
+    "structures/6ZZS/polymer_entity_1.json": {
+      "bytes": 17170,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "fa4ac98871e7e1045edb7a59ef488bd680fe55a9d2c18e482de57b60127f6c12",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZS/1"
+    },
+    "structures/7UTC/7UTC.cif": {
+      "bytes": 2344746,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "94d189354d2f19417ead3a96cb9a1f22380888ca1ce1bb24c0c59377e2ed59bc",
+      "source_url": "https://files.rcsb.org/download/7UTC.cif"
+    },
+    "structures/7UTC/7UTC_validation.xml.gz": {
+      "bytes": 70183,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "74c79c1a62e82873eadad1a10de43515fdb82011ece3a9f44122202b2ed15f23",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/ut/7utc/7utc_validation.xml.gz"
+    },
+    "structures/7UTC/assembly1.cif": {
+      "bytes": 2437845,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "569aad6c029755967e93087d18292cbc121b278e5d1282f1784d6ff0bfab8453",
+      "source_url": "https://files.rcsb.org/download/7UTC-assembly1.cif"
+    },
+    "structures/7UTC/assembly1.json": {
+      "bytes": 3800,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b8c15fbdaf498c92d62cf8e04c786fcf798f0001eabce9337f6cc473eae3bfde",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/7UTC/1"
+    },
+    "structures/7UTC/audit_metadata.json": {
+      "bytes": 98507,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "2e4051ca4e623d00cdd754e1aaedf91354ee3953fd3ef2540f5809afbf975de8"
+    },
+    "structures/7UTC/entry.json": {
+      "bytes": 14596,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "0981ab9d445423e53ecf53ea432ea5b7ad5e0f3e2365678d923eec46b1cbfd3e",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/7UTC"
+    },
+    "structures/7UTC/polymer_entity_1.json": {
+      "bytes": 18648,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "bf3414b581221c091d2ac0d562a2fb569915fc7d954a50eb504749488acd2086",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/7UTC/1"
+    },
+    "structures/7UUT/7UUT.cif": {
+      "bytes": 2336082,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "91aed5a2f6dd99c6e663d77825251b4a8be6dca2249516ac1380490280ed6d45",
+      "source_url": "https://files.rcsb.org/download/7UUT.cif"
+    },
+    "structures/7UUT/7UUT_validation.xml.gz": {
+      "bytes": 68985,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "8629c1c7fdafe2cefcbfa08aa1fb1550b7f6d646340c63211a7965820bae5704",
+      "source_url": "https://files.rcsb.org/pub/pdb/validation_reports/uu/7uut/7uut_validation.xml.gz"
+    },
+    "structures/7UUT/assembly1.cif": {
+      "bytes": 2404531,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "036235f159e83b2fa0a84582d00b77b3c2219697830f2caac0b08b6e9e265871",
+      "source_url": "https://files.rcsb.org/download/7UUT-assembly1.cif"
+    },
+    "structures/7UUT/assembly1.json": {
+      "bytes": 3654,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "46458eea681f114ab48341e427d7478df9427b652f38d2d3e20cb7c033bba6f0",
+      "source_url": "https://data.rcsb.org/rest/v1/core/assembly/7UUT/1"
+    },
+    "structures/7UUT/audit_metadata.json": {
+      "bytes": 89651,
+      "disposition": "committed",
+      "kind": "curated_or_supporting_artifact",
+      "sha256": "a047cadf94ae5daad0de8160f988e86293c4079356e2c34d00bb4a3115aae824"
+    },
+    "structures/7UUT/entry.json": {
+      "bytes": 14362,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "03d38149df6dc8d2369591177c8a976fe274b0e6fe5ac899207bb62283a7e1b0",
+      "source_url": "https://data.rcsb.org/rest/v1/core/entry/7UUT"
+    },
+    "structures/7UUT/polymer_entity_1.json": {
+      "bytes": 18620,
+      "disposition": "pinned",
+      "kind": "upstream_original",
+      "sha256": "b11cbd3b01a1a6f69c55061c4ec5113f14e35898ae6d969ed4eae4e60c2fd204",
+      "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/7UUT/1"
+    }
+  },
+  "note": "committed and committed_upstream members are in this directory; pinned members are not committed and are re-fetchable from their source_url, with the hash here the one this ingest read. See ARCHIVE.md."
+}

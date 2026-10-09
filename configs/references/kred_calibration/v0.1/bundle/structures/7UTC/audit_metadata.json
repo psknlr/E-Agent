@@ -1,0 +1,3809 @@
+{
+  "pdb_id": "7UTC",
+  "files": [
+    {
+      "url": "https://files.rcsb.org/download/7UTC.cif",
+      "path": "structures/7UTC/7UTC.cif",
+      "sha256": "94d189354d2f19417ead3a96cb9a1f22380888ca1ce1bb24c0c59377e2ed59bc",
+      "bytes": 2344746
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/entry/7UTC",
+      "path": "structures/7UTC/entry.json",
+      "sha256": "0981ab9d445423e53ecf53ea432ea5b7ad5e0f3e2365678d923eec46b1cbfd3e",
+      "bytes": 14596
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/polymer_entity/7UTC/1",
+      "path": "structures/7UTC/polymer_entity_1.json",
+      "sha256": "bf3414b581221c091d2ac0d562a2fb569915fc7d954a50eb504749488acd2086",
+      "bytes": 18648
+    },
+    {
+      "url": "https://files.rcsb.org/pub/pdb/validation_reports/ut/7utc/7utc_validation.xml.gz",
+      "path": "structures/7UTC/7UTC_validation.xml.gz",
+      "sha256": "74c79c1a62e82873eadad1a10de43515fdb82011ece3a9f44122202b2ed15f23",
+      "bytes": 70183
+    }
+  ],
+  "errors": [],
+  "title": "Crystal structure of secondary alcohol dehydrogenases from the Thermoanaerobacter ethanolicus with NADP and transition-state analogue inhibitor DMSO",
+  "resolution_A": [
+    1.85
+  ],
+  "method": [
+    {
+      "crystals_number": 1,
+      "method": "X-RAY DIFFRACTION"
+    }
+  ],
+  "refine": [
+    {
+      "B_iso_mean": 45.42,
+      "ls_R_factor_R_free": 0.2265,
+      "ls_R_factor_R_work": 0.1783,
+      "ls_R_factor_obs": 0.1798,
+      "ls_d_res_high": 1.85,
+      "ls_d_res_low": 67.26,
+      "ls_number_reflns_R_free": 1999,
+      "ls_number_reflns_R_work": 65416,
+      "ls_number_reflns_obs": 67415,
+      "ls_percent_reflns_R_free": 2.97,
+      "ls_percent_reflns_obs": 56.95,
+      "overall_SU_ML": 0.2588,
+      "pdbx_diffrn_id": [
+        "1"
+      ],
+      "pdbx_ls_cross_valid_method": "FREE R-VALUE",
+      "pdbx_ls_sigma_F": 1.34,
+      "pdbx_method_to_determine_struct": "MOLECULAR REPLACEMENT",
+      "pdbx_overall_phase_error": 31.3219,
+      "pdbx_refine_id": "X-RAY DIFFRACTION",
+      "pdbx_solvent_shrinkage_radii": 0.9,
+      "pdbx_solvent_vdw_probe_radii": 1.11,
+      "pdbx_starting_model": "1YKF",
+      "pdbx_stereochemistry_target_values": "GeoStd + Monomer Library + CDL v1.2",
+      "solvent_model_details": "FLAT BULK SOLVENT MODEL"
+    }
+  ],
+  "citation": {
+    "country": "US",
+    "id": "primary",
+    "journal_abbrev": "Proteins",
+    "journal_id_ASTM": "PSFGEY",
+    "journal_id_CSD": "0867",
+    "journal_id_ISSN": "1097-0134",
+    "journal_volume": "90",
+    "page_first": "1570",
+    "page_last": "1583",
+    "pdbx_database_id_DOI": "10.1002/prot.26339",
+    "pdbx_database_id_PubMed": 35357038,
+    "rcsb_ORCID_identifiers": [
+      "?",
+      "?",
+      "?"
+    ],
+    "rcsb_authors": [
+      "Dinh, T.",
+      "Rahn, K.T.",
+      "Phillips, R.S."
+    ],
+    "rcsb_journal_abbrev": "Proteins",
+    "title": "Crystallographic snapshots of ternary complexes of thermophilic secondary alcohol dehydrogenase from Thermoanaerobacter pseudoethanolicus reveal the dynamics of ligand exchange and the proton relay network.",
+    "year": 2022
+  },
+  "nonpolymer_ids": [
+    "2",
+    "3",
+    "4"
+  ],
+  "protein_sequence": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAITPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLAPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+  "sequence_sha256": "a1a486e317f2c91e79e8ba172eecd9639fc3196408b3f1a75f4db9258e29ffe1",
+  "sequence_length": 352,
+  "entity_poly": {
+    "nstd_linkage": "no",
+    "nstd_monomer": "no",
+    "pdbx_seq_one_letter_code": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAITPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLAPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+    "pdbx_seq_one_letter_code_can": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAITPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLAPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+    "pdbx_strand_id": "A,B,C,D",
+    "rcsb_artifact_monomer_count": 0,
+    "rcsb_conflict_count": 0,
+    "rcsb_deletion_count": 0,
+    "rcsb_entity_polymer_type": "Protein",
+    "rcsb_insertion_count": 0,
+    "rcsb_mutation_count": 1,
+    "rcsb_non_std_monomer_count": 0,
+    "rcsb_sample_sequence_length": 352,
+    "type": "polypeptide(L)"
+  },
+  "polymer_entity": {
+    "formula_weight": 37.663,
+    "pdbx_description": "Secondary-alcohol dehydrogenase",
+    "pdbx_ec": "1.1.1.80",
+    "pdbx_mutation": "C295A",
+    "pdbx_number_of_molecules": 4,
+    "rcsb_multiple_source_flag": "N",
+    "rcsb_source_part_count": 1,
+    "rcsb_source_taxonomy_count": 1,
+    "src_method": "man",
+    "rcsb_ec_lineage": [
+      {
+        "depth": 1,
+        "id": "1",
+        "name": "Oxidoreductases"
+      },
+      {
+        "depth": 2,
+        "id": "1.1",
+        "name": "Acting on the CH-OH group of donors"
+      },
+      {
+        "depth": 3,
+        "id": "1.1.1",
+        "name": "With NAD+ or NADP+ as acceptor"
+      },
+      {
+        "depth": 4,
+        "id": "1.1.1.80",
+        "name": "isopropanol dehydrogenase (NADP+)"
+      }
+    ],
+    "rcsb_macromolecular_names_combined": [
+      {
+        "name": "Secondary-alcohol dehydrogenase",
+        "provenance_code": "ECO:0000304",
+        "provenance_source": "PDB Preferred Name"
+      }
+    ],
+    "rcsb_enzyme_class_combined": [
+      {
+        "depth": 4,
+        "ec": "1.1.1.80",
+        "provenance_source": "PDB Primary Data"
+      }
+    ],
+    "rcsb_polymer_name_combined": {
+      "names": [
+        "NADP-dependent isopropanol dehydrogenase"
+      ],
+      "provenance_source": "UniProt Name"
+    }
+  },
+  "organism": [
+    {
+      "beg_seq_num": 1,
+      "end_seq_num": 352,
+      "ncbi_parent_scientific_name": "Bacteria",
+      "ncbi_scientific_name": "Thermoanaerobacter pseudethanolicus",
+      "ncbi_taxonomy_id": 496866,
+      "pdbx_src_id": 1,
+      "provenance_source": "Primary Data",
+      "scientific_name": "Thermoanaerobacter pseudethanolicus",
+      "source_type": "genetically engineered",
+      "taxonomy_lineage": [
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "cellular organisms"
+        },
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "biota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria (ex Cavalier-Smith 1987)"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria Woese et al. 2024"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteriobiota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "eubacteria"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Bacillati"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmacutes"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicuteota"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicutes"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicutes corrig. Gibbons and Murray 1978 (Approved Lists 1980)"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacteria"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacteria group"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacterida"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillota"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillaeota"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillota corrig. Gibbons and Murray 2021"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillus/Clostridium group"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Clostridium group firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Low G+C firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "clostridial firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "low G+C Gram-positive bacteria"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "low GC Gram+"
+        },
+        {
+          "depth": 5,
+          "id": "186801",
+          "name": "Clostridia"
+        },
+        {
+          "depth": 6,
+          "id": "68295",
+          "name": "Thermoanaerobacterales"
+        },
+        {
+          "depth": 6,
+          "id": "68295",
+          "name": "Thermoanaerobacter group"
+        },
+        {
+          "depth": 6,
+          "id": "68295",
+          "name": "cluster V"
+        },
+        {
+          "depth": 7,
+          "id": "186814",
+          "name": "Thermoanaerobacteraceae"
+        },
+        {
+          "depth": 8,
+          "id": "1754",
+          "name": "Thermoanaerobacter"
+        },
+        {
+          "depth": 8,
+          "id": "1754",
+          "name": "Acetigenium"
+        },
+        {
+          "depth": 8,
+          "id": "1754",
+          "name": "Acetogenium"
+        },
+        {
+          "depth": 8,
+          "id": "1754",
+          "name": "Clostridium cluster V"
+        },
+        {
+          "depth": 8,
+          "id": "1754",
+          "name": "Thermoanaerobacter Wiegel and Ljungdahl 1982"
+        },
+        {
+          "depth": 8,
+          "id": "1754",
+          "name": "Thermoanaerobium"
+        },
+        {
+          "depth": 8,
+          "id": "1754",
+          "name": "Thermobacteroides Ben-Bassat and Zeikus 1983"
+        },
+        {
+          "depth": 9,
+          "id": "496866",
+          "name": "Thermoanaerobacter pseudethanolicus"
+        }
+      ]
+    }
+  ],
+  "uniprot_ids": [
+    "P14941"
+  ],
+  "validation_entry": {
+    "percentilebins": "all,1.85,xray",
+    "attemptedValidationSteps": "molprobity,validation-pack,xtriage,eds,mogul,buster-report,percentiles,writexml",
+    "PDB-deposition-date": "2022-04-26",
+    "PDB-revision-date": "2023-10-18",
+    "PDB-revision-number": "5",
+    "protein-DNA-RNA-entities": "1",
+    "PDB-resolution": "1.85",
+    "PDB-resolution-low": "67.26",
+    "PDB-R": "0.1783",
+    "PDB-Rfree": "0.2265",
+    "pdbid": "7UTC",
+    "extended_pdbid": "7UTC",
+    "num-H-reduce": "11138",
+    "clashscore": "4.08",
+    "RestypesNotcheckedForBondAngleGeometry": "ZN,NAP,DMS",
+    "percent-rama-outliers": "0.00",
+    "percent-rota-outliers": "0.27",
+    "bonds_rmsz": "0.20",
+    "num_bonds_rmsz": "10863",
+    "angles_rmsz": "0.39",
+    "num_angles_rmsz": "14697",
+    "IoverSigma": "3.86(1.84A)",
+    "TransNCS": "The largest off-origin peak in the Patterson function is 16.95% of the height of the origin peak. No significant pseudotranslation is detected.",
+    "DataAnisotropy": "0.067",
+    "centric_outliers": "0",
+    "acentric_outliers": "1",
+    "WilsonBestimate": "30.355",
+    "TwinL2": "0.325",
+    "TwinL": "0.493",
+    "numMillerIndices": "67416",
+    "WilsonBaniso": "[30.314,30.445,32.394,0.000,0.000,0.000]",
+    "xtriage_input_columns": "F_meas_au,F_meas_sigma_au",
+    "num-free-reflections": "2000",
+    "percent-RSRZ-outliers": "1.99",
+    "bulk_solvent_k": "0.331",
+    "B_factor_type": "FULL",
+    "ligands-for-buster-report": "yes",
+    "EDS_resolution": "1.85",
+    "CCP4version": "9.0.010 (Gargrove)",
+    "DataCompleteness": "57.20",
+    "DCC_refinement_program": "PHENIX",
+    "Fo_Fc_correlation": "0.965",
+    "density-fitnessVersion": "1.0.12",
+    "DCC_R": "0.1793",
+    "bulk_solvent_b": "47.237",
+    "percent-free-reflections": "1.69",
+    "DCC_Rfree": "0.2257",
+    "EDS_R": "0.1811",
+    "EDS_resolution_low": "67.26",
+    "absolute-percentile-clashscore": "62.0",
+    "numPDBids-absolute-percentile-clashscore": "190562",
+    "relative-percentile-clashscore": "51.5",
+    "numPDBids-relative-percentile-clashscore": "3579",
+    "low-resol-relative-percentile-clashscore": "1.86",
+    "high-resol-relative-percentile-clashscore": "1.86",
+    "absolute-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-absolute-percentile-percent-rama-outliers": "187476",
+    "relative-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-relative-percentile-percent-rama-outliers": "3553",
+    "low-resol-relative-percentile-percent-rama-outliers": "1.86",
+    "high-resol-relative-percentile-percent-rama-outliers": "1.86",
+    "absolute-percentile-percent-rota-outliers": "85.9",
+    "numPDBids-absolute-percentile-percent-rota-outliers": "187428",
+    "relative-percentile-percent-rota-outliers": "84.5",
+    "numPDBids-relative-percentile-percent-rota-outliers": "3553",
+    "low-resol-relative-percentile-percent-rota-outliers": "1.86",
+    "high-resol-relative-percentile-percent-rota-outliers": "1.86",
+    "absolute-percentile-percent-RSRZ-outliers": "64.7",
+    "numPDBids-absolute-percentile-percent-RSRZ-outliers": "180081",
+    "relative-percentile-percent-RSRZ-outliers": "68.5",
+    "numPDBids-relative-percentile-percent-RSRZ-outliers": "3429",
+    "low-resol-relative-percentile-percent-RSRZ-outliers": "1.86",
+    "high-resol-relative-percentile-percent-RSRZ-outliers": "1.86",
+    "absolute-percentile-DCC_Rfree": "58.4",
+    "numPDBids-absolute-percentile-DCC_Rfree": "180053",
+    "relative-percentile-DCC_Rfree": "44.9",
+    "numPDBids-relative-percentile-DCC_Rfree": "3428",
+    "low-resol-relative-percentile-DCC_Rfree": "1.86",
+    "high-resol-relative-percentile-DCC_Rfree": "1.86",
+    "XMLcreationDate": "Mar  6, 2026 -- 07:05 PM UTC"
+  },
+  "ligand_validation": [
+    {
+      "num-H-reduce": "24",
+      "rsr": "0.154",
+      "owab": "54.230",
+      "mogul_rmsz_numbonds": "50",
+      "mogul_rmsz_numangles": "71",
+      "mogul_angles_rmsz": "1.83",
+      "EDIAm": "0.128",
+      "OPIA": "12.500",
+      "NatomsEDS": "48",
+      "rscc": "0.741",
+      "mogul_bonds_rmsz": "4.18",
+      "avgoccu": "0.770",
+      "model": "1",
+      "chain": "A",
+      "resnum": "402",
+      "said": "F",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAP",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H6N",
+            "dist": "1.58",
+            "clashmag": "0.44",
+            "cid": "45"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H2D",
+            "dist": "1.58",
+            "clashmag": "0.44",
+            "cid": "45"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "O2A",
+            "dist": "2.17",
+            "clashmag": "0.44",
+            "cid": "46"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O5B",
+            "numobs": "40",
+            "mean": "1.59",
+            "stdev": "0.04",
+            "mindiff": "0.00",
+            "Zscore": "2.73",
+            "obsval": "1.70"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.04",
+            "Zscore": "6.42",
+            "obsval": "1.66"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.01",
+            "Zscore": "-6.20",
+            "obsval": "1.31"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C1B",
+            "numobs": "2070",
+            "mean": "1.42",
+            "stdev": "0.02",
+            "mindiff": "0.03",
+            "Zscore": "8.12",
+            "obsval": "1.60"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3B,C3B",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.44",
+            "obsval": "1.36"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2B,C2B",
+            "numobs": "361",
+            "mean": "1.44",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "2.04",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2B,C1B",
+            "numobs": "617",
+            "mean": "1.53",
+            "stdev": "0.02",
+            "mindiff": "0.05",
+            "Zscore": "-9.06",
+            "obsval": "1.30"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "P2B,O2B",
+            "numobs": "34",
+            "mean": "1.59",
+            "stdev": "0.02",
+            "mindiff": "0.04",
+            "Zscore": "4.25",
+            "obsval": "1.67"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A",
+            "numobs": "1573",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.09",
+            "obsval": "1.35"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A",
+            "numobs": "1310",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.66",
+            "obsval": "1.34"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C6A,N6A",
+            "numobs": "2693",
+            "mean": "1.34",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "7.37",
+            "obsval": "1.53"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2A,N1A",
+            "numobs": "4371",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "2.22",
+            "obsval": "1.37"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PN,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.06",
+            "Zscore": "7.76",
+            "obsval": "1.67"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C4D",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-5.82",
+            "obsval": "1.32"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D",
+            "numobs": "25",
+            "mean": "1.40",
+            "stdev": "0.01",
+            "mindiff": "0.18",
+            "Zscore": "16.12",
+            "obsval": "1.62"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3D,C3D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.99",
+            "obsval": "1.35"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2D,C2D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "3.48",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.01",
+            "Zscore": "2.79",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N",
+            "numobs": "2600",
+            "mean": "1.50",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "5.41",
+            "obsval": "1.58"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C7N,N7N",
+            "numobs": "3292",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "9.66",
+            "obsval": "1.50"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "63.20",
+            "stdev": "14.06",
+            "mindiff": "36.63",
+            "local_density": "0.00",
+            "obsval": "-82.27"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "62.67",
+            "stdev": "14.66",
+            "mindiff": "25.20",
+            "local_density": "0.00",
+            "obsval": "97.62"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C2N",
+            "numobs": "33",
+            "mean": "72.84",
+            "stdev": "20.91",
+            "mindiff": "36.12",
+            "local_density": "0.00",
+            "obsval": "159.35"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C6N",
+            "numobs": "33",
+            "mean": "66.71",
+            "stdev": "17.62",
+            "mindiff": "17.18",
+            "local_density": "0.00",
+            "obsval": "-20.76"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C1B,N9A,C8A",
+            "numobs": "255",
+            "mean": "127.09",
+            "stdev": "2.22",
+            "mindiff": "0.82",
+            "Zscore": "3.45",
+            "obsval": "134.75"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C1B",
+            "numobs": "275",
+            "mean": "126.63",
+            "stdev": "2.34",
+            "mindiff": "3.16",
+            "Zscore": "-4.24",
+            "obsval": "116.71"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C8A",
+            "numobs": "505",
+            "mean": "105.74",
+            "stdev": "1.05",
+            "mindiff": "0.02",
+            "Zscore": "2.67",
+            "obsval": "108.54"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N9A,C8A,N7A",
+            "numobs": "576",
+            "mean": "113.94",
+            "stdev": "1.42",
+            "mindiff": "0.12",
+            "Zscore": "-4.45",
+            "obsval": "107.63"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A,C8A",
+            "numobs": "1264",
+            "mean": "103.45",
+            "stdev": "1.57",
+            "mindiff": "0.10",
+            "Zscore": "2.92",
+            "obsval": "108.04"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,C5A,N7A",
+            "numobs": "1093",
+            "mean": "110.58",
+            "stdev": "1.14",
+            "mindiff": "0.06",
+            "Zscore": "-2.21",
+            "obsval": "108.06"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C6A,N6A",
+            "numobs": "778",
+            "mean": "123.29",
+            "stdev": "2.48",
+            "mindiff": "0.51",
+            "Zscore": "3.65",
+            "obsval": "132.32"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N6A,C6A,N1A",
+            "numobs": "1343",
+            "mean": "118.38",
+            "stdev": "2.23",
+            "mindiff": "1.05",
+            "Zscore": "-4.84",
+            "obsval": "107.59"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C2A,N1A",
+            "numobs": "1995",
+            "mean": "128.58",
+            "stdev": "1.51",
+            "mindiff": "0.12",
+            "Zscore": "-5.86",
+            "obsval": "119.71"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C2A,N3A,C4A",
+            "numobs": "1292",
+            "mean": "111.83",
+            "stdev": "2.44",
+            "mindiff": "0.18",
+            "Zscore": "3.42",
+            "obsval": "120.17"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C4A,N9A",
+            "numobs": "441",
+            "mean": "127.17",
+            "stdev": "1.70",
+            "mindiff": "0.52",
+            "Zscore": "2.77",
+            "obsval": "131.88"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A,N3A",
+            "numobs": "997",
+            "mean": "126.72",
+            "stdev": "1.38",
+            "mindiff": "0.35",
+            "Zscore": "-4.60",
+            "obsval": "120.39"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.04",
+            "Zscore": "-2.16",
+            "obsval": "120.04"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N,N7N",
+            "numobs": "2600",
+            "mean": "117.74",
+            "stdev": "1.23",
+            "mindiff": "0.07",
+            "Zscore": "2.31",
+            "obsval": "120.58"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O7N,C7N,N7N",
+            "numobs": "3292",
+            "mean": "122.62",
+            "stdev": "1.44",
+            "mindiff": "0.00",
+            "Zscore": "-2.65",
+            "obsval": "118.79"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.088",
+      "owab": "35.310",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.54",
+      "EDIAm": "0.408",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.957",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "0.850",
+      "model": "1",
+      "chain": "A",
+      "resnum": "403",
+      "said": "G",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.111",
+      "owab": "54.180",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.56",
+      "EDIAm": "0.241",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.921",
+      "mogul_bonds_rmsz": "0.67",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "A",
+      "resnum": "404",
+      "said": "H",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "rsr": "0.147",
+      "owab": "47.910",
+      "mogul_rmsz_numbonds": "3",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.72",
+      "EDIAm": "0.258",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.916",
+      "mogul_bonds_rmsz": "0.66",
+      "avgoccu": "0.770",
+      "model": "1",
+      "chain": "A",
+      "resnum": "405",
+      "said": "I",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H12",
+            "dist": "2.46",
+            "clashmag": "0.51",
+            "cid": "5"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H23",
+            "dist": "2.54",
+            "clashmag": "0.42",
+            "cid": "7"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.133",
+      "owab": "65.720",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.53",
+      "EDIAm": "0.208",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.874",
+      "mogul_bonds_rmsz": "0.68",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "A",
+      "resnum": "406",
+      "said": "J",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.129",
+      "owab": "58.060",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.80",
+      "EDIAm": "0.391",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.884",
+      "mogul_bonds_rmsz": "0.70",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "A",
+      "resnum": "407",
+      "said": "K",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "rsr": "0.174",
+      "owab": "83.740",
+      "mogul_rmsz_numbonds": "3",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.66",
+      "EDIAm": "0.237",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.847",
+      "mogul_bonds_rmsz": "0.64",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "A",
+      "resnum": "408",
+      "said": "L",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H22",
+            "dist": "1.93",
+            "clashmag": "0.50",
+            "cid": "20"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.154",
+      "owab": "65.110",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.70",
+      "EDIAm": "0.318",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.850",
+      "mogul_bonds_rmsz": "0.68",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "A",
+      "resnum": "409",
+      "said": "M",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "rsr": "0.145",
+      "owab": "59.290",
+      "mogul_rmsz_numbonds": "3",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.64",
+      "EDIAm": "0.330",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.806",
+      "mogul_bonds_rmsz": "0.67",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "A",
+      "resnum": "410",
+      "said": "N",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H13",
+            "dist": "2.17",
+            "clashmag": "0.45",
+            "cid": "44"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.124",
+      "owab": "60.680",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.63",
+      "EDIAm": "0.284",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.929",
+      "mogul_bonds_rmsz": "0.68",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "A",
+      "resnum": "411",
+      "said": "O",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "24",
+      "rsr": "0.136",
+      "owab": "49.030",
+      "mogul_rmsz_numbonds": "50",
+      "mogul_rmsz_numangles": "71",
+      "mogul_angles_rmsz": "1.85",
+      "EDIAm": "0.159",
+      "OPIA": "14.580",
+      "NatomsEDS": "48",
+      "rscc": "0.812",
+      "mogul_bonds_rmsz": "4.21",
+      "avgoccu": "0.780",
+      "model": "1",
+      "chain": "B",
+      "resnum": "402",
+      "said": "Q",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAP",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H6N",
+            "dist": "1.57",
+            "clashmag": "0.46",
+            "cid": "39"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H2D",
+            "dist": "1.57",
+            "clashmag": "0.46",
+            "cid": "39"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O5B",
+            "numobs": "40",
+            "mean": "1.59",
+            "stdev": "0.04",
+            "mindiff": "0.01",
+            "Zscore": "2.94",
+            "obsval": "1.70"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.05",
+            "Zscore": "6.54",
+            "obsval": "1.66"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-5.83",
+            "obsval": "1.32"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C1B",
+            "numobs": "2070",
+            "mean": "1.42",
+            "stdev": "0.02",
+            "mindiff": "0.02",
+            "Zscore": "8.26",
+            "obsval": "1.61"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3B,C3B",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.37",
+            "obsval": "1.37"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2B,C2B",
+            "numobs": "361",
+            "mean": "1.44",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "2.02",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2B,C1B",
+            "numobs": "617",
+            "mean": "1.53",
+            "stdev": "0.02",
+            "mindiff": "0.05",
+            "Zscore": "-8.99",
+            "obsval": "1.31"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "P2B,O2B",
+            "numobs": "34",
+            "mean": "1.59",
+            "stdev": "0.02",
+            "mindiff": "0.04",
+            "Zscore": "4.20",
+            "obsval": "1.66"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A",
+            "numobs": "1573",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.05",
+            "obsval": "1.35"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A",
+            "numobs": "1310",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.33",
+            "obsval": "1.34"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C6A,N6A",
+            "numobs": "2693",
+            "mean": "1.34",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "7.42",
+            "obsval": "1.53"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2A,N1A",
+            "numobs": "4371",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "2.26",
+            "obsval": "1.37"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PN,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.06",
+            "Zscore": "8.20",
+            "obsval": "1.68"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C4D",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-5.60",
+            "obsval": "1.32"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D",
+            "numobs": "25",
+            "mean": "1.40",
+            "stdev": "0.01",
+            "mindiff": "0.19",
+            "Zscore": "16.47",
+            "obsval": "1.62"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3D,C3D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.91",
+            "obsval": "1.35"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2D,C2D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "3.48",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.02",
+            "Zscore": "2.70",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N",
+            "numobs": "2600",
+            "mean": "1.50",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "5.50",
+            "obsval": "1.58"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C7N,N7N",
+            "numobs": "3292",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "9.48",
+            "obsval": "1.50"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C3B,C2B,O2B,P2B",
+            "numobs": "379",
+            "mean": "47.04",
+            "stdev": "18.97",
+            "mindiff": "3.19",
+            "local_density": "1.85",
+            "obsval": "-75.94"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C1B,C2B,O2B,P2B",
+            "numobs": "385",
+            "mean": "47.85",
+            "stdev": "19.30",
+            "mindiff": "1.49",
+            "local_density": "2.08",
+            "obsval": "170.91"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4B,C1B,N9A,C8A",
+            "numobs": "389",
+            "mean": "45.22",
+            "stdev": "20.07",
+            "mindiff": "0.26",
+            "local_density": "4.63",
+            "obsval": "88.56"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2B,C1B,N9A,C8A",
+            "numobs": "378",
+            "mean": "57.32",
+            "stdev": "27.25",
+            "mindiff": "1.11",
+            "local_density": "2.12",
+            "obsval": "-28.16"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C4D,C5D,O5D",
+            "numobs": "522",
+            "mean": "24.89",
+            "stdev": "17.51",
+            "mindiff": "1.54",
+            "local_density": "4.60",
+            "obsval": "-85.91"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C3D,C4D,C5D,O5D",
+            "numobs": "522",
+            "mean": "37.77",
+            "stdev": "39.60",
+            "mindiff": "0.44",
+            "local_density": "3.83",
+            "obsval": "31.71"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "63.32",
+            "stdev": "16.13",
+            "mindiff": "33.09",
+            "local_density": "0.00",
+            "obsval": "-78.73"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "62.53",
+            "stdev": "17.17",
+            "mindiff": "21.28",
+            "local_density": "0.00",
+            "obsval": "101.55"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C2N",
+            "numobs": "33",
+            "mean": "76.46",
+            "stdev": "20.91",
+            "mindiff": "39.74",
+            "local_density": "0.00",
+            "obsval": "162.98"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C6N",
+            "numobs": "33",
+            "mean": "70.48",
+            "stdev": "18.37",
+            "mindiff": "13.17",
+            "local_density": "0.00",
+            "obsval": "-16.74"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C1B,N9A,C8A",
+            "numobs": "255",
+            "mean": "127.09",
+            "stdev": "2.22",
+            "mindiff": "0.52",
+            "Zscore": "3.31",
+            "obsval": "134.45"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C1B",
+            "numobs": "275",
+            "mean": "126.63",
+            "stdev": "2.34",
+            "mindiff": "2.11",
+            "Zscore": "-3.79",
+            "obsval": "117.76"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N9A,C8A,N7A",
+            "numobs": "576",
+            "mean": "113.94",
+            "stdev": "1.42",
+            "mindiff": "0.10",
+            "Zscore": "-4.04",
+            "obsval": "108.20"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A,C8A",
+            "numobs": "1264",
+            "mean": "103.45",
+            "stdev": "1.57",
+            "mindiff": "0.07",
+            "Zscore": "2.90",
+            "obsval": "108.00"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,C5A,N7A",
+            "numobs": "1093",
+            "mean": "110.58",
+            "stdev": "1.14",
+            "mindiff": "0.02",
+            "Zscore": "-2.46",
+            "obsval": "107.76"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C6A,N6A",
+            "numobs": "778",
+            "mean": "123.29",
+            "stdev": "2.48",
+            "mindiff": "0.05",
+            "Zscore": "3.96",
+            "obsval": "133.10"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N6A,C6A,N1A",
+            "numobs": "1343",
+            "mean": "118.38",
+            "stdev": "2.23",
+            "mindiff": "0.37",
+            "Zscore": "-5.15",
+            "obsval": "106.91"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C2A,N1A",
+            "numobs": "1995",
+            "mean": "128.58",
+            "stdev": "1.51",
+            "mindiff": "0.05",
+            "Zscore": "-5.60",
+            "obsval": "120.11"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C2A,N3A,C4A",
+            "numobs": "1292",
+            "mean": "111.83",
+            "stdev": "2.44",
+            "mindiff": "0.21",
+            "Zscore": "3.43",
+            "obsval": "120.20"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A,N9A",
+            "numobs": "491",
+            "mean": "105.81",
+            "stdev": "1.09",
+            "mindiff": "0.02",
+            "Zscore": "2.23",
+            "obsval": "108.24"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C4A,N9A",
+            "numobs": "441",
+            "mean": "127.17",
+            "stdev": "1.70",
+            "mindiff": "0.59",
+            "Zscore": "2.73",
+            "obsval": "131.81"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A,N3A",
+            "numobs": "997",
+            "mean": "126.72",
+            "stdev": "1.38",
+            "mindiff": "0.06",
+            "Zscore": "-4.91",
+            "obsval": "119.95"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4D,O4D,C1D",
+            "numobs": "23",
+            "mean": "109.92",
+            "stdev": "0.92",
+            "mindiff": "0.01",
+            "Zscore": "-2.10",
+            "obsval": "108.00"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.07",
+            "Zscore": "-2.32",
+            "obsval": "119.91"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N,N7N",
+            "numobs": "2600",
+            "mean": "117.74",
+            "stdev": "1.23",
+            "mindiff": "0.05",
+            "Zscore": "2.80",
+            "obsval": "121.19"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O7N,C7N,N7N",
+            "numobs": "3292",
+            "mean": "122.62",
+            "stdev": "1.44",
+            "mindiff": "0.00",
+            "Zscore": "-2.95",
+            "obsval": "118.35"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.065",
+      "owab": "39.110",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.64",
+      "EDIAm": "0.613",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.974",
+      "mogul_bonds_rmsz": "0.64",
+      "avgoccu": "0.960",
+      "model": "1",
+      "chain": "B",
+      "resnum": "403",
+      "said": "R",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.135",
+      "owab": "39.870",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.68",
+      "EDIAm": "0.331",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.914",
+      "mogul_bonds_rmsz": "0.67",
+      "avgoccu": "0.810",
+      "model": "1",
+      "chain": "B",
+      "resnum": "404",
+      "said": "S",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.121",
+      "owab": "44.160",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.75",
+      "EDIAm": "0.554",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.905",
+      "mogul_bonds_rmsz": "0.66",
+      "avgoccu": "0.900",
+      "model": "1",
+      "chain": "B",
+      "resnum": "405",
+      "said": "T",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.122",
+      "owab": "57.200",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.63",
+      "EDIAm": "0.433",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.904",
+      "mogul_bonds_rmsz": "0.68",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "B",
+      "resnum": "406",
+      "said": "U",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.127",
+      "owab": "59.060",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.69",
+      "EDIAm": "0.464",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.872",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "B",
+      "resnum": "407",
+      "said": "V",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.100",
+      "owab": "48.650",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.79",
+      "EDIAm": "0.468",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.915",
+      "mogul_bonds_rmsz": "0.65",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "B",
+      "resnum": "408",
+      "said": "W",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.114",
+      "owab": "56.800",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.60",
+      "EDIAm": "0.523",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.869",
+      "mogul_bonds_rmsz": "0.71",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "B",
+      "resnum": "409",
+      "said": "X",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.141",
+      "owab": "68.790",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.63",
+      "EDIAm": "0.141",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.889",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "B",
+      "resnum": "410",
+      "said": "Y",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "24",
+      "rsr": "0.122",
+      "owab": "34.350",
+      "mogul_rmsz_numbonds": "50",
+      "mogul_rmsz_numangles": "71",
+      "mogul_angles_rmsz": "1.86",
+      "EDIAm": "0.424",
+      "OPIA": "25.000",
+      "NatomsEDS": "48",
+      "rscc": "0.872",
+      "mogul_bonds_rmsz": "4.21",
+      "avgoccu": "0.760",
+      "model": "1",
+      "chain": "C",
+      "resnum": "402",
+      "said": "AA",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAP",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H1D",
+            "dist": "1.98",
+            "clashmag": "0.46",
+            "cid": "36"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H6N",
+            "dist": "1.58",
+            "clashmag": "0.45",
+            "cid": "37"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H2D",
+            "dist": "1.58",
+            "clashmag": "0.45",
+            "cid": "37"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H51N",
+            "dist": "2.02",
+            "clashmag": "0.42",
+            "cid": "38"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O5B",
+            "numobs": "40",
+            "mean": "1.59",
+            "stdev": "0.04",
+            "mindiff": "0.00",
+            "Zscore": "2.74",
+            "obsval": "1.70"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.05",
+            "Zscore": "6.75",
+            "obsval": "1.66"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-6.03",
+            "obsval": "1.31"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C1B",
+            "numobs": "2070",
+            "mean": "1.42",
+            "stdev": "0.02",
+            "mindiff": "0.03",
+            "Zscore": "8.14",
+            "obsval": "1.60"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3B,C3B",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.33",
+            "obsval": "1.37"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2B,C2B",
+            "numobs": "361",
+            "mean": "1.44",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "2.09",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2B,C1B",
+            "numobs": "617",
+            "mean": "1.53",
+            "stdev": "0.02",
+            "mindiff": "0.05",
+            "Zscore": "-8.96",
+            "obsval": "1.31"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "P2B,O2B",
+            "numobs": "34",
+            "mean": "1.59",
+            "stdev": "0.02",
+            "mindiff": "0.04",
+            "Zscore": "4.38",
+            "obsval": "1.67"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A",
+            "numobs": "1573",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.03",
+            "obsval": "1.35"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A",
+            "numobs": "1310",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.52",
+            "obsval": "1.34"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C6A,N6A",
+            "numobs": "2693",
+            "mean": "1.34",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "7.32",
+            "obsval": "1.52"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2A,N1A",
+            "numobs": "4371",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "2.34",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PN,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.07",
+            "Zscore": "8.61",
+            "obsval": "1.68"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C4D",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-5.79",
+            "obsval": "1.32"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D",
+            "numobs": "25",
+            "mean": "1.40",
+            "stdev": "0.01",
+            "mindiff": "0.18",
+            "Zscore": "15.78",
+            "obsval": "1.61"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3D,C3D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.93",
+            "obsval": "1.35"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2D,C2D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "3.54",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.01",
+            "Zscore": "3.46",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N",
+            "numobs": "2600",
+            "mean": "1.50",
+            "stdev": "0.01",
+            "mindiff": "0.01",
+            "Zscore": "5.60",
+            "obsval": "1.58"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C7N,N7N",
+            "numobs": "3292",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "9.85",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O1A",
+            "numobs": "40",
+            "mean": "88.04",
+            "stdev": "60.53",
+            "mindiff": "19.50",
+            "local_density": "0.00",
+            "obsval": "-12.71"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O2A",
+            "numobs": "40",
+            "mean": "58.18",
+            "stdev": "23.18",
+            "mindiff": "5.33",
+            "local_density": "2.50",
+            "obsval": "-132.13"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O3",
+            "numobs": "40",
+            "mean": "46.83",
+            "stdev": "17.09",
+            "mindiff": "16.19",
+            "local_density": "0.00",
+            "obsval": "107.05"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "88.75",
+            "stdev": "22.44",
+            "mindiff": "1.30",
+            "local_density": "2.49",
+            "obsval": "159.99"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C3B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "36.76",
+            "stdev": "21.32",
+            "mindiff": "0.47",
+            "local_density": "1.72",
+            "obsval": "-84.05"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C3B,C2B,O2B,P2B",
+            "numobs": "379",
+            "mean": "67.81",
+            "stdev": "19.20",
+            "mindiff": "7.06",
+            "local_density": "0.26",
+            "obsval": "-55.05"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2B,O2B,P2B,O1X",
+            "numobs": "86",
+            "mean": "64.82",
+            "stdev": "39.86",
+            "mindiff": "2.47",
+            "local_density": "2.33",
+            "obsval": "-144.19"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2B,O2B,P2B,O3X",
+            "numobs": "68",
+            "mean": "72.36",
+            "stdev": "47.01",
+            "mindiff": "0.39",
+            "local_density": "4.41",
+            "obsval": "-26.08"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C4D,C5D,O5D",
+            "numobs": "522",
+            "mean": "29.88",
+            "stdev": "14.98",
+            "mindiff": "0.07",
+            "local_density": "1.15",
+            "obsval": "-91.81"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C3D,C4D,C5D,O5D",
+            "numobs": "522",
+            "mean": "43.38",
+            "stdev": "39.68",
+            "mindiff": "0.89",
+            "local_density": "1.53",
+            "obsval": "25.98"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "63.18",
+            "stdev": "13.84",
+            "mindiff": "37.07",
+            "local_density": "0.00",
+            "obsval": "-82.71"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "62.69",
+            "stdev": "14.38",
+            "mindiff": "25.71",
+            "local_density": "0.00",
+            "obsval": "97.11"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C2N",
+            "numobs": "33",
+            "mean": "72.69",
+            "stdev": "20.91",
+            "mindiff": "35.96",
+            "local_density": "0.00",
+            "obsval": "159.20"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C6N",
+            "numobs": "33",
+            "mean": "66.50",
+            "stdev": "17.58",
+            "mindiff": "17.40",
+            "local_density": "0.00",
+            "obsval": "-20.98"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C1B,N9A,C8A",
+            "numobs": "255",
+            "mean": "127.09",
+            "stdev": "2.22",
+            "mindiff": "1.40",
+            "Zscore": "3.71",
+            "obsval": "135.33"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C1B",
+            "numobs": "275",
+            "mean": "126.63",
+            "stdev": "2.34",
+            "mindiff": "3.83",
+            "Zscore": "-4.53",
+            "obsval": "116.04"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C8A",
+            "numobs": "505",
+            "mean": "105.74",
+            "stdev": "1.05",
+            "mindiff": "0.01",
+            "Zscore": "2.75",
+            "obsval": "108.63"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N9A,C8A,N7A",
+            "numobs": "576",
+            "mean": "113.94",
+            "stdev": "1.42",
+            "mindiff": "0.04",
+            "Zscore": "-4.39",
+            "obsval": "107.70"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A,C8A",
+            "numobs": "1264",
+            "mean": "103.45",
+            "stdev": "1.57",
+            "mindiff": "0.03",
+            "Zscore": "2.80",
+            "obsval": "107.85"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,C5A,N7A",
+            "numobs": "1093",
+            "mean": "110.58",
+            "stdev": "1.14",
+            "mindiff": "0.14",
+            "Zscore": "-2.10",
+            "obsval": "108.19"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C6A,N6A",
+            "numobs": "778",
+            "mean": "123.29",
+            "stdev": "2.48",
+            "mindiff": "0.37",
+            "Zscore": "3.60",
+            "obsval": "132.19"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N6A,C6A,N1A",
+            "numobs": "1343",
+            "mean": "118.38",
+            "stdev": "2.23",
+            "mindiff": "1.17",
+            "Zscore": "-4.79",
+            "obsval": "107.71"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C2A,N1A",
+            "numobs": "1995",
+            "mean": "128.58",
+            "stdev": "1.51",
+            "mindiff": "0.14",
+            "Zscore": "-5.87",
+            "obsval": "119.69"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C2A,N3A,C4A",
+            "numobs": "1292",
+            "mean": "111.83",
+            "stdev": "2.44",
+            "mindiff": "0.01",
+            "Zscore": "3.33",
+            "obsval": "119.97"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C4A,N9A",
+            "numobs": "441",
+            "mean": "127.17",
+            "stdev": "1.70",
+            "mindiff": "0.64",
+            "Zscore": "2.70",
+            "obsval": "131.76"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A,N3A",
+            "numobs": "997",
+            "mean": "126.72",
+            "stdev": "1.38",
+            "mindiff": "0.57",
+            "Zscore": "-4.44",
+            "obsval": "120.60"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2N,PN,O3",
+            "numobs": "23",
+            "mean": "107.27",
+            "stdev": "2.70",
+            "mindiff": "1.51",
+            "Zscore": "2.13",
+            "obsval": "113.04"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O7N,C7N,N7N",
+            "numobs": "3292",
+            "mean": "122.62",
+            "stdev": "1.44",
+            "mindiff": "0.03",
+            "Zscore": "-2.39",
+            "obsval": "119.16"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.067",
+      "owab": "32.580",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.58",
+      "EDIAm": "0.518",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.973",
+      "mogul_bonds_rmsz": "0.62",
+      "avgoccu": "0.870",
+      "model": "1",
+      "chain": "C",
+      "resnum": "403",
+      "said": "BA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.107",
+      "owab": "46.280",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.55",
+      "EDIAm": "0.350",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.958",
+      "mogul_bonds_rmsz": "0.70",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "C",
+      "resnum": "404",
+      "said": "CA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.098",
+      "owab": "48.110",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.70",
+      "EDIAm": "0.502",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.939",
+      "mogul_bonds_rmsz": "0.68",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "C",
+      "resnum": "405",
+      "said": "DA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.086",
+      "owab": "52.610",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.46",
+      "EDIAm": "0.380",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.958",
+      "mogul_bonds_rmsz": "0.66",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "C",
+      "resnum": "406",
+      "said": "EA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.159",
+      "owab": "41.040",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.60",
+      "EDIAm": "0.276",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.823",
+      "mogul_bonds_rmsz": "0.66",
+      "avgoccu": "0.800",
+      "model": "1",
+      "chain": "C",
+      "resnum": "407",
+      "said": "FA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.179",
+      "owab": "47.110",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.75",
+      "EDIAm": "0.213",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.759",
+      "mogul_bonds_rmsz": "0.70",
+      "avgoccu": "0.860",
+      "model": "1",
+      "chain": "C",
+      "resnum": "408",
+      "said": "GA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "rsr": "0.143",
+      "owab": "61.000",
+      "mogul_rmsz_numbonds": "3",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.85",
+      "EDIAm": "0.211",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.815",
+      "mogul_bonds_rmsz": "0.71",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "C",
+      "resnum": "409",
+      "said": "HA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H12",
+            "dist": "1.82",
+            "clashmag": "0.44",
+            "cid": "51"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.147",
+      "owab": "66.450",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.64",
+      "EDIAm": "0.191",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.894",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "C",
+      "resnum": "410",
+      "said": "IA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.150",
+      "owab": "67.010",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.67",
+      "EDIAm": "0.369",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.854",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "C",
+      "resnum": "411",
+      "said": "JA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.148",
+      "owab": "63.800",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.67",
+      "EDIAm": "0.326",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.850",
+      "mogul_bonds_rmsz": "0.68",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "801",
+      "said": "KA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "24",
+      "rsr": "0.120",
+      "owab": "34.520",
+      "mogul_rmsz_numbonds": "50",
+      "mogul_rmsz_numangles": "71",
+      "mogul_angles_rmsz": "1.93",
+      "EDIAm": "0.486",
+      "OPIA": "35.420",
+      "NatomsEDS": "48",
+      "rscc": "0.883",
+      "mogul_bonds_rmsz": "4.18",
+      "avgoccu": "0.770",
+      "model": "1",
+      "chain": "D",
+      "resnum": "803",
+      "said": "MA",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAP",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H6N",
+            "dist": "1.54",
+            "clashmag": "0.42",
+            "cid": "68"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H2D",
+            "dist": "1.54",
+            "clashmag": "0.42",
+            "cid": "68"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O5B",
+            "numobs": "40",
+            "mean": "1.59",
+            "stdev": "0.04",
+            "mindiff": "0.01",
+            "Zscore": "2.83",
+            "obsval": "1.70"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.04",
+            "Zscore": "6.45",
+            "obsval": "1.66"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.01",
+            "Zscore": "-6.04",
+            "obsval": "1.31"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4B,C1B",
+            "numobs": "2070",
+            "mean": "1.42",
+            "stdev": "0.02",
+            "mindiff": "0.02",
+            "Zscore": "8.26",
+            "obsval": "1.61"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3B,C3B",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.36",
+            "obsval": "1.37"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2B,C2B",
+            "numobs": "361",
+            "mean": "1.44",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "2.15",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2B,C1B",
+            "numobs": "617",
+            "mean": "1.53",
+            "stdev": "0.02",
+            "mindiff": "0.05",
+            "Zscore": "-9.00",
+            "obsval": "1.30"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "P2B,O2B",
+            "numobs": "34",
+            "mean": "1.59",
+            "stdev": "0.02",
+            "mindiff": "0.04",
+            "Zscore": "4.34",
+            "obsval": "1.67"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A",
+            "numobs": "1310",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.62",
+            "obsval": "1.34"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C6A,N6A",
+            "numobs": "2693",
+            "mean": "1.34",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "7.42",
+            "obsval": "1.53"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2A,N1A",
+            "numobs": "4371",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "2.16",
+            "obsval": "1.37"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PN,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.07",
+            "Zscore": "8.41",
+            "obsval": "1.68"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C4D",
+            "numobs": "4787",
+            "mean": "1.45",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-5.59",
+            "obsval": "1.32"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D",
+            "numobs": "25",
+            "mean": "1.40",
+            "stdev": "0.01",
+            "mindiff": "0.18",
+            "Zscore": "15.67",
+            "obsval": "1.61"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O3D,C3D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.97",
+            "obsval": "1.35"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O2D,C2D",
+            "numobs": "11316",
+            "mean": "1.43",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "3.25",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.01",
+            "Zscore": "3.12",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N",
+            "numobs": "2600",
+            "mean": "1.50",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "5.43",
+            "obsval": "1.58"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C4N,C3N",
+            "numobs": "38254",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.13",
+            "obsval": "1.36"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C7N,N7N",
+            "numobs": "3292",
+            "mean": "1.33",
+            "stdev": "0.02",
+            "mindiff": "0.01",
+            "Zscore": "9.90",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O1A",
+            "numobs": "40",
+            "mean": "91.78",
+            "stdev": "60.53",
+            "mindiff": "23.24",
+            "local_density": "0.00",
+            "obsval": "8.97"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O2A",
+            "numobs": "40",
+            "mean": "53.85",
+            "stdev": "12.42",
+            "mindiff": "26.96",
+            "local_density": "0.00",
+            "obsval": "-110.49"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O3",
+            "numobs": "40",
+            "mean": "59.81",
+            "stdev": "15.07",
+            "mindiff": "36.16",
+            "local_density": "0.00",
+            "obsval": "127.02"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "73.57",
+            "stdev": "15.20",
+            "mindiff": "2.03",
+            "local_density": "0.38",
+            "obsval": "142.60"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C3B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "50.45",
+            "stdev": "12.15",
+            "mindiff": "2.35",
+            "local_density": "0.57",
+            "obsval": "-102.50"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C3B,C2B,O2B,P2B",
+            "numobs": "379",
+            "mean": "70.87",
+            "stdev": "19.25",
+            "mindiff": "3.99",
+            "local_density": "0.26",
+            "obsval": "-51.97"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2B,O2B,P2B,O1X",
+            "numobs": "86",
+            "mean": "64.92",
+            "stdev": "40.02",
+            "mindiff": "2.20",
+            "local_density": "2.33",
+            "obsval": "-144.46"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2B,O2B,P2B,O3X",
+            "numobs": "68",
+            "mean": "72.36",
+            "stdev": "47.01",
+            "mindiff": "0.40",
+            "local_density": "4.41",
+            "obsval": "-26.08"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2B,C1B,N9A,C8A",
+            "numobs": "378",
+            "mean": "52.07",
+            "stdev": "26.86",
+            "mindiff": "3.70",
+            "local_density": "4.23",
+            "obsval": "-33.64"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O1N",
+            "numobs": "141",
+            "mean": "52.11",
+            "stdev": "23.65",
+            "mindiff": "2.13",
+            "local_density": "4.26",
+            "obsval": "108.07"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O2N",
+            "numobs": "141",
+            "mean": "80.92",
+            "stdev": "49.17",
+            "mindiff": "0.58",
+            "local_density": "4.26",
+            "obsval": "-15.23"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "63.23",
+            "stdev": "14.62",
+            "mindiff": "35.57",
+            "local_density": "0.00",
+            "obsval": "-81.21"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "62.65",
+            "stdev": "14.95",
+            "mindiff": "24.70",
+            "local_density": "0.00",
+            "obsval": "98.12"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C2N",
+            "numobs": "33",
+            "mean": "78.05",
+            "stdev": "20.91",
+            "mindiff": "41.33",
+            "local_density": "0.00",
+            "obsval": "164.56"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2D,C1D,N1N,C6N",
+            "numobs": "33",
+            "mean": "71.08",
+            "stdev": "18.49",
+            "mindiff": "12.53",
+            "local_density": "0.00",
+            "obsval": "-16.10"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C1B,N9A,C8A",
+            "numobs": "255",
+            "mean": "127.09",
+            "stdev": "2.22",
+            "mindiff": "1.37",
+            "Zscore": "3.69",
+            "obsval": "135.29"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C1B",
+            "numobs": "275",
+            "mean": "126.63",
+            "stdev": "2.34",
+            "mindiff": "3.79",
+            "Zscore": "-4.51",
+            "obsval": "116.08"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C8A",
+            "numobs": "505",
+            "mean": "105.74",
+            "stdev": "1.05",
+            "mindiff": "0.00",
+            "Zscore": "2.75",
+            "obsval": "108.62"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N9A,C8A,N7A",
+            "numobs": "576",
+            "mean": "113.94",
+            "stdev": "1.42",
+            "mindiff": "0.35",
+            "Zscore": "-4.61",
+            "obsval": "107.39"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A,C8A",
+            "numobs": "1264",
+            "mean": "103.45",
+            "stdev": "1.57",
+            "mindiff": "0.03",
+            "Zscore": "3.09",
+            "obsval": "108.31"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,C5A,N7A",
+            "numobs": "1093",
+            "mean": "110.58",
+            "stdev": "1.14",
+            "mindiff": "0.02",
+            "Zscore": "-2.57",
+            "obsval": "107.64"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C6A,N6A",
+            "numobs": "778",
+            "mean": "123.29",
+            "stdev": "2.48",
+            "mindiff": "0.13",
+            "Zscore": "4.04",
+            "obsval": "133.28"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N6A,C6A,N1A",
+            "numobs": "1343",
+            "mean": "118.38",
+            "stdev": "2.23",
+            "mindiff": "0.17",
+            "Zscore": "-5.24",
+            "obsval": "106.71"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C2A,N1A",
+            "numobs": "1995",
+            "mean": "128.58",
+            "stdev": "1.51",
+            "mindiff": "0.08",
+            "Zscore": "-5.84",
+            "obsval": "119.75"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C2A,N3A,C4A",
+            "numobs": "1292",
+            "mean": "111.83",
+            "stdev": "2.44",
+            "mindiff": "0.14",
+            "Zscore": "3.40",
+            "obsval": "120.14"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A,N9A",
+            "numobs": "491",
+            "mean": "105.81",
+            "stdev": "1.09",
+            "mindiff": "0.05",
+            "Zscore": "2.04",
+            "obsval": "108.04"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C4A,N9A",
+            "numobs": "441",
+            "mean": "127.17",
+            "stdev": "1.70",
+            "mindiff": "0.39",
+            "Zscore": "2.53",
+            "obsval": "131.48"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A,N3A",
+            "numobs": "997",
+            "mean": "126.72",
+            "stdev": "1.38",
+            "mindiff": "0.45",
+            "Zscore": "-4.52",
+            "obsval": "120.49"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2N,PN,O3",
+            "numobs": "23",
+            "mean": "107.27",
+            "stdev": "2.70",
+            "mindiff": "0.74",
+            "Zscore": "2.42",
+            "obsval": "113.82"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4D,O4D,C1D",
+            "numobs": "23",
+            "mean": "109.92",
+            "stdev": "0.92",
+            "mindiff": "0.13",
+            "Zscore": "-2.61",
+            "obsval": "107.53"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.03",
+            "Zscore": "-2.18",
+            "obsval": "120.03"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N,N7N",
+            "numobs": "2600",
+            "mean": "117.74",
+            "stdev": "1.23",
+            "mindiff": "0.02",
+            "Zscore": "2.74",
+            "obsval": "121.11"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O7N,C7N,N7N",
+            "numobs": "3292",
+            "mean": "122.62",
+            "stdev": "1.44",
+            "mindiff": "0.03",
+            "Zscore": "-2.55",
+            "obsval": "118.93"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.068",
+      "owab": "41.210",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.53",
+      "EDIAm": "0.550",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.977",
+      "mogul_bonds_rmsz": "0.66",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "804",
+      "said": "NA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "rsr": "0.111",
+      "owab": "46.060",
+      "mogul_rmsz_numbonds": "3",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.29",
+      "EDIAm": "0.438",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.956",
+      "mogul_bonds_rmsz": "0.63",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "805",
+      "said": "OA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "O",
+            "dist": "2.17",
+            "clashmag": "0.45",
+            "cid": "42"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "rsr": "0.078",
+      "owab": "32.310",
+      "mogul_rmsz_numbonds": "3",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.73",
+      "EDIAm": "0.729",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.962",
+      "mogul_bonds_rmsz": "0.64",
+      "avgoccu": "0.900",
+      "model": "1",
+      "chain": "D",
+      "resnum": "806",
+      "said": "PA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H12",
+            "dist": "2.54",
+            "clashmag": "0.43",
+            "cid": "65"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.128",
+      "owab": "52.280",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.87",
+      "EDIAm": "0.398",
+      "OPIA": "50.000",
+      "NatomsEDS": "4",
+      "rscc": "0.869",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "807",
+      "said": "QA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.117",
+      "owab": "62.040",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.54",
+      "EDIAm": "0.429",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.895",
+      "mogul_bonds_rmsz": "0.67",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "808",
+      "said": "RA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.233",
+      "owab": "78.130",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.71",
+      "EDIAm": "0.040",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.701",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "809",
+      "said": "SA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.184",
+      "owab": "77.610",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.69",
+      "EDIAm": "0.073",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.749",
+      "mogul_bonds_rmsz": "0.69",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "810",
+      "said": "TA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "6",
+      "mogul_rmsz_numbonds": "3",
+      "rsr": "0.102",
+      "owab": "46.100",
+      "mogul_rmsz_numangles": "3",
+      "mogul_angles_rmsz": "0.59",
+      "EDIAm": "0.524",
+      "OPIA": "25.000",
+      "NatomsEDS": "4",
+      "rscc": "0.941",
+      "mogul_bonds_rmsz": "0.70",
+      "avgoccu": "1.000",
+      "model": "1",
+      "chain": "D",
+      "resnum": "811",
+      "said": "UA",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "DMS",
+      "altcode": " ",
+      "local_validation_children": []
+    }
+  ]
+}

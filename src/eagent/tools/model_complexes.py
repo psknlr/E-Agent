@@ -147,6 +147,7 @@ __all__ = [
     "ToolRegistry",
     "ToolRegistryError",
     "check_license",
+    "check_modification",
     "Route",
     "ComplexPolicy",
     "ComplexRequest",
@@ -254,6 +255,12 @@ class ToolRegistryEntry:
     license: str | None = None
     license_source: str | None = None
     permits_commercial_use: bool | None = None
+    #: Whether the terms allow *modifying and redistributing* this artefact --
+    #: vendoring a patched copy, publishing a derivative. Separate from
+    #: commercial use because they come apart (a no-derivatives licence can
+    #: allow running the code and forbid shipping a changed version of it),
+    #: and tri-state for the same reason: ``None`` is unread, not permitted.
+    permits_derivative_works: bool | None = None
     #: What the producer's terms say about the coordinates this tool emits.
     #: Registered separately from the weights because output restrictions
     #: outlive the run that produced them: a pose redistributed in a paper is
@@ -274,6 +281,11 @@ class ToolRegistryEntry:
                 f"registry entry '{self.key}' claims a commercial-use "
                 f"permission with no licence recorded; the permission would "
                 f"rest on nothing")
+        if self.permits_derivative_works is not None and self.license is None:
+            raise ToolRegistryError(
+                f"registry entry '{self.key}' claims a derivative-works "
+                f"position with no licence recorded; the position would rest "
+                f"on nothing")
 
     def describe(self) -> str:
         lic = self.license or "licence not recorded"
@@ -401,11 +413,35 @@ def check_license(registry: ToolRegistry, keys: Sequence[str],
              "version": e.version, "license": e.license,
              "license_source": e.license_source,
              "permits_commercial_use": e.permits_commercial_use,
+             "permits_derivative_works": e.permits_derivative_works,
              "output_terms": e.output_terms,
              "needs_legal_review": e.needs_legal_review}
             for e in entries
         ],
     }
+
+
+def check_modification(registry: ToolRegistry, keys: Sequence[str],
+                       invoked_as: str) -> None:
+    """Refuse to modify and redistribute an artefact whose terms do not say it may be.
+
+    For a workflow that would patch, vendor or republish a third-party
+    artefact -- not for running it. ``permits_derivative_works`` of ``None`` is
+    refused exactly as ``False`` is: nobody having read the terms is not a
+    permission, and a no-derivatives licence (CC BY-ND, CC BY-NC-ND) is the case
+    this exists for.
+    """
+    for key in keys:
+        entry = registry.get(key)
+        if entry.permits_derivative_works is not True:
+            raise LicenseError(
+                f"{invoked_as}: {entry.describe()} does not record a positive "
+                f"derivative-works permission "
+                f"(permits_derivative_works={entry.permits_derivative_works}, "
+                f"source={entry.license_source or 'none'}). Modifying and "
+                f"redistributing it, or publishing a derivative, is refused; "
+                f"running it as shipped is a separate question answered by "
+                f"check_license")
 
 
 # ---------------------------------------------------------------------------

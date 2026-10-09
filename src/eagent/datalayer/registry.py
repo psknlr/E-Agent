@@ -17,10 +17,13 @@ that a plain configuration file collapses:
   ships an author CSV or only a web interface is registered as what it is.
   Dressing it up as a live API is how code comes to call a URL that was never
   documented anywhere.
-* **Nothing here has been connectivity-tested.** Every entry carries
-  ``connectivity_verified=False``, and the model refuses ``True``. Capability
-  flags describe what a resource is *documented* to offer, never what has been
-  proven to work in this environment.
+* **A capability flag is documentation, not proof.** The flags describe what a
+  resource is *documented* to offer. ``connectivity_verified`` may only be
+  ``True`` when the entry carries a :class:`ConnectivityCheck` saying what was
+  called, when, what came back and which capability it exercised -- a bare
+  boolean asserting "this works" is worth nothing, and that is why the model
+  used to refuse ``True`` outright. Most entries still carry no check and are
+  still ``False``.
 
 :class:`DataSource` also requires ``not_good_for``. A registry of what things are
 good for produces a planner that uses BRENDA as a sequence database and a
@@ -217,6 +220,107 @@ class CapabilityFlags(BaseModel):
         return {n: self.get(n).value for n in CAPABILITY_NAMES}
 
 
+#: Name of the machine-written observation file inside the datasource
+#: directory. Excluded from the curated-source scan and merged separately, so
+#: a nightly sweep never rewrites a hand-curated file.
+OBSERVED_CONNECTIVITY_FILE: str = "connectivity.observed.yaml"
+
+
+def _load_observed_connectivity(path: Path) -> dict[str, dict[str, Any]]:
+    """Read the observation file, or return nothing if there is none.
+
+    No file means nothing has been reached from this environment, which is the
+    correct default and the state a fresh checkout is in.
+    """
+    if not path.is_file():
+        return {}
+    try:
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise RegistryError(f"{path.name}: invalid YAML: {exc}") from exc
+    if not isinstance(document, Mapping):
+        raise RegistryError(
+            f"{path.name}: top level must be a mapping. It is machine-written; "
+            f"delete it and re-run `eagent sources verify --write` rather than "
+            f"editing it by hand")
+    out: dict[str, dict[str, Any]] = {}
+    for entry in document.get("observed_connectivity") or ():
+        if not isinstance(entry, Mapping) or not entry.get("id"):
+            raise RegistryError(
+                f"{path.name}: an observation with no source id")
+        out[str(entry["id"])] = {k: v for k, v in entry.items() if k != "id"}
+    return out
+
+
+class ConnectivityCheck(BaseModel):
+    """One call actually made to a source, and what came back.
+
+    This is what makes ``connectivity_verified`` mean anything. A boolean on
+    its own says a route works and gives nobody a way to see whether it still
+    does; a check says *which* route, called how, when, and with what result,
+    so the claim can be re-run and can expire.
+
+    ``markers`` is the load-bearing field. A 200 is not a working API: a
+    redirect to a friendly 404 page returns 200 with a body, and a login wall
+    returns 200 with a form. The markers are strings that had to appear in the
+    response for the check to pass, chosen so that only the real record
+    contains them.
+
+    ``response_sha256`` pins what was seen at that moment. It is deliberately
+    *not* re-checked on a later run: a live resource changes, and a digest
+    mismatch is news about the resource rather than about the route. The
+    markers are what a re-run checks.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    capability: str = Field(
+        ..., description="Which registered capability this call exercised.")
+    url: str = Field(..., description="The exact request that was made.")
+    checked_at: str = Field(..., description="UTC ISO-8601 timestamp.")
+    checked_by: str = Field(
+        ..., description="Who or what ran it, so a stale claim has an owner.")
+    ok: bool
+    status_code: int | None = None
+    markers: list[str] = Field(
+        default_factory=list,
+        description="Strings that had to appear in the response body.")
+    response_sha256: str | None = None
+    response_bytes: int | None = None
+    elapsed_ms: int | None = None
+    documentation_url: str | None = Field(
+        None,
+        description="The provider's own documentation for this route, fetched "
+                    "in the same sweep. A documentation URL nobody opened is "
+                    "an assertion; one that answered is an observation.")
+    documentation_status: int | None = None
+    failure: str = Field(
+        "", description="Why it did not pass. Required when ok is false.")
+    note: str = ""
+
+    @field_validator("capability")
+    @classmethod
+    def _known_capability(cls, v: str) -> str:
+        if v not in CAPABILITY_NAMES:
+            raise ValueError(
+                f"unknown capability '{v}'; known: {', '.join(CAPABILITY_NAMES)}")
+        return v
+
+    @model_validator(mode="after")
+    def _failure_is_explained(self) -> "ConnectivityCheck":
+        if not self.ok and not self.failure.strip():
+            raise ValueError(
+                "a failed connectivity check must say why; 'it did not work' "
+                "with no reason cannot be acted on or retried")
+        if self.ok and not self.markers:
+            raise ValueError(
+                f"the check of {self.url} passed on the status code alone. A "
+                f"200 is not a working API -- a redirect to a 404 page and a "
+                f"login wall both return one -- so a passing check must name "
+                f"what it found in the body")
+        return self
+
+
 # ---------------------------------------------------------------------------
 # Access modes
 # ---------------------------------------------------------------------------
@@ -328,7 +432,13 @@ class DataSource(BaseModel):
                     "group rests on, so nothing about its separateness is known.")
 
     connectivity_verified: bool = Field(
-        False, description="Always false: nothing here has been connectivity-tested.")
+        False,
+        description="True only alongside a ConnectivityCheck that earned it. "
+                    "See the checks themselves for what was actually shown.")
+    connectivity_checks: list[ConnectivityCheck] = Field(
+        default_factory=list,
+        description="Calls actually made from a run, each naming the capability "
+                    "it exercised. Empty for a source nobody has reached.")
     endpoint: str | None = Field(
         None, description="Null unless certain. A guessed base URL is worse than "
                           "no URL, because code will call it.")
@@ -358,15 +468,49 @@ class DataSource(BaseModel):
                 raise ValueError("list entries must be non-empty statements")
         return v
 
-    @field_validator("connectivity_verified")
-    @classmethod
-    def _never_verified(cls, v: bool) -> bool:
-        if v:
+    @model_validator(mode="after")
+    def _verification_is_earned(self) -> "DataSource":
+        """``connectivity_verified`` must be backed by a recorded call.
+
+        The flag tells a planner a route is known to work. Asserted as a bare
+        boolean it is worth nothing -- which is why this used to refuse
+        ``True`` outright -- so it is now admissible exactly when the entry
+        carries at least one :class:`ConnectivityCheck`: a URL, a timestamp, a
+        status, a digest of what came back, and the capability it exercised.
+
+        A check must also name a capability the entry claims. Verifying a
+        keyword search and recording it against a source whose
+        ``keyword_query`` flag is ``not_supported`` would make the two halves
+        of the entry describe different services.
+        """
+        if self.connectivity_verified and not self.connectivity_checks:
             raise ValueError(
-                "connectivity_verified must be false: no entry in this registry "
-                "has been connectivity-tested in this environment, and a true "
-                "value here would tell a planner a route is known to work")
-        return v
+                f"{self.id}: connectivity_verified is true with no recorded "
+                f"check. Record what was called, when, and what came back, or "
+                f"leave it false: a bare boolean tells a planner a route works "
+                f"and gives nobody a way to see whether it still does")
+        if self.connectivity_checks and not self.endpoint:
+            raise ValueError(
+                f"{self.id}: a connectivity check is recorded but endpoint is "
+                f"null. Something was called; record what")
+        for check in self.connectivity_checks:
+            state = self.capabilities.get(check.capability)
+            if state is CapabilityState.NOT_SUPPORTED:
+                raise ValueError(
+                    f"{self.id}: a connectivity check exercises "
+                    f"'{check.capability}', which this entry registers as "
+                    f"not_supported. One half of the entry describes a "
+                    f"different service from the other")
+        return self
+
+    @property
+    def verified_capabilities(self) -> tuple[str, ...]:
+        """Capabilities a recorded call actually exercised, in order."""
+        seen: list[str] = []
+        for check in self.connectivity_checks:
+            if check.ok and check.capability not in seen:
+                seen.append(check.capability)
+        return tuple(seen)
 
     @field_validator("endpoint")
     @classmethod
@@ -447,7 +591,9 @@ class DataSource(BaseModel):
                 f"access={[m.value for m in self.access_modes]} "
                 f"ceiling={_strength_value(self.evidence_strength_ceiling)} "
                 f"endpoint={'null' if self.endpoint is None else self.endpoint} "
-                f"connectivity_verified=false")
+                f"connectivity_verified={str(self.connectivity_verified).lower()}"
+                + (f" verified={list(self.verified_capabilities)}"
+                   if self.verified_capabilities else ""))
 
 
 def _strength_value(s: Any) -> str:
@@ -582,6 +728,11 @@ class SourceRegistry:
                  files: Mapping[str, list[str]] | None = None) -> None:
         self._by_id: dict[str, DataSource] = {}
         self._files: dict[str, list[str]] = dict(files or {})
+        #: Directory this registry was loaded from, when it was loaded from
+        #: one. Set by :meth:`from_directory` so a tool that records a
+        #: verified route writes it back to the file it came from rather than
+        #: to a default path that may not be the one in use.
+        self.directory: Path | None = None
         for s in sources:
             self.add(s)
 
@@ -593,7 +744,8 @@ class SourceRegistry:
         if not d.is_dir():
             raise RegistryError(f"datasource directory not found: {d}")
         paths = sorted(p for p in d.iterdir()
-                       if p.suffix in (".yaml", ".yml") and p.is_file())
+                       if p.suffix in (".yaml", ".yml") and p.is_file()
+                       and p.name != OBSERVED_CONNECTIVITY_FILE)
         if not paths:
             raise RegistryError(f"no datasource YAML files in {d}")
         docs = []
@@ -603,11 +755,17 @@ class SourceRegistry:
             except yaml.YAMLError as exc:
                 raise RegistryError(f"{p.name}: invalid YAML: {exc}") from exc
             docs.append((p.name, raw))
-        return cls.from_documents(docs)
+        observed = _load_observed_connectivity(d / OBSERVED_CONNECTIVITY_FILE)
+        registry = cls.from_documents(docs, observed=observed)
+        # Where it came from, so a tool that records a verified route can
+        # write it back beside the files it was read from instead of guessing.
+        registry.directory = d
+        return registry
 
     @classmethod
     def from_documents(
-        cls, documents: Iterable[tuple[str, Mapping[str, Any]]]
+        cls, documents: Iterable[tuple[str, Mapping[str, Any]]],
+        observed: Mapping[str, Mapping[str, Any]] | None = None,
     ) -> "SourceRegistry":
         """Build a registry from already-parsed YAML documents.
 
@@ -618,6 +776,7 @@ class SourceRegistry:
         lineage and independence grouping meaningless.
         """
         reg = cls()
+        seen_observed: set[str] = set()
         pending_refs: list[tuple[str, DataLayer, str]] = []
         for name, raw in documents:
             if not isinstance(raw, Mapping):
@@ -638,6 +797,15 @@ class SourceRegistry:
             if not isinstance(entries, list) or not entries:
                 raise RegistryError(f"{name}: 'sources' must be a non-empty list")
             for entry in entries:
+                if isinstance(entry, Mapping) and observed:
+                    # An observation is merged onto the curated entry rather
+                    # than stored in it, so one file holds the judgements and
+                    # another the measurements. See
+                    # eagent.datalayer.probe.write_checks.
+                    overlay = observed.get(str(entry.get("id", "")))
+                    if overlay:
+                        entry = {**entry, **overlay}
+                        seen_observed.add(str(entry.get("id", "")))
                 try:
                     src = DataSource.model_validate(entry)
                 except Exception as exc:
@@ -663,6 +831,17 @@ class SourceRegistry:
                 raise RegistryIntegrityError(
                     f"{name}: cross_layer_refs names '{ref}', but that source "
                     f"does not declare the {layer.value} layer")
+        unmatched = sorted(set(observed or {}) - seen_observed)
+        if unmatched:
+            # A route recorded for a source nobody registers is either a
+            # renamed id or a stale observation. Either way the sweep and the
+            # registry disagree, and the right time to find out is at load.
+            raise RegistryIntegrityError(
+                f"{OBSERVED_CONNECTIVITY_FILE} records connectivity for "
+                f"{', '.join(unmatched)}, which no datasource file registers. "
+                f"Re-run `eagent sources verify --write`, or delete the stale "
+                f"observation; a verified route for a source that does not "
+                f"exist is a claim about nothing")
         reg.validate()
         return reg
 

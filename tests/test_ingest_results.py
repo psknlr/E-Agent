@@ -50,15 +50,28 @@ from eagent.tools.ingest_results import (
     MIN_FAMILY_QUOTA_AFTER_NEGATIVE,
     ASSAY_RESULT_COLUMNS,
     IngestResults,
+    MeasurementGroup,
     NoHitHypothesis,
     PositiveCriterion,
     build_active_learning_update,
+    build_record_id,
     classify_group,
     diagnose_no_hits,
     group_rows,
     next_round_quotas,
     parse_assay_rows,
 )
+
+
+def record_id_for(candidate: str, cofactor: str = "NADPH") -> str:
+    """A record id in the shape the module actually writes.
+
+    Built through :func:`build_record_id` rather than typed out, so these
+    tests cannot keep passing against an id format the code no longer
+    produces -- which is how a record-id change gets through a green suite.
+    """
+    return build_record_id("run", MeasurementGroup(
+        candidate_id=candidate, cofactor=cofactor, cofactor_state="reduced"))
 
 SEQ_A = "MKAAVLYEFGKPLEIKEVEVAPPKAHEVRIKIAYTGVCHT"
 SEQ_B = "MKAAVLYEFGKPLEIKEVEVAPPKAHEVRIKIAYTGVCHA"
@@ -296,13 +309,13 @@ class ActiveLearningTests(unittest.TestCase):
 
     def test_partitions_sum_to_the_input(self):
         records = [
-            self._record("run:C1:NADPH", OutcomeClass.CONFIRMED_TARGET_PRODUCT),
-            self._record("run:C2:NADPH", OutcomeClass.NO_TARGET_PRODUCT_DETECTED),
-            self._record("run:C3:NADPH",
+            self._record(record_id_for("C1"), OutcomeClass.CONFIRMED_TARGET_PRODUCT),
+            self._record(record_id_for("C2"), OutcomeClass.NO_TARGET_PRODUCT_DETECTED),
+            self._record(record_id_for("C3"),
                          OutcomeClass.EXPRESSION_OR_SOLUBILITY_FAILURE),
-            self._record("run:C4:NADPH",
+            self._record(record_id_for("C4"),
                          OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION),
-            self._record("run:C5:NADPH", OutcomeClass.NOT_TESTED),
+            self._record(record_id_for("C5"), OutcomeClass.NOT_TESTED),
         ]
         update = build_active_learning_update(records)
         self.assertEqual(update.n_total, 5)
@@ -312,7 +325,7 @@ class ActiveLearningTests(unittest.TestCase):
         self.assertIn("never dropped", update.note)
 
     def test_expression_failures_are_not_catalytic_negatives(self):
-        records = [self._record("run:C3:NADPH",
+        records = [self._record(record_id_for("C3"),
                                 OutcomeClass.EXPRESSION_OR_SOLUBILITY_FAILURE)]
         update = build_active_learning_update(records)
         self.assertEqual(update.catalytic_negatives, ())
@@ -336,7 +349,7 @@ class ActiveLearningTests(unittest.TestCase):
         """
         for outcome in OutcomeClass:
             update = build_active_learning_update(
-                [self._record("run:C1:NADPH", outcome)])
+                [self._record(record_id_for("C1"), outcome)])
             self.assertEqual(update.n_total, 1, outcome.value)
 
 
@@ -351,8 +364,8 @@ class QuotaTests(unittest.TestCase):
 
     def test_hit_family_expands_and_negative_family_is_floored(self):
         records = [
-            self._record("run:C1:NADPH", OutcomeClass.CONFIRMED_TARGET_PRODUCT),
-            self._record("run:C2:NADPH", OutcomeClass.NO_TARGET_PRODUCT_DETECTED),
+            self._record(record_id_for("C1"), OutcomeClass.CONFIRMED_TARGET_PRODUCT),
+            self._record(record_id_for("C2"), OutcomeClass.NO_TARGET_PRODUCT_DETECTED),
         ]
         verdicts = {v.family: v for v in next_round_quotas(
             records, {"C1": "SDR", "C2": "AKR"}, {"SDR": 10, "AKR": 10})}
@@ -364,14 +377,14 @@ class QuotaTests(unittest.TestCase):
                                 MIN_FAMILY_QUOTA_AFTER_NEGATIVE)
 
     def test_negative_family_is_never_cut_to_zero(self):
-        records = [self._record("run:C2:NADPH",
+        records = [self._record(record_id_for("C2"),
                                 OutcomeClass.NO_TARGET_PRODUCT_DETECTED)]
         verdict = next_round_quotas(records, {"C2": "AKR"}, {"AKR": 1})[0]
         self.assertEqual(verdict.suggested_quota, MIN_FAMILY_QUOTA_AFTER_NEGATIVE)
         self.assertIn("unlucky round", verdict.rationale)
 
     def test_expression_failure_family_holds_rather_than_shrinks(self):
-        records = [self._record("run:C3:NADPH",
+        records = [self._record(record_id_for("C3"),
                                 OutcomeClass.EXPRESSION_OR_SOLUBILITY_FAILURE)]
         verdict = next_round_quotas(records, {"C3": "MDR"}, {"MDR": 8})[0]
         self.assertEqual(verdict.tier, "re-express")
@@ -379,7 +392,7 @@ class QuotaTests(unittest.TestCase):
 
     def test_wrong_configuration_expands_like_a_hit(self):
         records = [self._record(
-            "run:C4:NADPH", OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION)]
+            record_id_for("C4"), OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION)]
         verdict = next_round_quotas(records, {"C4": "SDR"}, {"SDR": 4})[0]
         self.assertEqual(verdict.tier, "expand")
         self.assertIn("working scaffold", verdict.rationale)
@@ -405,7 +418,7 @@ class NoHitDiagnosisTests(unittest.TestCase):
                                 limit_of_detection=0.5, limit_unit="uM"))
 
     def test_five_hypotheses_and_no_natural_catalyst_is_never_concluded(self):
-        records = [self._record("run:C1:NADPH",
+        records = [self._record(record_id_for("C1"),
                                 OutcomeClass.NO_TARGET_PRODUCT_DETECTED)]
         parsed, _ = parse_assay_rows(negative_rows("C1"))
         diagnosis = diagnose_no_hits(records, group_rows(parsed), {"C1": "SDR"},
@@ -420,7 +433,7 @@ class NoHitDiagnosisTests(unittest.TestCase):
                       .contradicted_by[0])
 
     def test_single_cofactor_condition_supports_the_mismatch_hypothesis(self):
-        records = [self._record("run:C1:NADPH",
+        records = [self._record(record_id_for("C1"),
                                 OutcomeClass.NO_TARGET_PRODUCT_DETECTED)]
         parsed, _ = parse_assay_rows(negative_rows("C1"))
         diagnosis = diagnose_no_hits(
@@ -433,7 +446,7 @@ class NoHitDiagnosisTests(unittest.TestCase):
         self.assertTrue(any("NADH" in s for s in mismatch.supported_by))
 
     def test_failed_system_control_invalidates_the_negatives(self):
-        records = [self._record("run:C1:NADPH",
+        records = [self._record(record_id_for("C1"),
                                 OutcomeClass.NO_TARGET_PRODUCT_DETECTED)]
         parsed, _ = parse_assay_rows(negative_rows("C1"))
         diagnosis = diagnose_no_hits(records, group_rows(parsed), {"C1": "SDR"},
@@ -443,7 +456,7 @@ class NoHitDiagnosisTests(unittest.TestCase):
         self.assertEqual(detection.status, "consistent")
 
     def test_not_triggered_when_there_is_a_hit(self):
-        records = [self._record("run:C1:NADPH",
+        records = [self._record(record_id_for("C1"),
                                 OutcomeClass.CONFIRMED_TARGET_PRODUCT)]
         parsed, _ = parse_assay_rows(hit_rows("C1"))
         diagnosis = diagnose_no_hits(records, group_rows(parsed), {"C1": "SDR"})

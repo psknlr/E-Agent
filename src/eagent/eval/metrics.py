@@ -75,6 +75,9 @@ from ..provenance import sha256_obj, utc_now
 from ..schemas.record import ExperimentRecord, OutcomeClass, ee_target
 from ..schemas.templates import AssayTemplate
 from ..science.robustness import DEFAULT_WILSON_Z, wilson_interval
+from ..science.units import (
+    UNIT_TABLE, canonical_unit, convert_measurement, normalise_unit_text,
+)
 from ..tools.ingest_results import RECOGNISED_CRITERION_KEYS, PositiveCriterion
 
 __all__ = [
@@ -113,6 +116,18 @@ class CriterionChangedError(EAgentError):
     """
 
 
+class ChemicalTaskMismatchError(EAgentError):
+    """Two measurements of different chemistry were about to be compared.
+
+    A parent assayed on one ketone and a variant assayed on another have not
+    been compared at all: nobody measured the parent on the variant's
+    substrate, so there is no baseline for the difference. Identical units, an
+    identical endpoint name and a tight replicate spread do not supply the
+    missing control. Cross-substrate data is useful for mapping a substrate
+    range; it is not an engineering delta.
+    """
+
+
 class UnitMismatchError(EAgentError):
     """Two measurements in different units were about to be subtracted.
 
@@ -123,50 +138,12 @@ class UnitMismatchError(EAgentError):
     """
 
 
-#: Conversions this module will apply, as (from, to, factor). Deliberately
-#: short and explicit rather than a general unit library: a wrong factor here
-#: would invent an improvement, so every entry is one a reader can check at a
-#: glance. Anything not listed is refused rather than guessed.
-_UNIT_CANON: dict[str, tuple[str, float]] = {
-    # first-order rate constants -> per second
-    "s-1": ("s-1", 1.0), "s^-1": ("s-1", 1.0), "1/s": ("s-1", 1.0),
-    "sec-1": ("s-1", 1.0), "per second": ("s-1", 1.0),
-    "min-1": ("s-1", 1.0 / 60.0), "min^-1": ("s-1", 1.0 / 60.0),
-    "1/min": ("s-1", 1.0 / 60.0), "per minute": ("s-1", 1.0 / 60.0),
-    "h-1": ("s-1", 1.0 / 3600.0), "hr-1": ("s-1", 1.0 / 3600.0),
-    "1/h": ("s-1", 1.0 / 3600.0), "per hour": ("s-1", 1.0 / 3600.0),
-    # concentrations -> millimolar
-    "mm": ("mM", 1.0), "mmol/l": ("mM", 1.0),
-    "um": ("mM", 1e-3), "µm": ("mM", 1e-3), "umol/l": ("mM", 1e-3),
-    "nm": ("mM", 1e-6), "nmol/l": ("mM", 1e-6),
-    "m": ("mM", 1e3), "mol/l": ("mM", 1e3),
-    # fractions -> percent
-    "%": ("%", 1.0), "percent": ("%", 1.0), "pct": ("%", 1.0),
-    # dimensionless
-    "": ("", 1.0),
-}
-
-
-def canonical_unit(unit: str | None) -> tuple[str, float] | None:
-    """``(canonical_unit, factor)`` for a unit this module can convert.
-
-    ``None`` for anything unrecognised, which the caller must treat as a
-    refusal to compare rather than as a licence to subtract anyway.
-    """
-    if unit is None:
-        return None
-    key = " ".join(str(unit).split()).strip().lower()
-    return _UNIT_CANON.get(key)
-
-
-def convert_measurement(value: float | None, unit: str | None
-                        ) -> tuple[float | None, str] | None:
-    """Convert one value to its canonical unit, or ``None`` if it cannot be."""
-    canon = canonical_unit(unit)
-    if canon is None:
-        return None
-    name, factor = canon
-    return (None if value is None else value * factor), name
+#: The conversion table lives in :mod:`eagent.science.units` so that the
+#: evaluation layer and the ingest layer cannot disagree about what a unit
+#: means. Re-exported here because callers and tests already import it from
+#: this module, and because a comparison refusing a unit should be traceable
+#: to the same table the plate was aggregated with.
+_UNIT_CANON = UNIT_TABLE
 
 
 class EndpointMismatchError(EAgentError):
@@ -295,12 +272,30 @@ class OutcomeRow:
     parent_sequence_sha256: str | None = None
     mutations: tuple[str, ...] = ()
     replicate_values: tuple[float, ...] = ()
+    #: What chemistry this row measured. Without it a comparison cannot tell
+    #: that a parent was assayed on one substrate and its variant on another,
+    #: and reports the difference as an engineering gain.
+    substrate_key: str | None = None
+    product_key: str | None = None
+    reaction_direction: str | None = None
     #: Empty-vector background for this row's plate and cofactor condition,
     #: as :mod:`eagent.tools.ingest_results` attached it. ``None`` means no
     #: such control was run, which makes a fold-over-background bar
     #: undecidable rather than satisfied.
     empty_vector_baseline: float | None = None
     notes: str = ""
+
+    @property
+    def chemical_task_key(self) -> tuple[str | None, str | None, str | None]:
+        """Substrate, product and direction: the task a number is about.
+
+        Two measurements are comparable as an engineering result only if they
+        are about the same chemical task. Same unit, same endpoint name and a
+        tight replicate spread say nothing about that.
+        """
+        return (_plain(self.substrate_key) or None,
+                _plain(self.product_key) or None,
+                _plain(self.reaction_direction) or None)
 
     @property
     def fold_over_empty_vector(self) -> float | None:
@@ -407,6 +402,14 @@ class OutcomeRow:
             conditions=conditions,
             cofactor_species=cofactor.name if cofactor else None,
             cofactor_state=cofactor.state.value if cofactor else None,
+            substrate_key=(record.substrate.inchikey
+                           or record.substrate.isomeric_smiles
+                           or record.substrate.name),
+            product_key=((record.product_observed.inchikey
+                          or record.product_observed.isomeric_smiles
+                          or record.product_observed.name)
+                         if record.product_observed else None),
+            reaction_direction=record.reaction_direction.value,
             sequence_sha256=record.sequence_sha256,
             parent_sequence_sha256=record.parent_sequence_sha256,
             mutations=tuple(record.mutations),
@@ -1333,6 +1336,15 @@ def variant_versus_parent(
             f"{parent.candidate_id}: they were not assayed under identical "
             f"conditions (differing: {fields}). Re-run both under one "
             f"condition set before claiming an improvement")
+    if variant.chemical_task_key != parent.chemical_task_key:
+        raise ChemicalTaskMismatchError(
+            f"{variant.candidate_id} was assayed on "
+            f"{variant.chemical_task_key} and parent {parent.candidate_id} on "
+            f"{parent.chemical_task_key}. Nobody measured the parent on the "
+            f"variant's chemistry, so there is no baseline for a difference. "
+            f"Assay both on one substrate before claiming an improvement; the "
+            f"cross-substrate pair is substrate-range evidence, not an "
+            f"engineering result.")
     if (variant.measurement_type or None) != (parent.measurement_type or None):
         raise EndpointMismatchError(
             f"{variant.candidate_id} reports endpoint "
@@ -1345,8 +1357,8 @@ def variant_versus_parent(
     # recorded it on, and subtracting across scales invents an improvement
     # that the replicate check then confirms, because the spreads are in the
     # same unconverted units.
-    v_unit = _plain(variant.measurement_unit)
-    p_unit = _plain(parent.measurement_unit)
+    v_unit = normalise_unit_text(_plain(variant.measurement_unit))
+    p_unit = normalise_unit_text(_plain(parent.measurement_unit))
     unit_label = variant.measurement_unit
     v_value, p_value = variant.measurement_value, parent.measurement_value
     v_reps = tuple(variant.replicate_values or ())

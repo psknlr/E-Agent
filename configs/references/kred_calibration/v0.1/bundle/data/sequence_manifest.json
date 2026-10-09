@@ -1,0 +1,382 @@
+[
+  {
+    "sequence_id": "PDB_1ZK4_entity1",
+    "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITGRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+    "length": 251,
+    "sequence_sha256": "824a864a75fc1cf554e6c01fac6ed4873abbed416be5d0fff2e9dc7f31b6498b",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "1ZK4",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZK4/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_1ZJY_entity1",
+    "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+    "length": 251,
+    "sequence_sha256": "cfe7d480809bf5184be5ade1ff8183dc01a46e1efaa168acb9bb4ec06c948dc0",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "1ZJY",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZJY/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_1ZJZ_entity1",
+    "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+    "length": 251,
+    "sequence_sha256": "cfe7d480809bf5184be5ade1ff8183dc01a46e1efaa168acb9bb4ec06c948dc0",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "1ZJZ",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZJZ/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_1ZK0_entity1",
+    "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+    "length": 251,
+    "sequence_sha256": "cfe7d480809bf5184be5ade1ff8183dc01a46e1efaa168acb9bb4ec06c948dc0",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "1ZK0",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZK0/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_1ZK1_entity1",
+    "sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+    "length": 251,
+    "sequence_sha256": "cfe7d480809bf5184be5ade1ff8183dc01a46e1efaa168acb9bb4ec06c948dc0",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "1ZK1",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZK1/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_6ZZO_entity1",
+    "sequence": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+    "length": 266,
+    "sequence_sha256": "4f10a082aab3c751ca03af2b4249e36e67c1892b3c4fb87835c19afd0e8847b2",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "6ZZO",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZO/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_6ZZP_entity1",
+    "sequence": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+    "length": 266,
+    "sequence_sha256": "4f10a082aab3c751ca03af2b4249e36e67c1892b3c4fb87835c19afd0e8847b2",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "6ZZP",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZP/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_6ZZQ_entity1",
+    "sequence": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+    "length": 261,
+    "sequence_sha256": "9fd6cb803872a517ef0dc651933cae3251d3c6c552aaa66a6e25c913ffb31275",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "6ZZQ",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZQ/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_6ZZS_entity1",
+    "sequence": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+    "length": 261,
+    "sequence_sha256": "9fd6cb803872a517ef0dc651933cae3251d3c6c552aaa66a6e25c913ffb31275",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "6ZZS",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZS/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_4RF2_entity1",
+    "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 272,
+    "sequence_sha256": "57834363123b52f91bc6327c2f7281edcd336da3e7f75a86b16509579eec3afa",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "4RF2",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF2/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_4RF3_entity1",
+    "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIFVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 272,
+    "sequence_sha256": "58357e38193c1456268706772ae62a830bc89fa52527a28448f48c00200ed1be",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "4RF3",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF3/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_4RF4_entity1",
+    "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 272,
+    "sequence_sha256": "57834363123b52f91bc6327c2f7281edcd336da3e7f75a86b16509579eec3afa",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "4RF4",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF4/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_4RF5_entity1",
+    "sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 272,
+    "sequence_sha256": "da4f7976afdc3cfae69186c21cd57ef8f7ba6c4eea36daba01a33c60f80b3472",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "4RF5",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF5/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_1Y1P_entity1",
+    "sequence": "AKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSFSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALALMPPQYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSLEILKSLGRPGWRSIEESIKDLVGSETA",
+    "length": 342,
+    "sequence_sha256": "499f57a707aa05b1c67126c3dc94ef2f3c59b7712e01e418bb8178417a9b7d22",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "1Y1P",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1Y1P/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_7UUT_entity1",
+    "sequence": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAATPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLCPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+    "length": 352,
+    "sequence_sha256": "6e466b3c924c0989a6314af0615214dcf3d07deb8bf962d723cd8173cc654bdb",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "7UUT",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/7UUT/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_7UTC_entity1",
+    "sequence": "MKGFAMLSIGKVGWIEKEKPAPGPFDAIVRPLAVAPCTSDIHTVFEGAIGERHNMILGHEAVGEVVEVGSEVKDFKPGDRVVVPAITPDWRTSEVQRGYHQHSGGMLAGWKFSNVKDGVFGEFFHVNDADMNLAHLPKEIPLEAAVMIPDMMTTGFHGAELADIELGATVAVLGIGPVGLMAVAGAKLRGAGRIIAVGSRPVCVDAAKYYGATDIVNYKDGPIESQIMNLTEGKGVDAAIIAGGNADIMATAVKIVKPGGTIANVNYFGEGEVLPVPRLEWGCGMAHKTIKGGLAPGGRLRMERLIDLVFYKRVDPSKLVTHVFRGFDNIEKAFMLMKDKPKDLIKPVVILA",
+    "length": 352,
+    "sequence_sha256": "a1a486e317f2c91e79e8ba172eecd9639fc3196408b3f1a75f4db9258e29ffe1",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "7UTC",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/7UTC/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_1IPF_entity1",
+    "sequence": "AGRWNLEGCTALVTGGSRGIGYGIVEELASLGASVYTCSRNQKELNDCLTQWRSKGFKVEASVCDLSSRSERQELMNTVANHFHGKLNILVNNAGIVIYKEAKDYTVEDYSLIMSINFEAAYHLSVLAHPFLKASERGNVVFISSVSGALAVPYEAVYGATKGAMDQLTRCLAFEWAKDNIRVNGVGPGVIATSLVEMTIQDPEQKENLNKLIDRCALRRMGEPKELAAMVAFLCFPAASYVTGQIIYVDGGLMANCGF",
+    "length": 259,
+    "sequence_sha256": "65f24671032f9f0ad83e71ddd27a9f5e3f069f7d0b4cbbfd7c0bc6c74e5e8cd4",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "1IPF",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1IPF/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_2AE2_entity1",
+    "sequence": "MAGRWNLEGCTALVTGGSRGIGYGIVEELASLGASVYTCSRNQKELNDCLTQWRSKGFKVEASVCDLSSRSERQELMNTVANHFHGKLNILVNNAGIVIYKEAKDYTVEDYSLIMSINFEAAYHLSVLAHPFLKASERGNVVFISSVSGALAVPYEAVYGATKGAMDQLTRCLAFEWAKDNIRVNGVGPGVIATSLVEMTIQDPEQKENLNKLIDRCALRRMGEPKELAAMVAFLCFPAASYVTGQIIYVDGGLMANCGF",
+    "length": 260,
+    "sequence_sha256": "8891e0c669cb4a593c93a836ba96f34b222735ec2d23023a1c1abe2d03c74905",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "2AE2",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/2AE2/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "PDB_6XEW_entity1",
+    "sequence": "MHHHHHHENLYFQGRFDNKVVVITGAGNGMGEAAARRFSAEGAIVVLADWAKEAVDKVAASLPKGRAMAVHIDVSDHVAVEKMMNEVAEKLGRIDVLLNNAGVHVAGSVLETSIDDWRRIAGVDIDGVVFCSKFALPHLLKTKGCIVNTASVSGLGGDWGAAYYCAAKGAVVNLTRAMALDHGGDGVRINSVCPSLVKTNMTNGWPQEIRDKFNERIALGRAAEPEEVAAVMAFLASDDASFINGANIPVDGGATASDGQPKIV",
+    "length": 264,
+    "sequence_sha256": "a131f242fc5256d4b57a2aac0d4c05ba463e1822728bfda75b696aa1336e9d09",
+    "kind": "deposited_polymer_reference",
+    "pdb_id": "6XEW",
+    "source_url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6XEW/1",
+    "note": "Deposited polymer entity sequence. Do not assume it includes exactly the purified assay tags or only resolved residues."
+  },
+  {
+    "sequence_id": "LK_author_core_WT",
+    "sequence": "MTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 252,
+    "sequence_sha256": "d78819d75cef3fdbc8b298d8cedf225bbf35a2f7f4c168376902bf0cfb6f5f95",
+    "kind": "derived_author_numbered_core_not_complete_assay_construct",
+    "pdb_id": null,
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/",
+    "note": "4RF2 entity1 minus the 20-residue N-terminal fusion; named mutations applied and WT residues checked. A94F/E145S cores match deposited variants. Full purified assay tag/linker sequence is not independently established."
+  },
+  {
+    "sequence_id": "LK_author_core_A94F",
+    "sequence": "MTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIFVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 252,
+    "sequence_sha256": "1f7905b3c157043c938d1efbcda8f6c9b0d285b20e69525dffe17abcfcbb2c79",
+    "kind": "derived_author_numbered_core_not_complete_assay_construct",
+    "pdb_id": null,
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/",
+    "note": "4RF2 entity1 minus the 20-residue N-terminal fusion; named mutations applied and WT residues checked. A94F/E145S cores match deposited variants. Full purified assay tag/linker sequence is not independently established."
+  },
+  {
+    "sequence_id": "LK_author_core_Y190F",
+    "sequence": "MTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGFIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 252,
+    "sequence_sha256": "fab6d0d436661436a9df73775eb808a6a1d1d3362751e6fffdb27e0cd6e7ce0c",
+    "kind": "derived_author_numbered_core_not_complete_assay_construct",
+    "pdb_id": null,
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/",
+    "note": "4RF2 entity1 minus the 20-residue N-terminal fusion; named mutations applied and WT residues checked. A94F/E145S cores match deposited variants. Full purified assay tag/linker sequence is not independently established."
+  },
+  {
+    "sequence_id": "LK_author_core_E145S",
+    "sequence": "MTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 252,
+    "sequence_sha256": "1b7dc485352d71d3bf48a784bfc6ae5cfc11f678dbebba0c2bd1ab73d5d54a01",
+    "kind": "derived_author_numbered_core_not_complete_assay_construct",
+    "pdb_id": null,
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/",
+    "note": "4RF2 entity1 minus the 20-residue N-terminal fusion; named mutations applied and WT residues checked. A94F/E145S cores match deposited variants. Full purified assay tag/linker sequence is not independently established."
+  },
+  {
+    "sequence_id": "LK_author_core_Sph",
+    "sequence": "MTDRLKSKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGITVPKSVEDTTTEEWHKLLSVNLDSVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYTASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTNLVDDLEGAEEMQSQRTKTPMGHIGEPNDVAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 252,
+    "sequence_sha256": "3f37b58d50a7d521b24a38f26b26b767e3f9faa25bbc8af52f9cedad8bc0db02",
+    "kind": "derived_author_numbered_core_not_complete_assay_construct",
+    "pdb_id": null,
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/",
+    "note": "4RF2 entity1 minus the 20-residue N-terminal fusion; named mutations applied and WT residues checked. A94F/E145S cores match deposited variants. Full purified assay tag/linker sequence is not independently established."
+  },
+  {
+    "sequence_id": "LK_author_core_Sph_without_P194N",
+    "sequence": "MTDRLKSKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGITVPKSVEDTTTEEWHKLLSVNLDSVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYTASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMQSQRTKTPMGHIGEPNDVAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "length": 252,
+    "sequence_sha256": "d83577f1e9e747cf79766c461514414db7f3d5e431ef7a50af46299ee0e4b28e",
+    "kind": "derived_author_numbered_core_not_complete_assay_construct",
+    "pdb_id": null,
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/",
+    "note": "4RF2 entity1 minus the 20-residue N-terminal fusion; named mutations applied and WT residues checked. A94F/E145S cores match deposited variants. Full purified assay tag/linker sequence is not independently established."
+  },
+  {
+    "sequence_id": "Ssal2024_reported_WT",
+    "sequence": "MAKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSFSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALALMPPQYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSLEILKSLGRPGWRSIEESIKDLVGSETA",
+    "length": 343,
+    "sequence_sha256": "cd305f4d495e62581281ae4ebcb64af8dcc2d51ad4330a9e12caf5998812a582",
+    "kind": "reported_enzyme_sequence_excludes_vector_tag",
+    "pdb_id": null,
+    "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42004-024-01130-5/MediaObjects/42004_2024_1130_MOESM2_ESM.pdf",
+    "note": "Verbatim reported enzyme amino-acid sequence from official SI PDF p55, text-extracted and visually checked; exact mutations validated against SI WT. The kinetic construct has an N-terminal 6xHis tag, but that vector-derived tag/linker is absent from this reported 343-aa sequence and has not been reconstructed."
+  },
+  {
+    "sequence_id": "Ssal2024_reported_M1",
+    "sequence": "MAKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSWSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALAMWPPSYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSLEILKSLGRPGWRSIEESIKDLVGSETA",
+    "length": 343,
+    "sequence_sha256": "289e4f9ff50961bdf8fd148070deef28606092b08021a000fbda94253471cbd9",
+    "kind": "reported_enzyme_sequence_excludes_vector_tag",
+    "pdb_id": null,
+    "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42004-024-01130-5/MediaObjects/42004_2024_1130_MOESM2_ESM.pdf",
+    "note": "Verbatim reported enzyme amino-acid sequence from official SI PDF p55, text-extracted and visually checked; exact mutations validated against SI WT. The kinetic construct has an N-terminal 6xHis tag, but that vector-derived tag/linker is absent from this reported 343-aa sequence and has not been reconstructed."
+  },
+  {
+    "sequence_id": "Ssal2024_reported_M2",
+    "sequence": "MAKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSWSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALAMWPPSYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSMEILKSLGRPGWRSIEESIKDLVGSEMA",
+    "length": 343,
+    "sequence_sha256": "11b7698a78e7269da323ce634b59f08f15243a0602c8033560e772b14f4826fd",
+    "kind": "reported_enzyme_sequence_excludes_vector_tag",
+    "pdb_id": null,
+    "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42004-024-01130-5/MediaObjects/42004_2024_1130_MOESM2_ESM.pdf",
+    "note": "Verbatim reported enzyme amino-acid sequence from official SI PDF p55, text-extracted and visually checked; exact mutations validated against SI WT. The kinetic construct has an N-terminal 6xHis tag, but that vector-derived tag/linker is absent from this reported 343-aa sequence and has not been reconstructed."
+  },
+  {
+    "sequence_id": "Ssal2024_reported_M3",
+    "sequence": "MAKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSWSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPKLAMWPPSYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSMEILKSLGRPGWRSIEESIKDLVGSEMA",
+    "length": 343,
+    "sequence_sha256": "160184f581fe75317699e86c98686f7a9e50d9918e04e9998a699d25531b2c97",
+    "kind": "reported_enzyme_sequence_excludes_vector_tag",
+    "pdb_id": null,
+    "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42004-024-01130-5/MediaObjects/42004_2024_1130_MOESM2_ESM.pdf",
+    "note": "Verbatim reported enzyme amino-acid sequence from official SI PDF p55, text-extracted and visually checked; exact mutations validated against SI WT. The kinetic construct has an N-terminal 6xHis tag, but that vector-derived tag/linker is absent from this reported 343-aa sequence and has not been reconstructed."
+  },
+  {
+    "sequence_id": "Ssal2024_reported_M4",
+    "sequence": "MAKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSWSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPKLAMWPPSGYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSMEILKSLGRPGWRSIEESIKDLVGSEMA",
+    "length": 343,
+    "sequence_sha256": "50d7bf77e06dadaca894ce9e346c71a50b14e92d7becd457a31036147e8001f3",
+    "kind": "reported_enzyme_sequence_excludes_vector_tag",
+    "pdb_id": null,
+    "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42004-024-01130-5/MediaObjects/42004_2024_1130_MOESM2_ESM.pdf",
+    "note": "Verbatim reported enzyme amino-acid sequence from official SI PDF p55, text-extracted and visually checked; exact mutations validated against SI WT. The kinetic construct has an N-terminal 6xHis tag, but that vector-derived tag/linker is absent from this reported 343-aa sequence and has not been reconstructed."
+  },
+  {
+    "sequence_id": "Ssal2024_reported_M5",
+    "sequence": "MAKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSWSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTAGWMMSLFNGEVSPKLAMWPPSGYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSMEILKSLGRPGWRSIEESIKDLVGSEMA",
+    "length": 343,
+    "sequence_sha256": "f62a6afd23d3c8037d5fd3e69a35b99076a77201f0e4590854a743edccf86f7f",
+    "kind": "reported_enzyme_sequence_excludes_vector_tag",
+    "pdb_id": null,
+    "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42004-024-01130-5/MediaObjects/42004_2024_1130_MOESM2_ESM.pdf",
+    "note": "Verbatim reported enzyme amino-acid sequence from official SI PDF p55, text-extracted and visually checked; exact mutations validated against SI WT. The kinetic construct has an N-terminal 6xHis tag, but that vector-derived tag/linker is absent from this reported 343-aa sequence and has not been reconstructed."
+  },
+  {
+    "sequence_id": "Ssal2024_reported_M6",
+    "sequence": "MAKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSWSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSVVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTAGWMMSLFNGEVSPKLAMWPPSGYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSMEILKSLGRPGWRSIEESIKDLVGSEMA",
+    "length": 343,
+    "sequence_sha256": "7850f0688b7b5806561e62790d849c5aa6bb15490aa020fe1468df812c02dedb",
+    "kind": "reported_enzyme_sequence_excludes_vector_tag",
+    "pdb_id": null,
+    "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42004-024-01130-5/MediaObjects/42004_2024_1130_MOESM2_ESM.pdf",
+    "note": "Verbatim reported enzyme amino-acid sequence from official SI PDF p55, text-extracted and visually checked; exact mutations validated against SI WT. The kinetic construct has an N-terminal 6xHis tag, but that vector-derived tag/linker is absent from this reported 343-aa sequence and has not been reconstructed."
+  },
+  {
+    "sequence_id": "HBDH_mature_inferred_PaHBDH",
+    "sequence": "ATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+    "length": 265,
+    "sequence_sha256": "309931e14356f8ee4f44bd05c30fa993da3f001ba06e4f83a084f261c4405c2f",
+    "kind": "inferred_from_deposited_sequence_and_intact_mass_processing",
+    "pdb_id": "6ZZO",
+    "source_url": "https://doi.org/10.1021/acs.biochem.8b01099.s001",
+    "note": "Derived from deposited reference sequence plus authors interpretation of intact-protein ESI-MS; not independently established by full amino-acid sequencing Keep author/PDB mutation numbering."
+  },
+  {
+    "sequence_id": "HBDH_mature_inferred_AbHBDH",
+    "sequence": "GMTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+    "length": 262,
+    "sequence_sha256": "192925c7c7e6f6bc5fe6d1fd2da11a74fd8a2a0faa2c6223b29f60b36090f2d0",
+    "kind": "inferred_from_deposited_sequence_and_intact_mass_processing",
+    "pdb_id": "6ZZQ",
+    "source_url": "https://doi.org/10.1021/acs.biochem.8b01099.s001",
+    "note": "Derived from deposited reference sequence plus authors interpretation of intact-protein ESI-MS; not independently established by full amino-acid sequencing Keep author/PDB mutation numbering."
+  },
+  {
+    "sequence_id": "HBDH_reference_derived_PaHBDH_H150A",
+    "sequence": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVASHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+    "length": 266,
+    "sequence_sha256": "a275cdf628ec307c39bb316587ba2c6eddef8771d9f51e752bc66856b7865616",
+    "kind": "derived_mutant_reference_not_experimental_structure",
+    "pdb_id": null,
+    "source_url": "https://doi.org/10.1021/acscatal.0c04736",
+    "note": "One named point substitution of WT deposited sequence; NOT a separately experimentally deposited mutant sequence Does not add or remove assay terminal tags."
+  },
+  {
+    "sequence_id": "HBDH_reference_derived_PaHBDH_H150N",
+    "sequence": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVNSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+    "length": 266,
+    "sequence_sha256": "432cbe06e15ce8e6c3ab2dea7446cbe52e2c0a46a50e102d83db4d8487332a8b",
+    "kind": "derived_mutant_reference_not_experimental_structure",
+    "pdb_id": null,
+    "source_url": "https://doi.org/10.1021/acscatal.0c04736",
+    "note": "One named point substitution of WT deposited sequence; NOT a separately experimentally deposited mutant sequence Does not add or remove assay terminal tags."
+  },
+  {
+    "sequence_id": "HBDH_reference_derived_AbHBDH_N145A",
+    "sequence": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASIAGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+    "length": 261,
+    "sequence_sha256": "f1809013e8be47a0d16f63fd786e28ab2da33266563074f12a1a0d18b975f8ca",
+    "kind": "derived_mutant_reference_not_experimental_structure",
+    "pdb_id": null,
+    "source_url": "https://doi.org/10.1021/acscatal.0c04736",
+    "note": "One named point substitution of WT deposited sequence; NOT a separately experimentally deposited mutant sequence Does not add or remove assay terminal tags."
+  },
+  {
+    "sequence_id": "HBDH_reference_derived_AbHBDH_N145H",
+    "sequence": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASIHGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+    "length": 261,
+    "sequence_sha256": "d15710ccc1833c43dbd14b68ef2954427edee56727cc29cc6051d17fc9a4ec43",
+    "kind": "derived_mutant_reference_not_experimental_structure",
+    "pdb_id": null,
+    "source_url": "https://doi.org/10.1021/acscatal.0c04736",
+    "note": "One named point substitution of WT deposited sequence; NOT a separately experimentally deposited mutant sequence Does not add or remove assay terminal tags."
+  }
+]

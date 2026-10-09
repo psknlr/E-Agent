@@ -26,6 +26,7 @@ import unittest
 from pathlib import Path
 
 from eagent.connectors.base import (
+    ConnectorError,
     AccessPolicy,
     CachedResponse,
     FileCache,
@@ -131,9 +132,18 @@ class TestOfflineFirstBehaviour(ConnectorTestCase):
 
 class TestEndpointRefusal(ConnectorTestCase):
 
-    def test_every_chemistry_source_still_records_a_null_endpoint(self) -> None:
-        """The registry ships ``endpoint: null`` everywhere; nothing may add one."""
+    def test_an_endpoint_appears_only_with_a_verified_route(self) -> None:
+        """An endpoint is admissible exactly when a recorded call reached it."""
         for source_id in ("pubchem", "chebi", "rhea", "metanetx", "enzymemap"):
+            with self.subTest(source=source_id):
+                source = self.registry.get(source_id)
+                if source.endpoint is None:
+                    continue
+                self.assertTrue(source.connectivity_verified, source_id)
+                self.assertTrue(source.verified_capabilities, source_id)
+
+    def test_the_rest_still_record_no_endpoint(self) -> None:
+        for source_id in ("pubchem", "chebi", "metanetx", "enzymemap"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
@@ -153,19 +163,37 @@ class TestEndpointRefusal(ConnectorTestCase):
         self.assertTrue(status.curation_notes)
         self.assertIn("endpoint", json.dumps(status.to_dict()))
 
-    def test_remote_hooks_refuse_before_building_any_url(self) -> None:
-        """Even with the network allowed, there is no address to call."""
+    def test_remote_hooks_build_the_probed_request_for_a_checked_client(self) -> None:
+        """Rhea's base URL is established AND its client was written against
+        the probed TSV query, so it may call -- here through a stub."""
         connector = RheaConnector(cache=self.cache,
                                   access=AccessPolicy(allow_network=True))
+        self.assertEqual(connector.require_endpoint(), "https://www.rhea-db.org")
+        seen: list[str] = []
+        connector._http_text = lambda url, timeout=30.0, accept="*/*": (
+            seen.append(url) or None)
+        self.assertEqual(connector._fetch_remote("RHEA:10740"), (None, None))
+        self.assertTrue(seen[0].startswith(
+            "https://www.rhea-db.org/rhea?query=RHEA:10740&columns="))
+
+    def test_an_unprobed_query_shape_is_refused_not_improvised(self) -> None:
+        connector = RheaConnector(cache=self.cache,
+                                  access=AccessPolicy(allow_network=True))
+        with self.assertRaises(ConnectorError) as ctx:
+            connector._search_remote({"op": "search", "text": "ketone"})
+        self.assertIn("only an EC search", str(ctx.exception))
+
+    def test_a_source_with_no_endpoint_still_refuses_on_the_endpoint(self) -> None:
+        connector = PubChemConnector(cache=self.cache,
+                                     access=AccessPolicy(allow_network=True))
         with self.assertRaises(EndpointNotEstablishedError):
-            connector._fetch_remote("RHEA:00001")
-        with self.assertRaises(EndpointNotEstablishedError):
-            connector._search_remote({"op": "search", "ec": "1.1.1.1"})
+            connector._fetch_remote("2244")
 
     def test_a_network_enabled_run_still_reports_a_miss_not_a_crash(self) -> None:
-        connector = RheaConnector(cache=self.cache,
-                                  access=AccessPolicy(allow_network=True))
-        response = connector.fetch("RHEA:00002")
+        """PubChem has no route at all, so a networked run refuses cleanly."""
+        connector = PubChemConnector(cache=self.cache,
+                                     access=AccessPolicy(allow_network=True))
+        response = connector.fetch("2244")
         self.assertIs(response.status, ResponseStatus.MISS)
         self.assertIsNone(response.payload)
 
@@ -578,10 +606,47 @@ class TestRegistryContract(ConnectorTestCase):
         self.assertEqual(connector.evidence_strength_ceiling,
                          self.registry.get("chebi").evidence_strength_ceiling)
 
-    def test_nothing_in_the_registry_claims_verified_connectivity(self) -> None:
+    def test_a_verified_source_carries_the_call_that_earned_it(self) -> None:
         for source in self.registry:
             with self.subTest(source=source.id):
-                self.assertFalse(source.connectivity_verified)
+                if not source.connectivity_verified:
+                    continue
+                self.assertTrue(source.connectivity_checks, source.id)
+                self.assertTrue(any(c.ok for c in source.connectivity_checks))
+
+    #: Connectors whose client has been checked against a recorded probe.
+    #: Everything else is generic -- ``<base>/<key>`` for a fetch, query
+    #: parameters for a search -- and was written against no service, so a
+    #: verified base URL licenses nothing for it. The list grows one connector
+    #: at a time, by whoever does the checking.
+    CHECKED_CLIENTS = {"uniprotkb": "exact_record_fetch",
+                       "rcsb_pdb": "exact_record_fetch",
+                       "rhea": "keyword_query",
+                       "zenodo": "exact_record_fetch"}
+
+    def test_only_a_checked_client_declares_a_request_shape(self) -> None:
+        from eagent.connectors.chemistry import RegistryBackedConnector
+
+        def walk(cls):
+            for sub in cls.__subclasses__():
+                yield sub
+                yield from walk(sub)
+
+        for cls in walk(RegistryBackedConnector):
+            sid = getattr(cls, "source_id", "")
+            if not sid:
+                continue
+            with self.subTest(connector=cls.__name__):
+                self.assertEqual(cls.verified_route_capability,
+                                 self.CHECKED_CLIENTS.get(sid))
+
+    def test_a_checked_client_names_a_capability_its_source_has_verified(self) -> None:
+        """Declaring a shape that nothing probed would be the same assertion
+        the probe exists to replace."""
+        for sid, capability in self.CHECKED_CLIENTS.items():
+            with self.subTest(source=sid):
+                source = self.registry.get(sid)
+                self.assertIn(capability, source.verified_capabilities)
 
     def test_an_unpinned_connector_says_so(self) -> None:
         connector = ChEBIConnector(cache=self.cache)

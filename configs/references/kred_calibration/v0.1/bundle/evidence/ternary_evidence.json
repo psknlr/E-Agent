@@ -1,0 +1,838 @@
+{
+  "as_of": "2026-10-07",
+  "scope": "experimental genuine ketone/alcohol ternaries, matching activity evidence, and exclusions; microbial industrialKRED plus separatelydesignated specializedSDR extensions",
+  "sources": {
+    "lb2005": {
+      "doi": "10.1016/j.jmb.2005.04.029",
+      "pmid": "15896805",
+      "title": "Atomic resolution structures of R-specific alcohol dehydrogenase from Lactobacillus brevis provide the structural bases of its substrate and cosubstrate specificity",
+      "url": "https://doi.org/10.1016/j.jmb.2005.04.029",
+      "original_full_text_read": false
+    },
+    "lb_brenda": {
+      "url": "https://brenda-enzymes.info/literature.php?e=1.1.1.2&r=675348",
+      "web_refs": [
+        "turn6view1",
+        "turn58search1"
+      ],
+      "type": "official curated database extraction from lb2005"
+    },
+    "lb_table_reprint": {
+      "url": "https://docserv.uni-duesseldorf.de/servlets/DerivateServlet/Derivate-16498/Doctoral%20thesis_Liliya%20Kulishova.pdf",
+      "title": "Analysis of factors influencing enzyme activity and stability in the solid state",
+      "author": "Liliya Kulishova",
+      "year": 2010,
+      "location": "Table4-11, printed page129, explicitly reprinted fromSchlieben etal.[8]",
+      "web_refs": [
+        "turn22view2",
+        "turn29view0",
+        "turn25view0"
+      ],
+      "type": "official university thesis explicitly reprinting Schlieben et al. 2005 Table; not original paper directly read"
+    },
+    "lb_author_thesis": {
+      "url": "https://kups.ub.uni-koeln.de/427/1/11w1284.pdf",
+      "landing_url": "https://kups.ub.uni-koeln.de/427/",
+      "year": 2002,
+      "web_refs": [
+        "turn27view0"
+      ],
+      "location": "Sections 5.1.4.7-5.1.4.8 pp116-118 and Table5.6 p132",
+      "note": "Original author doctoral thesis; confirms ligand/cofactor high B factors but predates2005 kinetic values."
+    },
+    "tr2003": {
+      "doi": "10.1021/bi0272712",
+      "pmid": "12741812",
+      "url": "https://pubs.acs.org/doi/10.1021/bi0272712",
+      "title": "Capturing enzyme structure prior to reaction initiation: tropinone reductase-II-substrate complexes",
+      "original_full_text_read": false,
+      "abstract_read": true,
+      "web_refs": [
+        "turn78search0",
+        "turn86search0",
+        "turn86search1"
+      ]
+    },
+    "tr1999": {
+      "doi": "10.1021/bi9825044",
+      "pmid": "10387002",
+      "url": "https://doi.org/10.1021/bi9825044",
+      "title": "Structure of tropinone reductase-II complexed with NADP+ and pseudotropine at 1.9 A resolution: implication for stereospecific substrate binding and catalysis",
+      "original_full_text_read": false
+    },
+    "tr_brenda": {
+      "url": "https://www.brenda-enzymes.org/literature.php?e=1.1.1.236&r=654707",
+      "web_refs": [
+        "turn84view0",
+        "turn82view1"
+      ],
+      "type": "official curated database extraction from same2003 structure paper; numeric kinetics not directly verified in original"
+    },
+    "tr_author_japanese": {
+      "doi": "10.5940/jcrsj.45.371",
+      "url": "https://www.jstage.jst.go.jp/article/jcrsj1959/45/6/45_6_371/_article/-char/en",
+      "pdf_url": "https://www.jstage.jst.go.jp/article/jcrsj1959/45/6/45_6_371/_pdf",
+      "web_refs": [
+        "turn87view0"
+      ],
+      "type": "Open author account of own2003 experiments, full Japanese PDF read",
+      "note": "Confirms flow/Laue and spectroscopic estimated60-70% substrate ternary population; no exact kcat/Km found."
+    },
+    "sm2020": {
+      "doi": "10.1186/s13068-020-01820-x",
+      "pmid": "33292448",
+      "url": "https://link.springer.com/article/10.1186/s13068-020-01820-x",
+      "title": "Phylogenetics-based identification and characterization of a superior 2,3-butanediol dehydrogenase for Zymomonas mobilis expression",
+      "original_full_text_read": true,
+      "web_refs": [
+        "turn77view1",
+        "turn81view2",
+        "turn91view0"
+      ],
+      "locations": [
+        "Fig8 purified protein activities",
+        "Bdh activity analysis in Materials and methods",
+        "Figs3-4 acetoin density and cofactor",
+        "Fig7 mutant glycerol/ethylene glycol"
+      ]
+    },
+    "sm_fig8": {
+      "url": "https://media.springernature.com/lw1200/springer-static/image/art%3A10.1186%2Fs13068-020-01820-x/MediaObjects/13068_2020_1820_Fig8_HTML.png",
+      "web_refs": [
+        "turn78view1"
+      ],
+      "type": "primary paper figure visually read; quantitative values approximate bar heights"
+    }
+  },
+  "activity_labels": [
+    {
+      "label_id": "LB_WT_AP_NADPH_2005",
+      "enzyme": "LbADH",
+      "organism": "Lactobacillus brevis",
+      "uniprot": "Q84EX5",
+      "variant": "WT",
+      "substrate": "acetophenone",
+      "substrate_ccd": "AC0",
+      "product": "(R)-1-phenylethanol",
+      "cofactor_in_assay": "NADPH",
+      "reaction_direction": "ketone reduction",
+      "Km_mM": 2.8,
+      "Km_error_mM": 0.2,
+      "kcat_s-1": 44.5,
+      "kcat_error_s-1": 3.7,
+      "reported_kcat_over_Km_M-1_s-1": 16000.0,
+      "pH": 7.0,
+      "temperature_C": 30,
+      "replicates": 3,
+      "uncertainty_type": "reported plus/minus; not independently established SD versus SEM",
+      "sources": [
+        "lb2005",
+        "lb_brenda",
+        "lb_table_reprint"
+      ],
+      "assay_link_status": "same published sequence and substrate; structure uses oxidized NADP+ instead of assay NADPH",
+      "evidence_grade": "kinetics corroborated by explicit table reprint and curated database; original paper full text not directly read",
+      "pdb_ids": [
+        "1ZK4"
+      ],
+      "split_group": "LB_Q84EX5_AP"
+    },
+    {
+      "label_id": "LB_G37D_AP_NADH_2005",
+      "enzyme": "LbADH",
+      "organism": "Lactobacillus brevis",
+      "uniprot": "Q84EX5",
+      "variant": "G37D",
+      "substrate": "acetophenone",
+      "substrate_ccd": "AC0",
+      "product": "(R)-1-phenylethanol",
+      "cofactor_in_assay": "NADH",
+      "reaction_direction": "ketone reduction",
+      "Km_mM": 10.9,
+      "Km_error_mM": 1.1,
+      "kcat_s-1": 35.7,
+      "kcat_error_s-1": 3.6,
+      "reported_kcat_over_Km_M-1_s-1": 3300.0,
+      "pH": 7.0,
+      "temperature_C": 30,
+      "replicates": 3,
+      "uncertainty_type": "reported plus/minus; not independently established SD versus SEM",
+      "sources": [
+        "lb2005",
+        "lb_brenda",
+        "lb_table_reprint"
+      ],
+      "assay_link_status": "same published variant and reaction; individual structures vary between ketone/alcohol and oxidized/reduced cofactor",
+      "evidence_grade": "kinetics corroborated by explicit table reprint and curated database; original paper full text not directly read",
+      "pdb_ids": [
+        "1ZJY",
+        "1ZJZ",
+        "1ZK0",
+        "1ZK1"
+      ],
+      "split_group": "LB_Q84EX5_AP"
+    },
+    {
+      "label_id": "DSTRII_TROP_NADPH_2003",
+      "enzyme": "tropinone reductase II",
+      "organism": "Datura stramonium",
+      "uniprot": "P50163",
+      "variant": "WT",
+      "substrate": "tropinone",
+      "substrate_ccd": "TNE",
+      "product": "pseudotropine",
+      "product_ccd": "PTO",
+      "cofactor_in_assay": "NADPH",
+      "reaction_direction": "ketone reduction",
+      "Km_mM": 0.0949,
+      "kcat_s-1": 71.4,
+      "NADPH_Km_mM": 0.0171,
+      "pH": 7.5,
+      "temperature_C": 15,
+      "buffer": null,
+      "cosubstrate_concentrations": null,
+      "replicates": null,
+      "sources": [
+        "tr2003",
+        "tr_brenda"
+      ],
+      "evidence_grade": "official curated database traceable to same2003 structure paper; original numerical table and detailed assay not directly read",
+      "pdb_ids": [
+        "1IPF",
+        "2AE2"
+      ],
+      "assay_link_status": {
+        "1IPF": "same article and UniProt; sequence residues2-260",
+        "2AE2": "different1999 structure paper; same P50163 residues2-260 verified identical, deposited polymer sequence also includes initialMet; cross-paper transfer flagged"
+      },
+      "split_group": "DSTRII_P50163_TROP"
+    },
+    {
+      "label_id": "SMBDH_WT_ACETOIN_2020",
+      "enzyme": "meso-2,3-butanediol dehydrogenase",
+      "organism": "Serratia marcescens",
+      "uniprot": "H9XP47",
+      "genbank": "AFH00999",
+      "variant": "WT with N-terminal His6-TEV construct",
+      "substrate": "racemic acetoin",
+      "substrate_stereochemistry": "R/S mixture; no separate enantiomer-specific rate",
+      "product": "2,3-butanediol stereoisomers",
+      "cofactor_in_assay": "NADH",
+      "reaction_direction": "ketone reduction",
+      "specific_activity_U_per_nmol_approx": 3.5,
+      "value_is_approximate": true,
+      "value_source": "visual reading of Fig8 bar, about3.5; do not treat as exact tabulated number",
+      "error_description": "error bar shown; triplicate mean±SD; numeric SD not given",
+      "pH": 7.0,
+      "temperature_C": null,
+      "temperature_note": "assay temperature not reported in accessible Methods;30°C culture temperature must not be transferred",
+      "buffer": "100mM potassium phosphate",
+      "substrate_concentration_mM": 25,
+      "cofactor_concentration_mM": 0.25,
+      "reaction_volume_uL": 200,
+      "readout": "NADH oxidation A340 monitored5min, epsilon6.22mM^-1cm^-1",
+      "purified_protein_mass_range_ug": [
+        0.05,
+        1
+      ],
+      "replicates": 3,
+      "unit_definition": "1U consumes1micromole NADH/min",
+      "Km_mM": null,
+      "kcat_s-1": null,
+      "sources": [
+        "sm2020",
+        "sm_fig8"
+      ],
+      "evidence_grade": "same original OA structure paper, same purified construct and substrate; quantitative value approximate figure read",
+      "assay_link_status": "exact samepaper construct; crystal has NAD+ whereas activity uses NADH; activity is racemic mixture, cannot attach enantiomer-specific kcat to HBR or HBS",
+      "pdb_ids": [
+        "6XEW"
+      ],
+      "split_group": "SMBDH_H9XP47_ACETOIN"
+    }
+  ],
+  "structures": [
+    {
+      "pdb_id": "1ZK4",
+      "enzyme": "LbADH",
+      "uniprot": "Q84EX5",
+      "variant": "WT",
+      "protein_length": 251,
+      "resolution_A": 1.0,
+      "method": "X-RAY DIFFRACTION",
+      "preferred_chain": "A",
+      "substrate_or_product": {
+        "ccd": "AC0",
+        "auth_resid": 1260,
+        "chain": "A",
+        "role": "actual ketone substrate",
+        "rscc": 0.15,
+        "rsr": 0.27
+      },
+      "cofactor": {
+        "ccd": "NAP",
+        "name": "NADP+",
+        "auth_resid": 1270,
+        "chain": "A",
+        "rscc": 0.22,
+        "rsr": 0.34
+      },
+      "other_ligands": [
+        "Mg2+"
+      ],
+      "state": "ketone+oxidizedNADP: nonproductive redox-mismatched capture relative to ketone reduction",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "activity-labelled poor-ligand-density exclusion/audit set",
+      "exclusion_reason": "Both reaction ligand and cofactor have poor current wwPDB real-space density fit; protein resolution alone is misleading.",
+      "activity_label_ids": [
+        "LB_WT_AP_NADPH_2005"
+      ],
+      "structure_url": "https://www.rcsb.org/structure/1ZK4",
+      "validation_url": "https://files.rcsb.org/validation/view/1zk4_full_validation.pdf",
+      "validation_location": "Section6.4 Ligands in current2026 wwPDB report",
+      "structure_paper": "lb2005",
+      "split_group": "LB_Q84EX5_AP",
+      "special_note": null
+    },
+    {
+      "pdb_id": "1ZJY",
+      "enzyme": "LbADH",
+      "uniprot": "Q84EX5",
+      "variant": "G37D",
+      "protein_length": 251,
+      "resolution_A": 1.05,
+      "method": "X-RAY DIFFRACTION",
+      "preferred_chain": "A",
+      "substrate_or_product": {
+        "ccd": "SS2",
+        "auth_resid": 1260,
+        "chain": "A",
+        "role": "actual alcohol product",
+        "rscc": 0.78,
+        "rsr": 0.2
+      },
+      "cofactor": {
+        "ccd": "NAI",
+        "name": "NADH",
+        "auth_resid": 1270,
+        "chain": "A",
+        "rscc": 0.59,
+        "rsr": 0.23
+      },
+      "other_ligands": [
+        "Mg2+"
+      ],
+      "state": "alcohol+NADH: product-like ligand with reduced cofactor, redox-mismatched for canonical reduction product state",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "activity-labelled poor-ligand-density exclusion/audit set",
+      "exclusion_reason": "Both reaction ligand and cofactor have poor current wwPDB real-space density fit; protein resolution alone is misleading.",
+      "activity_label_ids": [
+        "LB_G37D_AP_NADH_2005"
+      ],
+      "structure_url": "https://www.rcsb.org/structure/1ZJY",
+      "validation_url": "https://files.rcsb.org/validation/view/1zjy_full_validation.pdf",
+      "validation_location": "Section6.4 Ligands in current2026 wwPDB report",
+      "structure_paper": "lb2005",
+      "split_group": "LB_Q84EX5_AP",
+      "special_note": null
+    },
+    {
+      "pdb_id": "1ZJZ",
+      "enzyme": "LbADH",
+      "uniprot": "Q84EX5",
+      "variant": "G37D",
+      "protein_length": 251,
+      "resolution_A": 1.1,
+      "method": "X-RAY DIFFRACTION",
+      "preferred_chain": "A",
+      "substrate_or_product": {
+        "ccd": "SS2",
+        "auth_resid": 1260,
+        "chain": "A",
+        "role": "actual alcohol product",
+        "rscc": 0.53,
+        "rsr": 0.28
+      },
+      "cofactor": {
+        "ccd": "NAD",
+        "name": "NAD+",
+        "auth_resid": 1270,
+        "chain": "A",
+        "rscc": 0.48,
+        "rsr": 0.29
+      },
+      "other_ligands": [
+        "Mg2+"
+      ],
+      "state": "alcohol+NAD+: reduction product state / oxidation reactants",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "activity-labelled poor-ligand-density exclusion/audit set",
+      "exclusion_reason": "Both reaction ligand and cofactor have poor current wwPDB real-space density fit; protein resolution alone is misleading.",
+      "activity_label_ids": [
+        "LB_G37D_AP_NADH_2005"
+      ],
+      "structure_url": "https://www.rcsb.org/structure/1ZJZ",
+      "validation_url": "https://files.rcsb.org/validation/view/1zjz_full_validation.pdf",
+      "validation_location": "Section6.4 Ligands in current2026 wwPDB report",
+      "structure_paper": "lb2005",
+      "split_group": "LB_Q84EX5_AP",
+      "special_note": null
+    },
+    {
+      "pdb_id": "1ZK0",
+      "enzyme": "LbADH",
+      "uniprot": "Q84EX5",
+      "variant": "G37D",
+      "protein_length": 251,
+      "resolution_A": 1.55,
+      "method": "X-RAY DIFFRACTION",
+      "preferred_chain": "A",
+      "substrate_or_product": {
+        "ccd": "SS2",
+        "auth_resid": 1260,
+        "chain": "A",
+        "role": "actual alcohol product",
+        "rscc": 0.51,
+        "rsr": 0.26
+      },
+      "cofactor": {
+        "ccd": "NAI",
+        "name": "NADH",
+        "auth_resid": 1270,
+        "chain": "A",
+        "rscc": 0.53,
+        "rsr": 0.24
+      },
+      "other_ligands": [
+        "Mg2+"
+      ],
+      "state": "alcohol+NADH: product-like ligand with reduced cofactor, redox-mismatched for canonical reduction product state",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "activity-labelled poor-ligand-density exclusion/audit set",
+      "exclusion_reason": "Both reaction ligand and cofactor have poor current wwPDB real-space density fit; protein resolution alone is misleading.",
+      "activity_label_ids": [
+        "LB_G37D_AP_NADH_2005"
+      ],
+      "structure_url": "https://www.rcsb.org/structure/1ZK0",
+      "validation_url": "https://files.rcsb.org/validation/view/1zk0_full_validation.pdf",
+      "validation_location": "Section6.4 Ligands in current2026 wwPDB report",
+      "structure_paper": "lb2005",
+      "split_group": "LB_Q84EX5_AP",
+      "special_note": null
+    },
+    {
+      "pdb_id": "1ZK1",
+      "enzyme": "LbADH",
+      "uniprot": "Q84EX5",
+      "variant": "G37D",
+      "protein_length": 251,
+      "resolution_A": 1.78,
+      "method": "X-RAY DIFFRACTION",
+      "preferred_chain": "A",
+      "substrate_or_product": {
+        "ccd": "AC0",
+        "auth_resid": 260,
+        "chain": "A",
+        "role": "actual ketone substrate",
+        "rscc": 0.65,
+        "rsr": 0.28
+      },
+      "cofactor": {
+        "ccd": "NAD",
+        "name": "NAD+",
+        "auth_resid": 270,
+        "chain": "A",
+        "rscc": 0.49,
+        "rsr": 0.26
+      },
+      "other_ligands": [
+        "Mg2+"
+      ],
+      "state": "ketone+oxidizedNAD: nonproductive redox-mismatched capture relative to ketone reduction",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "activity-labelled poor-ligand-density exclusion/audit set",
+      "exclusion_reason": "Both reaction ligand and cofactor have poor current wwPDB real-space density fit; protein resolution alone is misleading.",
+      "activity_label_ids": [
+        "LB_G37D_AP_NADH_2005"
+      ],
+      "structure_url": "https://www.rcsb.org/structure/1ZK1",
+      "validation_url": "https://files.rcsb.org/validation/view/1zk1_full_validation.pdf",
+      "validation_location": "Section6.4 Ligands in current2026 wwPDB report",
+      "structure_paper": "lb2005",
+      "split_group": "LB_Q84EX5_AP",
+      "special_note": "RCSB entry TITLE says phenylethanol, but deposited CCD and validation show AC0 acetophenone; use actual ligand identity."
+    },
+    {
+      "pdb_id": "1IPF",
+      "enzyme": "tropinone reductaseII",
+      "organism": "Datura stramonium",
+      "uniprot": "P50163",
+      "variant": "WT",
+      "resolution_A": 2.5,
+      "method": "X-RAY DIFFRACTION; continuous substrate flow + Laue",
+      "preferred_chain": "A",
+      "protein_length": 259,
+      "uniprot_alignment": "residues2-260",
+      "substrate_or_product": {
+        "ccd": "TNE",
+        "name": "tropinone",
+        "role": "actual ketone substrate",
+        "chain": "A",
+        "auth_resid": 262,
+        "occupancy": 1.0,
+        "rscc": 0.92,
+        "rsr": 0.09,
+        "B_min_median_p95_max": [
+          17,
+          22,
+          28,
+          31
+        ]
+      },
+      "cofactor": {
+        "ccd": "NDP",
+        "name": "NADPH",
+        "chain": "A",
+        "auth_resid": 261,
+        "occupancy": 1.0,
+        "rscc": 0.97,
+        "rsr": 0.07,
+        "B_min_median_p95_max": [
+          2,
+          10,
+          19,
+          25
+        ]
+      },
+      "other_sites": [
+        {
+          "ligand": "TNE",
+          "chain": "B",
+          "auth_resid": 1262,
+          "rscc": 0.84,
+          "rsr": 0.12
+        },
+        {
+          "ligand": "NDP",
+          "chain": "B",
+          "auth_resid": 1261,
+          "rscc": 0.97,
+          "rsr": 0.07
+        }
+      ],
+      "state": "true reduction pre-reaction substrate+reduced cofactor capture, supported by primary authors; estimated mixture remains",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "conditional specialized-substrate SDR extension",
+      "geometry_caveats": [
+        "TNE A262 C4-C3 and C2-C3 bonds1.59A vs1.50A ideal, Z5.65 and5.59",
+        "cofactor also has substantial Mogul geometry outliers",
+        "author openJapanese account estimates at least60-70% crystal enzyme in substrate ternary state; deposited occupancy1 does not prove chemically homogeneous purestate"
+      ],
+      "activity_label_ids": [
+        "DSTRII_TROP_NADPH_2003"
+      ],
+      "structure_url": "https://www.rcsb.org/structure/1IPF",
+      "validation_url": "https://files.rcsb.org/validation/view/1ipf_full_validation.pdf",
+      "validation_location": "Sections5.6 and6.4; ligand density printedpp18-19",
+      "validation_web_refs": [
+        "turn88view1",
+        "turn89view1"
+      ],
+      "structure_paper": "tr2003",
+      "split_group": "DSTRII_P50163_TROP",
+      "deposited_sequence": "AGRWNLEGCTALVTGGSRGIGYGIVEELASLGASVYTCSRNQKELNDCLTQWRSKGFKVEASVCDLSSRSERQELMNTVANHFHGKLNILVNNAGIVIYKEAKDYTVEDYSLIMSINFEAAYHLSVLAHPFLKASERGNVVFISSVSGALAVPYEAVYGATKGAMDQLTRCLAFEWAKDNIRVNGVGPGVIATSLVEMTIQDPEQKENLNKLIDRCALRRMGEPKELAAMVAFLCFPAASYVTGQIIYVDGGLMANCGF",
+      "deposited_sequence_sha256": "65f24671032f9f0ad83e71ddd27a9f5e3f069f7d0b4cbbfd7c0bc6c74e5e8cd4"
+    },
+    {
+      "pdb_id": "2AE2",
+      "enzyme": "tropinone reductaseII",
+      "organism": "Datura stramonium",
+      "uniprot": "P50163",
+      "variant": "WT",
+      "resolution_A": 1.9,
+      "method": "X-RAY DIFFRACTION",
+      "preferred_chain": "A",
+      "protein_length": 260,
+      "uniprot_alignment": "deposited sequence1-260; model residues2-260",
+      "substrate_or_product": {
+        "ccd": "PTO",
+        "name": "pseudotropine",
+        "role": "actual alcohol product",
+        "chain": "A",
+        "auth_resid": 262,
+        "occupancy": 1.0,
+        "rscc": 0.92,
+        "rsr": 0.06,
+        "B_min_median_p95_max": [
+          22,
+          24,
+          25,
+          25
+        ]
+      },
+      "cofactor": {
+        "ccd": "NAP",
+        "name": "NADP+",
+        "chain": "A",
+        "auth_resid": 261,
+        "occupancy": 1.0,
+        "rscc": 0.99,
+        "rsr": 0.04
+      },
+      "other_sites": [
+        {
+          "ligand": "PTO",
+          "chain": "B",
+          "auth_resid": 262,
+          "rscc": 0.86,
+          "rsr": 0.09
+        },
+        {
+          "ligand": "NAP",
+          "chain": "B",
+          "auth_resid": 261,
+          "rscc": 0.97,
+          "rsr": 0.05
+        }
+      ],
+      "state": "ketone-reduction product+oxidizedcofactor state",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "conditional specialized-substrate SDR extension",
+      "geometry_caveats": [
+        "PTO A262 C5-N8-C1 angle109.11degrees vs100.79ideal, Z7.06",
+        "NAP A261 C2N-N1N bond1.44A vs1.35ideal, Z8.88",
+        "many cofactor geometry outliers; favorable RSCC does not remove geometry concerns"
+      ],
+      "activity_label_ids": [
+        "DSTRII_TROP_NADPH_2003"
+      ],
+      "activity_link_note": "same mature259aa as1IPF verified100% identical; reduction kinetics transferred across1999/2003 articles, not an independently measured product-binding label",
+      "structure_url": "https://www.rcsb.org/structure/2AE2",
+      "validation_url": "https://files.rcsb.org/validation/view/2ae2_full_validation.pdf",
+      "validation_location": "Sections5.6 and6.4; geometry printedpp11-13, density near reportend",
+      "validation_web_refs": [
+        "turn88view0",
+        "turn89view0",
+        "turn67view1"
+      ],
+      "structure_paper": "tr1999",
+      "split_group": "DSTRII_P50163_TROP",
+      "deposited_sequence": "MAGRWNLEGCTALVTGGSRGIGYGIVEELASLGASVYTCSRNQKELNDCLTQWRSKGFKVEASVCDLSSRSERQELMNTVANHFHGKLNILVNNAGIVIYKEAKDYTVEDYSLIMSINFEAAYHLSVLAHPFLKASERGNVVFISSVSGALAVPYEAVYGATKGAMDQLTRCLAFEWAKDNIRVNGVGPGVIATSLVEMTIQDPEQKENLNKLIDRCALRRMGEPKELAAMVAFLCFPAASYVTGQIIYVDGGLMANCGF",
+      "deposited_sequence_sha256": "8891e0c669cb4a593c93a836ba96f34b222735ec2d23023a1c1abe2d03c74905"
+    },
+    {
+      "pdb_id": "6XEW",
+      "enzyme": "meso-2,3-butanediol dehydrogenase",
+      "organism": "Serratia marcescens",
+      "uniprot": "H9XP47",
+      "variant": "WT with N-terminal His6-TEV construct",
+      "protein_length": 264,
+      "uniprot_alignment": "PDBpolymer15-264 aligns UniProt2-251;Nterm MHHHHHHENLYFQG plus nativeRFD...",
+      "resolution_A": 2.0,
+      "method": "X-RAY DIFFRACTION",
+      "preferred_chain": "A in full biological tetramer",
+      "substrate_or_product": {
+        "ccd": "HBS",
+        "name": "(S)-acetoin",
+        "role": "actual ketone substrate alternative enantiomer",
+        "chain": "A",
+        "auth_resid": 304,
+        "altloc": "B",
+        "occupancy": 0.5,
+        "rscc": 0.93,
+        "rsr": 0.09,
+        "B_min_median_p95_max": [
+          23,
+          24,
+          24,
+          24
+        ]
+      },
+      "alternative_substrate": {
+        "ccd": "HBR",
+        "name": "(R)-acetoin",
+        "role": "actual ketone substrate alternative enantiomer",
+        "chain": "A",
+        "auth_resid": 303,
+        "altloc": "A",
+        "occupancy": 0.5,
+        "rscc": 0.82,
+        "rsr": 0.16,
+        "B_min_median_p95_max": [
+          27,
+          31,
+          32,
+          32
+        ]
+      },
+      "cofactor": {
+        "ccd": "NAD",
+        "name": "NAD+",
+        "chain": "A",
+        "auth_resid": 301,
+        "occupancy": 1.0,
+        "rscc": 0.97,
+        "rsr": 0.06,
+        "B_min_median_p95_max": [
+          15,
+          20,
+          23,
+          25
+        ]
+      },
+      "other_ligands": [
+        {
+          "ccd": "NAD",
+          "chain": "A",
+          "auth_resid": 302,
+          "occupancy": 0.7,
+          "rscc": 0.8,
+          "rsr": 0.14,
+          "note": "not the cofactor adjacent toacetoin; nearest atomdistance toacetoin approx11.92A calculated fromdownloadedmmCIF"
+        },
+        {
+          "ccd": "ADP",
+          "chain": "B",
+          "auth_resid": 301,
+          "note": "openchain onlypartial ADP; not a ternary site"
+        }
+      ],
+      "state": "ketone acetoin + oxidized NAD+, redox-mismatched capture relative to reduction with NADH",
+      "experimental_ternary": true,
+      "strict_geometry_core_eligible": false,
+      "recommended_tier": "conditional specialized-substrate SDR extension; no enantiomer-specific activity assignment",
+      "geometry_caveats": [
+        "HBR/HBS are mutuallyexclusive alternative enantiomers each0.50occupancy, not two simultaneously bound substrates",
+        "Gln247 from diagonal symmetrypartner forms active site; full biologicaltetramer required",
+        "activity label is racemicacetoin with NADH, crystallizedcofactor oxidizedNAD+",
+        "S-acetoin density better thanR but activity ofmixture cannot rankindividual enantiomer rates"
+      ],
+      "activity_label_ids": [
+        "SMBDH_WT_ACETOIN_2020"
+      ],
+      "structure_url": "https://www.rcsb.org/structure/6XEW",
+      "validation_url": "https://files.rcsb.org/validation/view/6xew_full_validation.pdf",
+      "validation_location": "Section6.4 Ligands near reportend",
+      "validation_web_refs": [
+        "turn66view2",
+        "turn67view0"
+      ],
+      "structure_paper": "sm2020",
+      "split_group": "SMBDH_H9XP47_ACETOIN",
+      "deposited_sequence": "MHHHHHHENLYFQGRFDNKVVVITGAGNGMGEAAARRFSAEGAIVVLADWAKEAVDKVAASLPKGRAMAVHIDVSDHVAVEKMMNEVAEKLGRIDVLLNNAGVHVAGSVLETSIDDWRRIAGVDIDGVVFCSKFALPHLLKTKGCIVNTASVSGLGGDWGAAYYCAAKGAVVNLTRAMALDHGGDGVRINSVCPSLVKTNMTNGWPQEIRDKFNERIALGRAAEPEEVAAVMAFLASDDASFINGANIPVDGGATASDGQPKIV",
+      "deposited_sequence_sha256": "a131f242fc5256d4b57a2aac0d4c05ba463e1822728bfda75b696aa1336e9d09"
+    }
+  ],
+  "excluded_false_positives": [
+    {
+      "pdb_id": "4RF2",
+      "reason": "Lactobacillus kefir WT binary NAP+Mg only; no substrate/product. EvolvedKRED paper10.1073/pnas.1507910112 has usefulactivities but notexperimentalternary.",
+      "url": "https://www.rcsb.org/structure/4RF2"
+    },
+    {
+      "pdb_id": "3WLF",
+      "reason": "Candida parapsilosis CPRADH with actual productFEH(R)-1-phenyl-1,2-ethanediol +Zn but no cofactor; separate3WLE cofactorstructure mustnotbecombinedinto an experimentalternary.",
+      "url": "https://www.rcsb.org/structure/3WLF",
+      "doi": "10.1039/c4cc01752h"
+    },
+    {
+      "pdb_id": "6XNB",
+      "reason": "Leifsonia xyli S154Y variant,1.16A,onlyMg; no substrate/cofactor.",
+      "url": "https://www.rcsb.org/structure/6XNB",
+      "doi": "10.1016/j.abb.2022.109158"
+    },
+    {
+      "pdb_id": "2EWM",
+      "reason": "Aromatoleum/Azoarcus phenylethanoldehydrogenase with NAD+ andsulfate; noactualacetophenone.",
+      "url": "https://www.rcsb.org/structure/2EWM",
+      "doi": "10.1021/bi051596b"
+    },
+    {
+      "pdb_id": "1NXQ",
+      "reason": "LbADH apo; published NADPH+acetophenone ternary was modeled, not an experimental ligand complex.",
+      "url": "https://www.rcsb.org/structure/1NXQ"
+    },
+    {
+      "pdb_id": "1GEG",
+      "reason": "Klebsiella pneumoniae mesoBDH NAD+ +mercaptoethanol inhibitor, not actualacetoin.",
+      "url": "https://www.rcsb.org/structure/1GEG",
+      "pmid": "11173520"
+    },
+    {
+      "pdb_id": "1AE1",
+      "reason": "TRI binaryNADP complex; noactualtropinone.",
+      "url": "https://www.rcsb.org/structure/1AE1"
+    },
+    {
+      "pdb_id": "2AE1",
+      "reason": "TRII apo; noactualsubstrate+cofactorternary.",
+      "url": "https://www.rcsb.org/structure/2AE1"
+    },
+    {
+      "pdb_id": "1IPE",
+      "reason": "TRII NADPH binary fromsame2003paper; ternaryentryis1IPF.",
+      "url": "https://www.rcsb.org/structure/1IPE"
+    },
+    {
+      "pdb_id": "6VSP",
+      "reason": "SmBdhQ247A hasNAD+ +glycerol cryoprotectant; acetoin incrystallization condition was notdepositedat activesite. Fig7same2020paper.",
+      "url": "https://www.rcsb.org/structure/6VSP",
+      "doi": "10.1186/s13068-020-01820-x"
+    },
+    {
+      "pdb_id": "6XEX",
+      "reason": "SmBdhQ247A+V139Q hasNAD+ +ethyleneglycol cryoprotectant; notactualsubstrate. Fig7same2020paper.",
+      "url": "https://www.rcsb.org/structure/6XEX",
+      "doi": "10.1186/s13068-020-01820-x"
+    }
+  ],
+  "extra_activity_notes": {
+    "lb_g37d_phenylethanol_oxidation_NAD+": {
+      "Km_mM": 10.8,
+      "Km_error_mM": 1.6,
+      "kcat_s-1": 9.5,
+      "kcat_error_s-1": 1.4,
+      "pH": 7,
+      "temperature_C": 30,
+      "sources": [
+        "lb_brenda",
+        "lb_table_reprint"
+      ]
+    },
+    "lb_wt_phenylethanol_oxidation_NADP+": {
+      "Km_mM": 2.9,
+      "Km_error_mM": 0.2,
+      "kcat_s-1": 5.4,
+      "kcat_error_s-1": 0.3,
+      "pH": 7,
+      "temperature_C": 30,
+      "sources": [
+        "lb_brenda",
+        "lb_table_reprint"
+      ]
+    },
+    "SmBdh_mutants": {
+      "Q247A": "~90%activityloss relativeWT inoriginaltext; Fig8approx.35U/nmol",
+      "Q247A+V139Q": "Fig8approx1.6U/nmol; originaltext ~300%improvementoverQ247A",
+      "11aa_insertion": "3%ofWTactivity inoriginaltext; not a ligandcomplex",
+      "note": "mutantactualsubstrateposes absent; no truecomplex pair for geometryactivitydifference calibration"
+    },
+    "SmBdh_crudeextract": "Table1WT8.89U/mg totalprotein pertains untaggedcrudeextract. Do not use as purifiedintrinsicactivity or attach tosameconstruct withoutflag."
+  },
+  "warnings": [
+    "These8PDBentries represent only4mainactivitylabels and3parentenzymefamilies; neverrandomsplitbyPDBorchain.",
+    "AllfiveLbADH entriesfail stringent liganddensitygate despite highproteinresolution.",
+    "DsTRII andSmBdh are specializedsubstrateSDR extension, not a broadlyrepresentative industrialKRED sample.",
+    "No null/ND/missing label shouldbe encodedas zeroactivity.",
+    "No ratefroma racemicmixture shouldbe copied as enantiomer-specificactivity.",
+    "BRENDA directionnames canrefer tocofactoroxidation/reduction; define assay directionexplicitly relativeketone.",
+    "Values from figuresare approximate, not measuredrawprecision."
+  ]
+}

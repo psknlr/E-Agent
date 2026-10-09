@@ -109,18 +109,39 @@ the boundary is a guard on the output.
 | Propose a hypothesis **with the experiment that would refute it** | Assert a quantity |
 | Interpret a results table into a next step | Compute an alignment, a coordinate, an atom mapping, a distance, an angle, a confidence, a docking score or a statistic |
 
-**`NumericGuard`** (`harness/llm.py`) inspects every model response. A line
-containing a quantity with a measurement-shaped unit — `%`, `Å`, `nm`,
-`kcal/mol`, `s⁻¹`, `mM`/`µM`/`nM`, `pLDDT`, `ee`, `kcat`, `Km`, degrees — must
-also carry an artifact citation of the form `[artifact:<name>]`,
-`[table:...]`, `[file:...]`, `[record:...]` or `[evidence:...]`. If it does not,
-the guard raises `FabricationGuardError` naming the offending tokens:
+**`NumericGuard`** (`harness/llm.py`) inspects every model response. Every
+quantity with a measurement-shaped unit — `%`, `Å`, `nm`, `kcal/mol`, `s⁻¹`,
+`mM`/`µM`/`nM`, `pLDDT`, `ee`, `kcat`, `Km`, degrees — must be followed by a
+citation saying where the number can be found again:
 
-> "the hydride transfer distance in `[artifact:catalytic_geometry.tsv]` is 3.6 Å"
-> — allowed; the value came from a file the verifier can open.
+```
+[cite artifact=candidate_scorecards sha256=9f2c1a7b4e55 row=cand_0a1b
+      field=plddt method=read]
+```
+
+Five keys, all required: which artifact, which version of it (the hash the run
+manifest recorded), which row, which field, and how the number was obtained.
+Given an `ArtifactIndex` built from the manifest, the guard **opens the file
+and compares** — so a value that contradicts its own source is refused, not
+counted as cited. Rounding is judged at the precision written: `3.6` against a
+stored `3.5987` agrees; `3.59` does not.
+
+Binding is by adjacency, not by line: a quantity belongs to the first citation
+that follows it with no other quantity in between. One citation can therefore
+not license a line, and a citation placed *before* a number backs nothing.
+`method=read` and `method=rounded` are verified against the cell;
+`method=derived:...` is counted as declared-but-unchecked, and
+`NumericGuard(require_verified=True)` refuses those too.
+
+> "the hydride transfer distance is 3.6 Å `[cite artifact=catalytic_geometry
+> sha256=… row=cand_0a1b|p1 field=hydride_transfer_distance method=rounded]`"
+> — allowed; the verifier opens the file and finds 3.5987.
 >
 > "the transfer distance is about 3.6 Å" — refused; that is an estimate wearing
 > the clothes of a measurement.
+>
+> "the distance is 3.6 Å and the pLDDT is 42 `[cite …]`" — refused; one
+> citation, two numbers, and only the second one is backed.
 
 **`ModelTurn`** restricts a response to three shapes and nothing else:
 `tool_calls` (only against registered interfaces), `hypotheses` (each needing
@@ -132,7 +153,36 @@ than an exception, so a long run surfaces it to the operator instead of crashing
 **`LLMClient`** is provider-agnostic and must not retry silently.
 `EchoClient` is a deterministic offline client used in tests and dry runs,
 deliberately on the executed path so the parsing and guarding code is exercised
-by the test suite rather than only in production.
+by the test suite rather than only in production. A client declares
+`runs_remotely` (assumed true), because a remote one sees everything in its
+prompt and disclosure cannot be taken back. `AnthropicMessagesClient` speaks the
+Messages API over HTTPS; **it was written from the API reference and has never
+been sent to the live service**, and the tests drive it through a fake opener.
+
+**`LLMPlanner`** (`harness/planner.py`) is what finally calls a model from the
+controller, through hooks the controller already had. The design is the list of
+what the model cannot do:
+
+* it applies exactly one kind of proposal -- extra search terms (`families`,
+  `substrate_synonyms`, `engineering_keywords`) for `retrieve_evidence`, merged
+  into the operator's arguments. Any other argument name rejects the *whole*
+  proposal: thresholds, seeds, approvals and other tools are not nameable;
+* everything else it says (an explanation of an escalation, hypotheses about a
+  finished round, questions) is recorded in the report as
+  `proposal_unapproved` and acted on by nothing;
+* the response passes `NumericGuard` against the run's artifact index and
+  `validate_turn`; a hypothesis must be falsifiable and may cite only artifacts
+  the run wrote;
+* the prompt is scanned for sequences and withheld strings, the substrate name
+  is withheld unless the operator opts in, and a remote client is not called at
+  all while `allow_network` is off;
+* every exchange -- prompt, response, hashes, decision, reasons -- is audited,
+  accepted or not;
+* a client error, a spent call budget or a cost-ceiling breach changes nothing:
+  the controller takes the path it would have taken with no model.
+
+Each guard is mutation-checked (disabling it fails a test). Whether the model's
+suggestions are *useful* has not been measured.
 
 The controller itself contains no science at all. There is no distance, no
 score, no confidence and no ranking computed anywhere in
@@ -448,11 +498,28 @@ controller escalates without retrying.
 - Every public resource: `connectors/base.OfflineConnector` is cache-first, a
   miss is a structured `MISS` naming the exact file a human must place, and **no
   code path in the package produces database content**.
-- `eval/baselines`: `family_function_prediction` and
-  `substrate_specificity_model` return `RankedSelection` with
-  `unavailable_reason` set and no picks, and `BaselineComparison.render` lists
-  them by name — a stand-in baseline that the agent then beats is the most
-  flattering possible result and means nothing.
+- `eval/baselines`: `family_function_prediction` returns a `RankedSelection`
+  with `unavailable_reason` set and no picks, and `BaselineComparison.render`
+  lists it by name — a stand-in baseline that the agent then beats is the most
+  flattering possible result and means nothing. `substrate_specificity_model`
+  is filled by `science/enzyme_substrate.candidate_scorer`, which returns `None`
+  (not a low score) for a head that earned no calibration.
+- `tools/prediction_backends.py`: `GninaDockingRunner` and
+  `BoltzComplexPredictor` implement the two `model_complexes` Protocols over the
+  same `CommandRunner` seam. Their command lines were read from the Boltz 2.2.1
+  wheel and the gnina README; they have been run against fakes that write output
+  in the documented shape and **never against the real binaries**. They refuse a
+  job that asks for a catalytic restraint (neither engine can enforce one), never
+  pass `--use_msa_server` unless built to (and then report `runs_remotely`),
+  and record that their atom names are the engine's, not the reaction's atom map.
+- `tools/open_branches.py`: open function discovery and de novo design are
+  *refusing* seams. `authorize_branch` lists every unmet condition at once --
+  reaction confirmed by a person, licences including weights and outputs,
+  derivative-works permission, network and disclosure, GPU policy, and a named
+  approver bound to this payload (an operator task, not a fourth gate). Outputs
+  carry a ceiling fixed by the branch, and `compose_batch(high_evidence_eligible=
+  is_high_evidence_eligible)` keeps a designed sequence out of the high-evidence
+  role while leaving it eligible for probe and diversity slots.
 
 Three policy guards sit on the same boundary. `ExecutionPolicy.allow_network` is
 false by default. `connectors.base.looks_like_biological_sequence` plus
@@ -463,6 +530,44 @@ public — an unreleased construct sent to a remote service is disclosed
 irreversibly, and no later policy decision undoes it. And `check_license` refuses
 a commercial run against any tool facet whose terms are unknown, because an
 unverified licence is not a permission.
+
+---
+
+## 9. Calibration and the model: what a number is allowed to be
+
+**A window's authority.** `GeometryConstraint.calibrated_on` used to be free
+text, so `["trust me"]` gave a window the power to reject an enzyme.
+`science/calibration.py` replaces trust with a record. A `calibration:<digest>`
+entry resolves to a stored record; the digest is recomputed from the record's
+contents, the verdict is **re-run** rather than read, and the template's window
+must equal the window the record proposed. A missing record, an edited record, a
+widened window, another constraint's record and a run with no store all fail
+closed to *uncalibrated*. The statistics are Wilks' distribution-free tolerance
+interval over measured *active* reference complexes -- so the record states what
+its sample size buys (seven actives support a 90% coverage claim with a
+confidence near 0.15) -- plus known inactives to show the window discriminates.
+Modelled, restrained and unmeasured references are listed as exclusions, never
+dropped. `evaluate_catalysis(calibration_store=..., strict_calibration=...)`
+applies it and flags `calibration_unverified` wherever a window rests on a claim
+it cannot show. No real reference set exists here, so all 17 shipped windows
+remain uncalibrated.
+
+**A model's probability.** `science/enzyme_substrate.py` fits one kernel-ridge
+head per target over a normalised k-mer spectrum kernel, in pure Python. A head
+reports `probability = None` unless a Platt map fitted on **grouped
+out-of-fold** scores exists *and* the out-of-fold AUROC's cluster-bootstrap
+interval excludes 0.5 -- because cross-validating a score with no signal gives a
+negative slope, and a naive fit would turn it into a confident wrong-way
+probability. Labels carry their source (`annotation` or `measured`), which caps
+what a prediction may claim, and mixing the two in one target is refused.
+`update()` returns a new model and a checkable record (training digests before
+and after, what was added, what could not be used and why).
+
+**Where the model may touch selection.** `science/acquisition.py` exploits only
+what the model *scored* and explores by novelty (distance from everything
+measured) rather than by the model's own confidence. Inside the batch composer
+the model can only be a `rank_tiebreak`, consulted between candidates that are
+equal on every evidence dimension.
 
 ---
 
@@ -499,10 +604,18 @@ unverified licence is not a permission.
 分界线不是写在提示词里的——提示词只是建议，而研究型智能体最典型的失败不是拒答，而是给出
 一个读起来像测量值、实际从未被测量的数字。所以强制点在**输出端**：
 
-`NumericGuard` 检查每一行模型输出。凡是带"测量单位"的数量（`%`、Å、nm、kcal/mol、s⁻¹、
-mM/µM/nM、pLDDT、ee、kcat、Km、度），同一行必须带 `[artifact:...]` 之类的产物引用，
-否则抛 `FabricationGuardError`。"在 `[artifact:catalytic_geometry.tsv]` 里该氢负离子转移
-距离是 3.6 Å"可以；"该转移距离大约 3.6 Å"不行。
+`NumericGuard` 检查每一个模型输出的数量。凡是带"测量单位"的数量（`%`、Å、nm、kcal/mol、
+s⁻¹、mM/µM/nM、pLDDT、ee、kcat、Km、度），紧随其后必须带一条能把这个数字重新找回来的引用：
+`[cite artifact=<键> sha256=<摘要> row=<行号> field=<列名> method=read]`。五个键缺一不可：
+哪个产物、它的哪个版本（运行清单记下的哈希）、哪一行、哪一列、以及这个数字是读出来的还是算
+出来的。接上由清单构建的 `ArtifactIndex` 之后，守卫会**打开文件逐格比对**——与来源自相矛盾
+的数值被拒绝，而不是算作"已引用"。四舍五入按写出的精度判断：`3.6` 对应存储值 `3.5987` 成立，
+`3.59` 不成立。
+
+绑定按**紧邻关系**而非按行：一个数量归属于它后面第一条、且中间没有别的数量的引用。因此一条
+引用无法为整行背书，写在数字**之前**的引用什么也不支持。`method=read` 与 `method=rounded`
+会被逐格验证；`method=derived:...` 只记为"已声明未核验"，`NumericGuard(require_verified=True)`
+连这种也拒绝。
 
 `ModelTurn` 只允许三种形状：`tool_calls`（只能调已注册接口）、`hypotheses`（必须同时给出
 `test` 和 `would_falsify`，否则 `validate_turn` 判为不可证伪）、`questions`（只有人能做的

@@ -66,8 +66,11 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint recorded. Confirm the data and search API base URLs before
-         the first call; none has been tested from this environment."
+      - "The data API base URL is established: `eagent sources verify` fetched
+         one entry's core metadata from https://data.rcsb.org and opened the
+         provider's web-API overview; the record is in
+         connectivity.observed.yaml. STILL OPEN: the search API is a separate
+         service under a different base and has not been called."
       - "Confirm which field distinguishes an experimental entry from a computed
          structure model in the current search response, and implement that
          filter before any structure is used as observed evidence."

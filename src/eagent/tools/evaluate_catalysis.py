@@ -138,6 +138,9 @@ from ..schemas import (
     cofactor_state_from_ligand_code,
 )
 from ..science import geometry as geom
+from ..science.calibration import CalibrationContext, CalibrationStore
+from ..science.family_numbering import FamilyNumberingScheme
+from ..science.pocket import PocketResidues, pocket_residues_for_pose
 from ..science import stereo as stereo_mod
 from ..science.robustness import (
     DEFAULT_MIN_VALID_POSES,
@@ -230,13 +233,28 @@ DEFAULT_POCKET_LOCALISATION_A: float = 10.0
 #: A margin rather than a bare comparison because both distances carry the same
 #: coordinate noise and a 0.05 A difference is not a chemoselectivity finding.
 #: NEEDS PER-PROTOCOL CALIBRATION: set it from the positional scatter of the
-#: pose generator.
+#: pose generator, and say so through ``competing_group_margin_source``.
+#: Until a caller does, the comparison carries
+#: :attr:`WindowAuthority.UNCALIBRATED` and a displacement is reported as
+#: :attr:`PoseOutcome.OUTSIDE_UNCALIBRATED_WINDOW` rather than rejecting the
+#: pose -- the same rule every other window in this module follows.
 DEFAULT_COMPETING_GROUP_MARGIN_A: float = 0.5
 
 #: Van der Waals overlap tolerated before a contact counts as a clash. Passed
 #: straight to :func:`eagent.science.geometry.clash_count`, which documents it
 #: as a screen for localising steric problems rather than as an energy.
 DEFAULT_CLASH_TOLERANCE_A: float = geom.DEFAULT_VDW_OVERLAP_TOLERANCE_A
+
+#: Radius around the substrate within which a residue is collected as part of
+#: the pocket, for the diversity signature only.
+#:
+#: NOT a claim and NOT calibrated: membership of this shell says a residue has
+#: a heavy atom within the radius in this one model, nothing more. It is a
+#: *comparison scope* -- two candidates' pockets are compared over the same
+#: radius -- and it never gates, scores or rejects anything. The value is the
+#: conventional first-and-second-shell radius; a campaign with a reason to use
+#: another one passes it.
+DEFAULT_POCKET_SHELL_A: float = 6.0
 
 #: Constraint name a catalytic template may use to state its own, sourced
 #: pocket-localisation window in place of :data:`DEFAULT_POCKET_LOCALISATION_A`.
@@ -600,7 +618,9 @@ class _AtomNamespace:
 # Template authority and windows
 # ==========================================================================
 
-def template_authority(template: CatalyticTemplate) -> WindowAuthority:
+def template_authority(template: CatalyticTemplate,
+                       calibration: CalibrationContext | None = None
+                       ) -> WindowAuthority:
     """Whole-template authority, used for the per-candidate confidence downgrade.
 
     A theoretical-model template is provisional however well calibrated an
@@ -609,13 +629,16 @@ def template_authority(template: CatalyticTemplate) -> WindowAuthority:
     """
     if template.provenance.is_theoretical:
         return WindowAuthority.THEORETICAL_MODEL
-    if template.uncalibrated():
+    context = calibration or CalibrationContext()
+    if any(not context.status(c).calibrated for c in template.geometry_constraints):
         return WindowAuthority.UNCALIBRATED
     return WindowAuthority.CALIBRATED
 
 
 def constraint_authority(constraint: GeometryConstraint,
-                         template: CatalyticTemplate) -> WindowAuthority:
+                         template: CatalyticTemplate,
+                         calibration: CalibrationContext | None = None,
+                         ) -> WindowAuthority:
     """Authority of one window. Per-constraint, because real templates are mixed.
 
     A working family template usually has one or two windows fitted on a handful
@@ -623,10 +646,19 @@ def constraint_authority(constraint: GeometryConstraint,
     Judging the whole template at the level of its weakest constraint would
     throw away the calibrated ones; judging it at the level of its strongest
     would let an uncalibrated angle reject candidates.
+
+    ``calibrated_on`` used to be free text, so one hand-typed string granted a
+    window the power to reject enzymes. A ``calibration:`` entry is now
+    checked against a stored record (see :mod:`eagent.science.calibration`),
+    and fails closed -- to uncalibrated -- whenever it cannot be: no store, no
+    such record, an edited record, a window changed since, a verdict that no
+    longer meets its policy. Prose entries keep their old meaning unless the
+    context is strict.
     """
     if template.provenance.is_theoretical:
         return WindowAuthority.THEORETICAL_MODEL
-    if not constraint.is_calibrated:
+    context = calibration or CalibrationContext()
+    if not context.status(constraint).calibrated:
         return WindowAuthority.UNCALIBRATED
     return WindowAuthority.CALIBRATED
 
@@ -757,6 +789,17 @@ class ChemoselectivityCheck:
     displacing_label: str | None = None
     displacing_distance_A: float | None = None
     margin_A: float = DEFAULT_COMPETING_GROUP_MARGIN_A
+    #: Whether the margin this comparison used was fitted to anything.
+    #:
+    #: The comparison is two distances and a margin, and the margin is the
+    #: whole content of it: both distances carry the pose generator's
+    #: positional scatter, so the question "is the competitor closer" has no
+    #: answer until somebody says how much closer counts. The module default
+    #: is a placeholder that says so in its own docstring, and a rejection
+    #: resting on it is a rejection resting on a number nobody measured.
+    margin_authority: WindowAuthority = WindowAuthority.UNCALIBRATED
+    #: Where the margin came from, for the record.
+    margin_source: str = ""
     reason: str = ""
 
     @property
@@ -765,6 +808,17 @@ class ChemoselectivityCheck:
         if not self.tested or self.target_distance_A is None:
             return None
         return self.displacing_label is None
+
+    @property
+    def displaced_on_a_calibrated_margin(self) -> bool:
+        """A displacement that may reject a pose.
+
+        Separate from :attr:`target_in_reactive_position` so that the measured
+        fact and the authority to act on it stay apart: the displacement is
+        reported either way, and only this one rejects.
+        """
+        return (self.target_in_reactive_position is False
+                and self.margin_authority.may_reject)
 
 
 @dataclass(frozen=True)
@@ -996,6 +1050,12 @@ class CandidateEvaluation:
     #: for the numerator, the denominator and why an ensemble built entirely
     #: under restraints reports ``None`` here rather than 1.0.
     robustness_G: float | None = None
+    #: Competent poses whose every gating constraint was restrained while
+    #: they were built, and which therefore did not vote on the
+    #: stereochemical call. Reported rather than silently dropped: "no
+    #: independent pose had an opinion" and "no pose was competent" lead to
+    #: different next experiments.
+    stereo_poses_excluded_as_circular: int = 0
     #: The uncorrected sampling fraction (satisfied / decided), kept because it
     #: describes how the sampler behaved and because hiding it would make the
     #: correction unauditable. It is NOT evidence about the enzyme when the
@@ -1405,9 +1465,14 @@ class EvaluateCatalysis(ScientificInterface):
         pocket_localisation_angstrom: float | None = None,
         clash_tolerance_angstrom: float = DEFAULT_CLASH_TOLERANCE_A,
         competing_group_margin_angstrom: float = DEFAULT_COMPETING_GROUP_MARGIN_A,
+        competing_group_margin_source: str = "",
         min_valid_poses: int = DEFAULT_MIN_VALID_POSES,
         in_plane_tolerance_deg: float = stereo_mod.DEFAULT_IN_PLANE_TOLERANCE_DEG,
         infer_single_ligand_substrate: bool = True,
+        pocket_shell_angstrom: float = DEFAULT_POCKET_SHELL_A,
+        numbering_schemes: Mapping[str, FamilyNumberingScheme] | None = None,
+        calibration_store: CalibrationStore | None = None,
+        strict_calibration: bool = False,
         submit_to: str | None = None,
         **_: Any,
     ) -> ToolResult:
@@ -1433,6 +1498,13 @@ class EvaluateCatalysis(ScientificInterface):
                 code="no_candidates",
             )
 
+        self._pockets = {}
+        self._pocket_notes = {}
+        # How this run decides whether a window's calibration counts. Held on
+        # the instance for the length of one execute, like the pockets, so the
+        # many call sites that ask for an authority all ask the same question.
+        self._calibration = CalibrationContext(
+            store=calibration_store, strict=strict_calibration)
         binding_map = self._index_bindings(bindings)
         lookup = self._template_lookup(ctx, catalytic_templates)
         result = ToolResult(status=Status.SUCCESS)
@@ -1449,9 +1521,12 @@ class EvaluateCatalysis(ScientificInterface):
                 pocket_localisation_angstrom=pocket_localisation_angstrom,
                 clash_tolerance_angstrom=clash_tolerance_angstrom,
                 competing_group_margin_angstrom=competing_group_margin_angstrom,
+                competing_group_margin_source=competing_group_margin_source,
                 min_valid_poses=min_valid_poses,
                 in_plane_tolerance_deg=in_plane_tolerance_deg,
                 infer_single_ligand_substrate=infer_single_ligand_substrate,
+                pocket_shell_angstrom=pocket_shell_angstrom,
+                numbering_schemes=dict(numbering_schemes or {}),
             ))
 
         self._score_candidates(ctx, candidates, evaluations, used_templates,
@@ -1516,7 +1591,7 @@ class EvaluateCatalysis(ScientificInterface):
                 "n_candidates": len(candidates),
                 "n_poses": sum(e.n_poses for e in evaluations),
                 "template_authority": {
-                    tid: template_authority(t).value
+                    tid: template_authority(t, self._calibration).value
                     for tid, t in sorted(used_templates.items())
                 },
                 "weighted_total_score": None,
@@ -1529,6 +1604,17 @@ class EvaluateCatalysis(ScientificInterface):
         self._summarise(result, evaluations)
         result.data.update({
             "evaluations": [self._evaluation_payload(e) for e in evaluations],
+            "pocket_residues": {
+                cid: p.to_dict() for cid, p in sorted(self._pockets.items())
+            },
+            "pocket_frame_note": (
+                "pocket residues are reported in the frame they were placed "
+                "in. Two candidates' positions mean the same thing only when "
+                "their frames match: author numbering shifts with construct "
+                "boundaries and tags, so an unframed pocket is comparable by "
+                "composition and by nothing else. Pass numbering_schemes to "
+                "put them in a family frame."
+            ),
             "pose_outcome_legend": {o.value: o.claim() for o in PoseOutcome},
             "pocket_localisation_note": (
                 "the pocket-localisation distance is a QC screen between the "
@@ -1735,9 +1821,12 @@ class EvaluateCatalysis(ScientificInterface):
         pocket_localisation_angstrom: float | None,
         clash_tolerance_angstrom: float,
         competing_group_margin_angstrom: float,
+        competing_group_margin_source: str,
         min_valid_poses: int,
         in_plane_tolerance_deg: float,
         infer_single_ligand_substrate: bool,
+        pocket_shell_angstrom: float,
+        numbering_schemes: Mapping[str, FamilyNumberingScheme] | None,
     ) -> CandidateEvaluation:
         """Evaluate one candidate's poses and roll them up without a total."""
         template_id = candidate.catalytic_mapping.catalytic_template_id
@@ -1760,7 +1849,8 @@ class EvaluateCatalysis(ScientificInterface):
                 # template-dependent gates.
                 used_templates[template.template_id] = template
 
-        authority = (template_authority(template) if template is not None
+        authority = (template_authority(template, self._calibration)
+                     if template is not None
                      else WindowAuthority.UNCALIBRATED)
         evaluation = CandidateEvaluation(
             candidate_id=candidate.candidate_id,
@@ -1821,8 +1911,11 @@ class EvaluateCatalysis(ScientificInterface):
                     pocket_localisation_angstrom=pocket_localisation_angstrom,
                     clash_tolerance_angstrom=clash_tolerance_angstrom,
                     competing_group_margin_angstrom=competing_group_margin_angstrom,
+                    competing_group_margin_source=competing_group_margin_source,
                     in_plane_tolerance_deg=in_plane_tolerance_deg,
                     infer_single_ligand_substrate=infer_single_ligand_substrate,
+                    pocket_shell_angstrom=pocket_shell_angstrom,
+                    numbering_schemes=numbering_schemes,
                 ))
 
         self._rollup(evaluation, min_valid_poses)
@@ -1934,9 +2027,29 @@ class EvaluateCatalysis(ScientificInterface):
         template: CatalyticTemplate, authority: WindowAuthority,
     ) -> None:
         """Say, per candidate, that the windows are provisional -- and which ones."""
+        # Windows that cite a calibration which cannot be shown are named
+        # whether or not the template as a whole ends up calibrated: a window
+        # holding the power to reject on the strength of a prose string is the
+        # thing a reader of this report most needs to be told.
+        for constraint in template.geometry_constraints:
+            status = self._calibration.status(constraint)
+            if status.is_unverified_claim:
+                result.add_flag(
+                    "calibration_unverified", Severity.WARN,
+                    f"{template.template_id}.{constraint.name}: calibrated_on "
+                    f"cites {', '.join(status.evidence)[:120]!r} "
+                    + ("and the window is therefore NOT treated as calibrated: "
+                       if not status.calibrated else
+                       "which no record backs; the window is treated as "
+                       "calibrated only because this run is not strict: ")
+                    + "; ".join(status.problems or (
+                        "free-text calibrated_on is not a record anyone can "
+                        "open",))[:300],
+                    candidate.candidate_id)
         if authority is WindowAuthority.CALIBRATED:
             return
-        uncalibrated = [c.name for c in template.uncalibrated()]
+        uncalibrated = [c.name for c in template.geometry_constraints
+                        if not self._calibration.status(c).calibrated]
         listed = ", ".join(uncalibrated) if uncalibrated \
             else "the whole template is a theoretical model"
         result.add_flag(
@@ -1971,8 +2084,11 @@ class EvaluateCatalysis(ScientificInterface):
         pocket_localisation_angstrom: float | None,
         clash_tolerance_angstrom: float,
         competing_group_margin_angstrom: float,
+        competing_group_margin_source: str,
         in_plane_tolerance_deg: float,
         infer_single_ligand_substrate: bool,
+        pocket_shell_angstrom: float,
+        numbering_schemes: Mapping[str, FamilyNumberingScheme] | None,
     ) -> PoseEvaluation:
         """Measure one pose. Every early return is a *gap*, never a verdict."""
         base: dict[str, Any] = dict(
@@ -2002,6 +2118,13 @@ class EvaluateCatalysis(ScientificInterface):
             infer_single_ligand_substrate=infer_single_ligand_substrate,
         )
         resolver = context.resolver()
+        # The pocket is extracted here because this is the one place that
+        # holds the coordinates and knows which residue is the substrate.
+        # Leaving it to the selector meant nothing ever extracted it, and the
+        # diversity layer fell back to catalytic roles -- which are the
+        # conserved positions of a family and so nearly constant within one.
+        self._record_pocket(candidate, pose, context, template,
+                            pocket_shell_angstrom, numbering_schemes, result)
 
         # -- mechanism geometry, measured by the science layer ---------------
         try:
@@ -2017,14 +2140,15 @@ class EvaluateCatalysis(ScientificInterface):
         satisfied = {c.name: c.satisfied_by(measurements.get(c.name))
                      for c in template.geometry_constraints}
         aspects = {c.name: classify_aspect(c) for c in template.geometry_constraints}
-        authorities = {c.name: constraint_authority(c, template)
+        authorities = {c.name: constraint_authority(c, template, self._calibration)
                        for c in template.geometry_constraints}
 
         cofactor = self._check_cofactor(pose, template, context, satisfied, aspects)
         pocket = self._pocket_localisation(template, binding, context,
                                            pocket_localisation_angstrom)
         chemo = self._chemoselectivity(binding, context,
-                                       competing_group_margin_angstrom)
+                                       competing_group_margin_angstrom,
+                                       competing_group_margin_source)
         clash = self._clash_screen(context, clash_tolerance_angstrom)
         face, configuration, stereo_note = self._face_call(
             binding, context, cip, in_plane_tolerance_deg
@@ -2044,7 +2168,7 @@ class EvaluateCatalysis(ScientificInterface):
             # Nothing was decided against a window we trust, so the schema-level
             # gate must read "undecided" rather than "failed".
             verdict = None
-        if chemo.target_in_reactive_position is False:
+        if chemo.displaced_on_a_calibrated_margin:
             verdict = False
 
         evaluation = PoseEvaluation(
@@ -2083,6 +2207,59 @@ class EvaluateCatalysis(ScientificInterface):
         )
         self._flag_pose(result, str(base["candidate_id"]), evaluation)
         return evaluation
+
+    #: candidate id -> the pocket extracted for it, and the note describing
+    #: how. Collected across poses during one ``execute`` and reset at its
+    #: start, so a second run cannot inherit the first one's pockets.
+    _pockets: dict[str, PocketResidues]
+    _pocket_notes: dict[str, str]
+    #: Set at the start of every ``execute``; see there.
+    _calibration: CalibrationContext = CalibrationContext()
+
+    def _record_pocket(
+        self, candidate: Candidate, pose: ComplexPose,
+        context: RoleContextResult, template: CatalyticTemplate,
+        radius: float,
+        schemes: Mapping[str, FamilyNumberingScheme] | None,
+        result: ToolResult,
+    ) -> None:
+        """Extract this candidate's pocket once, from the first usable pose.
+
+        One pose per candidate, not an average over poses: the pocket is a
+        property of the protein, and a union over poses would grow with how
+        many poses happened to be modelled, which would make a
+        well-sampled candidate look as though it had a larger pocket.
+
+        Failures are recorded as notes and nothing else. An unmeasured pocket
+        must stay unmeasured: an empty one would read as "no residues line
+        this site", which is a claim, and :func:`pocket_distance` treats the
+        two differently on purpose.
+        """
+        if candidate.candidate_id in self._pockets:
+            return
+        residue = context.substrate_residue
+        if residue is None:
+            self._pocket_notes.setdefault(
+                candidate.candidate_id,
+                f"{pose.pose_id}: the substrate residue could not be located, "
+                f"so no pocket was extracted")
+            return
+        scheme = (schemes or {}).get(candidate.family.family_name or "")
+        pocket, note = pocket_residues_for_pose(
+            candidate.candidate_id, candidate.sequence, context.structure,
+            residue.heavy_atoms(), max_angstrom=radius, scheme=scheme)
+        self._pocket_notes[candidate.candidate_id] = f"{pose.pose_id}: {note}"
+        if pocket is None:
+            return
+        self._pockets[candidate.candidate_id] = pocket
+        if pocket.n_lost:
+            result.add_flag(
+                "pocket_residues_unplaced", Severity.WARN,
+                f"{pocket.n_lost} of "
+                f"{len(pocket.tokens) + pocket.n_lost} pocket residue(s) could "
+                f"not be placed in frame {pocket.frame}: "
+                + "; ".join(pocket.notes[:3]),
+                candidate.candidate_id)
 
     @staticmethod
     def _load_structure(
@@ -2255,13 +2432,31 @@ class EvaluateCatalysis(ScientificInterface):
     @staticmethod
     def _chemoselectivity(
         binding: PoseBinding, context: RoleContextResult, margin: float,
+        margin_source: str = "",
     ) -> ChemoselectivityCheck:
-        """Compare the target reactive atom against the declared competing groups."""
+        """Compare the target reactive atom against the declared competing groups.
+
+        ``margin_source`` names what the margin was fitted to. Without one the
+        comparison is marked uncalibrated and cannot reject a pose: the margin
+        is the entire content of the comparison -- both distances carry the
+        pose generator's positional scatter -- and the module default is a
+        placeholder. Rejecting on it produced a hard computational negative
+        from a number nobody measured, while every template window in this
+        module with the same provenance is explicitly not allowed to reject.
+        """
+        authority = (WindowAuthority.CALIBRATED if margin_source.strip()
+                     else WindowAuthority.UNCALIBRATED)
+        source = margin_source.strip() or (
+            "module default DEFAULT_COMPETING_GROUP_MARGIN_A, fitted to "
+            "nothing; pass competing_group_margin_source once it has been set "
+            "from this pose generator's positional scatter")
+        common = dict(margin_A=margin, margin_authority=authority,
+                      margin_source=source)
         donor = context.cofactor_role_atoms.get(binding.hydride_donor_role)
         target = context.substrate_role_atoms.get(binding.reactive_atom_role)
         if donor is None or target is None:
             return ChemoselectivityCheck(
-                tested=False, margin_A=margin,
+                tested=False, **common,
                 reason=("the hydride donor or the target reactive atom is unbound, "
                         "so which group occupies the reactive position could not be "
                         "compared"),
@@ -2269,7 +2464,7 @@ class EvaluateCatalysis(ScientificInterface):
         d_target = geom.distance(donor, target)
         if not binding.competing_electrophiles:
             return ChemoselectivityCheck(
-                tested=False, margin_A=margin, target_distance_A=d_target,
+                tested=False, target_distance_A=d_target, **common,
                 reason=("no competing electrophilic atom was declared for this "
                         "substrate; chemoselectivity was not tested, which is not "
                         "the same as its having passed"),
@@ -2288,7 +2483,7 @@ class EvaluateCatalysis(ScientificInterface):
                 best_d, best_label = d, label
         if best_d is None:
             return ChemoselectivityCheck(
-                tested=False, margin_A=margin, target_distance_A=d_target,
+                tested=False, target_distance_A=d_target, **common,
                 reason=("none of the declared competing atoms is present in the "
                         "substrate residue: " + ", ".join(unresolved)),
             )
@@ -2297,10 +2492,10 @@ class EvaluateCatalysis(ScientificInterface):
         return ChemoselectivityCheck(
             tested=True, target_distance_A=d_target,
             displacing_label=best_label if displaced else None,
-            displacing_distance_A=best_d, margin_A=margin,
+            displacing_distance_A=best_d, **common,
             reason=(f"nearest competing group {best_label} at {best_d:.2f} A versus "
                     f"the target reactive atom at {d_target:.2f} A "
-                    f"(margin {margin} A){extra}"),
+                    f"(margin {margin} A from {source}){extra}"),
         )
 
     @staticmethod
@@ -2458,13 +2653,25 @@ class EvaluateCatalysis(ScientificInterface):
         if input_errors:
             return PoseOutcome.INPUT_ERROR, "; ".join(input_errors)
         if chemo.target_in_reactive_position is False:
-            return PoseOutcome.MECHANISM_VIOLATED, (
+            displacement = (
                 f"a non-target group occupies the reactive position: "
                 f"{chemo.displacing_label} sits {chemo.displacing_distance_A:.2f} A "
                 f"from the hydride donor while the target reactive atom is at "
-                f"{chemo.target_distance_A:.2f} A (margin {chemo.margin_A} A). This "
-                f"pose would give a different product, so it is not evidence for "
-                f"the target reaction"
+                f"{chemo.target_distance_A:.2f} A (margin {chemo.margin_A} A)"
+            )
+            if chemo.displaced_on_a_calibrated_margin:
+                return PoseOutcome.MECHANISM_VIOLATED, (
+                    f"{displacement}. This pose would give a different product, "
+                    f"so it is not evidence for the target reaction"
+                )
+            # The displacement is real and reported; the authority to reject on
+            # it is not. The margin is the whole content of the comparison and
+            # this one was fitted to nothing, so the pose lands where every
+            # other uncalibrated window in this module lands.
+            return PoseOutcome.OUTSIDE_UNCALIBRATED_WINDOW, (
+                f"{displacement}, judged against {chemo.margin_source}. The "
+                f"measurement is reported; it is not used to reject the "
+                f"candidate"
             )
         if verdict is False:
             return PoseOutcome.MECHANISM_VIOLATED, (
@@ -2597,6 +2804,21 @@ class EvaluateCatalysis(ScientificInterface):
         if chemo is not None and chemo.target_in_reactive_position is False:
             result.add_flag("non_target_group_in_reactive_position", Severity.WARN,
                             f"pose {evaluation.pose_id}: {chemo.reason}", candidate_id)
+            if not chemo.margin_authority.may_reject:
+                # Reported, and reported as not acted on. An operator who sees
+                # the displacement but not this line would reasonably assume
+                # the pose had been excluded.
+                result.add_uncertainty(
+                    "chemoselectivity_margin_uncalibrated",
+                    f"pose {evaluation.pose_id}: a non-target group is closer "
+                    f"to the donor, but the margin that decides it was fitted "
+                    f"to nothing ({chemo.margin_source}), so the pose was not "
+                    f"rejected. How much closer counts for this pose "
+                    f"generator?",
+                    affects=[candidate_id],
+                    resolvable_by=("measure the generator's positional scatter "
+                                   "and pass competing_group_margin_angstrom "
+                                   "with competing_group_margin_source"))
         elif chemo is not None and not chemo.tested:
             result.add_flag("chemoselectivity_untested", Severity.INFO,
                             f"pose {evaluation.pose_id}: {chemo.reason}", candidate_id)
@@ -2759,18 +2981,37 @@ class EvaluateCatalysis(ScientificInterface):
         population, so no ee can be derived from them; see
         :meth:`_guard_no_uncalibrated_ee`.
         """
+        competent = [p for p in evaluation.poses
+                     if p.outcome is PoseOutcome.MECHANISM_SATISFIED]
+        # The same circularity correction the robustness figure gets, applied
+        # in the same place: in the definition. A pose whose every gating
+        # constraint was restrained while it was built satisfies exactly what
+        # it was built to satisfy, so it is not evidence that the enzyme
+        # presents this face -- it is evidence that the restraints were
+        # applied. Letting it vote produced a candidate reporting
+        # robustness_G = None ("nothing was corroborated") beside
+        # stereo = favors_target, from one and the same pose.
+        voting = [p for p in competent if p.independently_satisfied]
+        circular = [p for p in competent if not p.independently_satisfied]
         per_pose: dict[str, str | None] = {
-            p.pose_id: p.product_configuration
-            for p in evaluation.poses
-            if p.outcome is PoseOutcome.MECHANISM_SATISFIED
+            p.pose_id: p.product_configuration for p in voting
         }
         basis = (f"faces computed for {len(per_pose)} geometrically competent "
                  f"pose(s) of {evaluation.n_poses} attempted")
+        if circular:
+            basis = (
+                f"{basis}; {len(circular)} further competent pose(s) were "
+                f"excluded because every gating constraint they satisfy was "
+                f"restrained while they were built, so their face is a "
+                f"property of the restraints rather than of the enzyme"
+                + (" -- no pose carries independent evidence, so there is no "
+                   "stereochemical call to make" if not voting else ""))
         if cip_note:
             basis = f"{basis}; {cip_note}"
         call = stereo_mod.call_stereochemistry(per_pose, target_configuration,
                                                basis=basis)
         evaluation.stereo = self._guard_no_uncalibrated_ee(call)
+        evaluation.stereo_poses_excluded_as_circular = len(circular)
 
     @staticmethod
     def _attach(candidate: Candidate, evaluation: CandidateEvaluation) -> None:
@@ -2893,6 +3134,8 @@ class EvaluateCatalysis(ScientificInterface):
             "pocket_within", "pocket_nearest_role", "pocket_missing_references",
             "chemoselectivity_tested", "target_in_reactive_position",
             "target_to_donor_A", "displacing_group", "displacing_to_donor_A",
+            "chemoselectivity_margin_A", "chemoselectivity_margin_authority",
+            "chemoselectivity_margin_source",
             "cofactor_present", "cofactor_component", "cofactor_identity",
             "cofactor_required_identity", "cofactor_state", "cofactor_required_state",
             "cofactor_identity_ok", "cofactor_state_ok", "cofactor_placement_ok",
@@ -2930,6 +3173,9 @@ class EvaluateCatalysis(ScientificInterface):
                     None if chemo is None else chemo.target_distance_A,
                     None if chemo is None else chemo.displacing_label,
                     None if chemo is None else chemo.displacing_distance_A,
+                    None if chemo is None else chemo.margin_A,
+                    None if chemo is None else chemo.margin_authority.value,
+                    None if chemo is None else chemo.margin_source,
                     None if cof is None else cof.present,
                     None if cof is None else cof.observed_component,
                     None if cof is None else cof.observed_identity,
@@ -3061,6 +3307,8 @@ class EvaluateCatalysis(ScientificInterface):
                                      else [e.wilson_lo, e.wilson_hi]),
             "robustness_level": e.robustness_level.value,
             "stereo": e.stereo.model_dump(mode="json"),
+            "stereo_is_circularity_corrected": True,
+            "stereo_poses_excluded_as_circular": e.stereo_poses_excluded_as_circular,
             "input_errors": list(e.input_errors),
             "entirely_circular_poses": e.entirely_circular_poses(),
             "poses": [
@@ -3081,6 +3329,15 @@ class EvaluateCatalysis(ScientificInterface):
                     "carries_independent_test": p.carries_independent_test,
                     "counts_toward_robustness": p.independently_satisfied,
                     "entirely_circular": p.entirely_circular,
+                    "target_in_reactive_position": (
+                        None if p.chemoselectivity is None
+                        else p.chemoselectivity.target_in_reactive_position),
+                    "chemoselectivity_margin_authority": (
+                        None if p.chemoselectivity is None
+                        else p.chemoselectivity.margin_authority.value),
+                    "chemoselectivity_margin_source": (
+                        None if p.chemoselectivity is None
+                        else p.chemoselectivity.margin_source),
                     "clash_count": None if p.clash is None else p.clash.count,
                     "face": p.face,
                     "product_configuration": p.product_configuration,

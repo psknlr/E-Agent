@@ -1,0 +1,16 @@
+{
+  "label_id": "Stable record identity. A row can hold multiple parameters from one biochemical observation; it is not several independent experiments.",
+  "experimental_complex_pdb_ids": "Public experimental enzyme/cofactor/real substrate or product complexes associated with this biochemical reaction; state/quality limitations remain in structure_manifest.",
+  "experimental_protein_pdb_ids": "Public experimental protein scaffold for the reported enzyme core; not a claim of target substrate pose or exact terminal construct match.",
+  "template_pdb_ids": "Templates only, never substituted for an experimental mutant complex.",
+  "Km_comparator": "= for point estimates; < for a reported upper bound. A numeric Km_value_or_bound_M must be read with this field.",
+  "efficiency_reported_M_1_s_1": "Unit conversion of the published efficiency. Can differ from a ratio of rounded kcat and Km.",
+  "efficiency_ratio_derived_M_1_s_1": "Ratio of central values only when Km is a positive point value; no propagated uncertainty. Not a published fitted efficiency.",
+  "record_status": "measured_numeric, measured_apparent_numeric, or not_determined. null is missing, never zero.",
+  "strict_geometry_gold": "Always false in this release; audited candidates still have state, density, conformer or local-geometry limitations.",
+  "selected_altloc": "Candidate preparation choice, not an independent experimental replicate or a re-refined model.",
+  "linked_label_ids": "All associated records, including template-only mutant uses. Use the separate experimental_complex/protein/template fields in activity_labels to determine the actual evidence relationship.",
+  "split_group": "Conservative parent-enzyme grouping. Family-level grouping can need to be broader; do not split close homologs simply because IDs differ.",
+  "sequence_kind": "See sequence_manifest: source sequences and derived sequences are explicitly separated.",
+  "assay_group": "Protocol/source grouping for conditional interpretation. Different source groups are not automatically comparable."
+}

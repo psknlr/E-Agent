@@ -289,8 +289,13 @@ sources:
     requires_human_review_per_record: true
     needs_curation: true
     curation_notes:
-      - "No endpoint recorded. Confirm the API base URL and authentication
-         requirements before any automated fetch."
+      - "The record route is established and needs no authentication for an open
+         deposit: `eagent sources verify` fetched one deposit's metadata from
+         https://zenodo.org and one file of it by name, and opened the
+         provider's developer documentation; the record of those calls is in
+         connectivity.observed.yaml. Closed and restricted deposits were not
+         tried and are not covered. STILL OPEN: search, which has not been
+         called, and the repository's own rate limits."
       - "Record the deposit DOI and the concept-versus-version DOI distinction
          for every imported dataset."
       - "Licence is per deposit and must be read per deposit; nothing general can

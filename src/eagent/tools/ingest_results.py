@@ -107,6 +107,7 @@ from ..schemas import (
     ee_target,
 )
 from ..science.robustness import wilson_interval
+from ..science.units import Reconciliation, normalise_unit_text, reconcile_units
 from .base import ScientificInterface
 from .select_batch import ASSAY_RESULT_COLUMNS
 
@@ -119,6 +120,7 @@ __all__ = [
     "MeasurementGroup",
     "parse_assay_rows",
     "group_rows",
+    "build_record_id",
     "Classification",
     "classify_group",
     "UnresolvedRow",
@@ -391,8 +393,41 @@ class AssayRow:
         return self.kind.strip().lower() == "control"
 
     @property
-    def group_key(self) -> tuple[str, str, str]:
-        return (self.candidate_id, self.cofactor, self.cofactor_state)
+    def measured(self) -> bool:
+        """Whether this well states that it was run.
+
+        ``tested`` is tri-state and only ``True`` is a statement that the well
+        was run. A blank cell is the default state of the template this file
+        is a copy of, so reading it as "presumably tested" means an untouched
+        template parses as a full plate of measurements.
+        """
+        return self.tested is True
+
+    @property
+    def assay_key(self) -> tuple[str, str]:
+        """How this well was measured, normalised for spelling.
+
+        Two wells of one construct read on two instruments are two
+        measurements of it, not two replicates: an absorbance rate and a GC-MS
+        conversion have different detection powers, different limits and
+        different meanings, and a median over both is a number with no
+        method behind it.
+        """
+        return (normalise_unit_text(self.detection_method),
+                normalise_unit_text(self.measurement_type))
+
+    @property
+    def group_key(self) -> tuple[str, str, str, str, str, str]:
+        """Everything that has to match before two wells are replicates.
+
+        The construct is in the key because one candidate id routinely covers
+        several constructs -- a codon-optimised gene, a tagged version, a
+        re-clone -- and they express differently; averaging them reports a
+        performance no single construct had. The assay is in the key for the
+        reason given on :attr:`assay_key`.
+        """
+        return (self.candidate_id, self.construct_id,
+                self.cofactor, self.cofactor_state) + self.assay_key
 
 
 def parse_assay_rows(
@@ -492,12 +527,25 @@ class MeasurementGroup:
     candidate_id: str
     cofactor: str
     cofactor_state: str
+    #: The construct these wells share. Part of the identity, not a label: two
+    #: constructs of one candidate are two measurements of two objects.
+    construct_id: str = ""
     rows: list[AssayRow] = field(default_factory=list)
     #: Median empty-vector signal for this group's plate and cofactor
     #: condition, attached by :func:`attach_empty_vector_baselines`. ``None``
     #: means no such control was run, which makes a fold-over-background bar
-    #: undecidable rather than satisfied.
+    #: undecidable rather than satisfied. When the group spans plates this is
+    #: a summary only; the fold is computed from :attr:`empty_vector_by_plate`.
     empty_vector_baseline: float | None = None
+    #: Plate -> that plate's own empty-vector median. A fold must be taken
+    #: within a plate: background differs between plates, and dividing a
+    #: pooled signal by a pooled background compares wells that were never
+    #: run together.
+    empty_vector_by_plate: dict[str, float] = field(default_factory=dict)
+    #: Plate -> the unit that plate's baseline was reported in. Kept beside
+    #: the number because a fold is a ratio and a ratio between two scales is
+    #: not a fold.
+    empty_vector_unit_by_plate: dict[str, str] = field(default_factory=dict)
     #: Where that baseline came from, for the record.
     empty_vector_basis: str = ""
 
@@ -508,7 +556,27 @@ class MeasurementGroup:
 
     @property
     def tested_rows(self) -> list[AssayRow]:
-        return [r for r in self.rows if r.tested is not False]
+        """The wells that state they were run. Only these carry facts.
+
+        ``tested is True``, not ``tested is not False``. The template this
+        file is a returned copy of ships with the column blank, so treating a
+        blank as tested makes an untouched template parse as a full plate of
+        results -- and the template also pre-addresses every well, so those
+        results would be attributed to real candidates.
+
+        :attr:`rows_without_tested_flag` names the wells this excludes, so the
+        exclusion is reported rather than silent.
+        """
+        return [r for r in self.rows if r.measured]
+
+    @property
+    def rows_without_tested_flag(self) -> list[AssayRow]:
+        """Wells that neither claim nor deny having been run.
+
+        Reported, never guessed at: the honest reading of a blank is that
+        nobody said, and a group made only of these is ``NOT_TESTED``.
+        """
+        return [r for r in self.rows if r.tested is None]
 
     @property
     def any_tested(self) -> bool:
@@ -532,87 +600,229 @@ class MeasurementGroup:
 
     @property
     def expressed_soluble(self) -> bool | None:
-        values = [r.expressed_soluble for r in self.rows
+        """Soluble expression as reported by the wells that were run.
+
+        Reads :attr:`tested_rows`. A well nobody ran can still carry an
+        ``expressed_soluble=yes`` cell -- inherited from the previous round's
+        sheet, or pre-filled with the plan -- and ``any()`` over every row
+        lets that cell overrule the well that was actually run and failed.
+        The construct then passes the expression gate in
+        :func:`classify_group` and its silence is recorded as a catalytic
+        negative instead of an expression failure.
+
+        Still ``any()`` over the wells that *were* run: one soluble prep is
+        enough to have expressed, and a single failed prep among successes is
+        a prep failure, not an insoluble protein.
+        """
+        values = [r.expressed_soluble for r in self.tested_rows
                   if r.expressed_soluble is not None]
         if not values:
             return None
-        return any(values)         # one soluble prep is enough to have expressed
+        return any(values)
 
     @property
     def detection_method(self) -> str:
-        for row in self.rows:
+        """The method the measured wells were read on.
+
+        Every well in a group shares a detection method by construction --
+        it is part of :attr:`AssayRow.group_key` -- so this reports it rather
+        than choosing between alternatives. Read from the measured wells, with
+        the unmeasured ones as a fallback for messages only.
+        """
+        for row in self.tested_rows + self.rows:
             if row.detection_method:
                 return row.detection_method
         return ""
 
     @property
     def confirms_product_identity(self) -> bool:
-        return any(r.confirms_product_identity for r in self.rows)
+        """Whether a well that was run was read on an identifying method.
+
+        Restricted to :attr:`tested_rows`. This flag is pre-filled from the
+        assay plan in the returned template, so a well nobody ran carries the
+        plan's intention to use GC-MS as though the reading had happened. Over
+        every row, one such cell licenses ``CONFIRMED_TARGET_PRODUCT`` on an
+        absorbance measurement.
+        """
+        return any(r.confirms_product_identity for r in self.tested_rows)
 
     @property
     def authentic_standard(self) -> bool | None:
-        return _consensus([r.authentic_standard for r in self.rows])
+        return _consensus([r.authentic_standard for r in self.tested_rows])
 
     @property
     def chiral_method_validated(self) -> bool | None:
-        return _consensus([r.chiral_method_validated for r in self.rows])
+        return _consensus([r.chiral_method_validated for r in self.tested_rows])
+
+    @property
+    def limit_reconciliation(self) -> Reconciliation:
+        """The measured wells' detection limits, put on one scale or refused.
+
+        "The weakest limit binds" is only arithmetic if the limits share a
+        scale. ``0.5 uM`` and ``0.1 mM`` differ by two hundred-fold and the
+        raw maximum picks the first, so a negative would be recorded at a
+        limit two hundred times tighter than the one the plate actually
+        reached -- which is the direction that makes an absence look
+        informative.
+        """
+        return reconcile_units([(r.limit_of_detection, r.limit_unit)
+                                for r in self.tested_rows])
 
     @property
     def limit_of_detection(self) -> float | None:
-        values = [r.limit_of_detection for r in self.rows
-                  if r.limit_of_detection is not None]
-        return max(values) if values else None      # the weakest limit binds
+        """The weakest limit among the measured wells, after reconciling units.
+
+        ``None`` when the limits cannot be put on one scale, which makes a
+        failing condition unresolved rather than a negative at a limit nobody
+        can state.
+        """
+        rec = self.limit_reconciliation
+        if not rec.usable or not rec.values:
+            return None
+        return max(rec.values)
 
     @property
     def limit_unit(self) -> str:
-        for row in self.rows:
+        rec = self.limit_reconciliation
+        if rec.usable and rec.unit:
+            return rec.unit
+        for row in self.tested_rows:
             if row.limit_unit:
                 return row.limit_unit
         return ""
 
     @property
     def measurement_type(self) -> str:
-        for row in self.rows:
+        for row in self.tested_rows + self.rows:
             if row.measurement_type:
                 return row.measurement_type
         return ""
 
     @property
+    def measurement_reconciliation(self) -> Reconciliation:
+        """The measured wells' values, put on one scale or refused.
+
+        A plate reporting ``0.01 mM`` in one well and ``10 uM`` in the next has
+        reported one concentration twice. The median of the raw numbers is
+        ``5.005``, which is neither well's reading and is indistinguishable
+        downstream from a real measurement. See
+        :mod:`eagent.science.units`: identical spellings aggregate untouched,
+        convertible ones are converted, and anything else is a refusal.
+        """
+        return reconcile_units([(r.measurement_value, r.measurement_unit)
+                                for r in self.tested_rows])
+
+    @property
     def measurement_unit(self) -> str:
-        for row in self.rows:
-            if row.measurement_unit:
-                return row.measurement_unit
-        return ""
+        """The unit the aggregate is in -- which may not be any well's own.
+
+        When wells were converted onto a common scale this is the canonical
+        unit, so the record states the unit its number is actually in.
+        """
+        return self.measurement_reconciliation.unit
+
+    @property
+    def measurement_unit_conflict(self) -> str:
+        """Why the wells could not be put on one scale, or an empty string."""
+        return self.measurement_reconciliation.conflict
 
     @property
     def measurement_value(self) -> float | None:
-        """Median over the wells that were actually measured.
+        """Median over the wells that were actually measured, in one unit.
 
         Reads :attr:`tested_rows`, never ``rows``. A well marked ``tested=no``
         routinely still carries a number: the commonest way a plate reaches
         this code is a copy of the previous round's sheet with the untested
         wells' old values left in place. Taking the median over every row lets
         a stale value from a well nobody ran outvote the one that was run.
+
+        ``None`` when the units disagree irreconcilably, so the criterion
+        reports the condition as undecidable instead of scoring a number that
+        belongs to no scale.
         """
-        return _median([r.measurement_value for r in self.tested_rows])
+        rec = self.measurement_reconciliation
+        if not rec.usable:
+            return None
+        return _median(list(rec.values))
 
     @property
     def fold_over_empty_vector(self) -> float | None:
-        """Signal relative to the empty-vector control on the same plate.
+        """Signal relative to background, normalised within each plate first.
 
-        ``None`` whenever it cannot be computed: no baseline was run, this
-        group reported no measurement, or the baseline is zero or negative so
-        a ratio would be meaningless. Each of those is a reason the bar cannot
-        be decided, never a reason to treat it as met.
+        Each plate's tested candidate wells are divided by that plate's own
+        empty-vector median, and the per-plate folds are then combined. The
+        pooled alternative -- one median over every candidate well divided by
+        one median over every control well -- silently compares wells that
+        were never run together, and because plates differ both in background
+        and in how many wells of each kind they carry, it can turn a group
+        that reached two-fold on every plate into a tenfold result.
+
+        ``None`` whenever no plate supports a fold: no control was run, the
+        group reported no measurement, or every background read zero or less.
+        Each of those is a reason the bar cannot be decided, never a reason to
+        treat it as met.
         """
-        if self.empty_vector_baseline is None:
+        folds = self.fold_by_plate()
+        if not folds:
             return None
-        value = self.measurement_value
-        if value is None:
-            return None
-        if self.empty_vector_baseline <= 0:
-            return None
-        return value / self.empty_vector_baseline
+        return _median(list(folds.values()))
+
+    def _folds(self) -> tuple[dict[str, float], dict[str, str]]:
+        """``(fold per plate, why a plate was refused)``.
+
+        The signal and the background are reconciled *together*, so the ratio
+        is taken between two numbers on one scale. A control read in ``uM``
+        against wells read in ``mM`` would otherwise produce a thousandfold
+        fold change out of two identical readings.
+        """
+        out: dict[str, float] = {}
+        refused: dict[str, str] = {}
+        for plate, baseline in self.empty_vector_by_plate.items():
+            if baseline is None or baseline <= 0:
+                continue
+            rows = [r for r in self.tested_rows
+                    if str(r.plate or "") == plate
+                    and r.measurement_value is not None]
+            if not rows:
+                continue
+            unit = self.empty_vector_unit_by_plate.get(plate, "")
+            rec = reconcile_units(
+                [(r.measurement_value, r.measurement_unit) for r in rows]
+                + [(baseline, unit)])
+            if not rec.usable:
+                refused[plate] = rec.conflict
+                continue
+            *signal, divisor = rec.values
+            if divisor <= 0:
+                continue
+            median = _median(list(signal))
+            if median is None:
+                continue
+            out[plate] = median / divisor
+        return out, refused
+
+    def fold_by_plate(self) -> dict[str, float]:
+        """Per-plate fold over that plate's own background.
+
+        Plates with no usable background are absent rather than defaulted, so
+        a missing control cannot contribute a number.
+        """
+        return self._folds()[0]
+
+    def fold_conflicts(self) -> dict[str, str]:
+        """Plates whose signal and background were on incompatible scales."""
+        return self._folds()[1]
+
+    @property
+    def plates_without_background(self) -> list[str]:
+        """Plates whose wells cannot contribute to a fold, named not hidden.
+
+        Covers all three reasons: no control was run on the plate, the control
+        read zero or less, and the control was reported on a scale the wells
+        cannot be put onto. :meth:`fold_conflicts` distinguishes the third.
+        """
+        usable = set(self.fold_by_plate())
+        return sorted({str(r.plate or "") for r in self.tested_rows} - usable)
 
     @property
     def conversion_pct(self) -> float | None:
@@ -721,110 +931,202 @@ class MeasurementGroup:
     def disagreement(self) -> str:
         """Description of replicate spread worth reporting, or an empty string."""
         notes: list[str] = []
-        expressed = {r.expressed_soluble for r in self.rows
+        measured = self.tested_rows
+        expressed = {r.expressed_soluble for r in measured
                      if r.expressed_soluble is not None}
         if len(expressed) > 1:
             notes.append("replicates disagree about soluble expression")
-        values = [r.conversion_pct for r in self.rows if r.conversion_pct is not None]
+        values = [r.conversion_pct for r in measured if r.conversion_pct is not None]
         if len(values) > 1:
             lo, hi = min(values), max(values)
             if hi > 0 and (hi - lo) > 0.5 * hi:
                 notes.append(
                     f"conversion spread {lo:g}-{hi:g}% across "
                     f"{len(values)} replicate(s) exceeds half the maximum")
-        identities = {r.product_identity_observed for r in self.rows
+        identities = {r.product_identity_observed for r in measured
                       if r.product_identity_observed != "unknown"}
         if len(identities) > 1:
             notes.append(
                 f"replicates report different product identities: "
                 f"{', '.join(sorted(identities))}")
+        if self.measurement_unit_conflict:
+            notes.append(self.measurement_unit_conflict)
+        if not self.limit_reconciliation.usable:
+            notes.append(self.limit_reconciliation.conflict)
+        skipped = len(self.rows_without_tested_flag)
+        if skipped:
+            notes.append(
+                f"{skipped} well(s) of this condition do not say whether they "
+                f"were run and contribute nothing")
         return "; ".join(notes)
 
 
 def group_rows(rows: Sequence[AssayRow]) -> list[MeasurementGroup]:
-    """Group replicate wells by (construct, cofactor, cofactor state).
+    """Group wells that are genuinely replicates of one another.
 
-    The cofactor is part of the key, not metadata: an enzyme that works with
-    NADPH and not NADH is two records with two different outcomes, and merging
-    them produces one record that is wrong under both conditions.
+    Replicates means: the same construct of the same candidate, under the same
+    cofactor in the same oxidation state, read by the same method on the same
+    endpoint. Each of those is in :attr:`AssayRow.group_key` because dropping
+    any one of them merges two measurements into one record that is wrong
+    under both:
+
+    * **cofactor and state** -- an enzyme that works with NADPH and not NADH is
+      two results, and the reduced and oxidised forms of one cofactor are two
+      conditions deliberately run apart;
+    * **construct** -- one candidate id routinely covers a codon-optimised
+      gene, a tagged version and a re-clone, which express differently; a
+      median over them reports a performance no construct had, and the
+      engineering decision that follows is about a construct;
+    * **method and endpoint** -- an absorbance rate and a GC-MS conversion
+      have different detection powers and different meanings.
+
+    Groups that differ only in these fields stay separate records, so the
+    plate's own distinctions survive into the data layer.
     """
-    groups: dict[tuple[str, str, str], MeasurementGroup] = {}
+    groups: dict[tuple[str, ...], MeasurementGroup] = {}
     for row in rows:
         key = row.group_key
         group = groups.get(key)
         if group is None:
             group = MeasurementGroup(candidate_id=row.candidate_id,
                                      cofactor=row.cofactor,
-                                     cofactor_state=row.cofactor_state)
+                                     cofactor_state=row.cofactor_state,
+                                     construct_id=row.construct_id)
             groups[key] = group
         group.rows.append(row)
     return [groups[k] for k in sorted(groups)]
 
 
-#: Row ``kind``/``role`` tokens that identify an empty-vector control.
+#: Normalised ``kind``/``role`` tokens that identify an empty-vector control.
+#: Normalised means lower-cased, spaces and hyphens folded to underscores, and
+#: a trailing ``_control`` removed -- ``select_batch`` writes the role as
+#: ``"empty_vector control"`` and the kind as ``"control"``, so an exact match
+#: against the bare token recognised nothing the pipeline itself produces and
+#: every fold-over-background bar on a real plate was undecidable.
 EMPTY_VECTOR_TOKENS: frozenset[str] = frozenset({
-    "empty_vector", "empty-vector", "emptyvector", "vector_only", "no_insert",
+    "empty_vector", "emptyvector", "vector_only", "no_insert",
 })
 
 
+def _control_token(text: str | None) -> str:
+    token = str(text or "").strip().lower().replace("-", "_").replace(" ", "_")
+    while token.endswith("_control"):
+        token = token[: -len("_control")]
+    return token
+
+
 def _is_empty_vector(row: AssayRow) -> bool:
-    tokens = {str(row.kind or "").strip().lower(),
-              str(row.role or "").strip().lower()}
-    return bool(tokens & EMPTY_VECTOR_TOKENS)
+    return bool({_control_token(row.kind), _control_token(row.role)}
+                & EMPTY_VECTOR_TOKENS)
 
 
 def attach_empty_vector_baselines(
     groups: Sequence[MeasurementGroup], rows: Sequence[AssayRow],
 ) -> list[str]:
-    """Attach each group's empty-vector baseline, matched on plate and cofactor.
+    """Attach each group's empty-vector baseline, matched on how it was measured.
 
     A fold-over-background bar compares a well with the control that shared
-    its plate and its cofactor condition. Borrowing a baseline from another
-    plate would silently compare against a different day's background, so a
-    group with no matching control gets no baseline and its bar becomes
-    undecidable. That is the honest outcome: the plate did not carry the
-    control the criterion needs.
+    its plate, its cofactor condition, its detection method and its endpoint.
+    Borrowing a baseline from another plate would compare against a different
+    day's background; borrowing one from another method would compare a GC-MS
+    peak with an absorbance slope. A group with no matching control gets no
+    baseline and its bar becomes undecidable. That is the honest outcome: the
+    plate did not carry the control the criterion needs.
+
+    Only control wells that state ``tested=yes`` contribute. A control row is
+    pre-addressed in the template exactly like a candidate row, so an
+    untouched or partly filled sheet carries control wells with a number and
+    no claim that anybody ran them -- and a background taken from a well that
+    was never run sets the denominator of every fold on the plate.
 
     Returns the notes describing what was and was not matched, for the record.
     """
-    by_key: dict[tuple[str, str, str], list[float]] = {}
+    by_key: dict[tuple[str, str, str, str, str], list[tuple[float, str]]] = {}
+    untested_controls = 0
     for row in rows:
         if not _is_empty_vector(row):
+            continue
+        if not row.measured:
+            if row.measurement_value is not None:
+                untested_controls += 1
             continue
         if row.measurement_value is None:
             continue
         key = (str(row.plate or ""), str(row.cofactor or ""),
-               str(row.cofactor_state or ""))
-        by_key.setdefault(key, []).append(float(row.measurement_value))
+               str(row.cofactor_state or "")) + row.assay_key
+        by_key.setdefault(key, []).append(
+            (float(row.measurement_value), row.measurement_unit))
 
     notes: list[str] = []
+    if untested_controls:
+        notes.append(
+            f"{untested_controls} empty-vector well(s) carry a measurement "
+            f"but do not state that they were run; they set no background, "
+            f"because a denominator taken from a well nobody ran scales every "
+            f"fold on the plate")
     if not by_key:
         notes.append(
-            "no empty-vector control carried a measurement value, so any "
+            "no empty-vector control was both run and measured, so any "
             "fold-over-background criterion is undecidable for every well")
     unmatched: set[str] = set()
     for group in groups:
-        plates = {str(r.plate or "") for r in group.rows}
-        matched: list[float] = []
-        used: list[str] = []
+        plates = {str(r.plate or "") for r in group.tested_rows}
+        assay = group.tested_rows[0].assay_key if group.tested_rows else ("", "")
+        # One baseline PER PLATE. Pooling them would let a plate with a low
+        # background supply the divisor for a plate with a high one, which is
+        # how two plates that each reached two-fold become a tenfold result.
+        per_plate: dict[str, float] = {}
+        per_plate_unit: dict[str, str] = {}
         for plate in sorted(plates):
-            key = (plate, group.cofactor, group.cofactor_state)
-            values = by_key.get(key)
-            if values:
-                matched.extend(values)
-                used.append(plate)
-        if matched:
-            group.empty_vector_baseline = _median(matched)
+            measured = by_key.get(
+                (plate, group.cofactor, group.cofactor_state) + assay)
+            if not measured:
+                continue
+            rec = reconcile_units([(v, u) for v, u in measured])
+            if not rec.usable:
+                notes.append(
+                    f"plate {plate}: the empty-vector controls under "
+                    f"{group.cofactor}[{group.cofactor_state}] disagree about "
+                    f"units -- {rec.conflict}; no background is attached")
+                continue
+            median = _median(list(rec.values))
+            if median is None:
+                continue
+            per_plate[plate] = median
+            per_plate_unit[plate] = rec.unit
+        group.empty_vector_by_plate = per_plate
+        group.empty_vector_unit_by_plate = per_plate_unit
+        missing = sorted(plates - set(per_plate))
+        if per_plate:
+            # Kept as a summary for reporting only; the fold does not use it.
+            group.empty_vector_baseline = _median(list(per_plate.values()))
             group.empty_vector_basis = (
-                f"median of {len(matched)} empty-vector well(s) on plate(s) "
-                f"{', '.join(used)} under {group.cofactor}"
-                f"[{group.cofactor_state}]")
+                "per-plate empty-vector medians "
+                + ", ".join(f"{plate}={per_plate[plate]:g}"
+                            f"{(' ' + per_plate_unit[plate]) if per_plate_unit.get(plate) else ''}"
+                            for plate in sorted(per_plate))
+                + f" under {group.cofactor}[{group.cofactor_state}]"
+                + f" on {assay[0] or 'an unnamed method'}"
+                + (f"; no control on plate(s) {', '.join(missing)}, whose "
+                   f"wells cannot contribute a fold" if missing else ""))
         else:
+            group.empty_vector_baseline = None
             group.empty_vector_basis = (
                 f"no empty-vector control on plate(s) "
                 f"{', '.join(sorted(plates)) or '-'} under {group.cofactor}"
-                f"[{group.cofactor_state}]")
-            unmatched.update(plates)
+                f"[{group.cofactor_state}] on {assay[0] or 'an unnamed method'}")
+        unmatched.update(missing)
+        if len(per_plate) > 1:
+            notes.append(
+                f"{group.candidate_id} spans plates "
+                f"{', '.join(sorted(per_plate))} under {group.cofactor}"
+                f"[{group.cofactor_state}]; the fold is taken within each "
+                f"plate against that plate's own background and then "
+                f"combined, never pooled across plates")
+        for plate, conflict in group.fold_conflicts().items():
+            notes.append(
+                f"{group.candidate_id} on plate {plate}: {conflict}; the "
+                f"fold over background is not computed there")
     if unmatched:
         notes.append(
             f"plate(s) {', '.join(sorted(p for p in unmatched if p))} carried "
@@ -901,17 +1203,43 @@ def classify_group(
     """
     reasons: list[str] = []
 
-    if not group.any_tested and all(r.tested is not True for r in group.rows):
+    if not group.tested_rows:
+        blank = len(group.rows_without_tested_flag)
         return Classification(
             OutcomeClass.NOT_TESTED,
             ("no well of this condition was run; the result is unknown, "
-             "which is not the same as negative",))
+             "which is not the same as negative"
+             + (f" ({blank} well(s) left the 'tested' column blank, which is "
+                f"not a claim that they were run)" if blank else ""),))
 
     if group.expressed_soluble is False:
         return Classification(
             OutcomeClass.EXPRESSION_OR_SOLUBILITY_FAILURE,
             ("no soluble expression; catalytic ability undetermined and this "
              "record must not be counted as a catalytic negative",))
+
+    if group.measurement_unit_conflict:
+        return Classification(
+            None, (group.measurement_unit_conflict,),
+            UnresolvedRow(
+                candidate_id=group.candidate_id, cofactor=group.cofactor,
+                reason_code="measurement_unit_conflict",
+                reason=(f"the replicates of this condition were reported on "
+                        f"scales that cannot be reconciled: "
+                        f"{group.measurement_unit_conflict}. An aggregate over "
+                        f"them would be a number in no unit, so none is "
+                        f"produced."),
+                required_to_resolve=(
+                    "report every well of this condition in one unit, or add "
+                    "the conversion to eagent.science.units where a reviewer "
+                    "can check the factor"),
+                evidence={
+                    "units": sorted({r.measurement_unit
+                                     for r in group.tested_rows
+                                     if r.measurement_value is not None}),
+                    "values": [r.measurement_value for r in group.tested_rows],
+                    "wells": sorted({r.well for r in group.tested_rows if r.well}),
+                }))
 
     met, criterion_reasons = criterion.evaluate(group)
     reasons.extend(criterion_reasons)
@@ -1066,11 +1394,16 @@ def classify_group(
                 reason=("the condition failed the criterion but no limit of "
                         "detection was reported and the assay template carries "
                         "none; 'no product' at an unstated limit is not a "
-                        "measurement"),
+                        "measurement"
+                        + (f". The wells do carry limits, but they cannot be "
+                           f"put on one scale: "
+                           f"{group.limit_reconciliation.conflict}"
+                           if not group.limit_reconciliation.usable else "")),
                 required_to_resolve=(
                     "report the limit of detection for this method, or record "
                     "the template's pre-registered limit"),
                 evidence={"criterion_reasons": criterion_reasons,
+                          "limit_conflict": group.limit_reconciliation.conflict,
                           "detection_method": group.detection_method}))
 
     return Classification(
@@ -1733,6 +2066,33 @@ class IngestResults(ScientificInterface):
                 self.name, "the results file contained no usable rows",
                 code="no_rows")
 
+        # The template ships with 'tested' blank and every well
+        # pre-addressed, so a sheet returned untouched or half-filled parses
+        # as rows attributed to real candidates. Those wells contribute no
+        # facts (see MeasurementGroup.tested_rows); saying so here is what
+        # keeps that from reading as a plate of silent negatives.
+        unstated = [r for r in parsed if r.tested is None]
+        if unstated:
+            carrying = [r for r in unstated if r.measurement_value is not None
+                        or r.conversion_pct is not None]
+            result.add_flag(
+                "tested_flag_missing",
+                Severity.BLOCKER if len(unstated) == len(parsed) else Severity.WARN,
+                f"{len(unstated)} of {len(parsed)} well(s) leave the 'tested' "
+                f"column blank, which is not a claim that they were run; they "
+                f"contribute no measurement"
+                + (f", and {len(carrying)} of them carry a number that is "
+                   f"therefore not used" if carrying else "")
+                + ". Fill 'tested' for every well the plate actually ran.",
+                subject="plate")
+            result.add_uncertainty(
+                "tested_flag_missing",
+                "wells that do not state whether they were run are treated as "
+                "untested, so this round's denominator is smaller than the "
+                "sheet suggests",
+                affects=sorted({r.candidate_id for r in unstated if r.candidate_id}),
+                resolvable_by="return the sheet with the 'tested' column filled")
+
         families = dict(families or {})
         sequences = dict(sequences or {})
         parent_sequence_hashes = dict(parent_sequence_hashes or {})
@@ -1748,9 +2108,14 @@ class IngestResults(ScientificInterface):
         # control that shared the plate rather than quietly ignored.
         baseline_notes = attach_empty_vector_baselines(groups, parsed)
         for note in baseline_notes:
-            if criterion.min_fold_over_empty_vector is not None:
-                result.add_flag("empty_vector_baseline_missing",
-                                Severity.WARN, note, subject="controls")
+            scored = criterion.min_fold_over_empty_vector is not None
+            # Reported either way. Without a fold bar the background does not
+            # decide a hit, but "the plate's controls were not run" is a fact
+            # about this round that the next round's design depends on.
+            result.add_flag("empty_vector_baseline_missing",
+                            Severity.WARN if scored else Severity.INFO,
+                            note, subject="controls")
+            if scored:
                 result.add_uncertainty(
                     "empty_vector_baseline_missing", note,
                     affects=[g.candidate_id for g in groups
@@ -1772,7 +2137,8 @@ class IngestResults(ScientificInterface):
                 severity = (Severity.BLOCKER
                             if classification.unresolved.reason_code
                             in ("indirect_signal_positive",
-                                "negative_without_detection_limit")
+                                "negative_without_detection_limit",
+                                "measurement_unit_conflict")
                             else Severity.WARN)
                 result.add_flag(
                     classification.unresolved.reason_code, severity,
@@ -1780,9 +2146,38 @@ class IngestResults(ScientificInterface):
                     subject=group.candidate_id)
                 continue
             try:
-                records.append(self._build_record(
+                built = self._build_record(
                     ctx, group, classification, run_id, sequences,
-                    parent_sequence_hashes, assay_template))
+                    parent_sequence_hashes, assay_template)
+                clash = next((r for r in records
+                              if r.record_id == built.record_id), None)
+                if clash is not None:
+                    # Two conditions that produced different results must not
+                    # leave under one id. Downstream they would read as one
+                    # record contradicting itself, and whichever arrived
+                    # second would overwrite the first on any keyed store.
+                    result.add_flag(
+                        "duplicate_record_id", Severity.BLOCKER,
+                        f"{built.record_id} was produced twice in one round, "
+                        f"by {clash.outcome.value} and {built.outcome.value}. "
+                        f"The identity is missing something that differs "
+                        f"between these two conditions; neither is written.",
+                        subject=group.candidate_id)
+                    unresolved.append(UnresolvedRow(
+                        candidate_id=group.candidate_id,
+                        cofactor=group.cofactor,
+                        reason_code="duplicate_record_id",
+                        reason=(f"record id {built.record_id} is not unique "
+                                f"within this round"),
+                        required_to_resolve=(
+                            "extend the record identity with whatever "
+                            "distinguishes these conditions, or split the "
+                            "round"),
+                        evidence={"record_id": built.record_id,
+                                  "first_outcome": clash.outcome.value,
+                                  "second_outcome": built.outcome.value}))
+                    continue
+                records.append(built)
             except (ValueError, TypeError) as exc:
                 result.add_flag(
                     "record_rejected_by_schema", Severity.BLOCKER,
@@ -2020,8 +2415,10 @@ class IngestResults(ScientificInterface):
                    if outcome.is_positive else None)
         evidence = EvidenceRef(
             source_type="internal_experiment",
-            identifier=f"{run_id}:{group.candidate_id}:{group.cofactor}",
-            locator=f"wells {', '.join(sorted({r.well for r in group.rows if r.well}))}",
+            identifier=build_record_id(run_id, group),
+            locator=("wells " + ", ".join(
+                sorted({r.well for r in group.tested_rows if r.well}))
+                if group.tested_rows else "no well of this condition was run"),
             strength=EvidenceStrength.SEQUENCE_LEVEL_EXPERIMENTAL
             if sequence else EvidenceStrength.COMPUTATIONAL_CONSTRUCT,
             extracted_by="instrument_export",
@@ -2029,14 +2426,18 @@ class IngestResults(ScientificInterface):
             experiment_activity_id=run_id,
         )
         return ExperimentRecord(
-            record_id=f"{run_id}:{group.candidate_id}:{group.cofactor}",
+            # Every field that makes two wells different measurements is in
+            # the id; see build_record_id. The cofactor state, the construct
+            # and the detection method each used to be absent from it, and
+            # each absence collided two deliberately different conditions
+            # into one record.
+            record_id=build_record_id(run_id, group),
             sequence=sequence,
             accession=None,
             is_variant=is_variant,
             parent_sequence_sha256=parent_hash if is_variant else None,
             mutations=list(group.mutations),
-            construct_description=(group.rows[0].construct_id or None
-                                   if group.rows else None),
+            construct_description=group.construct_id or None,
             substrate=task.reaction.substrate,
             product_observed=product,
             reaction_class=task.reaction.reaction_class,
@@ -2063,22 +2464,32 @@ class IngestResults(ScientificInterface):
                       declared: Sequence[CofactorSpec]) -> CofactorSpec | None:
         """Match the reported cofactor to a declared spec, or build a minimal one.
 
-        Matching by name first keeps the task's recorded transfer atom and
-        recycling system attached to the record. When the plate names a
-        cofactor the task never declared, a minimal spec is built from what the
-        plate says rather than from the nearest declared option -- substituting
-        NADPH's spec for a well that ran NADH would misrecord the experiment.
+        Matching on name AND oxidation state keeps the task's recorded
+        transfer atom and recycling system attached to the record without
+        rewriting what the plate says. Matching on the name alone takes the
+        first declared spec with that name and stamps its state onto every
+        well, so a plate that deliberately ran the reduced and the oxidised
+        form of one cofactor comes back as two results under one state --
+        which then reads as a contradiction under identical conditions rather
+        than as the two different conditions it was.
+
+        When the plate names a cofactor the task never declared, or declares
+        it in a state the task did not list, a minimal spec is built from what
+        the plate says rather than from the nearest declared option:
+        substituting NADPH's spec for a well that ran NADH would misrecord the
+        experiment, and so would substituting the reduced spec for an
+        oxidised well.
         """
         name = (group.cofactor or "").strip()
         if not name:
             return None
-        for spec in declared:
-            if spec.name.strip().lower() == name.lower():
-                return spec
         try:
             state = CofactorState(group.cofactor_state.strip().lower())
-        except ValueError:
+        except (ValueError, AttributeError):
             state = CofactorState.UNKNOWN
+        for spec in declared:
+            if spec.name.strip().lower() == name.lower() and spec.state is state:
+                return spec
         return CofactorSpec(name=name, state=state)
 
     @staticmethod
@@ -2447,18 +2858,76 @@ def _outcome_counts(records: Sequence[ExperimentRecord]) -> dict[str, int]:
     return out
 
 
-def _record_subject(record: ExperimentRecord) -> str:
-    """The construct id inside a record id of the form ``run:construct:cofactor``.
+#: Field separator inside a record id built by this module. ``|`` rather than
+#: ``:`` because candidate and construct ids contain colons routinely (a
+#: variant label, a tagged construct, an accession), and a separator that
+#: appears inside the fields makes the id ambiguous to read back.
+RECORD_ID_SEPARATOR: str = "|"
 
-    The middle segment is rejoined rather than taken as ``parts[1]`` so a
-    construct id that itself contains a colon -- a variant label, a tagged
-    construct -- is not silently truncated into a different key, which would
-    quietly move its results into another family's bucket.
+#: How many fields :func:`build_record_id` writes. Parsing checks the count
+#: rather than assuming it, so an id from somewhere else is recognised as such
+#: instead of being carved up at the wrong place.
+RECORD_ID_FIELDS: int = 6
+
+
+def _escape_id_field(text: str) -> str:
+    return str(text or "").replace("\\", "\\\\").replace("|", "\\|")
+
+
+def _split_record_id(record_id: str) -> list[str] | None:
+    """Split an id on unescaped separators, or ``None`` if it is not one of ours."""
+    fields: list[str] = []
+    current: list[str] = []
+    escaped = False
+    for char in record_id:
+        if escaped:
+            current.append(char)
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char == RECORD_ID_SEPARATOR:
+            fields.append("".join(current))
+            current = []
+        else:
+            current.append(char)
+    fields.append("".join(current))
+    return fields if len(fields) == RECORD_ID_FIELDS else None
+
+
+def build_record_id(run_id: str, group: MeasurementGroup) -> str:
+    """The identity of one measurement, with nothing that distinguishes it left out.
+
+    Every field in :attr:`MeasurementGroup`'s grouping key appears here, in a
+    fixed order and separately escaped, because the id is what a keyed store
+    deduplicates on: two measurements that this id cannot tell apart become
+    one record, and the second silently overwrites the first.
+
+    The fields are run, candidate, construct, cofactor and oxidation state,
+    endpoint, and detection method. The last two matter as much as the rest --
+    one construct read by absorbance and by GC-MS under one cofactor produced
+    two measurements, with different detection powers, and they are two
+    records.
     """
-    parts = record.record_id.split(":")
-    if len(parts) >= 3:
-        return ":".join(parts[1:-1])
-    return record.record_id
+    parts = [run_id, group.candidate_id, group.construct_id,
+             f"{group.cofactor}[{group.cofactor_state or 'unknown'}]",
+             group.measurement_type, group.detection_method]
+    assert len(parts) == RECORD_ID_FIELDS
+    return RECORD_ID_SEPARATOR.join(_escape_id_field(part) for part in parts)
+
+
+def _record_subject(record: ExperimentRecord) -> str:
+    """The candidate id a record belongs to, for grouping records by family.
+
+    Reads the candidate field of an id written by :func:`build_record_id`. An
+    id from anywhere else -- a curated record imported from a connector -- is
+    recognised by its field count and returned whole, so it lands in its own
+    bucket rather than being carved at an arbitrary separator and silently
+    merged into another family's statistics.
+    """
+    fields = _split_record_id(record.record_id)
+    if fields is None:
+        return record.record_id
+    return fields[1] or record.record_id
 
 
 def _consensus(values: Sequence[bool | None]) -> bool | None:

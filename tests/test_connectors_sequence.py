@@ -206,17 +206,44 @@ class TestOfflineAndEndpoints(SequenceTestCase):
         self.assertTrue(entry.reviewed)
         self.assertEqual(entry.response.database_version, "2024_01")
 
-    def test_every_sequence_source_still_records_a_null_endpoint(self) -> None:
+    def test_an_endpoint_appears_only_with_a_verified_route(self) -> None:
         for source_id in ("uniprotkb", "uniref", "uniparc", "interpro", "pfam",
+                          "ncbi_protein", "mgnify_proteins"):
+            with self.subTest(source=source_id):
+                source = self.registry.get(source_id)
+                if source.endpoint is None:
+                    continue
+                self.assertTrue(source.connectivity_verified, source_id)
+                self.assertTrue(source.verified_capabilities, source_id)
+
+    def test_most_of_them_still_have_no_route_at_all(self) -> None:
+        for source_id in ("uniref", "uniparc", "interpro", "pfam",
                           "ncbi_protein", "mgnify_proteins"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
     def test_require_endpoint_is_a_typed_refusal(self) -> None:
         with self.assertRaises(EndpointNotEstablishedError) as ctx:
-            UniProtKBConnector(cache=self.cache).require_endpoint()
-        self.assertEqual(ctx.exception.source_id, "uniprotkb")
+            UniRefConnector(cache=self.cache).require_endpoint()
+        self.assertEqual(ctx.exception.source_id, "uniref")
         self.assertTrue(ctx.exception.curation_notes)
+
+    def test_uniprot_has_both_a_verified_route_and_a_checked_client(self) -> None:
+        connector = UniProtKBConnector(cache=self.cache)
+        self.assertEqual(connector.source.endpoint, "https://rest.uniprot.org")
+        self.assertEqual(connector.verified_route_capability,
+                         "exact_record_fetch")
+        self.assertEqual(connector.require_endpoint(),
+                         "https://rest.uniprot.org")
+
+    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
+        """UniParc has no route at all; UniRef's client was checked against
+        nothing. Neither may call, and they refuse for different reasons."""
+        from eagent.connectors.chemistry import RequestShapeNotVerifiedError
+        self.assertIsNone(UniRefConnector.verified_route_capability)
+        self.assertIsNone(self.registry.get("uniref").endpoint)
+        with self.assertRaises(EndpointNotEstablishedError):
+            UniRefConnector(cache=self.cache).require_endpoint()
 
 
 # ---------------------------------------------------------------------------

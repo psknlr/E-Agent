@@ -50,6 +50,7 @@ __all__ = [
     "Structure",
     "read_pdb",
     "read_mmcif",
+    "mmcif_categories",
     "read_structure",
     "write_pdb",
     "WATER_RESNAMES",
@@ -854,6 +855,63 @@ def _extract_atom_site_loop(text: str) -> tuple[list[str], list[list[str]]]:
         "mmCIF: no '_atom_site' loop_ found; this file carries no coordinates "
         "this reader can interpret"
     )
+
+
+def mmcif_categories(text: str, categories: Iterable[str]) -> dict[str, list[dict[str, str]]]:
+    """The named non-coordinate categories of an mmCIF file, as lists of rows.
+
+    ``_struct`` (single values) comes back as one row, ``_entity`` (a loop) as
+    one row per entity; the keys of a row are the item names without the
+    category prefix (``title``, not ``_struct.title``). Values are the raw
+    strings, including the CIF nulls ``.`` and ``?``, which are *not* converted
+    to ``None`` here: whether a missing value matters is the caller's decision.
+
+    Deliberately not a general CIF reader. It exists so that facts about an
+    entry (title, method, entities, revision history) can be read with the same
+    quoting and multi-line rules the coordinate reader uses, instead of by a
+    second regex that disagrees about quotes. The coordinate loop is never
+    requested through it; use :func:`read_mmcif` for that.
+    """
+    wanted = {c.strip().lower() for c in categories}
+    toks = _cif_tokens(text)
+    out: dict[str, list[dict[str, str]]] = {}
+    n = len(toks)
+    i = 0
+    while i < n:
+        value, quoted = toks[i]
+        if not quoted and value.lower() == "loop_":
+            i += 1
+            tags: list[str] = []
+            while i < n and not toks[i][1] and toks[i][0].startswith("_"):
+                tags.append(toks[i][0])
+                i += 1
+            values: list[str] = []
+            while i < n and not _is_cif_keyword(toks[i][0], toks[i][1]):
+                values.append(toks[i][0])
+                i += 1
+            if not tags:
+                continue
+            category = tags[0].split(".", 1)[0].lower()
+            if category not in wanted:
+                continue
+            if len(values) % len(tags) != 0:
+                raise StructureParseError(
+                    f"mmCIF: the {category} loop_ has {len(values)} values for "
+                    f"{len(tags)} tags, which is not a whole number of rows")
+            names = [t.split(".", 1)[1] if "." in t else t for t in tags]
+            for k in range(0, len(values), len(tags)):
+                out.setdefault(category, []).append(
+                    dict(zip(names, values[k:k + len(tags)])))
+            continue
+        if not quoted and value.startswith("_") and "." in value:
+            category, _, item = value.partition(".")
+            if category.lower() in wanted and i + 1 < n:
+                rows = out.setdefault(category.lower(), [{}])
+                rows[0][item] = toks[i + 1][0]
+            i += 2
+            continue
+        i += 1
+    return out
 
 
 def _cif_value(row: Sequence[str], idx: int | None) -> str | None:

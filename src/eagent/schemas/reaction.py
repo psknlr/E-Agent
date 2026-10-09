@@ -11,7 +11,7 @@ from __future__ import annotations
 import enum
 from typing import Any, Iterable
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 from ..errors import FabricationGuardError, UnresolvedFieldError
 from .chem import (
@@ -152,13 +152,24 @@ class Approval(BaseModel):
     functional_criteria_confirmed: bool = False
 
     def state(self, gate: str) -> bool:
-        return bool(getattr(self, gate, False))
+        """Whether this gate's flag is strictly ``True``.
+
+        ``bool(value)`` would be true for any non-empty string, so a field
+        holding "false", "no" or "pending" would read as approved. A gate
+        opens on a real boolean or it does not open.
+        """
+        return getattr(self, gate, False) is True
 
 
 class ReactionSpec(BaseModel):
     """What chemistry must happen, stated precisely enough to be falsifiable."""
 
-    model_config = ConfigDict(extra="forbid")
+    #: ``validate_assignment`` because this model carries an invariant between
+    #: two of its fields -- exactly one substrate path -- and the spec is
+    #: filled in by assignment as an operator resolves it. Without it the
+    #: invariant holds only at construction, which is the one moment a task
+    #: spec is empty.
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     reaction_class: ReactionClass = ReactionClass.OTHER
     atom_mapped_reaction_smiles: str | None = None
@@ -173,6 +184,41 @@ class ReactionSpec(BaseModel):
     rhea_id: str | None = None
     ec_hint: str | None = None
     notes: str = ""
+
+    @model_validator(mode="after")
+    def _exactly_one_substrate_path(self) -> "ReactionSpec":
+        """Refuse a spec that fills both substrate paths.
+
+        The field says exactly one path is used, and every reader picks one:
+        the gate table follows :attr:`substrate_kind`, which prefers the
+        biopolymer, while the structure checks used to read ``substrate``
+        regardless. A task carrying both therefore satisfied each reader with a
+        different molecule -- and adding an unrelated small molecule to a
+        peptide task *removed* a blocker, because the two readers disagreed
+        about what the substrate was.
+
+        Refused here, where both fields are visible at once, rather than in
+        each reader. A name alone counts: it is what somebody believes the
+        substrate is, and two of those is still two substrates.
+        """
+        if self.biopolymer_substrate is None:
+            return self
+        small = self.substrate
+        declared = [f for f, v in (("name", small.name),
+                                   ("isomeric_smiles", small.isomeric_smiles),
+                                   ("molfile", small.molfile),
+                                   ("inchikey", small.inchikey)) if v]
+        if declared:
+            raise ValueError(
+                f"reaction.substrate declares {', '.join(declared)} while "
+                f"reaction.biopolymer_substrate declares a "
+                f"{self.biopolymer_substrate.kind.value}. Exactly one "
+                f"substrate path is used, and every reader picks one: the gate "
+                f"table would follow the biopolymer and the structure checks "
+                f"the small molecule, so the task would pass by describing two "
+                f"different substrates. Clear whichever is not the substrate."
+            )
+        return self
 
     @property
     def substrate_kind(self) -> SubstrateKind:
@@ -248,14 +294,42 @@ def _get_path(obj: Any, path: str) -> Any:
     return cur
 
 
-def _set_path(obj: Any, path: str, value: Any) -> None:
+def _set_path(obj: Any, path: str, value: Any) -> Any:
+    """Assign a nested field, validating it against the field's own type.
+
+    A bare ``setattr`` on a nested model skips validation entirely, because
+    pydantic validates on construction and on assignment to the model it was
+    configured for, not to a child reached through attribute access. The
+    consequences are not cosmetic. A field declared ``bool`` accepted the
+    string ``"false"``, and every later reader asked ``bool(value)``, which
+    is ``True`` for any non-empty string -- so writing "false" into an
+    approval flag read as approved. A field declared as an enum kept a plain
+    string, and the next reader to ask for ``.value`` raised.
+
+    Validating through the declared type coerces what is coercible, rejects
+    what is not, and returns the stored value so the caller can record what
+    was actually written rather than what was offered.
+    """
     parts = path.split(".")
     cur = obj
     for part in parts[:-1]:
         cur = getattr(cur, part)
         if cur is None:
             raise UnresolvedFieldError([".".join(parts[:-1])])
-    setattr(cur, parts[-1], value)
+    name = parts[-1]
+    coerced = value
+    if isinstance(cur, BaseModel):
+        info = type(cur).model_fields.get(name)
+        if info is None:
+            raise UnresolvedFieldError(
+                [path], f"{type(cur).__name__} has no field '{name}'")
+        if info.annotation is not None:
+            # Raises pydantic.ValidationError on anything the field's type
+            # cannot accept, which is the point: a refusal here is cheaper
+            # than a wrong value read by three modules downstream.
+            coerced = TypeAdapter(info.annotation).validate_python(value)
+    setattr(cur, name, coerced)
+    return coerced
 
 
 class TaskSpec(BaseModel):
@@ -305,9 +379,12 @@ class TaskSpec(BaseModel):
         Raises if ``source`` is not a recognised authority, which is what stops
         a language model from quietly promoting its own guess into the spec.
         """
-        a = Assumption(field_path=field_path, value=value, source=source,
+        coerced = _set_path(self, field_path, value)
+        # The ledger records what was stored, not what was offered. If the
+        # field's type coerced the value, the entry has to say so or the
+        # audit trail describes a different task from the one that runs.
+        a = Assumption(field_path=field_path, value=coerced, source=source,
                        justification=justification, at=at)
-        _set_path(self, field_path, value)
         self.assumptions.append(a)
         return a
 

@@ -99,7 +99,8 @@ class CLICase(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 COMMANDS = ("init", "validate", "run", "approve", "status", "verify",
-            "bundle", "bundle-verify", "templates", "sources")
+            "bundle", "bundle-verify", "templates", "sources", "reference",
+            "model")
 
 
 class HelpTests(CLICase):
@@ -670,6 +671,204 @@ class SourcesTests(CLICase):
     def test_an_unknown_layer_lists_the_real_ones(self) -> None:
         result = self.invoke(["sources", "list", "--layer", "vibes"])
         self.assertEqual(result.exit_code, EXIT_USAGE)
+
+
+# ---------------------------------------------------------------------------
+# the KRED reference set
+# ---------------------------------------------------------------------------
+
+class ReferenceTests(CLICase):
+    """The reference-set commands run offline and refuse in the places they should."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.empty_cache = self.tmp / "no_coordinates"
+        self.empty_cache.mkdir()
+
+    def copy_set(self) -> Path:
+        from eagent.eval.kred_reference import default_reference_dir
+
+        target = self.tmp / "set"
+        shutil.copytree(default_reference_dir(), target)
+        return target
+
+    def test_the_subcommands_are_listed(self) -> None:
+        result = self.invoke(["reference", "--help"])
+        for sub in ("verify", "manifest", "fetch-coordinates", "bindings", "audit",
+                    "verify-sources", "import-workbook"):
+            self.assertIn(sub, result.output)
+
+    def test_verify_passes_on_the_shipped_set_and_prints_the_counts(self) -> None:
+        result = self.invoke(["reference", "verify", "--cache-dir", str(self.empty_cache)])
+        self.assertEqual(result.exit_code, EXIT_OK, result.output)
+        self.assertIn("reference set intact", result.output)
+        self.assertIn("structures:", result.output)
+        self.assertIn("independent lineages:    6", result.output)
+        self.assertIn("coordinates not checked", result.output)
+
+    def test_verify_fails_on_one_edited_byte_and_names_the_file(self) -> None:
+        base = self.copy_set()
+        path = base / "tables" / "kinetics.csv"
+        path.write_bytes(path.read_bytes().replace(b"0.49", b"0.94", 1))
+        result = self.invoke(["reference", "verify", "--dir", str(base),
+                              "--cache-dir", str(self.empty_cache)])
+        self.assertEqual(result.exit_code, EXIT_FAILED)
+        self.assertIn("tables/kinetics.csv", result.output)
+
+    def test_manifest_check_reports_a_match_and_a_mismatch(self) -> None:
+        self.assertEqual(self.invoke(["reference", "manifest"]).exit_code, EXIT_OK)
+        base = self.copy_set()
+        (base / "tables" / "sources.csv").write_bytes(b"x")
+        result = self.invoke(["reference", "manifest", "--dir", str(base)])
+        self.assertEqual(result.exit_code, EXIT_FAILED)
+        self.assertIn("manifest.file_changed", result.output)
+
+    def test_manifest_write_is_a_separate_deliberate_flag(self) -> None:
+        base = self.copy_set()
+        (base / "tables" / "sources.csv").write_bytes(b"x")
+        result = self.invoke(["reference", "manifest", "--dir", str(base), "--write"])
+        self.assertEqual(result.exit_code, EXIT_OK, result.output)
+        self.assertEqual(self.invoke(["reference", "manifest", "--dir", str(base)]).exit_code,
+                         EXIT_OK)
+
+    def test_fetching_coordinates_needs_the_network_flag_and_says_so(self) -> None:
+        result = self.invoke(["reference", "fetch-coordinates",
+                              "--cache-dir", str(self.empty_cache)])
+        self.assertEqual(result.exit_code, EXIT_BLOCKED)
+        self.assertIn("--allow-network", result.output)
+        self.assertEqual(list(self.empty_cache.iterdir()), [])
+
+    def test_audit_without_the_coordinate_files_points_at_how_to_get_them(self) -> None:
+        result = self.invoke(["reference", "audit", "--cache-dir", str(self.empty_cache)])
+        self.assertEqual(result.exit_code, EXIT_UNRESOLVED)
+        self.assertIn("fetch-coordinates", result.output)
+
+    def test_bindings_without_the_coordinate_files_refuses_the_same_way(self) -> None:
+        result = self.invoke(["reference", "bindings", "--cache-dir", str(self.empty_cache)])
+        self.assertEqual(result.exit_code, EXIT_UNRESOLVED)
+
+    def test_verify_sources_without_the_documents_says_it_does_not_fetch_them(self) -> None:
+        docs = self.tmp / "docs"
+        docs.mkdir()
+        result = self.invoke(["reference", "verify-sources", "--docs", str(docs)])
+        self.assertEqual(result.exit_code, EXIT_USAGE)
+        self.assertIn("does not fetch them", result.output)
+
+    def test_import_workbook_makes_a_set_that_loads_and_verifies(self) -> None:
+        from eagent.eval.kred_reference import default_reference_dir
+
+        workbook = next((default_reference_dir() / "source").glob("*.xlsx"))
+        out = self.tmp / "v0.2"
+        result = self.invoke(["reference", "import-workbook", str(workbook), "--out", str(out)])
+        self.assertEqual(result.exit_code, EXIT_OK, result.output)
+        self.assertTrue((out / "source" / workbook.name).is_file())
+        verified = self.invoke(["reference", "verify", "--dir", str(out),
+                                "--cache-dir", str(self.empty_cache)])
+        self.assertEqual(verified.exit_code, EXIT_OK, verified.output)
+        self.assertIn("no coordinates manifest", verified.output)
+
+    def test_import_workbook_refuses_a_directory_that_is_not_empty(self) -> None:
+        from eagent.eval.kred_reference import default_reference_dir
+
+        workbook = next((default_reference_dir() / "source").glob("*.xlsx"))
+        out = self.tmp / "occupied"
+        out.mkdir()
+        (out / "x").write_text("x", encoding="utf-8")
+        result = self.invoke(["reference", "import-workbook", str(workbook), "--out", str(out)])
+        self.assertEqual(result.exit_code, EXIT_USAGE)
+
+    def test_import_workbook_refuses_a_file_that_is_not_the_workbook_it_knows(self) -> None:
+        bad = self.tmp / "other.xlsx"
+        bad.write_bytes(b"not a workbook")
+        result = self.invoke(["reference", "import-workbook", str(bad),
+                              "--out", str(self.tmp / "new")])
+        self.assertEqual(result.exit_code, EXIT_USAGE)
+
+
+# ---------------------------------------------------------------------------
+# model providers and the read-only tool loop
+# ---------------------------------------------------------------------------
+
+class ModelTests(CLICase):
+    """The provider surface runs offline; anything remote needs the flag."""
+
+    def test_the_subcommands_are_listed(self) -> None:
+        result = self.invoke(["model", "--help"])
+        for sub in ("providers", "ask"):
+            self.assertIn(sub, result.output)
+
+    def test_providers_runs_offline_and_states_what_is_unverified(self) -> None:
+        result = self.invoke(["model", "providers"])
+        self.assertEqual(result.exit_code, EXIT_OK, result.output)
+        for provider in ("anthropic", "openai", "minimax"):
+            self.assertIn(provider, result.output)
+        self.assertIn("shape verified:    no", result.output)
+        self.assertIn("route answers:     yes", result.output)
+
+    def test_providers_names_the_variable_to_set(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=False) as environ:
+            for name in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "MINIMAX_API_KEY"):
+                environ.pop(name, None)
+            result = self.invoke(["model", "providers"])
+        self.assertIn("set OPENAI_API_KEY", result.output)
+        self.assertIn("no provider key is set", result.output)
+
+    def test_probing_needs_the_network_flag(self) -> None:
+        result = self.invoke(["model", "providers", "--probe"])
+        self.assertEqual(result.exit_code, EXIT_BLOCKED)
+        self.assertIn("--allow-network", result.output)
+
+    def test_asking_needs_the_network_flag_and_says_what_leaves(self) -> None:
+        result = self.invoke(["model", "ask", "how many lineages?",
+                              "--provider", "openai", "--model", "gpt-4o"])
+        self.assertEqual(result.exit_code, EXIT_BLOCKED)
+        self.assertIn("leave this", result.output)
+
+    def test_asking_an_unconfigured_provider_refuses_with_the_variable(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=False) as environ:
+            environ.pop("OPENAI_API_KEY", None)
+            result = self.invoke(["model", "ask", "q", "--provider", "openai",
+                                  "--model", "gpt-4o", "--allow-network"],
+                                 offline=False)
+        self.assertEqual(result.exit_code, EXIT_UNRESOLVED)
+        self.assertIn("OPENAI_API_KEY", result.output)
+
+    def test_asking_an_unknown_provider_is_a_usage_error(self) -> None:
+        result = self.invoke(["model", "ask", "q", "--provider", "nope",
+                              "--model", "m", "--allow-network"], offline=False)
+        self.assertEqual(result.exit_code, EXIT_USAGE)
+
+    def test_the_model_must_be_named(self) -> None:
+        result = self.invoke(["model", "ask", "q", "--provider", "openai",
+                              "--allow-network"], offline=False)
+        self.assertEqual(result.exit_code, EXIT_USAGE)
+
+    def test_the_whole_loop_runs_against_a_scripted_client(self) -> None:
+        """No network: the client is replaced, so the CLI path itself is exercised."""
+        import json as _json
+
+        from eagent.harness.llm import EchoClient
+
+        scripted = EchoClient([
+            _json.dumps({"reasoning": "checking",
+                         "tool_calls": [{"interface": "reference_summary",
+                                         "arguments": {}}]}),
+            _json.dumps({"reasoning": "Six lineages among the entries."}),
+        ])
+        out_path = self.tmp / "transcript.json"
+        with mock.patch("eagent.harness.providers.build_client",
+                        return_value=scripted):
+            result = self.invoke(["model", "ask", "how many lineages?",
+                                  "--provider", "openai", "--model", "gpt-4o",
+                                  "--allow-network", "--out", str(out_path)],
+                                 offline=False)
+        self.assertEqual(result.exit_code, EXIT_OK, result.output)
+        self.assertIn("reference_summary", result.output)
+        self.assertIn("Six lineages among the entries.", result.output)
+        self.assertIn("nothing was written", result.output)
+        transcript = _json.loads(out_path.read_text(encoding="utf-8"))
+        self.assertEqual(transcript["tool_calls_made"], 1)
+        self.assertEqual(transcript["question"], "how many lineages?")
 
 
 # ---------------------------------------------------------------------------

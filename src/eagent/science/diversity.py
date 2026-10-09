@@ -70,6 +70,8 @@ from ..schemas import (
     ConfidenceLevel,
     ControlItem,
 )
+from .numbering import letter_of_residue_token
+from .pocket import PocketResidues, pocket_residues_from_tokens
 from .scorecard import (
     DEFAULT_LEXICOGRAPHIC_ORDER,
     lexicographic_rank,
@@ -87,6 +89,7 @@ __all__ = [
     "hamming_distance",
     "sequence_distance",
     "pocket_signature",
+    "PocketResidues",
     "pocket_distance",
     "candidate_distance",
     "facility_location_gain",
@@ -254,26 +257,84 @@ class SignatureBasis(str, enum.Enum):
     """
 
     POCKET_RESIDUES = "pocket_residues"
+    #: Pocket residues placed in a shared numbering frame. The only basis on
+    #: which two candidates' positions mean the same thing.
+    ALIGNED_POCKET_RESIDUES = "aligned_pocket_residues"
+    #: Which residue types line the pocket and how many of each, with no
+    #: positions. What is left when there is no shared frame, and weaker:
+    #: two pockets with the same residues in a different arrangement look
+    #: identical. Reporting it as positional would be the stronger lie.
+    POCKET_COMPOSITION = "pocket_composition"
     CATALYTIC_ROLES_ONLY = "catalytic_roles_only"
     EMPTY = "empty"
 
 
+def _multiset_tokens(prefix: str, items: Iterable[str]) -> set[str]:
+    """Encode a multiset as a set, so Jaccard counts multiplicity.
+
+    Three tyrosines and two tyrosines must not look like one shared "Y". The
+    k-th copy of an item becomes its own token, which makes the intersection
+    of the encoded sets the sum of the per-item minima and the union the sum
+    of the maxima -- i.e. the multiset Jaccard, computed by the ordinary set
+    one.
+    """
+    counts: dict[str, int] = {}
+    out: set[str] = set()
+    for item in items:
+        counts[item] = counts.get(item, 0) + 1
+        out.add(f"{prefix}{item}#{counts[item]}")
+    return out
+
+
 @dataclass(frozen=True)
 class PocketSignature:
-    """Sorted residue tokens describing one candidate's substrate pocket."""
+    """Sorted residue tokens describing one candidate's substrate pocket.
+
+    ``frame`` is what makes two signatures comparable. Positions are numbered
+    by whoever deposited the structure, so ``F98`` in one protein and ``F99``
+    in another say nothing about each other until both have been mapped into
+    a common numbering. A signature in no frame carries composition tokens
+    instead, and :func:`pocket_distance` will not compare it positionally
+    with anything.
+    """
 
     candidate_id: str
     tokens: tuple[str, ...]
     basis: SignatureBasis
+    frame: str = ""
+    #: Pocket residues that could not be placed in the frame. A pocket
+    #: compared on four of its seven residues is a different comparison from
+    #: one compared on all seven.
+    n_unplaced: int = 0
 
     def __bool__(self) -> bool:
         return bool(self.tokens)
+
+    @property
+    def is_positional(self) -> bool:
+        return self.basis in (SignatureBasis.ALIGNED_POCKET_RESIDUES,
+                              SignatureBasis.POCKET_RESIDUES)
+
+    def comparable_with(self, other: "PocketSignature") -> bool:
+        """Whether a distance between these two signatures means anything.
+
+        Same frame, or neither in one. A composition signature and a
+        positional signature are answers to different questions and their
+        Jaccard distance is a number with no interpretation.
+        """
+        if not self or not other:
+            return False
+        if self.basis is not other.basis:
+            return False
+        if self.is_positional:
+            return self.frame == other.frame and bool(self.frame)
+        return True
 
 
 def pocket_signature(
     candidate: Candidate,
     *,
-    extra_pocket_residues: Mapping[str, Sequence[str]] | None = None,
+    extra_pocket_residues: Mapping[str, Sequence[str] | PocketResidues] | None = None,
     include_substitutions: bool = True,
 ) -> PocketSignature:
     """The residue set that defines this candidate's pocket, with its basis.
@@ -285,16 +346,38 @@ def pocket_signature(
     positions will behave identically toward the substrate, and spending two
     slots on them buys one experiment.
 
-    WHY THE FALLBACK IS FLAGGED RATHER THAN HIDDEN
-    ----------------------------------------------
-    The schema guarantees only the *catalytic* role mapping, and catalytic roles
-    are by definition the conserved positions of a family -- so a signature
-    built from them alone is nearly constant within a family and badly
-    under-reports pocket differences. When that is all there is, the basis is
-    ``CATALYTIC_ROLES_ONLY`` and :func:`compose_batch` records it, so nobody
-    reads "pocket coverage" off a signature that could not see the pocket. Pass
-    ``extra_pocket_residues`` (candidate id -> residue tokens from the shell
-    selection in :mod:`eagent.science.geometry`) to get a real signature.
+    WHY A ROLE TOKEN CARRIES NO NUMBER
+    ----------------------------------
+    ``role_to_residue`` records the catalytic tyrosine as ``Y155`` in author
+    numbering. Two members of one family whose numbering differs by an
+    N-terminal methionine report ``Y155`` and ``Y156`` for the *same*
+    conserved residue, so a token built from the number made two identical
+    catalytic machineries look completely different -- a Jaccard distance of
+    1.0, which a diversity-maximising selector reads as the most valuable
+    pair on the list. The role label is already the family-level position, so
+    the token is the role and the amino acid, and nothing that depends on who
+    deposited the structure.
+
+    WHY POCKET RESIDUES NEED A FRAME
+    --------------------------------
+    The same problem, without a role label to fall back on. A
+    :class:`~eagent.science.pocket.PocketResidues` carries the numbering frame
+    its tokens are in; two of them are compared positionally only when the
+    frames match. A bare sequence of tokens -- which is all the older callers
+    pass -- is in no shared frame, so the signature falls back to pocket
+    *composition* and says so in its basis. That understates differences
+    between pockets that differ only in arrangement, and it is the weaker of
+    the two errors available.
+
+    WHY THE CATALYTIC FALLBACK IS FLAGGED RATHER THAN HIDDEN
+    --------------------------------------------------------
+    The schema guarantees only the *catalytic* role mapping, and catalytic
+    roles are by definition the conserved positions of a family -- so a
+    signature built from them alone is nearly constant within a family and
+    badly under-reports pocket differences. When that is all there is, the
+    basis is ``CATALYTIC_ROLES_ONLY`` and :func:`compose_batch` records it, so
+    nobody reads "pocket coverage" off a signature that could not see the
+    pocket. Pass ``extra_pocket_residues`` to get a real signature.
 
     An unmappable candidate returns an empty signature, which
     :func:`pocket_distance` treats as incomparable rather than as maximally
@@ -302,37 +385,74 @@ def pocket_signature(
     """
     tokens: set[str] = set()
     mapping = candidate.catalytic_mapping
-    for role, residue in mapping.role_to_residue.items():
-        tokens.add(f"role:{role}={residue}")
+    roles = dict(mapping.role_to_residue)
     if include_substitutions:
-        for role, residue in mapping.substituted_roles.items():
-            tokens.add(f"role:{role}={residue}")
+        roles.update(mapping.substituted_roles)
+    for role, residue in roles.items():
+        tokens.add(f"role:{role}={_residue_letter(residue)}")
 
-    shell = (extra_pocket_residues or {}).get(candidate.candidate_id)
-    if shell:
-        for residue in shell:
-            tokens.add(f"pocket:{residue}")
-        basis = SignatureBasis.POCKET_RESIDUES
-    elif tokens:
+    supplied = (extra_pocket_residues or {}).get(candidate.candidate_id)
+    shell = _as_pocket_residues(candidate.candidate_id, supplied)
+    if shell is not None and shell.tokens:
+        if shell.positional:
+            tokens.update(f"pocket:{t}" for t in shell.tokens)
+            basis = SignatureBasis.ALIGNED_POCKET_RESIDUES
+        else:
+            tokens.update(_multiset_tokens("pocket_aa:", shell.letters))
+            basis = SignatureBasis.POCKET_COMPOSITION
+        return PocketSignature(candidate.candidate_id, tuple(sorted(tokens)),
+                               basis, frame=shell.frame,
+                               n_unplaced=shell.n_lost)
+    if tokens:
         basis = SignatureBasis.CATALYTIC_ROLES_ONLY
     else:
         basis = SignatureBasis.EMPTY
     return PocketSignature(candidate.candidate_id, tuple(sorted(tokens)), basis)
 
 
+def _residue_letter(token: str) -> str:
+    """The amino acid in a token like ``Y155``, without the number.
+
+    The number is author numbering and means nothing across proteins; the
+    letter is the chemistry. A token this does not recognise comes back
+    unchanged rather than being reshaped into something that looks canonical:
+    a signature built from an unparseable token is still a signature, and
+    quietly turning it into a letter would compare two things that are not
+    residues as though they were.
+    """
+    return letter_of_residue_token(token) or str(token or "").strip()
+
+
+def _as_pocket_residues(
+    candidate_id: str, supplied: Sequence[str] | PocketResidues | None,
+) -> PocketResidues | None:
+    if supplied is None:
+        return None
+    if isinstance(supplied, PocketResidues):
+        return supplied
+    # A bare list of tokens states no frame, and assuming one is the bug.
+    return pocket_residues_from_tokens(candidate_id, list(supplied))
+
+
 def pocket_distance(
     a: Candidate,
     b: Candidate,
     *,
-    extra_pocket_residues: Mapping[str, Sequence[str]] | None = None,
+    extra_pocket_residues: Mapping[str, Sequence[str] | PocketResidues] | None = None,
 ) -> float | None:
     """Jaccard distance between two pocket signatures, or ``None`` if unavailable.
 
     ``None`` propagates the honesty of :func:`jaccard_distance`: a pocket that
-    was never mapped is unknown, not different.
+    was never mapped is unknown, not different. It is also what comes back
+    when the two signatures are not comparable -- one aligned into a family
+    frame and one in no frame, or two in different frames. Their Jaccard
+    distance is computable and means nothing, and returning it would let a
+    selector rank on it.
     """
     sa = pocket_signature(a, extra_pocket_residues=extra_pocket_residues)
     sb = pocket_signature(b, extra_pocket_residues=extra_pocket_residues)
+    if not sa.comparable_with(sb):
+        return None
     return jaccard_distance(sa.tokens, sb.tokens)
 
 
@@ -414,6 +534,7 @@ def greedy_submodular_select(
     *,
     id_of: Callable[[Any], str] = _default_id_of,
     accept: Callable[[Any], bool] | None = None,
+    already_selected: Sequence[Any] = (),
 ) -> list[Any]:
     """Greedily maximise ``sum(utility) + lambda_weight * facility_location_coverage``.
 
@@ -438,6 +559,14 @@ def greedy_submodular_select(
     caps it enforces change as the batch fills -- applying them after selection
     would silently shorten the batch while a qualifying alternative was still
     available.
+
+    ``already_selected`` seeds the coverage state with items chosen outside
+    this call. It matters whenever a batch is filled in stages: a diversity
+    stage that starts from "nothing covered" can spend its slot on a near
+    duplicate of a candidate the previous stage already put in the batch, and
+    the slot then buys no coverage at all while the plan records it as having
+    been spent on diversity. Coverage is a property of the batch, not of the
+    call.
     """
     if k < 0:
         raise ValueError(f"k must be >= 0, got {k}")
@@ -460,6 +589,12 @@ def greedy_submodular_select(
     selected: list[Any] = []
     remaining = sorted(pool, key=id_of)
     coverage: dict[str, float] = {id_of(it): 0.0 for it in pool}
+    for chosen in already_selected:
+        for other in pool:
+            oid = id_of(other)
+            sim = 1.0 - distance(other, chosen)
+            if sim > coverage[oid]:
+                coverage[oid] = sim
 
     while remaining and len(selected) < k:
         best_item: Any = None
@@ -763,6 +898,8 @@ def compose_batch(
     lambda_weight: float = DEFAULT_LAMBDA_WEIGHT,
     kmer_size: int = DEFAULT_KMER_SIZE,
     reallocate_unfilled_roles: bool = False,
+    rank_tiebreak: Callable[[Candidate], float | None] | None = None,
+    high_evidence_eligible: Callable[[Candidate], bool] | None = None,
 ) -> BatchPlan:
     """Fill a round's construct slots with three labelled populations, or report short.
 
@@ -786,6 +923,12 @@ def compose_batch(
     6. ``DIVERSITY`` takes the remainder, maximising pocket coverage.
 
     Quotas are enforced across the **whole** batch, not per role.
+
+    ``high_evidence_eligible`` -- when given, a candidate for which it returns
+    ``False`` is skipped for the HIGH_EVIDENCE role only (see
+    :func:`eagent.tools.open_branches.is_high_evidence_eligible`: a de novo
+    design is a hypothesis, and a slot labelled "high evidence" would say
+    otherwise). It stays eligible for the other two roles.
 
     NO PADDING
     ----------
@@ -851,12 +994,18 @@ def compose_batch(
         )
 
     ranked = lexicographic_rank(eligible, order_of_dimensions
-                                or DEFAULT_LEXICOGRAPHIC_ORDER)
+                                or DEFAULT_LEXICOGRAPHIC_ORDER,
+                                tiebreak=rank_tiebreak)
     utilities = rank_utility(ranked)
     ledger = _QuotaLedger(quotas, cluster_cap, _family_of, _cluster_of)
 
     members: list[BatchMember] = []
     taken: set[str] = set()
+    #: The candidates already in the batch, in admission order. Passed to each
+    #: later selection stage as its coverage baseline: a diversity slot spent
+    #: on a near duplicate of a high-evidence member buys nothing, and the
+    #: plan would still record it as having been spent on diversity.
+    chosen: list[Candidate] = []
 
     def admit(cand: Candidate, role: BatchRole, reason: str) -> bool:
         if cand.candidate_id in taken:
@@ -865,6 +1014,7 @@ def compose_batch(
             return False
         ledger.take(cand)
         taken.add(cand.candidate_id)
+        chosen.append(cand)
         members.append(BatchMember(
             slot=len(members) + 1,
             candidate_id=cand.candidate_id,
@@ -882,9 +1032,17 @@ def compose_batch(
     for cand in ranked:
         if n_taken_high >= n_high:
             break
+        if high_evidence_eligible is not None and not high_evidence_eligible(cand):
+            # Not a gate and not a rejection: the candidate stays eligible for
+            # the probe and diversity roles. It is only not *evidence*, so it
+            # may not occupy a slot whose label says it is.
+            continue
         if admit(cand, BatchRole.HIGH_EVIDENCE,
                  "top of the within-batch lexicographic rank under the stated "
-                 "dimension priority; gates all passed"):
+                 "dimension priority; gates all passed"
+                 + ("; candidates equal on every dimension were ordered by the "
+                    "supplied tie-break (a model value, consulted only between "
+                    "ties)" if rank_tiebreak is not None else "")):
             n_taken_high += 1
 
     # -- 2. uncertainty probes -------------------------------------------
@@ -902,7 +1060,8 @@ def compose_batch(
         )
 
     greedy_submodular_select(probe_pool, n_probe, utilities, distance,
-                             lambda_weight, accept=accept_probe)
+                             lambda_weight, accept=accept_probe,
+                             already_selected=list(chosen))
 
     # -- 3. diversity ----------------------------------------------------
     n_div = scaled.get(BatchRole.DIVERSITY, 0)
@@ -917,7 +1076,8 @@ def compose_batch(
         )
 
     greedy_submodular_select(div_pool, n_div, utilities, distance,
-                             lambda_weight, accept=accept_diversity)
+                             lambda_weight, accept=accept_diversity,
+                             already_selected=list(chosen))
 
     # -- 4. optional reallocation of slots a role could not fill ----------
     unfilled_note = ""
@@ -941,7 +1101,8 @@ def compose_batch(
                 )
 
             greedy_submodular_select(spare_pool, deficit, utilities, distance,
-                                     lambda_weight, accept=accept_spare)
+                                     lambda_weight, accept=accept_spare,
+                                     already_selected=list(chosen))
 
     # -- shortfall accounting --------------------------------------------
     n_selected = len(members)
@@ -971,6 +1132,12 @@ def compose_batch(
             reasons.append(
                 "note: some pocket signatures were built from catalytic roles only, "
                 "which under-reports pocket differences.")
+        if SignatureBasis.POCKET_COMPOSITION in bases:
+            reasons.append(
+                "note: some pocket residues arrived in no shared numbering frame, "
+                "so those pockets were compared by composition rather than by "
+                "position; two pockets with the same residues arranged differently "
+                "look identical under that comparison.")
         reasons.append(
             "The batch is reported short on purpose: no candidate was admitted by "
             "relaxing a gate or a quota.")

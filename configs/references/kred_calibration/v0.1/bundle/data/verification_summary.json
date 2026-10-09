@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-07",
+  "scope": "Data integrity and spreadsheet export checks, not experimental revalidation",
+  "audited_structures": 19,
+  "experimental_structure_original_files_verified": 76,
+  "assembly_and_CCD_original_files_verified": 53,
+  "numeric_activity_records": 26,
+  "ND_records_preserved": 2,
+  "kcat_numeric_records": 18,
+  "reference_sequence_records_sha_checked": 38,
+  "normalized_spreadsheet_formula_cache_values_checked": 74,
+  "xlsx_error_cells": 0,
+  "worksheets_visually_reviewed": 8,
+  "strict_geometry_gold_records": 0,
+  "Sph_selectivity_variant_join": "nine-mutation er1.3 has no link to ten-mutation Sph kinetic record",
+  "assembly_site_audit": "See assembly_and_chemcomp_manifest.json selected_site_assembly_audit; 13 scoring-site records passed, 6 N/A",
+  "review_notes": [
+    "HBDH kinetic rows independently compared to primary Tables/SI.",
+    "PNAS2015 and Ssal2024 numeric and sequence rows independently compared to original extraction.",
+    "Three BRENDA-supported kinetic records remain explicitly secondary-source provenance.",
+    "No assay data or docking model was fitted during this curation."
+  ]
+}

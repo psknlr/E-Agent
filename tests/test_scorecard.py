@@ -40,6 +40,9 @@ from eagent.schemas import (
 from eagent.science.scorecard import (
     DEFAULT_LEXICOGRAPHIC_ORDER,
     GATE_NAMES,
+    MEASURED_SCALE,
+    ORDINAL_SCALE,
+    Comparable,
     ErrorKind,
     GateOutcome,
     FeasibilityGate,
@@ -55,6 +58,7 @@ from eagent.science.scorecard import (
     gate_uncertainties,
     input_defects,
     lexicographic_rank,
+    objective_comparable,
     objective_value,
     pareto_front,
     rank_within_family,
@@ -569,16 +573,26 @@ class TestPareto(unittest.TestCase):
         contradictory = candidate("f", dims={
             "x": dim("catalytic_geometry", ConfidenceLevel.CONTRADICTORY, 0.9),
         })
-        value, _ = comparable(contradictory.dimension("catalytic_geometry"))
-        self.assertIsNone(value)
+        reduced = comparable(contradictory.dimension("catalytic_geometry"))
+        self.assertIsNone(reduced.value)
 
     def test_level_fallback_is_always_higher_is_better(self) -> None:
         """A lower_is_better axis with no scalar must not invert on the level."""
         risk = dim("expression_developability_risk", ConfidenceLevel.MODERATE,
                    None, direction="lower_is_better")
-        value, direction = comparable(risk)
-        self.assertEqual(direction, "higher_is_better")
-        self.assertEqual(value, float(ConfidenceLevel.MODERATE.rank))
+        reduced = comparable(risk)
+        self.assertEqual(reduced.direction, "higher_is_better")
+        self.assertEqual(reduced.value, float(ConfidenceLevel.MODERATE.rank))
+
+    def test_the_fallback_says_it_is_an_ordinal(self) -> None:
+        """Which is what stops it being ordered against a measured value."""
+        risk = dim("expression_developability_risk", ConfidenceLevel.MODERATE,
+                   None, direction="lower_is_better")
+        measured = dim("expression_developability_risk", ConfidenceLevel.MODERATE,
+                       0.3, direction="lower_is_better")
+        self.assertEqual(comparable(risk).scale, ORDINAL_SCALE)
+        self.assertEqual(comparable(measured).scale, MEASURED_SCALE)
+        self.assertFalse(comparable(risk).commensurable_with(comparable(measured)))
 
 
 # --------------------------------------------------------------------------

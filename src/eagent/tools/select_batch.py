@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import csv
 import enum
+import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar, Mapping, Sequence
@@ -99,6 +100,9 @@ __all__ = [
     "DEFAULT_WELLS_PER_PLATE",
     "DEFAULT_COFACTOR_CONDITIONS",
     "ASSAY_RESULT_COLUMNS",
+    "ASSAY_IDENTITY_COLUMNS",
+    "ASSAY_PLAN_COLUMNS",
+    "ASSAY_MEASURED_COLUMNS",
     "BATCH_CSV_COLUMNS",
     "ControlClaim",
     "ControlSpec",
@@ -107,6 +111,10 @@ __all__ = [
     "MeasurementFootprint",
     "measurement_footprint",
     "well_label",
+    "LAYOUT_STRATEGY",
+    "WellAssignment",
+    "PlateLayout",
+    "plan_plate_layout",
     "VariantSelection",
     "select_variant_groups",
     "SelectBatch",
@@ -129,20 +137,48 @@ DEFAULT_WELLS_PER_PLATE: int = 96
 #: that look like the chemistry failed.
 DEFAULT_COFACTOR_CONDITIONS: int = 2
 
-#: Columns of ``assay_results_template.csv``, which is the contract between
-#: this step and ``ingest_results``.
+#: Columns identifying a well, written by this step and expected back unchanged.
+#: Reconstructing a plate map afterwards from slot numbers is how a transposed
+#: column of results gets attributed to the wrong enzymes.
+ASSAY_IDENTITY_COLUMNS: tuple[str, ...] = (
+    "plan_id", "plate", "well", "slot",
+    "candidate_id", "construct_id", "kind", "role",
+    "parent_candidate_id", "mutations",
+    "cofactor", "cofactor_state", "replicate",
+)
+
+#: Columns stating what the plan ASKED FOR. Pre-filled by this step, read by
+#: nobody downstream, and present so the bench can see the intended protocol
+#: beside the well it applies to.
+#:
+#: They exist because the same facts used to be written into the *measured*
+#: columns. ``detection_method``, ``confirms_product_identity``,
+#: ``authentic_standard``, ``chiral_method_validated`` and the detection limit
+#: came out of the AssayTemplate pre-filled, so a sheet returned with only the
+#: numbers typed in asserted that a GC-MS reading had identified the product
+#: against an authentic standard -- in every well, including the ones nobody
+#: ran. ``ingest_results`` then had a record that met the bar on a confirmed
+#: identity, and the round reported hits. An intention and an observation are
+#: different claims and are now in different columns.
+ASSAY_PLAN_COLUMNS: tuple[str, ...] = (
+    "plan_detection_method",
+    "plan_confirms_product_identity",
+    "plan_authentic_standard",
+    "plan_chiral_method_validated",
+    "plan_limit_of_detection",
+    "plan_limit_unit",
+    "plan_replicates",
+)
+
+#: Columns the bench fills in. Every one of them is blank in the template.
 #:
 #: There is deliberately **no "hit" or "outcome" column**. The operator records
 #: what was measured; the pre-registered criterion in the AssayTemplate decides
 #: what it means. A spreadsheet column where a human writes "positive" is how a
 #: criterion gets adjusted after the data are seen, without anyone deciding to
 #: adjust it.
-ASSAY_RESULT_COLUMNS: tuple[str, ...] = (
-    "plan_id", "plate", "well", "slot",
-    "candidate_id", "construct_id", "kind", "role",
-    "parent_candidate_id", "mutations",
-    "cofactor", "cofactor_state", "replicate",
-    "tested",                       # yes | no
+ASSAY_MEASURED_COLUMNS: tuple[str, ...] = (
+    "tested",                       # yes | no  -- blank is NOT yes
     "expressed_soluble",            # yes | no | unknown
     "detection_method",
     "confirms_product_identity",    # yes | no
@@ -154,6 +190,12 @@ ASSAY_RESULT_COLUMNS: tuple[str, ...] = (
     "product_identity_observed",    # target | other | none | unknown
     "peak_area_target_enantiomer", "peak_area_opposite_enantiomer",
     "notes",
+)
+
+#: Columns of ``assay_results_template.csv``, which is the contract between
+#: this step and ``ingest_results``.
+ASSAY_RESULT_COLUMNS: tuple[str, ...] = (
+    ASSAY_IDENTITY_COLUMNS + ASSAY_PLAN_COLUMNS + ASSAY_MEASURED_COLUMNS
 )
 
 #: Columns of ``selected_batch_<n>.csv``: the order form, with the reason each
@@ -385,31 +427,100 @@ class MeasurementFootprint:
                 * max(1, self.replicates))
 
     @property
-    def control_wells(self) -> int:
+    def control_wells_per_plate(self) -> int:
+        """The control set, replicated on every plate.
+
+        Not once per round. A background is a property of the plate it was
+        read on -- the lysate batch, the reader's lamp, the hour it sat on the
+        bench -- so a plate with no empty-vector well has no background, and
+        every fold-over-background bar on it is undecidable rather than met.
+        Laying the controls out once and letting the last plate carry them is
+        how a round comes back with half its wells unusable, and the cost of
+        the controls is only visible if it is counted here.
+        """
         return (self.n_controls * max(1, self.cofactor_conditions)
                 * max(1, self.replicates))
+
+    @property
+    def candidate_wells_per_plate(self) -> int:
+        """What is left of a plate once its own controls are on it."""
+        return self.wells_per_plate - self.control_wells_per_plate
+
+    @property
+    def layout_feasible(self) -> bool:
+        """Whether a plate can hold its controls and at least one candidate.
+
+        False means the control set at this replication fills a plate on its
+        own. That is a design decision to take deliberately -- fewer controls,
+        fewer replicates, fewer cofactor conditions, or a bigger plate -- and
+        not something to resolve by dropping controls from some plates.
+        """
+        return self.candidate_wells_per_plate > 0
+
+    @property
+    def plates(self) -> int:
+        """Plates needed with each plate carrying its own controls.
+
+        ``0`` when :attr:`layout_feasible` is false: there is no plate count
+        that satisfies the design, and returning a number anyway would hide
+        that behind an arithmetic answer.
+        """
+        if not self.layout_feasible:
+            return 0
+        if self.candidate_wells == 0:
+            return 1 if self.control_wells_per_plate else 0
+        per = self.candidate_wells_per_plate
+        return (self.candidate_wells + per - 1) // per
+
+    @property
+    def control_wells(self) -> int:
+        return self.plates * self.control_wells_per_plate
 
     @property
     def total_wells(self) -> int:
         return self.candidate_wells + self.control_wells
 
     @property
-    def plates(self) -> int:
-        per = max(1, self.wells_per_plate)
-        return (self.total_wells + per - 1) // per
+    def control_overhead_fraction(self) -> float | None:
+        """Share of the round's wells spent on controls, reported not judged.
+
+        No threshold: whether a quarter of the plate on controls is too much
+        depends on how expensive the round is and on how much the controls
+        are being asked to establish. The number is surfaced so the choice is
+        made with it in view.
+        """
+        if not self.total_wells:
+            return None
+        return self.control_wells / self.total_wells
 
     def describe(self) -> str:
+        if not self.layout_feasible:
+            return (
+                f"{self.n_controls} control(s) at "
+                f"{self.cofactor_conditions} cofactor condition(s) x "
+                f"{self.replicates} replicate(s) is "
+                f"{self.control_wells_per_plate} well(s) per plate, which "
+                f"fills a plate of {self.wells_per_plate} on its own. No "
+                f"layout carries both the controls and a candidate: reduce "
+                f"the control replication or use a larger plate."
+            )
+        overhead = self.control_overhead_fraction
         return (
             f"{self.n_genes} gene(s) to synthesise "
             f"({self.n_candidate_genes} mined candidate(s), "
             f"{self.n_variant_genes} variant(s), "
             f"{self.n_control_genes} control construct(s)) -> "
             f"{self.total_wells} well(s) "
-            f"({self.candidate_wells} candidate + {self.control_wells} control) "
-            f"= {self.plates} plate(s) of {self.wells_per_plate}, at "
+            f"({self.candidate_wells} candidate + {self.control_wells} "
+            f"control) = {self.plates} plate(s) of {self.wells_per_plate}, at "
             f"{self.cofactor_conditions} cofactor condition(s) x "
             f"{self.replicates} replicate(s). Genes are not wells: the "
-            f"multiplier is {max(1, self.cofactor_conditions) * max(1, self.replicates)}x."
+            f"multiplier is "
+            f"{max(1, self.cofactor_conditions) * max(1, self.replicates)}x. "
+            f"The control set is repeated on every plate "
+            f"({self.control_wells_per_plate} well(s) each, "
+            f"{overhead:.0%} of the round) because a background belongs to "
+            f"the plate it was read on."
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -423,9 +534,13 @@ class MeasurementFootprint:
             "replicates": self.replicates,
             "candidate_wells": self.candidate_wells,
             "control_wells": self.control_wells,
+            "control_wells_per_plate": self.control_wells_per_plate,
+            "candidate_wells_per_plate": self.candidate_wells_per_plate,
+            "control_overhead_fraction": self.control_overhead_fraction,
             "total_wells": self.total_wells,
             "wells_per_plate": self.wells_per_plate,
             "plates": self.plates,
+            "layout_feasible": self.layout_feasible,
             "note": self.describe(),
         }
 
@@ -448,6 +563,17 @@ def measurement_footprint(
     )
 
 
+def _yes_no(value: bool | None) -> str:
+    """``yes``/``no``/``unknown`` for a plan cell, never a bare blank.
+
+    A blank in a plan column would look exactly like a measured column nobody
+    filled in, which is the confusion these columns exist to end.
+    """
+    if value is None:
+        return "unknown"
+    return "yes" if value else "no"
+
+
 def well_label(position: int, wells_per_plate: int = DEFAULT_WELLS_PER_PLATE) -> str:
     """``A1`` ... ``H12`` for a 0-based position inside a plate.
 
@@ -463,6 +589,229 @@ def well_label(position: int, wells_per_plate: int = DEFAULT_WELLS_PER_PLATE) ->
     row = within // columns
     col = within % columns
     return f"{chr(ord('A') + row)}{col + 1}"
+
+
+# ==========================================================================
+# Plate layout
+# ==========================================================================
+
+#: Name of the layout algorithm, written into the plan and the provenance.
+#: Versioned because a layout is only reproducible if the recipe that
+#: produced it is identified as precisely as the seed is.
+LAYOUT_STRATEGY: str = "stratified-random-v1"
+
+
+@dataclass(frozen=True)
+class WellAssignment:
+    """One well: what is in it, where it is, and which stratum it came from."""
+
+    plate: int
+    well: str
+    position: int                   # 0-based index within the plate
+    slot: int
+    identifier: str
+    kind: str                       # candidate | control
+    role: str
+    stratum: str
+    cofactor_index: int
+    replicate: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "plate": self.plate, "well": self.well, "position": self.position,
+            "slot": self.slot, "identifier": self.identifier,
+            "kind": self.kind, "role": self.role, "stratum": self.stratum,
+            "cofactor_index": self.cofactor_index, "replicate": self.replicate,
+        }
+
+
+@dataclass(frozen=True)
+class PlateLayout:
+    """Where every measurement sits, and the seed that put it there.
+
+    WHY THE LAYOUT IS NOT THE SELECTION ORDER
+    =========================================
+    Filling wells in the order candidates were ranked makes plate position a
+    function of rank. Microplates have real position effects -- edge wells
+    evaporate faster, the reader's optics are not uniform, a thermal gradient
+    runs across the block -- so a layout that follows the ranking confounds
+    "ranked highly" with "sat in the middle of plate 1". The round then
+    confirms its own prior, and nothing in the data can show that it did.
+
+    Cheap to avoid, and only avoidable before the plate is run: randomise
+    position within each plate, and spread each construct's replicates across
+    plates so that a plate effect lands inside a construct as noise rather
+    than between constructs as a difference.
+
+    STRATIFIED, NOT PLAIN RANDOM
+    ============================
+    An unstratified shuffle leaves plate composition to luck, and with a
+    handful of families and a handful of plates the luck is often bad enough
+    to put a whole family on one plate. Dealing each stratum round-robin
+    across plates keeps the families and roles balanced, so a per-plate
+    comparison stays meaningful.
+
+    REPRODUCIBLE
+    ============
+    :attr:`seed` and :attr:`strategy` are written into the plan and into
+    provenance. A randomised layout nobody can reconstruct is worse than a
+    fixed one: the plate map becomes unverifiable, and a transposition in the
+    returned sheet cannot be detected by re-deriving the map.
+    """
+
+    assignments: tuple[WellAssignment, ...]
+    plates: int
+    wells_per_plate: int
+    seed: int
+    strategy: str = LAYOUT_STRATEGY
+    strata: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
+
+    def by_plate(self) -> dict[int, list[WellAssignment]]:
+        out: dict[int, list[WellAssignment]] = {}
+        for a in self.assignments:
+            out.setdefault(a.plate, []).append(a)
+        for plate in out:
+            out[plate].sort(key=lambda a: a.position)
+        return out
+
+    def controls_on_every_plate(self) -> bool:
+        """Whether each plate carries at least one well of each control."""
+        names = {a.identifier for a in self.assignments if a.kind == "control"}
+        if not names:
+            return False
+        for wells in self.by_plate().values():
+            present = {a.identifier for a in wells if a.kind == "control"}
+            if present != names:
+                return False
+        return True
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "strategy": self.strategy,
+            "seed": self.seed,
+            "plates": self.plates,
+            "wells_per_plate": self.wells_per_plate,
+            "strata": list(self.strata),
+            "controls_on_every_plate": self.controls_on_every_plate(),
+            "n_wells": len(self.assignments),
+            "notes": list(self.notes),
+        }
+
+
+def plan_plate_layout(
+    plan: BatchPlan, footprint: MeasurementFootprint, *, seed: int,
+) -> PlateLayout:
+    """Assign every measurement to a plate and a well.
+
+    Controls go onto every plate, at the plan's replication and under every
+    cofactor condition, because that is what makes a per-plate background
+    exist. Candidate wells are dealt round-robin across the plates within
+    each stratum, so a construct's replicates do not sit together and the
+    families stay balanced. Positions within a plate are then shuffled with
+    the given seed.
+
+    Raises
+    ------
+    ValueError
+        When the control set fills a plate on its own. There is no layout in
+        that case, and silently dropping controls from some plates would
+        produce one that cannot be analysed per plate.
+    """
+    if not footprint.layout_feasible:
+        raise ValueError(footprint.describe())
+
+    conditions = max(1, plan.cofactor_conditions)
+    replicates = max(1, plan.replicates)
+    plates = max(1, footprint.plates)
+    rng = random.Random(seed)
+    notes: list[str] = []
+
+    # -- candidate wells, dealt across plates within each stratum ---------
+    strata: dict[str, list[tuple[Any, int, int]]] = {}
+    for member in plan.members:
+        key = f"{member.role.value}|{member.family or 'unassigned'}"
+        for condition in range(conditions):
+            for replicate in range(1, replicates + 1):
+                strata.setdefault(key, []).append((member, condition, replicate))
+
+    capacity = {plate: footprint.candidate_wells_per_plate
+                for plate in range(1, plates + 1)}
+    dealt: dict[int, list[tuple[Any, int, int, str]]] = {
+        plate: [] for plate in range(1, plates + 1)}
+    # Each stratum starts its round-robin one plate further along, so the
+    # first plate does not collect the first unit of every stratum.
+    for offset, key in enumerate(sorted(strata)):
+        units = list(strata[key])
+        rng.shuffle(units)
+        cursor = offset % plates
+        for unit in units:
+            for _ in range(plates):
+                plate = 1 + (cursor % plates)
+                cursor += 1
+                if capacity[plate] > 0:
+                    capacity[plate] -= 1
+                    dealt[plate].append(unit + (key,))
+                    break
+            else:                                   # pragma: no cover
+                raise ValueError(
+                    "the plates are full before every candidate well was "
+                    "placed; the footprint and the layout disagree")
+
+    # -- control wells, repeated on every plate ---------------------------
+    control_units: dict[int, list[tuple[Any, int, int, str]]] = {}
+    for plate in range(1, plates + 1):
+        for control in plan.controls:
+            for condition in range(conditions):
+                for replicate in range(1, replicates + 1):
+                    control_units.setdefault(plate, []).append(
+                        (control, condition, replicate, "control"))
+
+    # -- positions within each plate, shuffled ----------------------------
+    assignments: list[WellAssignment] = []
+    slots: dict[str, int] = {}
+    for n, member in enumerate(plan.members, start=1):
+        slots[member.candidate_id] = n
+    for n, control in enumerate(plan.controls, start=len(plan.members) + 1):
+        slots[control.name] = n
+
+    for plate in range(1, plates + 1):
+        units = dealt.get(plate, []) + control_units.get(plate, [])
+        positions = list(range(footprint.wells_per_plate))
+        rng.shuffle(positions)
+        for position, (item, condition, replicate, stratum) in zip(positions, units):
+            is_control = stratum == "control"
+            identifier = item.name if is_control else item.candidate_id
+            assignments.append(WellAssignment(
+                plate=plate,
+                well=well_label(position, footprint.wells_per_plate),
+                position=position,
+                slot=slots.get(identifier, 0),
+                identifier=identifier,
+                kind="control" if is_control else "candidate",
+                role=(f"{item.kind} control" if is_control
+                      else item.role.value),
+                stratum=stratum,
+                cofactor_index=condition,
+                replicate=replicate))
+
+    assignments.sort(key=lambda a: (a.plate, a.position))
+    if plates > 1:
+        notes.append(
+            f"each construct's {replicates} replicate(s) are dealt across "
+            f"{plates} plates, so a plate effect falls inside a construct as "
+            f"noise rather than between constructs as a difference")
+    notes.append(
+        f"the control set is repeated on every plate "
+        f"({footprint.control_wells_per_plate} well(s) each), so every plate "
+        f"carries its own background")
+    notes.append(
+        f"well positions are shuffled with seed {seed} under "
+        f"{LAYOUT_STRATEGY}, so plate position does not follow selection rank")
+    return PlateLayout(
+        assignments=tuple(assignments), plates=plates,
+        wells_per_plate=footprint.wells_per_plate, seed=seed,
+        strata=tuple(sorted(strata)), notes=tuple(notes))
 
 
 # ==========================================================================
@@ -732,13 +1081,33 @@ class SelectBatch(ScientificInterface):
                 "no candidate or variant qualified for a slot; there is nothing "
                 "to order. The pool, not the plate, is the problem.")
 
+        if not footprint.layout_feasible:
+            return ToolResult.failure(
+                self.name, footprint.describe(), code="layout_infeasible")
+
+        # The layout is randomised, so it needs a seed that is recorded and a
+        # strategy that is named; both go into the plan and into provenance.
+        # A plate map nobody can re-derive cannot be checked against the
+        # sheet that comes back.
+        layout_seed = ctx.seed_for(f"{self.name}:plate_layout")
+        layout = plan_plate_layout(plan, footprint, seed=layout_seed)
+        if plan.controls and not layout.controls_on_every_plate():
+            result.add_flag(
+                "controls_missing_from_a_plate", Severity.BLOCKER,
+                "a plate was laid out without the full control set; every "
+                "fold-over-background bar on it would be undecidable",
+                subject="layout")
+        for note in layout.notes:
+            result.add_flag("plate_layout", Severity.INFO, note,
+                            subject="layout")
+
         # -- artifacts ------------------------------------------------------
         batch_path = self._write_batch_csv(ctx, plan, variants)
         plan_path = self._write_plan_yaml(
             ctx, plan, footprint, specs, assay_template, variants, task,
-            wells_per_plate)
+            wells_per_plate, layout)
         template_path = self._write_results_template(
-            ctx, plan, assay_template, task, wells_per_plate)
+            ctx, plan, assay_template, task, layout, variants)
 
         result.artifacts.append(Artifact(
             key="selected_batch", path=str(batch_path), kind="table",
@@ -1045,6 +1414,7 @@ class SelectBatch(ScientificInterface):
         self, ctx: RunContext, plan: BatchPlan, footprint: MeasurementFootprint,
         specs: Sequence[ControlSpec], assay_template: AssayTemplate | None,
         variants: VariantSelection, task: Any, wells_per_plate: int,
+        layout: PlateLayout,
     ) -> Path:
         """Write ``experiment_plan.yaml``, including the pre-registered endpoint."""
         criterion = dict(assay_template.positive_criteria) if assay_template else {}
@@ -1081,6 +1451,17 @@ class SelectBatch(ScientificInterface):
                 "over' are different claims. No control in this plan asserts "
                 "the second; that is what the round is for."),
             "measurement_footprint": footprint.to_dict(),
+            "plate_layout": {
+                **layout.to_dict(),
+                "rationale": (
+                    "Filling wells in ranking order makes plate position a "
+                    "function of rank, and microplates have real position "
+                    "effects. Positions are shuffled under a recorded seed, "
+                    "each stratum is dealt across the plates so the families "
+                    "and roles stay balanced, and the control set is repeated "
+                    "on every plate so every plate has its own background."),
+                "wells": [a.to_dict() for a in layout.assignments],
+            },
             "conditions": {
                 "cofactor_conditions": plan.cofactor_conditions,
                 "cofactor_options": [c.describe()
@@ -1124,49 +1505,62 @@ class SelectBatch(ScientificInterface):
 
     def _write_results_template(
         self, ctx: RunContext, plan: BatchPlan,
-        assay_template: AssayTemplate | None, task: Any, wells_per_plate: int,
+        assay_template: AssayTemplate | None, task: Any,
+        layout: PlateLayout, variants: VariantSelection | None = None,
     ) -> Path:
         """Write ``assay_results_template.csv``: one pre-addressed row per well.
 
-        The identifying columns are filled in and the measurement columns are
-        left blank. Pre-addressing the wells is what keeps the returned file
-        joinable: a plate map reconstructed afterwards from slot numbers is how
-        a transposed column of results gets attributed to the wrong enzymes.
+        Three kinds of column, and the separation is the point:
+
+        * **identity** -- filled in, and expected back unchanged. Pre-addressing
+          the wells is what keeps the returned file joinable; a plate map
+          reconstructed afterwards from slot numbers is how a transposed
+          column of results gets attributed to the wrong enzymes.
+        * **plan** -- what the protocol asks for, prefixed ``plan_`` and read by
+          nothing downstream. Reference for the bench, not evidence.
+        * **measured** -- blank, every one of them. ``tested`` included: the
+          sheet has to say which wells were run, because a template returned
+          untouched would otherwise parse as a full plate of results.
+
+        The addresses come from :class:`PlateLayout`, so where a construct
+        sits is not where its ranking put it.
         """
-        cofactors = list(task.conditions.cofactor_options)
         path = ctx.path("select_batch", "assay_results_template.csv")
-        lod = assay_template.limit_of_detection if assay_template else ""
-        lod_unit = assay_template.limit_unit if assay_template else ""
-        method = assay_template.method if assay_template else ""
-        confirms = ("yes" if assay_template and
-                    assay_template.confirms_product_identity else "no")
-        chiral = ("yes" if assay_template and assay_template.chiral_capable
-                  else "unknown")
-        standard = ("yes" if assay_template
-                    and assay_template.requires_authentic_standard else "unknown")
+        cofactors = list(task.conditions.cofactor_options)
+        parents: dict[str, str] = {}
+        mutations: dict[str, str] = {}
+        for proposal in (variants.selected if variants else ()):
+            parents[proposal.proposal_id] = proposal.parent_candidate_id or ""
+            mutations[proposal.proposal_id] = proposal.label() or ""
+
+        plan_values: list[Any] = [
+            assay_template.method if assay_template else "",
+            _yes_no(assay_template.confirms_product_identity
+                    if assay_template else None),
+            _yes_no(assay_template.requires_authentic_standard
+                    if assay_template else None),
+            _yes_no(assay_template.chiral_capable if assay_template else None),
+            ("" if not assay_template
+             or assay_template.limit_of_detection is None
+             else assay_template.limit_of_detection),
+            (assay_template.limit_unit or "") if assay_template else "",
+            plan.replicates,
+        ]
+        assert len(plan_values) == len(ASSAY_PLAN_COLUMNS)
+        blanks: list[Any] = [""] * len(ASSAY_MEASURED_COLUMNS)
 
         rows: list[list[Any]] = []
-        position = 0
-        entries: list[tuple[str, str, str]] = [
-            (m.candidate_id, "candidate", m.role.value) for m in plan.members
-        ] + [(c.name, "control", f"{c.kind} control") for c in plan.controls]
-
-        for slot, (identifier, kind, role) in enumerate(entries, start=1):
-            for condition in range(max(1, plan.cofactor_conditions)):
-                spec = cofactors[condition] if condition < len(cofactors) else None
-                for replicate in range(1, max(1, plan.replicates) + 1):
-                    plate = position // max(1, wells_per_plate) + 1
-                    rows.append([
-                        plan.plan_id, plate,
-                        well_label(position, wells_per_plate), slot,
-                        identifier, "", kind, role, "", "",
-                        spec.name if spec else f"condition_{condition + 1}",
-                        spec.state.value if spec else "unknown",
-                        replicate,
-                        "", "", method, confirms, standard, chiral,
-                        lod, lod_unit, "", "", "", "", "", "", "", "",
-                    ])
-                    position += 1
+        for a in layout.assignments:
+            spec = (cofactors[a.cofactor_index]
+                    if a.cofactor_index < len(cofactors) else None)
+            rows.append([
+                plan.plan_id, a.plate, a.well, a.slot,
+                a.identifier, "", a.kind, a.role,
+                parents.get(a.identifier, ""), mutations.get(a.identifier, ""),
+                spec.name if spec else f"condition_{a.cofactor_index + 1}",
+                spec.state.value if spec else "unknown",
+                a.replicate,
+            ] + plan_values + blanks)
 
         with open(path, "w", encoding="utf-8", newline="") as fh:
             writer = csv.writer(fh, lineterminator="\n")

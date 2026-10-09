@@ -463,6 +463,7 @@ def validate_atom_map(
     *,
     reaction_class: ReactionClass = ReactionClass.OTHER,
     creates_new_stereocenter: bool | None = None,
+    substrate_is_biopolymer: bool = False,
 ) -> AtomMapReport:
     """Check an atom-mapped reaction SMILES against the declared reactive atoms.
 
@@ -478,9 +479,26 @@ def validate_atom_map(
     ``"cofactor.NADPH.transfer_atom"``) to the :class:`AtomRef` that names it,
     so a failure can say which role is unresolvable rather than only which
     integer is missing.
+
+    ``substrate_is_biopolymer`` changes what a *missing* map means. A peptide
+    substrate is identified by its sequence and the residue the reaction
+    modifies -- that is what
+    :data:`~eagent.schemas.reaction.BIOPOLYMER_GATE_REQUIREMENTS` asks for --
+    and nobody writes an atom-mapped reaction SMILES for a thirty-mer. A hard
+    ``atom_map_missing`` on such a task blocked it forever on a representation
+    it cannot have, while the field gate it is supposed to serve had already
+    passed. A map that *is* supplied is still checked, whatever the substrate
+    is.
     """
     report = AtomMapReport()
     if not rxn_smiles or not rxn_smiles.strip():
+        if substrate_is_biopolymer:
+            report.add("atom_map_absent_for_biopolymer", Severity.INFO,
+                       "no atom-mapped reaction SMILES, which is expected for "
+                       "a biopolymer substrate: it is identified by its "
+                       "sequence and the residue the reaction modifies. Any "
+                       "map supplied would still be checked")
+            return report
         report.add("atom_map_missing", Severity.BLOCKER,
                    "no atom-mapped reaction SMILES; the reactive-atom "
                    "specification cannot be checked and the "
@@ -606,13 +624,30 @@ def _check_electrophile_prochiral(
 
 def _reaction_template_from_context(ctx: RunContext,
                                     reaction_class: ReactionClass) -> tuple[Any, str]:
-    """Find a ReactionTemplate for this class in whatever library is injected.
+    """Find *the* ReactionTemplate for this class, or none at all.
 
-    The template library is owned by the harness and its API is not fixed here,
-    so this probes a few plausible shapes and gives up quietly. Giving up is
-    safe: the only consequence is that ``creates_new_stereocenter`` stays
-    unresolved and the operator is asked. Guessing a template would not be safe,
-    because a template is an authority that can write into the task spec.
+    The template library is owned by the harness and its API is not fixed
+    here, so this probes a few plausible shapes and gives up quietly. Giving
+    up is safe: the only consequence is that ``creates_new_stereocenter``
+    stays unresolved and the operator is asked. Guessing a template would not
+    be safe, because a template is an authority that can write into the task
+    spec.
+
+    AMBIGUITY IS A REFUSAL, NOT A PICK
+    ----------------------------------
+    Several templates may legitimately declare one reaction class -- a
+    symmetric ketone and an aryl ketone are both
+    ``ketone_to_secondary_alcohol`` and differ on whether the reduction
+    creates a stereocentre. This used to take the first match, and the order
+    is the library's insertion order, which is the order the files were
+    globbed in: renaming two template files changed ``acetone`` from
+    correctly having no new stereocentre to having one, and the task was then
+    blocked for an unresolved configuration it does not have.
+
+    A filename is not evidence. When more than one template claims the class,
+    none is returned and the note names them all, so the operator passes the
+    right one to the interface explicitly -- which the interface already
+    accepts, and which is recorded as a decision rather than taken silently.
     """
     lib = getattr(ctx, "templates", None)
     if lib is None:
@@ -628,6 +663,9 @@ def _reaction_template_from_context(ctx: RunContext,
             if tpl is not None:
                 return tpl, f"template library .{attr}({reaction_class.value})"
 
+    matches: list[Any] = []
+    seen: set[int] = set()
+    source_attr = ""
     for attr in ("reaction_templates", "reactions"):
         coll = getattr(lib, attr, None)
         if isinstance(coll, Mapping):
@@ -637,8 +675,24 @@ def _reaction_template_from_context(ctx: RunContext,
         else:
             continue
         for tpl in candidates:
-            if getattr(tpl, "reaction_class", None) == reaction_class.value:
-                return tpl, f"template library .{attr}"
+            if getattr(tpl, "reaction_class", None) != reaction_class.value:
+                continue
+            if id(tpl) in seen:
+                continue
+            seen.add(id(tpl))
+            matches.append(tpl)
+            source_attr = source_attr or attr
+    if len(matches) == 1:
+        return matches[0], f"template library .{source_attr}"
+    if matches:
+        ids = ", ".join(sorted(str(getattr(m, "template_id", "unnamed"))
+                               for m in matches))
+        return None, (
+            f"{len(matches)} reaction templates declare class "
+            f"'{reaction_class.value}' ({ids}) and nothing here says which "
+            f"applies to this substrate. The first match would be whichever "
+            f"file sorted first, so none is used: pass the right template to "
+            f"normalize_reaction explicitly")
     return None, (f"no ReactionTemplate for reaction class "
                   f"'{reaction_class.value}' in the attached template library")
 
@@ -697,6 +751,7 @@ class NormalizeReaction(ScientificInterface):
             self._referenced_atoms(ctx),
             reaction_class=spec.reaction_class,
             creates_new_stereocenter=spec.product.creates_new_stereocenter,
+            substrate_is_biopolymer=spec.substrate_kind.is_biopolymer,
         )
         checks["atom_map"] = map_report.to_dict()
         for issue in map_report.issues:
@@ -790,6 +845,77 @@ class NormalizeReaction(ScientificInterface):
         return result
 
     # -- checks ------------------------------------------------------------
+    @staticmethod
+    def _check_product(result: ToolResult, prod: Any, mode_b: bool) -> None:
+        """The product has to be a structure whatever the substrate is.
+
+        Shared by both substrate paths: a peptide substrate does not make the
+        product optional, because the assay still has to detect one specific
+        thing and ``confirmed_target_product`` is defined against it.
+        """
+        if prod.is_structurally_defined:
+            return
+        if prod.name:
+            result.add_flag(
+                "product_name_only", Severity.BLOCKER,
+                f"product is given only as the name '{prod.name}'; the assay "
+                f"has to detect a specific structure, and an ee is undefined "
+                f"until the target configuration is attached to one",
+                subject="reaction.product")
+            result.add_uncertainty(
+                "product_structure",
+                f"What is the isomeric SMILES of '{prod.name}', including "
+                f"the target configuration?",
+                affects=["reaction.product.isomeric_smiles"],
+                resolvable_by="operator input")
+        elif not mode_b:
+            result.add_flag(
+                "product_unspecified", Severity.BLOCKER,
+                "no product was given; without it the assay has no target "
+                "and 'confirmed_target_product' cannot be defined",
+                subject="reaction.product")
+
+    @staticmethod
+    def _check_biopolymer_substrate(result: ToolResult, bio: Any) -> None:
+        """What a peptide, protein or nucleic-acid substrate has to carry.
+
+        Its sequence, and the residue the reaction acts on. Those are the two
+        things :data:`~eagent.schemas.reaction.BIOPOLYMER_GATE_REQUIREMENTS`
+        asks for, and this check now asks for the same two -- a step and the
+        gate it serves disagreeing about which object the substrate is in is
+        how a fully specified task blocks forever on a SMILES it cannot have.
+        """
+        if not bio.is_structurally_defined:
+            result.add_flag(
+                "biopolymer_substrate_unspecified", Severity.BLOCKER,
+                f"the substrate is declared as a {bio.kind.value} but carries "
+                f"no sequence; a biopolymer substrate is identified by its "
+                f"sequence, and a name fixes neither its length nor the "
+                f"residue the reaction acts on",
+                subject="reaction.biopolymer_substrate.sequence")
+            result.add_uncertainty(
+                "biopolymer_substrate_sequence",
+                f"What is the sequence of the {bio.kind.value} substrate?",
+                affects=["reaction.biopolymer_substrate.sequence"],
+                resolvable_by="operator input")
+            return
+        residues = getattr(bio, "reactive_residues", None)
+        named = [r for r in (list(getattr(residues, "modified", ()) or ())
+                             + list(getattr(residues, "recognised", ()) or ()))]
+        if not named:
+            result.add_flag(
+                "biopolymer_reactive_residue_unspecified", Severity.BLOCKER,
+                f"the {bio.kind.value} substrate carries a sequence of "
+                f"{bio.length} residue(s) but names none as the one the "
+                f"reaction modifies; without it the assay has no position to "
+                f"watch and no negative can be stated at a position",
+                subject="reaction.biopolymer_substrate.reactive_residues")
+            result.add_uncertainty(
+                "biopolymer_reactive_residue",
+                "Which residue of the substrate does the reaction modify?",
+                affects=["reaction.biopolymer_substrate.reactive_residues.modified"],
+                resolvable_by="operator input")
+
     def _check_structures(self, result: ToolResult, spec: Any,
                           mode_b: bool) -> None:
         """Insist on structures, and never resolve a name into one.
@@ -798,8 +924,25 @@ class NormalizeReaction(ScientificInterface):
         Resolving "4-chloroacetophenone" here would pick a tautomer, a salt form
         and an implicit stereochemistry that nobody chose, and the rest of the
         run would treat those choices as the operator's.
+
+        WHICH SUBSTRATE OBJECT THIS READS
+        ---------------------------------
+        The one the spec declares. A biopolymer task carries its substrate in
+        ``reaction.biopolymer_substrate`` and leaves ``reaction.substrate``
+        empty; reading the small-molecule field regardless produced
+        ``substrate_unspecified`` on a task whose substrate was fully
+        specified, and whose field gate had already passed. Supplying an
+        unrelated small molecule then *removed* the blocker -- the gate read
+        the peptide, this check read the small molecule, and giving the wrong
+        substrate made the task look better.
         """
         sub, prod = spec.substrate, spec.product
+        bio = getattr(spec, "biopolymer_substrate", None)
+
+        if bio is not None:
+            self._check_biopolymer_substrate(result, bio)
+            self._check_product(result, prod, mode_b)
+            return
 
         if not sub.is_structurally_defined:
             if sub.name:
@@ -828,26 +971,7 @@ class NormalizeReaction(ScientificInterface):
                 "a hash identifies a structure but cannot be docked or mapped",
                 subject="reaction.substrate.isomeric_smiles")
 
-        if not prod.is_structurally_defined:
-            if prod.name:
-                result.add_flag(
-                    "product_name_only", Severity.BLOCKER,
-                    f"product is given only as the name '{prod.name}'; the assay "
-                    f"has to detect a specific structure, and an ee is undefined "
-                    f"until the target configuration is attached to one",
-                    subject="reaction.product")
-                result.add_uncertainty(
-                    "product_structure",
-                    f"What is the isomeric SMILES of '{prod.name}', including "
-                    f"the target configuration?",
-                    affects=["reaction.product.isomeric_smiles"],
-                    resolvable_by="operator input")
-            elif not mode_b:
-                result.add_flag(
-                    "product_unspecified", Severity.BLOCKER,
-                    "no product was given; without it the assay has no target "
-                    "and 'confirmed_target_product' cannot be defined",
-                    subject="reaction.product")
+        self._check_product(result, prod, mode_b)
 
         if (sub.isomeric_smiles and prod.isomeric_smiles
                 and sub.isomeric_smiles.strip() == prod.isomeric_smiles.strip()):

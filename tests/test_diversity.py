@@ -137,11 +137,28 @@ class TestPocketSignature(unittest.TestCase):
         self.assertIs(sig.basis, SignatureBasis.CATALYTIC_ROLES_ONLY)
         self.assertTrue(sig.tokens)
 
-    def test_explicit_shell_residues_upgrade_the_basis(self) -> None:
+    def test_bare_shell_tokens_are_compared_by_composition(self) -> None:
+        """A list of W110-style tokens states no frame, so it is not positional.
+
+        ``W110`` in one protein and ``W111`` in another say nothing about each
+        other: author numbering shifts with construct boundaries and tags.
+        Treating the tokens as positions made two identical pockets maximally
+        distant, so a bare list falls back to composition and says so.
+        """
         sig = pocket_signature(candidate("a"),
                                extra_pocket_residues={"a": ["W110", "F147"]})
-        self.assertIs(sig.basis, SignatureBasis.POCKET_RESIDUES)
+        self.assertIs(sig.basis, SignatureBasis.POCKET_COMPOSITION)
+        self.assertIn("pocket_aa:W#1", sig.tokens)
+        self.assertNotIn("pocket:W110", sig.tokens)
+
+    def test_framed_shell_residues_are_positional(self) -> None:
+        from eagent.science.pocket import pocket_residues_from_tokens
+        shell = pocket_residues_from_tokens("a", ["W110", "F147"],
+                                            frame="SDR/scheme:sdr-v1")
+        sig = pocket_signature(candidate("a"), extra_pocket_residues={"a": shell})
+        self.assertIs(sig.basis, SignatureBasis.ALIGNED_POCKET_RESIDUES)
         self.assertIn("pocket:W110", sig.tokens)
+        self.assertEqual(sig.frame, "SDR/scheme:sdr-v1")
 
     def test_unmapped_candidate_has_an_empty_incomparable_signature(self) -> None:
         bare = candidate("bare")

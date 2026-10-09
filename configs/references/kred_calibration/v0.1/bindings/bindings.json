@@ -1,0 +1,371 @@
+{
+  "bindings": [
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NDP",
+        "resseq": 261
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [],
+      "notes": [],
+      "pdb_id": "1IPF",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "TNE",
+        "resseq": 262
+      },
+      "substrate_atoms": {
+        "carbonyl_O": "O3",
+        "electrophile": "C3"
+      }
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAI",
+        "resseq": 1270
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [
+        "substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)"
+      ],
+      "notes": [],
+      "pdb_id": "1ZJY",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "SS2",
+        "resseq": 1260
+      },
+      "substrate_atoms": {}
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAD",
+        "resseq": 1270
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [
+        "substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)"
+      ],
+      "notes": [],
+      "pdb_id": "1ZJZ",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "SS2",
+        "resseq": 1260
+      },
+      "substrate_atoms": {}
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAI",
+        "resseq": 1270
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [
+        "substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)"
+      ],
+      "notes": [],
+      "pdb_id": "1ZK0",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "SS2",
+        "resseq": 1260
+      },
+      "substrate_atoms": {}
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAD",
+        "resseq": 270
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [],
+      "notes": [],
+      "pdb_id": "1ZK1",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "AC0",
+        "resseq": 260
+      },
+      "substrate_atoms": {
+        "carbonyl_O": "O1",
+        "electrophile": "C7"
+      }
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAP",
+        "resseq": 1270
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [],
+      "notes": [],
+      "pdb_id": "1ZK4",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "AC0",
+        "resseq": 1260
+      },
+      "substrate_atoms": {
+        "carbonyl_O": "O1",
+        "electrophile": "C7"
+      }
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAP",
+        "resseq": 261
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [
+        "substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)"
+      ],
+      "notes": [],
+      "pdb_id": "2AE2",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "PTO",
+        "resseq": 262
+      },
+      "substrate_atoms": {}
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAD",
+        "resseq": 301
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [
+        "B",
+        "A"
+      ],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [
+        "2 reaction ligand components (HBS/HBR): one substrate is required, and a racemic or mixed site is not bound"
+      ],
+      "notes": [
+        "the workbook selects alternate locations ['B', 'A']: each is measured, and together they are one observation"
+      ],
+      "pdb_id": "6XEW",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": null,
+      "substrate_atoms": {}
+    },
+    {
+      "chain": "B",
+      "cofactor": {
+        "chain": "B",
+        "icode": "",
+        "resname": "NAD",
+        "resseq": 301
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [
+        "A"
+      ],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [],
+      "notes": [],
+      "pdb_id": "6ZZO",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "B",
+        "icode": "",
+        "resname": "AAE",
+        "resseq": 302
+      },
+      "substrate_atoms": {
+        "carbonyl_O": "O8",
+        "electrophile": "C5"
+      }
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAD",
+        "resseq": 301
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [
+        "A",
+        "B"
+      ],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [],
+      "notes": [
+        "the workbook selects alternate locations ['A', 'B']: each is measured, and together they are one observation"
+      ],
+      "pdb_id": "6ZZP",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "QT8",
+        "resseq": 302
+      },
+      "substrate_atoms": {
+        "carbonyl_O": "OAA",
+        "electrophile": "CAE"
+      }
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAD",
+        "resseq": 301
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [],
+      "notes": [],
+      "pdb_id": "6ZZQ",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "AAE",
+        "resseq": 302
+      },
+      "substrate_atoms": {
+        "carbonyl_O": "O8",
+        "electrophile": "C5"
+      }
+    },
+    {
+      "chain": "B",
+      "cofactor": {
+        "chain": "B",
+        "icode": "",
+        "resname": "NAD",
+        "resseq": 301
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [],
+      "notes": [],
+      "pdb_id": "6ZZS",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "B",
+        "icode": "",
+        "resname": "QT8",
+        "resseq": 302
+      },
+      "substrate_atoms": {
+        "carbonyl_O": "OAA",
+        "electrophile": "CAE"
+      }
+    },
+    {
+      "chain": "A",
+      "cofactor": {
+        "chain": "A",
+        "icode": "",
+        "resname": "NAP",
+        "resseq": 402
+      },
+      "cofactor_atoms": {
+        "hydride_donor_C4": "C4N"
+      },
+      "conformers": [],
+      "derivation": "find_carbonyl v1: one terminal carbonyl oxygen per electrophilic carbon; hydride donor = C4N of the nicotinamide component; residues named by the workbook's scoring chain and RSCC summary",
+      "failures": [
+        "substrate atoms: conformer -: no ketone C=O: no carbon has exactly one terminal oxygen and two further heavy neighbours (an alcohol or a carboxylate-only ligand is a product, not a substrate)"
+      ],
+      "notes": [],
+      "pdb_id": "7UUT",
+      "review_status": "rule_derived_unreviewed",
+      "substrate": {
+        "chain": "A",
+        "icode": "",
+        "resname": "2RP",
+        "resseq": 403
+      },
+      "substrate_atoms": {}
+    }
+  ],
+  "product": "kred_calibration_reference/bindings",
+  "review_status_note": "every binding is rule-derived from the pinned coordinates and has not been reviewed by a person; protein roles are deliberately unbound"
+}

@@ -1,0 +1,1534 @@
+{
+  "pdb_id": "6ZZP",
+  "files": [
+    {
+      "url": "https://files.rcsb.org/download/6ZZP.cif",
+      "path": "structures/6ZZP/6ZZP.cif",
+      "sha256": "d354d54978f48940afe983df15493f51bb6a95fa02571d5cddc998f700553819",
+      "bytes": 949811
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/entry/6ZZP",
+      "path": "structures/6ZZP/entry.json",
+      "sha256": "cd99c57b7c0b16a6088b3e69241aea55f3340d8fc6f86edfae6427036cb9db92",
+      "bytes": 14308
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZP/1",
+      "path": "structures/6ZZP/polymer_entity_1.json",
+      "sha256": "09c9af140830d8317736854d9fa15dfa1f56a8bf580adc300ab4189f5cb64b83",
+      "bytes": 16588
+    },
+    {
+      "url": "https://files.rcsb.org/pub/pdb/validation_reports/zz/6zzp/6zzp_validation.xml.gz",
+      "path": "structures/6ZZP/6ZZP_validation.xml.gz",
+      "sha256": "45881b84056e0afa8999e8c047ee8b4569447fa45a66fae15d843126e95680ea",
+      "bytes": 58716
+    }
+  ],
+  "errors": [],
+  "title": "Crystal structure of (R)-3-hydroxybutyrate dehydrogenase from Psychrobacter arcticus complexed with NAD+ and 3-oxovalerate",
+  "resolution_A": [
+    1.84
+  ],
+  "method": [
+    {
+      "crystals_number": 1,
+      "method": "X-RAY DIFFRACTION"
+    }
+  ],
+  "refine": [
+    {
+      "B_iso_max": 83.59,
+      "B_iso_mean": 20.873,
+      "B_iso_min": 3.08,
+      "aniso_B_1_1": 2.5,
+      "aniso_B_1_2": 0.0,
+      "aniso_B_1_3": 0.0,
+      "aniso_B_2_2": -1.15,
+      "aniso_B_2_3": 0.0,
+      "aniso_B_3_3": -1.35,
+      "correlation_coeff_Fo_to_Fc": 0.971,
+      "correlation_coeff_Fo_to_Fc_free": 0.95,
+      "details": "HYDROGENS HAVE BEEN ADDED IN THE RIDING POSITIONS U VALUES      : REFINED INDIVIDUALLY",
+      "ls_R_factor_R_free": 0.1893,
+      "ls_R_factor_R_work": 0.1457,
+      "ls_R_factor_obs": 0.1479,
+      "ls_d_res_high": 1.84,
+      "ls_d_res_low": 29.64,
+      "ls_number_reflns_R_free": 4528,
+      "ls_number_reflns_obs": 86146,
+      "ls_percent_reflns_R_free": 5.0,
+      "ls_percent_reflns_obs": 99.41,
+      "overall_SU_B": 2.886,
+      "overall_SU_ML": 0.084,
+      "pdbx_R_Free_selection_details": "RANDOM",
+      "pdbx_diffrn_id": [
+        "1"
+      ],
+      "pdbx_ls_cross_valid_method": "THROUGHOUT",
+      "pdbx_ls_sigma_F": 0.0,
+      "pdbx_method_to_determine_struct": "MOLECULAR REPLACEMENT",
+      "pdbx_overall_ESU_R": 0.114,
+      "pdbx_overall_ESU_R_Free": 0.114,
+      "pdbx_refine_id": "X-RAY DIFFRACTION",
+      "pdbx_solvent_ion_probe_radii": 0.8,
+      "pdbx_solvent_shrinkage_radii": 0.8,
+      "pdbx_solvent_vdw_probe_radii": 1.2,
+      "pdbx_starting_model": "D_1292104350",
+      "pdbx_stereochemistry_target_values": "MAXIMUM LIKELIHOOD",
+      "solvent_model_details": "MASK"
+    }
+  ],
+  "citation": {
+    "country": "US",
+    "id": "primary",
+    "journal_abbrev": "Acs Catalysis",
+    "journal_id_ISSN": "2155-5435",
+    "journal_volume": "10",
+    "page_first": "15019",
+    "page_last": "15032",
+    "pdbx_database_id_DOI": "10.1021/acscatal.0c04736",
+    "pdbx_database_id_PubMed": 33391858,
+    "rcsb_ORCID_identifiers": [
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?"
+    ],
+    "rcsb_authors": [
+      "Machado, T.F.G.",
+      "Purg, M.",
+      "McMahon, S.A.",
+      "Read, B.J.",
+      "Oehler, V.",
+      "Aqvist, J.",
+      "Gloster, T.M.",
+      "da Silva, R.G."
+    ],
+    "rcsb_journal_abbrev": "ACS Catal",
+    "title": "Dissecting the Mechanism of ( R )-3-Hydroxybutyrate Dehydrogenase by Kinetic Isotope Effects, Protein Crystallography, and Computational Chemistry.",
+    "year": 2020
+  },
+  "nonpolymer_ids": [
+    "2",
+    "3"
+  ],
+  "protein_sequence": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+  "sequence_sha256": "4f10a082aab3c751ca03af2b4249e36e67c1892b3c4fb87835c19afd0e8847b2",
+  "sequence_length": 266,
+  "entity_poly": {
+    "nstd_linkage": "no",
+    "nstd_monomer": "no",
+    "pdbx_seq_one_letter_code": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+    "pdbx_seq_one_letter_code_can": "MATQLQQDLTGKVALVTGAASGIGRDIAETYAKAGAAVGIADINLEAAQKTVDAIEAAGGRALAIAMDVTSEAAVNDGVQRLVDTFGGIDILVSNAGIQIIDPIHKMAFEDWKKMLAIHLDGAFLTTKAAIQHMYKDDKGGTVIYMGSVHSHEASLFKAPYVTAKHGLLGLCRVLAKEGAVHNVRSHVICPGFVKTPLVEKQIPQQAAEKGISEESVVNDIMLVNTVDKEFTTVDDIAQLALFLAAFPTNVFTGQSIVASHGWFMN",
+    "pdbx_strand_id": "A,B,C,D",
+    "rcsb_artifact_monomer_count": 0,
+    "rcsb_conflict_count": 0,
+    "rcsb_deletion_count": 0,
+    "rcsb_entity_polymer_type": "Protein",
+    "rcsb_insertion_count": 0,
+    "rcsb_mutation_count": 0,
+    "rcsb_non_std_monomer_count": 0,
+    "rcsb_sample_sequence_length": 266,
+    "type": "polypeptide(L)"
+  },
+  "polymer_entity": {
+    "formula_weight": 28.213,
+    "pdbx_description": "Putative beta-hydroxybutyrate dehydrogenase",
+    "pdbx_ec": "1.1.1.30",
+    "pdbx_number_of_molecules": 4,
+    "rcsb_multiple_source_flag": "N",
+    "rcsb_source_part_count": 1,
+    "rcsb_source_taxonomy_count": 1,
+    "src_method": "man",
+    "rcsb_ec_lineage": [
+      {
+        "depth": 1,
+        "id": "1",
+        "name": "Oxidoreductases"
+      },
+      {
+        "depth": 2,
+        "id": "1.1",
+        "name": "Acting on the CH-OH group of donors"
+      },
+      {
+        "depth": 3,
+        "id": "1.1.1",
+        "name": "With NAD+ or NADP+ as acceptor"
+      },
+      {
+        "depth": 4,
+        "id": "1.1.1.30",
+        "name": "3-hydroxybutyrate dehydrogenase"
+      }
+    ],
+    "rcsb_macromolecular_names_combined": [
+      {
+        "name": "Putative beta-hydroxybutyrate dehydrogenase",
+        "provenance_code": "ECO:0000304",
+        "provenance_source": "PDB Preferred Name"
+      }
+    ],
+    "rcsb_enzyme_class_combined": [
+      {
+        "depth": 4,
+        "ec": "1.1.1.30",
+        "provenance_source": "PDB Primary Data"
+      }
+    ],
+    "rcsb_polymer_name_combined": {
+      "names": [
+        "Putative beta-hydroxybutyrate dehydrogenase"
+      ],
+      "provenance_source": "UniProt Name"
+    }
+  },
+  "organism": [
+    {
+      "beg_seq_num": 1,
+      "end_seq_num": 266,
+      "ncbi_parent_scientific_name": "Bacteria",
+      "ncbi_scientific_name": "Psychrobacter arcticus",
+      "ncbi_taxonomy_id": 334543,
+      "pdbx_src_id": 1,
+      "provenance_source": "Primary Data",
+      "scientific_name": "Psychrobacter arcticus",
+      "source_type": "genetically engineered",
+      "taxonomy_lineage": [
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "cellular organisms"
+        },
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "biota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria (ex Cavalier-Smith 1987)"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria Woese et al. 2024"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteriobiota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "eubacteria"
+        },
+        {
+          "depth": 3,
+          "id": "3379134",
+          "name": "Pseudomonadati"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Pseudomonadota"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "\"Alphaproteobacteriota\" Whitman et al. 2018"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Alphaproteobacteriota"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Proteobacteria"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Proteobacteriota"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "proteobacteria"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "purple photosynthetic bacteria and relatives"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Gammaproteobacteria"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Proteobacteria gamma subdivision"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Pseudomonadia"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Purple bacteria, gamma subdivision"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "g-proteobacteria"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "gamma proteobacteria"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "gamma subdivision"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "gamma subgroup"
+        },
+        {
+          "depth": 6,
+          "id": "2887326",
+          "name": "Moraxellales"
+        },
+        {
+          "depth": 7,
+          "id": "468",
+          "name": "Moraxellaceae"
+        },
+        {
+          "depth": 7,
+          "id": "468",
+          "name": "Acinetobacteraceae"
+        },
+        {
+          "depth": 7,
+          "id": "468",
+          "name": "Branhamaceae"
+        },
+        {
+          "depth": 8,
+          "id": "497",
+          "name": "Psychrobacter"
+        },
+        {
+          "depth": 9,
+          "id": "334543",
+          "name": "Psychrobacter arcticus"
+        }
+      ],
+      "rcsb_gene_name": [
+        {
+          "provenance_source": "Primary Data",
+          "value": "Psyc_1428"
+        }
+      ]
+    }
+  ],
+  "uniprot_ids": [
+    "Q4FRT2"
+  ],
+  "validation_entry": {
+    "percentilebins": "all,1.84,xray",
+    "attemptedValidationSteps": "molprobity,validation-pack,xtriage,eds,mogul,buster-report,percentiles,writexml",
+    "PDB-deposition-date": "2020-08-04",
+    "PDB-revision-date": "2024-05-01",
+    "PDB-revision-number": "3",
+    "protein-DNA-RNA-entities": "1",
+    "PDB-resolution": "1.84",
+    "PDB-resolution-low": "29.64",
+    "PDB-R": "0.1457",
+    "PDB-Rfree": "0.1893",
+    "pdbid": "6ZZP",
+    "extended_pdbid": "6ZZP",
+    "num-H-reduce": "7745",
+    "clashscore": "2.50",
+    "RestypesNotcheckedForBondAngleGeometry": "NAD,QT8",
+    "percent-rama-outliers": "0.10",
+    "percent-rota-outliers": "0.79",
+    "bonds_rmsz": "1.05",
+    "num_bonds_rmsz": "7789",
+    "angles_rmsz": "1.23",
+    "num_angles_rmsz": "10567",
+    "WilsonBaniso": "[29.443,16.513,15.421,0.000,0.000,0.000]",
+    "TwinL": "0.499",
+    "centric_outliers": "0",
+    "TransNCS": "The largest off-origin peak in the Patterson function is 6.60% of the height of the origin peak. No significant pseudotranslation is detected.",
+    "IoverSigma": "1.05(1.84A)",
+    "WilsonBestimate": "19.618",
+    "acentric_outliers": "1",
+    "DataAnisotropy": "0.685",
+    "TwinL2": "0.332",
+    "xtriage_input_columns": "F_meas_au,F_meas_sigma_au",
+    "numMillerIndices": "90674",
+    "DCC_R": "0.1588",
+    "DCC_Rfree": "0.2000",
+    "Fo_Fc_correlation": "0.967",
+    "EDS_resolution": "1.84",
+    "CCP4version": "9.0.010 (Gargrove)",
+    "DataCompleteness": "99.42",
+    "B_factor_type": "FULL",
+    "density-fitnessVersion": "1.0.12",
+    "bulk_solvent_b": "45.666",
+    "percent-RSRZ-outliers": "1.87",
+    "num-free-reflections": "4528",
+    "EDS_resolution_low": "29.64",
+    "DCC_refinement_program": "REFMAC",
+    "ligands-for-buster-report": "yes",
+    "EDS_R": "0.1593",
+    "percent-free-reflections": "4.97",
+    "bulk_solvent_k": "0.310",
+    "absolute-percentile-clashscore": "81.7",
+    "numPDBids-absolute-percentile-clashscore": "190562",
+    "relative-percentile-clashscore": "73.8",
+    "numPDBids-relative-percentile-clashscore": "1329",
+    "low-resol-relative-percentile-clashscore": "1.84",
+    "high-resol-relative-percentile-clashscore": "1.84",
+    "absolute-percentile-percent-rama-outliers": "47.5",
+    "numPDBids-absolute-percentile-percent-rama-outliers": "187476",
+    "relative-percentile-percent-rama-outliers": "38.2",
+    "numPDBids-relative-percentile-percent-rama-outliers": "1318",
+    "low-resol-relative-percentile-percent-rama-outliers": "1.84",
+    "high-resol-relative-percentile-percent-rama-outliers": "1.84",
+    "absolute-percentile-percent-rota-outliers": "73.0",
+    "numPDBids-absolute-percentile-percent-rota-outliers": "187428",
+    "relative-percentile-percent-rota-outliers": "64.9",
+    "numPDBids-relative-percentile-percent-rota-outliers": "1318",
+    "low-resol-relative-percentile-percent-rota-outliers": "1.84",
+    "high-resol-relative-percentile-percent-rota-outliers": "1.84",
+    "absolute-percentile-percent-RSRZ-outliers": "66.1",
+    "numPDBids-absolute-percentile-percent-RSRZ-outliers": "180081",
+    "relative-percentile-percent-RSRZ-outliers": "73.3",
+    "numPDBids-relative-percentile-percent-RSRZ-outliers": "1296",
+    "low-resol-relative-percentile-percent-RSRZ-outliers": "1.84",
+    "high-resol-relative-percentile-percent-RSRZ-outliers": "1.84",
+    "absolute-percentile-DCC_Rfree": "84.4",
+    "numPDBids-absolute-percentile-DCC_Rfree": "180053",
+    "relative-percentile-DCC_Rfree": "85.5",
+    "numPDBids-relative-percentile-DCC_Rfree": "1296",
+    "low-resol-relative-percentile-DCC_Rfree": "1.84",
+    "high-resol-relative-percentile-DCC_Rfree": "1.84",
+    "XMLcreationDate": "Mar  5, 2026 -- 08:22 PM UTC"
+  },
+  "ligand_validation": [
+    {
+      "num-H-reduce": "26",
+      "mogul_rmsz_numbonds": "46",
+      "OPIA": "100.000",
+      "rsr": "0.038",
+      "mogul_bonds_rmsz": "0.64",
+      "EDIAm": "0.998",
+      "avgoccu": "1.000",
+      "NatomsEDS": "44",
+      "mogul_rmsz_numangles": "64",
+      "owab": "17.440",
+      "mogul_angles_rmsz": "0.73",
+      "rscc": "0.984",
+      "model": "1",
+      "chain": "A",
+      "resnum": "301",
+      "said": "E",
+      "ent": "2",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAD",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.01",
+            "Zscore": "3.23",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.15",
+            "Zscore": "-2.03",
+            "obsval": "120.15"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "106.26",
+            "stdev": "27.39",
+            "mindiff": "0.50",
+            "local_density": "4.60",
+            "obsval": "178.91"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O1N",
+            "numobs": "141",
+            "mean": "84.43",
+            "stdev": "54.07",
+            "mindiff": "1.50",
+            "local_density": "3.55",
+            "obsval": "-4.89"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O2N",
+            "numobs": "141",
+            "mean": "52.59",
+            "stdev": "26.25",
+            "mindiff": "0.84",
+            "local_density": "4.96",
+            "obsval": "126.79"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O3",
+            "numobs": "40",
+            "mean": "56.02",
+            "stdev": "14.09",
+            "mindiff": "30.33",
+            "local_density": "0.00",
+            "obsval": "121.19"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O1N",
+            "numobs": "40",
+            "mean": "94.79",
+            "stdev": "60.53",
+            "mindiff": "26.25",
+            "local_density": "0.00",
+            "obsval": "5.96"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O2N",
+            "numobs": "40",
+            "mean": "57.43",
+            "stdev": "20.18",
+            "mindiff": "9.06",
+            "local_density": "2.50",
+            "obsval": "-128.39"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "64.11",
+            "stdev": "35.60",
+            "mindiff": "10.25",
+            "local_density": "0.00",
+            "obsval": "55.89"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "61.94",
+            "stdev": "31.71",
+            "mindiff": "4.12",
+            "local_density": "3.45",
+            "obsval": "-118.70"
+          }
+        }
+      ]
+    },
+    {
+      "mogul_rmsz_numbonds": "7",
+      "OPIA": "66.670",
+      "rsr": "0.088",
+      "mogul_bonds_rmsz": "1.09",
+      "EDIAm": "0.706",
+      "avgoccu": "0.500",
+      "NatomsEDS": "16",
+      "mogul_rmsz_numangles": "8",
+      "owab": "11.130",
+      "mogul_angles_rmsz": "1.38",
+      "rscc": "0.906",
+      "model": "1",
+      "chain": "A",
+      "resnum": "302",
+      "said": "F",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "QT8",
+      "altcode": "A",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAG",
+            "dist": "2.47",
+            "clashmag": "0.62",
+            "cid": "1"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAD",
+            "dist": "2.32",
+            "clashmag": "0.41",
+            "cid": "5"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH",
+            "numobs": "26",
+            "mean": "112.32",
+            "stdev": "2.00",
+            "mindiff": "2.30",
+            "Zscore": "-2.98",
+            "obsval": "106.36"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE,CAF",
+            "numobs": "94",
+            "mean": "30.41",
+            "stdev": "16.54",
+            "mindiff": "4.99",
+            "local_density": "3.19",
+            "obsval": "-143.92"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE,OAA",
+            "numobs": "100",
+            "mean": "32.00",
+            "stdev": "17.58",
+            "mindiff": "6.08",
+            "local_density": "4.00",
+            "obsval": "38.33"
+          }
+        }
+      ]
+    },
+    {
+      "ligand_clashes_outlier": "yes",
+      "ligand_num_symm_clashes": "0",
+      "ligand_num_clashes": "4",
+      "mogul_rmsz_numbonds": "7",
+      "OPIA": "66.670",
+      "rsr": "0.088",
+      "mogul_angles_rmsz": "2.26",
+      "mogul_bonds_rmsz": "1.01",
+      "EDIAm": "0.706",
+      "avgoccu": "0.500",
+      "NatomsEDS": "16",
+      "mogul_rmsz_numangles": "8",
+      "owab": "11.130",
+      "rscc": "0.906",
+      "model": "1",
+      "chain": "A",
+      "resnum": "302",
+      "said": "F",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "QT8",
+      "altcode": "B",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAG",
+            "dist": "2.11",
+            "clashmag": "0.98",
+            "cid": "0"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAG",
+            "dist": "2.19",
+            "clashmag": "0.52",
+            "cid": "3"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "OAA",
+            "dist": "2.15",
+            "clashmag": "0.55",
+            "cid": "2"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "OAC",
+            "dist": "2.65",
+            "clashmag": "0.45",
+            "cid": "4"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAD",
+            "dist": "2.65",
+            "clashmag": "0.45",
+            "cid": "4"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "OAC,CAH,CAF",
+            "numobs": "667",
+            "mean": "122.11",
+            "stdev": "2.85",
+            "mindiff": "0.19",
+            "Zscore": "-2.18",
+            "obsval": "115.89"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH",
+            "numobs": "26",
+            "mean": "112.32",
+            "stdev": "2.00",
+            "mindiff": "6.63",
+            "Zscore": "-5.14",
+            "obsval": "102.04"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH,OAB",
+            "numobs": "56",
+            "mean": "59.03",
+            "stdev": "28.59",
+            "mindiff": "5.10",
+            "local_density": "1.79",
+            "obsval": "-124.09"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH,OAC",
+            "numobs": "234",
+            "mean": "50.27",
+            "stdev": "24.16",
+            "mindiff": "5.46",
+            "local_density": "2.99",
+            "obsval": "55.38"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "26",
+      "mogul_rmsz_numbonds": "46",
+      "OPIA": "95.450",
+      "rsr": "0.053",
+      "mogul_bonds_rmsz": "0.82",
+      "EDIAm": "0.947",
+      "avgoccu": "1.000",
+      "NatomsEDS": "44",
+      "mogul_rmsz_numangles": "64",
+      "owab": "22.730",
+      "mogul_angles_rmsz": "0.78",
+      "rscc": "0.969",
+      "model": "1",
+      "chain": "B",
+      "resnum": "301",
+      "said": "G",
+      "ent": "2",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAD",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H6N",
+            "dist": "2.18",
+            "clashmag": "0.43",
+            "cid": "29"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D",
+            "numobs": "25",
+            "mean": "1.40",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "2.24",
+            "obsval": "1.43"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "4.01",
+            "obsval": "1.39"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.16",
+            "Zscore": "-2.02",
+            "obsval": "120.16"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O7N,C7N,C3N",
+            "numobs": "2600",
+            "mean": "119.60",
+            "stdev": "1.22",
+            "mindiff": "0.01",
+            "Zscore": "-2.00",
+            "obsval": "117.15"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O1N",
+            "numobs": "141",
+            "mean": "52.17",
+            "stdev": "23.66",
+            "mindiff": "1.95",
+            "local_density": "4.26",
+            "obsval": "108.24"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O3",
+            "numobs": "40",
+            "mean": "46.63",
+            "stdev": "17.22",
+            "mindiff": "15.88",
+            "local_density": "0.00",
+            "obsval": "106.74"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O1N",
+            "numobs": "40",
+            "mean": "64.59",
+            "stdev": "32.86",
+            "mindiff": "6.45",
+            "local_density": "2.50",
+            "obsval": "-140.59"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O2N",
+            "numobs": "40",
+            "mean": "91.66",
+            "stdev": "54.48",
+            "mindiff": "21.23",
+            "local_density": "0.00",
+            "obsval": "-9.59"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "62.03",
+            "stdev": "29.25",
+            "mindiff": "6.81",
+            "local_density": "3.45",
+            "obsval": "-116.01"
+          }
+        }
+      ]
+    },
+    {
+      "mogul_rmsz_numbonds": "7",
+      "OPIA": "12.500",
+      "rsr": "0.134",
+      "mogul_bonds_rmsz": "1.11",
+      "EDIAm": "0.230",
+      "avgoccu": "1.000",
+      "NatomsEDS": "8",
+      "mogul_rmsz_numangles": "8",
+      "owab": "39.820",
+      "mogul_angles_rmsz": "1.97",
+      "rscc": "0.839",
+      "model": "1",
+      "chain": "B",
+      "resnum": "302",
+      "said": "H",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "QT8",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAG",
+            "dist": "2.44",
+            "clashmag": "0.65",
+            "cid": "10"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH",
+            "numobs": "26",
+            "mean": "112.32",
+            "stdev": "2.00",
+            "mindiff": "3.21",
+            "Zscore": "-3.44",
+            "obsval": "105.45"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE",
+            "numobs": "100",
+            "mean": "115.21",
+            "stdev": "5.66",
+            "mindiff": "7.58",
+            "Zscore": "-3.23",
+            "obsval": "96.90"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "OAA,CAE,CAF,CAH",
+            "numobs": "51",
+            "mean": "49.78",
+            "stdev": "15.82",
+            "mindiff": "0.64",
+            "local_density": "1.96",
+            "obsval": "66.71"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE,CAF",
+            "numobs": "94",
+            "mean": "40.67",
+            "stdev": "13.27",
+            "mindiff": "8.15",
+            "local_density": "1.06",
+            "obsval": "132.16"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "26",
+      "mogul_rmsz_numbonds": "46",
+      "OPIA": "95.450",
+      "rsr": "0.046",
+      "mogul_bonds_rmsz": "0.80",
+      "EDIAm": "0.955",
+      "avgoccu": "1.000",
+      "NatomsEDS": "44",
+      "mogul_rmsz_numangles": "64",
+      "owab": "21.600",
+      "mogul_angles_rmsz": "0.83",
+      "rscc": "0.975",
+      "model": "1",
+      "chain": "C",
+      "resnum": "301",
+      "said": "I",
+      "ent": "2",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAD",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H6N",
+            "dist": "2.21",
+            "clashmag": "0.41",
+            "cid": "34"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "2.74",
+            "obsval": "1.62"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.01",
+            "Zscore": "3.23",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2A,PA,O3",
+            "numobs": "23",
+            "mean": "107.27",
+            "stdev": "2.70",
+            "mindiff": "0.65",
+            "Zscore": "2.45",
+            "obsval": "113.91"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.73",
+            "Zscore": "-3.10",
+            "obsval": "119.24"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "94.07",
+            "stdev": "24.78",
+            "mindiff": "0.84",
+            "local_density": "4.60",
+            "obsval": "165.99"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O1N",
+            "numobs": "141",
+            "mean": "54.03",
+            "stdev": "24.84",
+            "mindiff": "0.43",
+            "local_density": "4.96",
+            "obsval": "114.08"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O2N",
+            "numobs": "141",
+            "mean": "80.68",
+            "stdev": "49.15",
+            "mindiff": "0.84",
+            "local_density": "4.26",
+            "obsval": "-15.48"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O3",
+            "numobs": "40",
+            "mean": "48.08",
+            "stdev": "16.30",
+            "mindiff": "18.11",
+            "local_density": "0.00",
+            "obsval": "108.97"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O1N",
+            "numobs": "40",
+            "mean": "64.43",
+            "stdev": "31.88",
+            "mindiff": "7.52",
+            "local_density": "2.50",
+            "obsval": "-139.52"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O2N",
+            "numobs": "40",
+            "mean": "93.20",
+            "stdev": "54.48",
+            "mindiff": "22.78",
+            "local_density": "0.00",
+            "obsval": "-8.05"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "64.14",
+            "stdev": "36.44",
+            "mindiff": "9.36",
+            "local_density": "3.45",
+            "obsval": "55.00"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "61.94",
+            "stdev": "31.77",
+            "mindiff": "4.06",
+            "local_density": "3.45",
+            "obsval": "-118.76"
+          }
+        }
+      ]
+    },
+    {
+      "mogul_rmsz_numbonds": "7",
+      "OPIA": "25.000",
+      "rsr": "0.125",
+      "mogul_bonds_rmsz": "0.81",
+      "EDIAm": "0.591",
+      "avgoccu": "1.000",
+      "NatomsEDS": "8",
+      "mogul_rmsz_numangles": "8",
+      "owab": "35.420",
+      "mogul_angles_rmsz": "1.98",
+      "rscc": "0.844",
+      "model": "1",
+      "chain": "C",
+      "resnum": "302",
+      "said": "J",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "QT8",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAG",
+            "dist": "2.33",
+            "clashmag": "0.76",
+            "cid": "8"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "OAC,CAH,CAF",
+            "numobs": "667",
+            "mean": "122.11",
+            "stdev": "2.85",
+            "mindiff": "0.20",
+            "Zscore": "-2.18",
+            "obsval": "115.90"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH",
+            "numobs": "26",
+            "mean": "112.32",
+            "stdev": "2.00",
+            "mindiff": "3.61",
+            "Zscore": "-3.63",
+            "obsval": "105.05"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE",
+            "numobs": "100",
+            "mean": "115.21",
+            "stdev": "5.66",
+            "mindiff": "6.10",
+            "Zscore": "-2.97",
+            "obsval": "98.38"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "OAA,CAE,CAF,CAH",
+            "numobs": "51",
+            "mean": "50.07",
+            "stdev": "16.26",
+            "mindiff": "1.97",
+            "local_density": "1.96",
+            "obsval": "68.04"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE,CAF",
+            "numobs": "94",
+            "mean": "39.22",
+            "stdev": "13.63",
+            "mindiff": "9.81",
+            "local_density": "1.06",
+            "obsval": "133.82"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "26",
+      "mogul_rmsz_numbonds": "46",
+      "OPIA": "93.180",
+      "rsr": "0.054",
+      "mogul_bonds_rmsz": "0.85",
+      "EDIAm": "0.935",
+      "avgoccu": "1.000",
+      "NatomsEDS": "44",
+      "mogul_rmsz_numangles": "64",
+      "owab": "23.870",
+      "mogul_angles_rmsz": "0.67",
+      "rscc": "0.969",
+      "model": "1",
+      "chain": "D",
+      "resnum": "301",
+      "said": "K",
+      "ent": "2",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAD",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "4.51",
+            "obsval": "1.39"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O3,PA,O1A",
+            "numobs": "23",
+            "mean": "110.70",
+            "stdev": "3.01",
+            "mindiff": "0.41",
+            "Zscore": "-2.13",
+            "obsval": "104.31"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.30",
+            "Zscore": "-2.60",
+            "obsval": "119.67"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "94.30",
+            "stdev": "24.85",
+            "mindiff": "0.89",
+            "local_density": "4.41",
+            "obsval": "166.24"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O3",
+            "numobs": "40",
+            "mean": "48.45",
+            "stdev": "16.09",
+            "mindiff": "18.68",
+            "local_density": "0.00",
+            "obsval": "109.54"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O1N",
+            "numobs": "40",
+            "mean": "94.53",
+            "stdev": "60.53",
+            "mindiff": "25.99",
+            "local_density": "0.00",
+            "obsval": "-6.22"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O2N",
+            "numobs": "40",
+            "mean": "59.27",
+            "stdev": "27.19",
+            "mindiff": "0.37",
+            "local_density": "2.50",
+            "obsval": "-137.08"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "63.78",
+            "stdev": "26.80",
+            "mindiff": "19.83",
+            "local_density": "0.00",
+            "obsval": "65.47"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "62.03",
+            "stdev": "29.43",
+            "mindiff": "6.61",
+            "local_density": "3.45",
+            "obsval": "-116.21"
+          }
+        }
+      ]
+    },
+    {
+      "mogul_rmsz_numbonds": "7",
+      "OPIA": "25.000",
+      "rsr": "0.133",
+      "mogul_bonds_rmsz": "0.93",
+      "EDIAm": "0.552",
+      "avgoccu": "1.000",
+      "NatomsEDS": "8",
+      "mogul_rmsz_numangles": "8",
+      "owab": "42.570",
+      "mogul_angles_rmsz": "2.05",
+      "rscc": "0.832",
+      "model": "1",
+      "chain": "D",
+      "resnum": "302",
+      "said": "L",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "QT8",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAG",
+            "dist": "2.29",
+            "clashmag": "0.80",
+            "cid": "6"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "CAG",
+            "dist": "2.22",
+            "clashmag": "0.51",
+            "cid": "7"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH",
+            "numobs": "26",
+            "mean": "112.32",
+            "stdev": "2.00",
+            "mindiff": "4.26",
+            "Zscore": "-3.96",
+            "obsval": "104.40"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE",
+            "numobs": "100",
+            "mean": "115.21",
+            "stdev": "5.66",
+            "mindiff": "6.44",
+            "Zscore": "-3.03",
+            "obsval": "98.04"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH,OAB",
+            "numobs": "56",
+            "mean": "58.59",
+            "stdev": "31.93",
+            "mindiff": "0.54",
+            "local_density": "1.79",
+            "obsval": "-129.74"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAE,CAF,CAH,OAC",
+            "numobs": "234",
+            "mean": "48.33",
+            "stdev": "27.19",
+            "mindiff": "0.18",
+            "local_density": "3.85",
+            "obsval": "50.10"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "OAA,CAE,CAF,CAH",
+            "numobs": "51",
+            "mean": "52.50",
+            "stdev": "22.79",
+            "mindiff": "13.23",
+            "local_density": "0.00",
+            "obsval": "79.30"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "CAG,CAD,CAE,CAF",
+            "numobs": "94",
+            "mean": "27.64",
+            "stdev": "17.59",
+            "mindiff": "1.76",
+            "local_density": "3.19",
+            "obsval": "147.15"
+          }
+        }
+      ]
+    }
+  ]
+}

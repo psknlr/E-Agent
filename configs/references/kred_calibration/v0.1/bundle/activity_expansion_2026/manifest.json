@@ -1,0 +1,75 @@
+{
+  "retrieved_date": "2026-10-07",
+  "records": [
+    {
+      "filename": "round_1.csv",
+      "url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/Heatmaps_with_dendogram/Orthologs_Experimental_Data_Round_1.csv",
+      "sha256": "734970d57da0015144f6c47472af50bc520c954c47e8146fd76b08558cce9cc2",
+      "bytes": 22405,
+      "status": "downloaded"
+    },
+    {
+      "filename": "round_2.csv",
+      "url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/Heatmaps_with_dendogram/Orthologs_Experimental_Data_Round_2.csv",
+      "sha256": "1390757baa11e1393a2c97b3748f0f93db963ffcc4f8670dcad0780ac6693126",
+      "bytes": 30325,
+      "status": "downloaded"
+    },
+    {
+      "filename": "ortholog_sequences.fasta",
+      "url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/All_ortholog_homologs_UniProt/Ssal-KRED_ortholog_library_sequences.fasta",
+      "sha256": "30ba4ec44b342dc482cbbac8ecefb546cf5464cd44bf03738e02acd649d0b6df",
+      "bytes": 38228,
+      "status": "downloaded"
+    },
+    {
+      "filename": "LICENSE",
+      "url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/LICENSE",
+      "sha256": "c3cbc7f6039e343161887df9b05e365786834ff9fcd859cfc829a5d28f632303",
+      "bytes": 1067,
+      "status": "downloaded"
+    },
+    {
+      "filename": "github_README.md",
+      "url": "https://raw.githubusercontent.com/Buller-Lab/Ssal-KRED_orthologs/main/README.md",
+      "sha256": "ae1de966cf21ce25088d4687b4bc1f9fa7c184d5b234e558fce1dad89994d697",
+      "bytes": 11436,
+      "status": "downloaded"
+    },
+    {
+      "filename": "zenodo_README.txt",
+      "url": "https://zenodo.org/api/records/19574983/files/README.txt/content",
+      "sha256": "00a3e99797efbb0f3fe46074f826fc75f49afa9684ee5037e3948b30267d7657",
+      "bytes": 3763,
+      "status": "downloaded"
+    },
+    {
+      "filename": "zenodo_substrate_SMILES.csv",
+      "url": "https://zenodo.org/api/records/19574983/files/substrate_SMILES.csv/content",
+      "sha256": "f7578ee785271759d8971bfffa7f401d120f02a535c627068209c54d016f3b43",
+      "bytes": 297,
+      "status": "downloaded"
+    },
+    {
+      "filename": "zenodo_metadata.json",
+      "url": "https://zenodo.org/api/records/19574983",
+      "sha256": "fab8e6a3041d951c42f3f86b440ca2c5c9e758563040108659fc1cc772b8038f",
+      "bytes": 12353,
+      "status": "downloaded"
+    },
+    {
+      "filename": "paper_2026_reference.pdf",
+      "url": "https://www.nature.com/articles/s41467-026-77715-6_reference.pdf",
+      "sha256": "bc67721ca2b5f109aa8210531bb4aa172e41795f9236552560f8f0a7984c3c9b",
+      "bytes": 3935576,
+      "status": "downloaded"
+    },
+    {
+      "filename": "paper_2026_fig2_visual_audit.png",
+      "url": "Derived rendering of original PDF page4 for verification",
+      "sha256": "9fa4f6b97df7ccf5a7a3ac13c46b2ba41a2c32b154b6009f202844801734bbda",
+      "bytes": 927118,
+      "status": "derived_audit"
+    }
+  ]
+}

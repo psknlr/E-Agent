@@ -71,6 +71,7 @@ __all__ = [
     "UnknownConnectorError",
     "CacheIntegrityError",
     "NetworkDisabledError",
+    "RemoteCallFailedError",
     "UnauthorizedSubmissionError",
     "ConnectorLayer",
     "ResponseStatus",
@@ -122,6 +123,37 @@ class CacheIntegrityError(ConnectorError):
     the cache is no longer a faithful replay of a retrieval, and serving its
     contents would attach one resource's answer to another resource's question.
     """
+
+
+class RemoteCallFailedError(ConnectorError):
+    """The route existed and the call failed: not "no such record".
+
+    Distinct from a miss on purpose. A 404 says the service looked and there
+    is nothing under that identifier, which is an answer. A timeout, a 503, a
+    TLS failure or a body that is not JSON says the question was never
+    answered, and reporting it as "the service returned nothing" would let a
+    transient outage read as evidence that a record does not exist -- the
+    sequence is then dropped from a pool for the weather.
+
+    Carries the HTTP status when there was one so the resolver can say what
+    happened instead of only that something did.
+    """
+
+    def __init__(self, source_id: str, url: str, reason: str,
+                 status: int | None = None, *, transient: bool = False,
+                 attempts: int = 1) -> None:
+        self.source_id = source_id
+        self.url = url
+        self.status = status
+        #: Whether trying again could plausibly help: a dropped connection, a
+        #: timeout, a 429 or a 5xx. A 4xx, a body over its cap and a response
+        #: that is not JSON are not transient -- the same request will fail
+        #: the same way, and retrying it would only delay saying so.
+        self.transient = transient
+        self.attempts = attempts
+        suffix = f" (after {attempts} attempts)" if attempts > 1 else ""
+        super().__init__(
+            f"{source_id}: the call to {url} failed: {reason}{suffix}")
 
 
 class NetworkDisabledError(ConnectorError):
@@ -806,6 +838,17 @@ class Connector(abc.ABC):
             return self._miss(
                 operation, query, cache_key, cache_path, reason=str(exc),
                 needed=(f"a curated import of {self.name} written to {cache_path}",),
+            )
+        except RemoteCallFailedError as exc:
+            # The route existed and did not answer. ERROR, not MISS: a miss
+            # means the service said there is nothing, and this is the
+            # opposite -- it said nothing at all. Nothing is cached, so the
+            # next run asks again instead of inheriting an outage.
+            return self._miss(
+                operation, query, cache_key, cache_path, reason=str(exc),
+                needed=("retry once the service answers, or check the "
+                        "endpoint and the run's network policy",),
+                status=ResponseStatus.ERROR,
             )
         if payload is None:
             return self._miss(

@@ -672,13 +672,17 @@ def _count_batch_constructs(path: Path) -> tuple[int | None, int | None]:
 # source resolution
 # ==========================================================================
 
-def _artifact_paths(manifest: RunManifest | None,
-                    keys: Sequence[str]) -> list[tuple[str, str]]:
-    """``(key, path)`` for the latest recording of each key, newest step first."""
+def _artifact_paths(manifest: RunManifest | None, keys: Sequence[str]
+                    ) -> list[tuple[str, str, str | None]]:
+    """``(key, path, sha256)`` for the latest recording of each key.
+
+    The hash travels with the path because the path alone cannot establish
+    that a file found at it is the file the run wrote.
+    """
     if manifest is None or not keys:
         return []
     wanted = set(keys)
-    found: list[tuple[str, str]] = []
+    found: list[tuple[str, str, str | None]] = []
     seen: set[str] = set()
     for record in reversed(manifest.steps):
         for artifact in record.artifacts:
@@ -686,7 +690,8 @@ def _artifact_paths(manifest: RunManifest | None,
             path = artifact.get("path")
             if key in wanted and key not in seen and path:
                 seen.add(key)
-                found.append((key, str(path)))
+                digest = artifact.get("sha256")
+                found.append((key, str(path), str(digest) if digest else None))
     return found
 
 
@@ -724,10 +729,35 @@ def _resolve_source(item: BundleItem, run_dir: Path,
     explicitly rather than silently falling through to "not produced".
     """
     notes: list[str] = []
-    for key, raw in _artifact_paths(manifest, item.artifact_keys):
+    for key, raw, recorded_sha in _artifact_paths(manifest, item.artifact_keys):
+        rejected: list[str] = []
         for candidate in _recorded_path_candidates(raw, run_dir):
-            if candidate.exists():
-                return candidate, f"run manifest artifact '{key}' at {raw}", notes
+            if not candidate.exists():
+                continue
+            if recorded_sha:
+                try:
+                    actual = sha256_file(candidate)
+                except OSError as exc:
+                    rejected.append(f"{candidate} could not be read ({exc})")
+                    continue
+                if actual != recorded_sha:
+                    # A file of the right name in the wrong place. The last
+                    # resolution tried is relative to the working directory,
+                    # so a bundler run from another project can meet a
+                    # same-named file belonging to a different task. Existing
+                    # and being readable does not make it this run's evidence,
+                    # and re-hashing it would only record that the wrong file
+                    # is internally consistent.
+                    rejected.append(
+                        f"{candidate} does not match the hash the run "
+                        f"recorded for '{key}' (recorded {recorded_sha[:12]}, "
+                        f"found {actual[:12]}), so it is a different file and "
+                        f"was not used")
+                    continue
+            return candidate, f"run manifest artifact '{key}' at {raw}", notes
+        notes.extend(rejected)
+        if rejected:
+            continue
         notes.append(
             f"the run manifest records artifact '{key}' at {raw}, which is not "
             f"on disk at any path this bundler could resolve it to; the "
@@ -951,6 +981,29 @@ def assemble_bundle(
             f"run directory {source} does not exist; a bundle is assembled "
             f"from a run, not from nothing")
     bundle_dir = Path(out_dir) if out_dir is not None else source / "bundle"
+
+    # Resolve BEFORE anything is deleted. The package is assembled by reading
+    # the run, and the output directory is cleared first, so an output that is
+    # the run directory or contains it destroys the evidence this call was
+    # about to copy -- and the function then returns normally, because by the
+    # time it reads the run there is nothing left to notice. The only
+    # irreversible operation in this module is this one, so it is checked
+    # before it happens rather than reported after.
+    resolved_source = source.resolve()
+    resolved_bundle = bundle_dir.resolve()
+    if resolved_bundle == resolved_source:
+        raise ValueError(
+            f"refusing to assemble a package into the run directory itself "
+            f"({resolved_source}): the package is built by reading that "
+            f"directory, and clearing it first would delete the manifest and "
+            f"the evidence. Choose a separate output directory, or omit "
+            f"out_dir to use {source / 'bundle'}.")
+    if resolved_bundle in resolved_source.parents:
+        raise ValueError(
+            f"refusing to assemble a package into {resolved_bundle}, which "
+            f"contains the run directory {resolved_source}: clearing it would "
+            f"delete the run this package is made from.")
+
     if bundle_dir.exists() and any(bundle_dir.iterdir()):
         if not overwrite and not (bundle_dir / BUNDLE_MANIFEST_NAME).exists():
             raise FileExistsError(

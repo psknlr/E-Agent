@@ -50,6 +50,7 @@ from ..connectors.base import (
     records_in, resolve_strength,
 )
 from ..context import RunContext
+from ..datalayer.intake import direction_check
 from ..envelope import Artifact, Provenance, Severity, Status, ToolResult
 from ..provenance import canonical_json, sha256_file, sha256_obj, sha256_text, utc_now
 from ..schemas import (
@@ -813,12 +814,33 @@ class MatrixCell:
     confirmed_wild_type: int = 0
     confirmed_variant: int = 0
     confirmed_reverse_direction: int = 0
+    #: Confirmed, but the direction was never recorded. Kept apart from the
+    #: reverse bucket: not knowing which way a measurement ran is a different
+    #: state from knowing it ran the other way, and the remedies differ.
+    confirmed_direction_unknown: int = 0
+    #: Confirmed, but the record contradicts itself -- its declared direction
+    #: and its own chemistry disagree. Counted nowhere else.
+    confirmed_direction_conflict: int = 0
     not_detected: int = 0
+    #: Not detected, but measured in the reverse direction. A failure to see
+    #: the oxidation is not a failure to see the reduction.
+    not_detected_reverse_direction: int = 0
     expression_failure: int = 0
     other_product: int = 0
     not_tested: int = 0
     computational_only: int = 0
     independent_sources: int = 0
+    #: Independent sources among the **wild-type** confirmations only.
+    #:
+    #: Counted apart from :attr:`independent_sources` because the maturity
+    #: question is about wild-type enzymes. One wild-type success plus one
+    #: engineered-variant success from another source made the pooled count
+    #: reach two and the cell read "independent wild-type successes exist for
+    #: this chemotype" -- while there was exactly one wild-type success and
+    #: the second witness was about a protein somebody had already had to
+    #: engineer. That is the difference between "pick one off the shelf" and
+    #: "budget an engineering campaign".
+    independent_wild_type_sources: int = 0
     max_strength: EvidenceStrength = EvidenceStrength.COMPUTATIONAL_CONSTRUCT
     record_ids: list[str] = field(default_factory=list)
 
@@ -833,7 +855,10 @@ class MatrixCell:
         if self.confirmed_wild_type > 0:
             # Corroboration is counted in independent sources, not in records:
             # four databases re-publishing one measurement is one witness.
-            if self.independent_sources >= MIN_INDEPENDENT_SOURCES_FOR_MATURE:
+            # And in the sources of the WILD-TYPE confirmations: a variant's
+            # success corroborates the variant, not the natural enzyme.
+            if (self.independent_wild_type_sources
+                    >= MIN_INDEPENDENT_SOURCES_FOR_MATURE):
                 return Maturity.MATURE_NATURAL
             return Maturity.NATURAL_SINGLE_REPORT
         if self.confirmed_variant > 0:
@@ -863,6 +888,7 @@ class MatrixCell:
                 f"op={self.other_product} ut={self.not_tested} "
                 f"comp={self.computational_only} "
                 f"ind={self.independent_sources} "
+                f"indwt={self.independent_wild_type_sources} "
                 f"str={strength}")
 
     def to_dict(self) -> dict[str, Any]:
@@ -878,6 +904,7 @@ class MatrixCell:
             "not_tested": self.not_tested,
             "computational_only": self.computational_only,
             "independent_sources": self.independent_sources,
+            "independent_wild_type_sources": self.independent_wild_type_sources,
             "max_strength": self.max_strength.value,
             "n_records": self.n_records,
         }
@@ -965,7 +992,8 @@ def _count_independent(records: Sequence[ExperimentRecord]) -> tuple[int, str]:
                       "unavailable; shared campaigns are not collapsed)")
 
 
-def build_evidence_matrix(rows: Sequence[EvidenceRow]) -> EvidenceMatrix:
+def build_evidence_matrix(rows: Sequence[EvidenceRow],
+                          target_reaction: Any = None) -> EvidenceMatrix:
     """Bin rows into the family x chemotype matrix, keeping outcomes apart.
 
     A confirmed record measured in the reverse direction is counted in its own
@@ -989,18 +1017,46 @@ def build_evidence_matrix(rows: Sequence[EvidenceRow]) -> EvidenceMatrix:
             cell.max_strength = rec.max_strength
 
         outcome = rec.outcome
+        # Both signals, not just the label. A record can carry
+        # forward_as_target and describe the oxidation in its own reaction
+        # class, substrate and product; trusting the label alone counts that
+        # as evidence for the reduction. direction_check already reads both
+        # and is reused here rather than re-implemented, so the matrix cannot
+        # drift away from the intake rule.
+        verdict = (direction_check(rec, target_reaction)
+                   if target_reaction is not None else None)
+        if verdict is not None:
+            supports = verdict.supports
+            is_reverse = verdict.is_reverse
+            unknown = verdict.is_unspecified
+            conflict = not supports and not is_reverse and not unknown
+        else:
+            supports = rec.reaction_direction.supports_target_direction
+            is_reverse = (rec.reaction_direction
+                          is ReactionDirection.REVERSE_OF_TARGET)
+            unknown = not supports and not is_reverse
+            conflict = False
+
         if outcome is OutcomeClass.CONFIRMED_TARGET_PRODUCT:
-            if not rec.reaction_direction.supports_target_direction:
-                cell.confirmed_reverse_direction += 1
-            else:
+            if supports:
                 cell.confirmed += 1
                 if rec.is_variant:
                     cell.confirmed_variant += 1
                 else:
                     cell.confirmed_wild_type += 1
                 confirmed_records.setdefault(key, []).append(rec)
+            elif is_reverse:
+                cell.confirmed_reverse_direction += 1
+            elif conflict:
+                cell.confirmed_direction_conflict += 1
+            else:
+                cell.confirmed_direction_unknown += 1
         elif outcome is OutcomeClass.NO_TARGET_PRODUCT_DETECTED:
-            cell.not_detected += 1
+            if supports:
+                cell.not_detected += 1
+            else:
+                # Not seeing the oxidation is not not seeing the reduction.
+                cell.not_detected_reverse_direction += 1
         elif outcome is OutcomeClass.EXPRESSION_OR_SOLUBILITY_FAILURE:
             cell.expression_failure += 1
         elif outcome is OutcomeClass.OTHER_PRODUCT_OR_WRONG_CONFIGURATION:
@@ -1014,6 +1070,10 @@ def build_evidence_matrix(rows: Sequence[EvidenceRow]) -> EvidenceMatrix:
     for key, recs in confirmed_records.items():
         n, method = _count_independent(recs)
         cells[key].independent_sources = n
+        wild_type = [r for r in recs if not r.is_variant]
+        if wild_type:
+            cells[key].independent_wild_type_sources = (
+                _count_independent(wild_type)[0])
 
     ordered_families = tuple(sorted(f for f in families if f != UNASSIGNED_FAMILY))
     if UNASSIGNED_FAMILY in families:
@@ -1115,7 +1175,10 @@ class RetrieveEvidence(ScientificInterface):
                     "cache_path": response.cache_path, "needed": [],
                 })
 
-        matrix = build_evidence_matrix(rows)
+        # The target reaction is passed so the matrix can check each
+        # record's declared direction against its own chemistry, rather
+        # than trusting the label a source happened to carry.
+        matrix = build_evidence_matrix(rows, ctx.task.reaction)
         records_artifact = self._write_records(ctx, rows)
         matrix_artifact = self._write_matrix(ctx, matrix, plan, rows, gaps)
         gaps_artifact = self._write_gaps(ctx, gaps, failures)

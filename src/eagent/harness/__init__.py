@@ -17,9 +17,11 @@ runs next and nothing scientific at all, and
 
 from __future__ import annotations
 
+from .citation import ArtifactEntry, ArtifactIndex, Citation
 from .llm import (
     CallbackClient, EchoClient, GuardReport, Hypothesis, LLMClient, ModelTurn,
-    NumericGuard, SYSTEM_PROMPT, ToolCall, parse_turn, validate_turn,
+    GuardReport, NumericGuard, SYSTEM_PROMPT, ToolCall, parse_turn,
+    validate_turn,
 )
 from .templates import (
     CalibrationReport, ConstraintRecord, LoadedTemplate, TEMPLATE_KINDS,
@@ -47,6 +49,7 @@ from .verifier import (
 __all__ = [
     # llm boundary
     "CallbackClient", "EchoClient", "GuardReport", "Hypothesis", "LLMClient",
+    "ArtifactEntry", "ArtifactIndex", "Citation", "GuardReport",
     "ModelTurn", "NumericGuard", "SYSTEM_PROMPT", "ToolCall", "parse_turn",
     "validate_turn",
     # templates

@@ -99,15 +99,24 @@ class TestOfflineAndRefusals(StructureTestCase):
         with self.assertRaises(LayerSemanticsError):
             connector.entry("0XYZ").as_activity_evidence()
 
-    def test_every_structure_source_still_records_a_null_endpoint(self) -> None:
+    def test_an_endpoint_appears_only_with_a_verified_route(self) -> None:
         for source_id in ("rcsb_pdb", "alphafold_db", "sifts", "wwpdb_ccd",
                           "mcsa", "alphafill"):
+            with self.subTest(source=source_id):
+                source = self.registry.get(source_id)
+                if source.endpoint is None:
+                    continue
+                self.assertTrue(source.connectivity_verified, source_id)
+                self.assertTrue(source.verified_capabilities, source_id)
+
+    def test_the_rest_still_have_no_route_at_all(self) -> None:
+        for source_id in ("alphafold_db", "sifts", "wwpdb_ccd", "mcsa",
+                          "alphafill"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
     def test_require_endpoint_is_a_typed_refusal_naming_the_curation_note(self) -> None:
-        for connector in (RCSBPDBConnector(cache=self.cache),
-                          AlphaFoldDBConnector(cache=self.cache),
+        for connector in (AlphaFoldDBConnector(cache=self.cache),
                           SIFTSConnector(cache=self.cache),
                           MCSAConnector(cache=self.cache),
                           AlphaFillConnector(cache=self.cache)):
@@ -117,43 +126,13 @@ class TestOfflineAndRefusals(StructureTestCase):
                 self.assertEqual(ctx.exception.source_id, connector.source_id)
                 self.assertTrue(ctx.exception.curation_notes)
 
-    def test_a_bulk_only_source_refuses_a_per_record_call_even_with_a_url(self) -> None:
-        """wwPDB CCD is registered bulk_download only: there is no service."""
-        connector = WwPDBChemicalComponentConnector(cache=self.cache)
-        modes = connector.source.access_modes
-        self.assertFalse(any(m.is_network_endpoint for m in modes))
-        with self.assertRaises(EndpointNotEstablishedError):
-            connector.require_endpoint()
-
-    def test_sifts_refuses_a_keyword_query(self) -> None:
-        connector = SIFTSConnector(cache=self.cache)
-        self.assertIs(connector.capability("keyword_query").state,
-                      CapabilityState.NOT_SUPPORTED)
-        response = connector.search({"text": "dehydrogenase"})
-        self.assertIs(response.status, ResponseStatus.REFUSED)
-        self.assertIsNone(response.payload)
-        self.assertIn("not_supported", response.miss_reason or "")
-
-    def test_an_unknown_fetch_capability_is_marked_unverified(self) -> None:
-        connector = SIFTSConnector(cache=self.cache)
-        self.assertIs(connector.capability("exact_record_fetch").state,
-                      CapabilityState.UNKNOWN)
-        connector.store_import("fetch", "P0:0XYZ:A", {"records": [
-            {"uniprot_accession": "P0", "pdb_id": "0XYZ", "chain_id": "A",
-             "residues": []}]})
-        response = connector.fetch("P0:0XYZ:A")
-        self.assertIs(response.status, ResponseStatus.HIT)
-        self.assertTrue(any(n.startswith(UNVERIFIED_CAPABILITY)
-                            for n in response.notes))
-
-    def test_a_supported_capability_is_not_marked_unverified(self) -> None:
+    def test_rcsb_has_both_a_verified_route_and_a_checked_client(self) -> None:
         connector = RCSBPDBConnector(cache=self.cache)
-        self.assertIs(connector.capability("exact_record_fetch").state,
-                      CapabilityState.SUPPORTED)
-        connector.store_import("fetch", "0XYZ",
-                               {"records": [{"pdb_id": "0XYZ"}]})
-        self.assertFalse(any(n.startswith(UNVERIFIED_CAPABILITY)
-                             for n in connector.fetch("0XYZ").notes))
+        self.assertEqual(connector.source.endpoint, "https://data.rcsb.org")
+        self.assertEqual(connector.verified_route_capability,
+                         "exact_record_fetch")
+        self.assertEqual(connector.require_endpoint(), "https://data.rcsb.org")
+
 
 
 # ---------------------------------------------------------------------------

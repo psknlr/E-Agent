@@ -1,0 +1,226 @@
+# MACHINE-WRITTEN. Do not hand-edit; `eagent sources verify --write` rewrites
+# this file in full.
+#
+# WHY THIS IS NOT IN THE SOURCE FILES
+# ===================================
+# The curated entries in configs/datasources/*.yaml are judgements: what a
+# resource is good for, what it may never claim, its licence, its evidence
+# ceiling. They change when somebody decides something.
+#
+# What is below is an observation: a URL answered, at a moment, from one
+# environment. It goes stale on its own, without anybody deciding anything.
+# Merging the two would mean a nightly sweep rewriting a file full of
+# hand-written reasoning, and a reader being unable to tell which lines were
+# curated and which were measured.
+#
+# So the loader merges this onto the matching sources, and a source is
+# `connectivity_verified` exactly when a check here says so. Delete this file
+# and every source is unverified again, which is the correct state for an
+# environment nobody has run the sweep in.
+#
+# A pass says: this capability, at this URL, answered correctly at this time,
+# from this environment. It is not a licence, not permission to redistribute,
+# and not a statement about any other capability.
+
+observed_connectivity:
+- id: rcsb_pdb
+  endpoint: https://data.rcsb.org
+  citations:
+  - https://www.rcsb.org/docs/programmatic-access/file-download-services (fetched HTTP 200
+    on 2026-10-08T03:47:02+00:00)
+  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-08T03:47:00+00:00)
+  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-08T03:47:01+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://data.rcsb.org/rest/v1/core/entry/1CDO
+    checked_at: '2026-10-08T03:47:00+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 1CDO
+    - rcsb_entry_info
+    response_sha256: sha256:ed89f2e3d6810f0eb1aee3b0038d156b8454be8d4941fe1e406407ec207eeafc
+    response_bytes: 15160
+    elapsed_ms: 212
+    documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
+    documentation_status: 200
+    failure: ''
+    note: '1CDO is a horse liver alcohol dehydrogenase structure: an NAD-dependent oxidoreductase,
+      so the record exercises the fields this project reads'
+  - capability: exact_record_fetch
+    url: https://data.rcsb.org/rest/v1/core/polymer_entity/1CDO/1
+    checked_at: '2026-10-08T03:47:00+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 1CDO_1
+    - entity_poly
+    response_sha256: sha256:cffea05b4a17a446b03fc22d3072a093153c7f52cffac05e1774ff0cd5c27a76
+    response_bytes: 21954
+    elapsed_ms: 224
+    documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
+    documentation_status: 200
+    failure: ''
+    note: a client that makes this request is verified only if this request itself was probed,
+      not merely the entry one
+  - capability: exact_record_fetch
+    url: https://data.rcsb.org/rest/v1/core/nonpolymer_entity/1CDO/3
+    checked_at: '2026-10-08T03:47:01+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 1CDO_3
+    - pdbx_entity_nonpoly
+    response_sha256: sha256:0a705893dcede9cfef94a054ddd288f30b7bc5d97837de6dc897f0b370332780
+    response_bytes: 453
+    elapsed_ms: 226
+    documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
+    documentation_status: 200
+    failure: ''
+    note: 1CDO entity 3 is NAD, the cofactor of this alcohol dehydrogenase
+  - capability: exact_record_fetch
+    url: https://files.rcsb.org/download/1IPF.cif
+    checked_at: '2026-10-08T03:47:02+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - data_1IPF
+    - _entry.id
+    - _atom_site.Cartn_x
+    response_sha256: sha256:8891976c267b9ea8b6d7e3752f5d3ae6f5df81ba9b37ab376de2e8740e398efa
+    response_bytes: 455755
+    elapsed_ms: 355
+    documentation_url: https://www.rcsb.org/docs/programmatic-access/file-download-services
+    documentation_status: 200
+    failure: ''
+    note: 1IPF is tropinone reductase II with NADPH and tropinone, the one pre-reaction ternary
+      SDR complex in the KRED calibration reference set; a 450 KB file, so the probe is cheap
+- id: rhea
+  endpoint: https://www.rhea-db.org
+  citations:
+  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-08T03:47:05+00:00)
+  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-08T03:47:06+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: keyword_query
+    url: https://www.rhea-db.org/rhea?query=ec:1.1.1.1&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100
+    checked_at: '2026-10-08T03:47:05+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - "Reaction identifier\tEquation\tEC number\tChEBI identifier"
+    - EC:1.1.1.1
+    response_sha256: sha256:2ce0354bd4ad387a4d3bda01d372fae4c6ca9dc5ed006f663714d2dbf32074c5
+    response_bytes: 469
+    elapsed_ms: 562
+    documentation_url: https://www.rhea-db.org/help/rest-api
+    documentation_status: 200
+    failure: ''
+    note: EC 1.1.1.1 is alcohol dehydrogenase, the mechanistic neighbourhood of this project's
+      pilot task
+  - capability: keyword_query
+    url: https://www.rhea-db.org/rhea?query=RHEA:10740&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100
+    checked_at: '2026-10-08T03:47:06+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - RHEA:10740
+    - secondary alcohol
+    response_sha256: sha256:0e0b91307ca9dad096bcdcd92a7e4c336bfa0bcc7110f9ebefb573f7a6647823
+    response_bytes: 192
+    elapsed_ms: 610
+    documentation_url: https://www.rhea-db.org/help/rest-api
+    documentation_status: 200
+    failure: ''
+    note: 'a secondary alcohol to a ketone with NAD(+): the reaction class of the pilot task,
+      read in the oxidation direction'
+- id: uniprotkb
+  endpoint: https://rest.uniprot.org
+  citations:
+  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-08T03:46:57+00:00)
+  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-08T03:46:59+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://rest.uniprot.org/uniprotkb/P07846.json?fields=accession,id,protein_name,organism_name,reviewed,ec,cc_catalytic_activity,cc_cofactor,sequence,xref_pdb
+    checked_at: '2026-10-08T03:46:57+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - P07846
+    - primaryAccession
+    - uniProtkbId
+    response_sha256: sha256:c80d19c10283d5596d244e5a775b775b18f1e6dd4d9e21177d81ac3eaa68b45b
+    response_bytes: 3901
+    elapsed_ms: 827
+    documentation_url: https://www.uniprot.org/help/api
+    documentation_status: 200
+    failure: ''
+    note: P07846 is an alcohol dehydrogenase, chosen because it is a reviewed entry in the
+      mechanistic neighbourhood of this project's pilot task
+  - capability: version_information
+    url: https://rest.uniprot.org/uniprotkb/search?query=accession:P07846&size=1
+    checked_at: '2026-10-08T03:46:59+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - P07846
+    - results
+    response_sha256: sha256:03a7c3309efbb0d752fa7d5c1e515840e4cb63a1e20797b4adb7ceb7b37fa453
+    response_bytes: 29225
+    elapsed_ms: 1381
+    documentation_url: https://www.uniprot.org/help/api
+    documentation_status: 200
+    failure: ''
+    note: ''
+- id: zenodo
+  endpoint: https://zenodo.org
+  citations:
+  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-08T03:47:02+00:00)
+  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-08T03:47:03+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://zenodo.org/api/records/7141435
+    checked_at: '2026-10-08T03:47:02+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 10.5281/zenodo.7141435
+    - SDR_sequences.fasta
+    - cc-by-4.0
+    response_sha256: sha256:e667b9cce2002400606945e45bd6556e65f022866e7b2550d9c6c6f91fc2965f
+    response_bytes: 10277
+    elapsed_ms: 571
+    documentation_url: https://developers.zenodo.org/
+    documentation_status: 200
+    failure: ''
+    note: record 7141435 is the SDR substrate-classification dataset (Jinich and Rappoport,
+      2022), the first dataset this project ingests; chosen because it is small, openly licensed
+      and about the enzyme family of the pilot task
+  - capability: exact_record_fetch
+    url: https://zenodo.org/api/records/7141435/files/README.txt/content
+    checked_at: '2026-10-08T03:47:03+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - Enzyme Substrate Classification Dataset
+    - Jinich
+    response_sha256: sha256:ecd383a09cda1400a98553a3f17d2b76d4fb1f408e525336e6a5b841c31f3813
+    response_bytes: 4420
+    elapsed_ms: 667
+    documentation_url: https://developers.zenodo.org/
+    documentation_status: 200
+    failure: ''
+    note: a 4 KB README, so the probe itself costs nothing to run

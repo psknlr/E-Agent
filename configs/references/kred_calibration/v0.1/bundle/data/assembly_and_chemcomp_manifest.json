@@ -1,0 +1,3002 @@
+{
+  "description": "Official unmodified assembly1 coordinate files, RCSB assembly1 REST metadata and CCD REST chemical-component metadata. No preparation or geometry optimization performed.",
+  "source_audit_file": "data/structure_audit_raw.json",
+  "source_audit_sha256": "ea8bd2b7a902ca686a75b1379be0de5d7e767c90cbea12aeec3f7ed166ec083c",
+  "created_at_utc": "2026-10-07T22:38:21.867044+00:00",
+  "pdb_ids": [
+    "1ZK4",
+    "1ZJY",
+    "1ZJZ",
+    "1ZK0",
+    "1ZK1",
+    "6ZZO",
+    "6ZZP",
+    "6ZZQ",
+    "6ZZS",
+    "4RF2",
+    "4RF3",
+    "4RF4",
+    "4RF5",
+    "1Y1P",
+    "7UUT",
+    "7UTC",
+    "1IPF",
+    "2AE2",
+    "6XEW"
+  ],
+  "ccd_ids": [
+    "AC0",
+    "SS2",
+    "TNE",
+    "PTO",
+    "AAE",
+    "QT8",
+    "HBR",
+    "HBS",
+    "NAP",
+    "NDP",
+    "NAD",
+    "NAI",
+    "AMP",
+    "NMN",
+    "PO4"
+  ],
+  "download_policy": "At most2attempts perfile,25-secondnetworktimeout,6concurrentworkers; failedfilesrecorded",
+  "files": [
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "1ZK4",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/1ZK4-assembly1.cif",
+      "path": "structures/1ZK4/assembly1.cif",
+      "status": "ok",
+      "sha256": "9acb22eea13986f5ba6fef9dba02880280e4266f725040932270751eac53e754",
+      "bytes": 2252037,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/1ZK4-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:48.584360+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "1ZK4",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK4/1",
+      "path": "structures/1ZK4/assembly1.json",
+      "status": "ok",
+      "sha256": "4373450cf3e1edc5041d2f255311d93c248a93362bc1aaa9a583f91d252ec9ab",
+      "bytes": 4215,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK4/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:44.787633+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "1ZJY",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/1ZJY-assembly1.cif",
+      "path": "structures/1ZJY/assembly1.cif",
+      "status": "ok",
+      "sha256": "e3d6994d894ef89ef81832eec7b16f339ea1eff338116cc831572bd482448cfd",
+      "bytes": 2508366,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/1ZJY-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:48.506133+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "1ZJY",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/1ZJY/1",
+      "path": "structures/1ZJY/assembly1.json",
+      "status": "ok",
+      "sha256": "1e3f7eecf70e28b1b6d0fef49f41842fa632a62057eb4823f876f623496e6126",
+      "bytes": 4216,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZJY/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:44.805211+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "1ZJZ",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/1ZJZ-assembly1.cif",
+      "path": "structures/1ZJZ/assembly1.cif",
+      "status": "ok",
+      "sha256": "1dccf216e014ef5114e3414fce41bd4de9e9cd50035af0095f273b199f5fad89",
+      "bytes": 2557299,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/1ZJZ-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:48.481105+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "1ZJZ",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/1ZJZ/1",
+      "path": "structures/1ZJZ/assembly1.json",
+      "status": "ok",
+      "sha256": "ce630130161e097ab08ac1ec13c2fdd06dcf871a13dbd25de461ad2ca3448c63",
+      "bytes": 4212,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZJZ/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:44.835758+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "1ZK0",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/1ZK0-assembly1.cif",
+      "path": "structures/1ZK0/assembly1.cif",
+      "status": "ok",
+      "sha256": "7a4bef8fdb0410303f9f77e9c983ffdecd7c563155cca877e05bce5042b53ed3",
+      "bytes": 2284065,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/1ZK0-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:48.413106+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "1ZK0",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK0/1",
+      "path": "structures/1ZK0/assembly1.json",
+      "status": "ok",
+      "sha256": "adeef1fa1b83e5880a0a10da7e481678f6efe6ff839d9ab8df3f1a73488b23c9",
+      "bytes": 4214,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK0/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:49.019872+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "1ZK1",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/1ZK1-assembly1.cif",
+      "path": "structures/1ZK1/assembly1.cif",
+      "status": "ok",
+      "sha256": "b54af0da7f82c9311b0b959a8016221348a1decdf4b3451584acc33161309743",
+      "bytes": 1085390,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/1ZK1-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:48.505502+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "1ZK1",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK1/1",
+      "path": "structures/1ZK1/assembly1.json",
+      "status": "ok",
+      "sha256": "93ed5d179853726e75b2252ce628605ab33d8aafb766f874383007dadab8b660",
+      "bytes": 4212,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/1ZK1/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:49.035073+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "6ZZO",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/6ZZO-assembly1.cif",
+      "path": "structures/6ZZO/assembly1.cif",
+      "status": "ok",
+      "sha256": "4b37634d49dd80b6813c4ebb59290a76c9881eb965b463cec58ba4e62b430c57",
+      "bytes": 1028467,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/6ZZO-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:54.800718+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "6ZZO",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZO/1",
+      "path": "structures/6ZZO/assembly1.json",
+      "status": "ok",
+      "sha256": "77aafaa8fc3bc66a45ec8d6d5d5b9ac1a1eb11bf0be8080e326d41606d455f35",
+      "bytes": 4246,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZO/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:49.124176+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "6ZZP",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/6ZZP-assembly1.cif",
+      "path": "structures/6ZZP/assembly1.cif",
+      "status": "ok",
+      "sha256": "baf787869d8fd9b9fd78a13c9ea5af50cf96731c49879e998410c9336a1da466",
+      "bytes": 1033503,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/6ZZP-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:54.728485+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "6ZZP",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZP/1",
+      "path": "structures/6ZZP/assembly1.json",
+      "status": "ok",
+      "sha256": "f3adb2631450e80a869d6e8f4a176773b03232a209259fbce796054f2cb6f13a",
+      "bytes": 4255,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZP/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:48.994595+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "6ZZQ",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/6ZZQ-assembly1.cif",
+      "path": "structures/6ZZQ/assembly1.cif",
+      "status": "ok",
+      "sha256": "a2cfda7936a8d7323b758fad04a3e3554fbab73b6577ac82c1f0cb5584513102",
+      "bytes": 923570,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/6ZZQ-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:54.656065+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "6ZZQ",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZQ/1",
+      "path": "structures/6ZZQ/assembly1.json",
+      "status": "ok",
+      "sha256": "6838c9f28c37f5bb1a225f83a2b51c72279ecd6af3e4fc98b625c62e71d6be4d",
+      "bytes": 4630,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZQ/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:52.170421+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "6ZZS",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/6ZZS-assembly1.cif",
+      "path": "structures/6ZZS/assembly1.cif",
+      "status": "ok",
+      "sha256": "39ce09e44d9e969a6a38ac29ab57f1b5ff355ced3bc500443dae592b20d66df3",
+      "bytes": 922247,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/6ZZS-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:54.864077+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "6ZZS",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZS/1",
+      "path": "structures/6ZZS/assembly1.json",
+      "status": "ok",
+      "sha256": "fccf3d0f8735a9eb737e805c936d55aa1cde37f0957ff0efe291c5274be2d024",
+      "bytes": 3997,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/6ZZS/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:52.368606+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "4RF2",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/4RF2-assembly1.cif",
+      "path": "structures/4RF2/assembly1.cif",
+      "status": "ok",
+      "sha256": "193ec547781606502300ed6ec370db95d438e196300357c9a97bfc3a5e56110c",
+      "bytes": 1676182,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/4RF2-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:54.798651+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "4RF2",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/4RF2/1",
+      "path": "structures/4RF2/assembly1.json",
+      "status": "ok",
+      "sha256": "c4305a9c9017ac7317dfc6355e74ef352acda80ae44e0485f999dffcb6a95fee",
+      "bytes": 3841,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF2/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:55.846759+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "4RF3",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/4RF3-assembly1.cif",
+      "path": "structures/4RF3/assembly1.cif",
+      "status": "ok",
+      "sha256": "4b12fa540199ba60a8793f0d5f1e396ca2d386658c70ed7475fb5653df8add4d",
+      "bytes": 1659645,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/4RF3-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:03.203375+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "4RF3",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/4RF3/1",
+      "path": "structures/4RF3/assembly1.json",
+      "status": "ok",
+      "sha256": "760fdb7d05223df8ca9824bd13efb8d95a4fe1f1ab3f3680aab5747d6c989cb4",
+      "bytes": 3811,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF3/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:55.943784+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "4RF4",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/4RF4-assembly1.cif",
+      "path": "structures/4RF4/assembly1.cif",
+      "status": "ok",
+      "sha256": "c93acd17e32fe2e702da394d470921aa034c69cfb73b07bd9296485a687182f9",
+      "bytes": 1588215,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/4RF4-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:03.381222+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "4RF4",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/4RF4/1",
+      "path": "structures/4RF4/assembly1.json",
+      "status": "ok",
+      "sha256": "b725878243ac004e1ac1b23b1a91e0ce41582df43063a092935ca263cd64d7e4",
+      "bytes": 3832,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF4/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:55.860864+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "4RF5",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/4RF5-assembly1.cif",
+      "path": "structures/4RF5/assembly1.cif",
+      "status": "ok",
+      "sha256": "a578575bb080a9d63653fbaecc77b392149adde5fc988f4ecc80760544248279",
+      "bytes": 1697932,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/4RF5-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:03.307724+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "4RF5",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/4RF5/1",
+      "path": "structures/4RF5/assembly1.json",
+      "status": "ok",
+      "sha256": "f3d25c555c6e3702ed6ee3efcb8a4f7a46b375cc0b36b050cb4e42089b1355e9",
+      "bytes": 3834,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/4RF5/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:59.614611+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "1Y1P",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/1Y1P-assembly1.cif",
+      "path": "structures/1Y1P/assembly1.cif",
+      "status": "ok",
+      "sha256": "07eae3e4e9cdae646311a68591e0b83c520351c6c7408d0e110dd8b9ce8fe3e7",
+      "bytes": 362089,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/1Y1P-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:03.309764+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "1Y1P",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/1Y1P/1",
+      "path": "structures/1Y1P/assembly1.json",
+      "status": "ok",
+      "sha256": "f87f217ed7a6ba65cf759ca7b5dfbba2f92b7e6b76b98a40cb59aba0eee55afb",
+      "bytes": 2424,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/1Y1P/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:37:59.537613+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "7UUT",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/7UUT-assembly1.cif",
+      "path": "structures/7UUT/assembly1.cif",
+      "status": "ok",
+      "sha256": "036235f159e83b2fa0a84582d00b77b3c2219697830f2caac0b08b6e9e265871",
+      "bytes": 2404531,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/7UUT-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:03.314088+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "7UUT",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/7UUT/1",
+      "path": "structures/7UUT/assembly1.json",
+      "status": "ok",
+      "sha256": "46458eea681f114ab48341e427d7478df9427b652f38d2d3e20cb7c033bba6f0",
+      "bytes": 3654,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/7UUT/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:02.886564+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "7UTC",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/7UTC-assembly1.cif",
+      "path": "structures/7UTC/assembly1.cif",
+      "status": "ok",
+      "sha256": "569aad6c029755967e93087d18292cbc121b278e5d1282f1784d6ff0bfab8453",
+      "bytes": 2437845,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/7UTC-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:10.054186+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "7UTC",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/7UTC/1",
+      "path": "structures/7UTC/assembly1.json",
+      "status": "ok",
+      "sha256": "b8c15fbdaf498c92d62cf8e04c786fcf798f0001eabce9337f6cc473eae3bfde",
+      "bytes": 3800,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/7UTC/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:09.769349+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "1IPF",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/1IPF-assembly1.cif",
+      "path": "structures/1IPF/assembly1.cif",
+      "status": "ok",
+      "sha256": "398d25808d04505987706208285873fe41956978874378edf542dfc6506eca96",
+      "bytes": 447712,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/1IPF-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:09.852506+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "1IPF",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/1IPF/1",
+      "path": "structures/1IPF/assembly1.json",
+      "status": "ok",
+      "sha256": "d47a295a9dda9d0fa5da82e0c2e3f4e21e5be652697270fdfb0091a913c354fe",
+      "bytes": 3455,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/1IPF/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:09.843708+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "2AE2",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/2AE2-assembly1.cif",
+      "path": "structures/2AE2/assembly1.cif",
+      "status": "ok",
+      "sha256": "64c71e524ba666078f5ae637ad4fd4469eb8448603834e60ea1a38e51b9890aa",
+      "bytes": 465878,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/2AE2-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:09.986931+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "2AE2",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/2AE2/1",
+      "path": "structures/2AE2/assembly1.json",
+      "status": "ok",
+      "sha256": "a7188d42f2e359c455f90da243c6021732db11c0c2b15772f033346fa2d7d08a",
+      "bytes": 3464,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/2AE2/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:09.854104+00:00"
+    },
+    {
+      "kind": "assembly_coordinates",
+      "pdb_id": "6XEW",
+      "assembly_id": "1",
+      "url": "https://files.rcsb.org/download/6XEW-assembly1.cif",
+      "path": "structures/6XEW/assembly1.cif",
+      "status": "ok",
+      "sha256": "4f786b824cc156aca06ae593bcc5ca1056a58bd99113a4a7d67000a557221a5e",
+      "bytes": 1034352,
+      "content_type": "chemical/x-cif",
+      "final_url": "https://files.rcsb.org/download/6XEW-assembly1.cif",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:15.144259+00:00"
+    },
+    {
+      "kind": "assembly_metadata",
+      "pdb_id": "6XEW",
+      "assembly_id": "1",
+      "url": "https://data.rcsb.org/rest/v1/core/assembly/6XEW/1",
+      "path": "structures/6XEW/assembly1.json",
+      "status": "ok",
+      "sha256": "b7662ae129aed800788aa0539a76fb3f1c987643870f6909a79b98fd1012fedb",
+      "bytes": 3956,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/assembly/6XEW/1",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:13.603470+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "AC0",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/AC0",
+      "path": "chemical_components/AC0.json",
+      "status": "ok",
+      "sha256": "c42ee73a2ec37e04987b3f2b5146acaf9348c348a91e8d38175d4d3d8f22c640",
+      "bytes": 7718,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/AC0",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:13.612851+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "SS2",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/SS2",
+      "path": "chemical_components/SS2.json",
+      "status": "ok",
+      "sha256": "4c612fa4206f0d1bbb8115a61dc5ecf01a5a017d059e70206472b3a545908378",
+      "bytes": 5684,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/SS2",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:13.694082+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "TNE",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/TNE",
+      "path": "chemical_components/TNE.json",
+      "status": "ok",
+      "sha256": "53e2d53134476f484a038ed4d6dde2ecc10bfd0b2f97215eaa785807d3531e7b",
+      "bytes": 4082,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/TNE",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:13.694812+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "PTO",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/PTO",
+      "path": "chemical_components/PTO.json",
+      "status": "ok",
+      "sha256": "28ab4db3b0ee7e621223f16e004e7af949a9e5238dd67632409028ded731b449",
+      "bytes": 4046,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/PTO",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:13.600645+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "AAE",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/AAE",
+      "path": "chemical_components/AAE.json",
+      "status": "ok",
+      "sha256": "1253bbb6b4dd14e67d198ecaa37d6fbf4f15e47c5801bb9046074d4c5362c44e",
+      "bytes": 5800,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/AAE",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:16.976717+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "QT8",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/QT8",
+      "path": "chemical_components/QT8.json",
+      "status": "ok",
+      "sha256": "c42e668ac797787b3d6c833f02924a4e5298b1d46f1bf562bf93ac8c5eae8e08",
+      "bytes": 3047,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/QT8",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:17.059471+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "HBR",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/HBR",
+      "path": "chemical_components/HBR.json",
+      "status": "ok",
+      "sha256": "b3634a24a98f09585792107518a808c46a671e3d42388374d424c09db8166f08",
+      "bytes": 3824,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/HBR",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:17.040811+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "HBS",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/HBS",
+      "path": "chemical_components/HBS.json",
+      "status": "ok",
+      "sha256": "ef1dce4dce6108a49930180d2418716090b139a21e3e5f23affdacfc21583aa5",
+      "bytes": 3496,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/HBS",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:17.002471+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "NAP",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAP",
+      "path": "chemical_components/NAP.json",
+      "status": "ok",
+      "sha256": "a9c225cef28aad36d01325424979f61ab943cfebcc79b06cc66b032c0d9a244d",
+      "bytes": 18762,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAP",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:16.994513+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "NDP",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/NDP",
+      "path": "chemical_components/NDP.json",
+      "status": "ok",
+      "sha256": "07077d064d6954c3b973922656997a536d515cf21c6512d18532cb788db8193c",
+      "bytes": 7305,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NDP",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:16.977718+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "NAD",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAD",
+      "path": "chemical_components/NAD.json",
+      "status": "ok",
+      "sha256": "14043ff2eb2798994587fe660e785770ea5181b52f064e2aa4c09c990d747020",
+      "bytes": 10741,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAD",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:21.763605+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "NAI",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAI",
+      "path": "chemical_components/NAI.json",
+      "status": "ok",
+      "sha256": "c18ba91ce6b0b81f9e12effc7450c9c4e2d6fc2c0983e76b9cd450ed12badc62",
+      "bytes": 41099,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NAI",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:21.781355+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "AMP",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/AMP",
+      "path": "chemical_components/AMP.json",
+      "status": "ok",
+      "sha256": "65fb409420a55423ace9e6acbaa7101ff22f29bcc55d727160b36844f9e5a5b9",
+      "bytes": 18787,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/AMP",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:21.863683+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "NMN",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/NMN",
+      "path": "chemical_components/NMN.json",
+      "status": "ok",
+      "sha256": "2f72d216e351cef94a487de1ef1275d0b2ccbd3646c07d770b1afeb848b2b9a5",
+      "bytes": 5337,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/NMN",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:21.754732+00:00"
+    },
+    {
+      "kind": "chemical_component",
+      "ccd_id": "PO4",
+      "url": "https://data.rcsb.org/rest/v1/core/chemcomp/PO4",
+      "path": "chemical_components/PO4.json",
+      "status": "ok",
+      "sha256": "f9fbab7b35db10602b9bff92c5696734f82d156c24a8182a1b628ba85ab79315",
+      "bytes": 3970,
+      "content_type": "application/json",
+      "final_url": "https://data.rcsb.org/rest/v1/core/chemcomp/PO4",
+      "attempts": 1,
+      "retrieved_at_utc": "2026-10-07T22:38:21.727878+00:00"
+    }
+  ],
+  "assemblies": [
+    {
+      "pdb_id": "1ZK4",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA,PQS",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 3,
+        "nonpolymer_entity_instance_count": 12
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ],
+          "oper_expression": "1,2,3,4",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "A-3",
+        "A-4"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "1ZJY",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA,PQS",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 3,
+        "nonpolymer_entity_instance_count": 12
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ],
+          "oper_expression": "1,2,3,4",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "A-3",
+        "A-4"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "1ZJZ",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA,PQS",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 3,
+        "nonpolymer_entity_instance_count": 12
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ],
+          "oper_expression": "1,2,3,4",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "A-3",
+        "A-4"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "1ZK0",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA,PQS",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 3,
+        "nonpolymer_entity_instance_count": 12
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ],
+          "oper_expression": "1,2,3,4",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "A-3",
+        "A-4"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "1ZK1",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA,PQS",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 3,
+        "nonpolymer_entity_instance_count": 12
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ],
+          "oper_expression": "1,2,3,4",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "A-3",
+        "A-4"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "6ZZO",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 8
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "E",
+            "F",
+            "G",
+            "H",
+            "M",
+            "N"
+          ],
+          "oper_expression": "1,2",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "B",
+        "B-2"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "6ZZP",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 8
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "E",
+            "F",
+            "G",
+            "H",
+            "M",
+            "N"
+          ],
+          "oper_expression": "1,2",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "B",
+        "B-2"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "6ZZQ",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 12
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ],
+          "oper_expression": "1,2,3,4",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "A-3",
+        "A-4"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "6ZZS",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 9
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "S",
+            "T",
+            "U",
+            "V"
+          ],
+          "oper_expression": "1",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "4RF2",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 10
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I"
+          ],
+          "oper_expression": "1,2",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "B",
+        "B-2"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "4RF3",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 10
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H"
+          ],
+          "oper_expression": "1,2",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "B",
+        "B-2"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "4RF4",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 1,
+        "nonpolymer_entity_instance_count": 4
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F"
+          ],
+          "oper_expression": "1,2",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "B",
+        "B-2"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "4RF5",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 8
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H"
+          ],
+          "oper_expression": "1,2",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "B",
+        "B-2"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "1Y1P",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_defined_assembly",
+        "id": "1",
+        "oligomeric_count": 1,
+        "oligomeric_details": "monomeric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 1,
+        "nonpolymer_entity_count": 5,
+        "nonpolymer_entity_instance_count": 5
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "C1",
+          "type": "Asymmetric",
+          "stoichiometry": [
+            "A1"
+          ],
+          "oligomeric_state": "Monomer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "L"
+          ],
+          "oper_expression": "1",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A"
+      ],
+      "coordinate_polymer_chain_count": 1,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "7UUT",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_defined_assembly",
+        "id": "1",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "heteromeric protein",
+        "polymer_entity_count": 2,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 4,
+        "nonpolymer_entity_instance_count": 16
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "X"
+          ],
+          "oper_expression": "1",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "7UTC",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_defined_assembly",
+        "id": "1",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 3,
+        "nonpolymer_entity_instance_count": 43
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "X",
+            "Y",
+            "Z",
+            "AA",
+            "BA",
+            "CA",
+            "DA",
+            "EA",
+            "FA",
+            "GA",
+            "HA",
+            "IA",
+            "JA",
+            "KA",
+            "LA",
+            "MA",
+            "NA",
+            "OA",
+            "PA",
+            "QA",
+            "RA",
+            "SA",
+            "TA",
+            "UA",
+            "VA",
+            "WA",
+            "XA",
+            "YA"
+          ],
+          "oper_expression": "1",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "1IPF",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 2,
+        "oligomeric_details": "dimeric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 2,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 4
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "C2",
+          "type": "Cyclic",
+          "stoichiometry": [
+            "A2"
+          ],
+          "oligomeric_state": "Homo 2-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H"
+          ],
+          "oper_expression": "1",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "B"
+      ],
+      "coordinate_polymer_chain_count": 2,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "2AE2",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 2,
+        "oligomeric_details": "dimeric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 2,
+        "nonpolymer_entity_count": 2,
+        "nonpolymer_entity_instance_count": 4
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "C2",
+          "type": "Cyclic",
+          "stoichiometry": [
+            "A2"
+          ],
+          "oligomeric_state": "Homo 2-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H"
+          ],
+          "oper_expression": "1",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "B"
+      ],
+      "coordinate_polymer_chain_count": 2,
+      "coordinate_chain_count_matches_metadata": true
+    },
+    {
+      "pdb_id": "6XEW",
+      "assembly_id": "1",
+      "metadata_status": "ok",
+      "coordinates_status": "ok",
+      "pdbx_struct_assembly": {
+        "details": "author_and_software_defined_assembly",
+        "id": "1",
+        "method_details": "PISA",
+        "oligomeric_count": 4,
+        "oligomeric_details": "tetrameric",
+        "rcsb_candidate_assembly": "Y",
+        "rcsb_details": "author_and_software_defined_assembly"
+      },
+      "assembly_summary": {
+        "polymer_composition": "homomeric protein",
+        "polymer_entity_count": 1,
+        "polymer_entity_instance_count": 4,
+        "nonpolymer_entity_count": 4,
+        "nonpolymer_entity_instance_count": 10
+      },
+      "symmetry": [
+        {
+          "kind": "Global Symmetry",
+          "symbol": "D2",
+          "type": "Dihedral",
+          "stoichiometry": [
+            "A4"
+          ],
+          "oligomeric_state": "Homo 4-mer"
+        }
+      ],
+      "assembly_generation": [
+        {
+          "assembly_id": "1",
+          "asym_id_list": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I"
+          ],
+          "oper_expression": "1,2",
+          "ordinal": 1
+        }
+      ],
+      "coordinate_ATOM_label_asym_ids": [
+        "A",
+        "A-2",
+        "B",
+        "B-2"
+      ],
+      "coordinate_polymer_chain_count": 4,
+      "coordinate_chain_count_matches_metadata": true
+    }
+  ],
+  "counts": {
+    "pdb_ids": 19,
+    "ccd_ids": 15,
+    "files_requested": 53,
+    "files_ok": 53,
+    "files_failed": 0
+  },
+  "selected_site_assembly_audit": {
+    "checked_at_utc": "2026-10-07T22:51:17.226683+00:00",
+    "selection_source": "data/structure_manifest.json",
+    "selection_source_sha256": "dbc86bdbdf602098dc2223a0d9d23603e380086d02527af22cae8a2a88ea2975",
+    "method": "Map originalauthchain/ligandresidue tolabel_asym IDs; verify assembly1 generationincludesoriginalproteinandligand; verify originalidentitycopy selectedheavyatoms,altlocs andcoordinatepreservation inofficialassembly1.cif. No preparation.",
+    "records": [
+      {
+        "pdb_id": "1IPF",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "B"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "TNE",
+            "original_auth_chain": "A",
+            "original_auth_resid": "262",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "D"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 10,
+            "assembly1_selected_heavy_atom_count": 10,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NDP",
+            "original_auth_chain": "A",
+            "original_auth_resid": "261",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 48,
+            "assembly1_selected_heavy_atom_count": 48,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "2AE2",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "B"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "PTO",
+            "original_auth_chain": "A",
+            "original_auth_resid": "262",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "D"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 10,
+            "assembly1_selected_heavy_atom_count": 10,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAP",
+            "original_auth_chain": "A",
+            "original_auth_resid": "261",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 48,
+            "assembly1_selected_heavy_atom_count": 48,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "6ZZO",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "B",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "B",
+          "B-2"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "E",
+          "F",
+          "G",
+          "H",
+          "M",
+          "N"
+        ],
+        "original_protein_label_asym_ids": [
+          "B"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "AAE",
+            "original_auth_chain": "B",
+            "original_auth_resid": "302",
+            "selected_altlocs": [
+              "A"
+            ],
+            "original_label_asym_ids": [
+              "H"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 7,
+            "assembly1_selected_heavy_atom_count": 7,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAD",
+            "original_auth_chain": "B",
+            "original_auth_resid": "301",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "G"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "6ZZP",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "B",
+          "B-2"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "E",
+          "F",
+          "G",
+          "H",
+          "M",
+          "N"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "QT8",
+            "original_auth_chain": "A",
+            "original_auth_resid": "302",
+            "selected_altlocs": [
+              "A",
+              "B"
+            ],
+            "original_label_asym_ids": [
+              "F"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 16,
+            "assembly1_selected_heavy_atom_count": 16,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAD",
+            "original_auth_chain": "A",
+            "original_auth_resid": "301",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "E"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "6ZZQ",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "A-3",
+          "A-4"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "AAE",
+            "original_auth_chain": "A",
+            "original_auth_resid": "302",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 7,
+            "assembly1_selected_heavy_atom_count": 7,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAD",
+            "original_auth_chain": "A",
+            "original_auth_resid": "301",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "B"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "6ZZS",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "B",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "S",
+          "T",
+          "U",
+          "V"
+        ],
+        "original_protein_label_asym_ids": [
+          "B"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "QT8",
+            "original_auth_chain": "B",
+            "original_auth_resid": "302",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "J"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 8,
+            "assembly1_selected_heavy_atom_count": 8,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAD",
+            "original_auth_chain": "B",
+            "original_auth_resid": "301",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "I"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 88,
+            "assembly1_selected_heavy_atom_count": 88,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "6XEW",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "B",
+          "B-2"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "HBS",
+            "original_auth_chain": "A",
+            "original_auth_resid": "304",
+            "selected_altlocs": [
+              "B"
+            ],
+            "original_label_asym_ids": [
+              "F"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 6,
+            "assembly1_selected_heavy_atom_count": 6,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          },
+          {
+            "ccd_id": "HBR",
+            "original_auth_chain": "A",
+            "original_auth_resid": "303",
+            "selected_altlocs": [
+              "A"
+            ],
+            "original_label_asym_ids": [
+              "E"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 6,
+            "assembly1_selected_heavy_atom_count": 6,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAD",
+            "original_auth_chain": "A",
+            "original_auth_resid": "301",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1",
+        "cofactor_note": "Check specificallyNAD authA301; extraNADauthA302 isnotselectedreactioncofactor."
+      },
+      {
+        "pdb_id": "1ZK4",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "A-3",
+          "A-4"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "AC0",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1260",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "D"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 9,
+            "assembly1_selected_heavy_atom_count": 9,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAP",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1270",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 48,
+            "assembly1_selected_heavy_atom_count": 48,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "1ZJY",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "A-3",
+          "A-4"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "SS2",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1260",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 9,
+            "assembly1_selected_heavy_atom_count": 9,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAI",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1270",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "D"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "1ZJZ",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "A-3",
+          "A-4"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "SS2",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1260",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 9,
+            "assembly1_selected_heavy_atom_count": 9,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAD",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1270",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "D"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "1ZK0",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "A-3",
+          "A-4"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "SS2",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1260",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 9,
+            "assembly1_selected_heavy_atom_count": 9,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAI",
+            "original_auth_chain": "A",
+            "original_auth_resid": "1270",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "D"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "1ZK1",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "A-3",
+          "A-4"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "AC0",
+            "original_auth_chain": "A",
+            "original_auth_resid": "260",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "D"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 9,
+            "assembly1_selected_heavy_atom_count": 9,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAD",
+            "original_auth_chain": "A",
+            "original_auth_resid": "270",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "C"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 44,
+            "assembly1_selected_heavy_atom_count": 44,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "4RF2",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "B",
+          "B-2"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I"
+        ],
+        "status": "not_applicable_no_selected_scoring_chain",
+        "recommended_assembly_id": "1",
+        "note": "No ligand-scoring site selected in structure_manifest; assembly1 archived as backbone/audit context. No fictitious selected site inferred."
+      },
+      {
+        "pdb_id": "4RF4",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "B",
+          "B-2"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F"
+        ],
+        "status": "not_applicable_no_selected_scoring_chain",
+        "recommended_assembly_id": "1",
+        "note": "No ligand-scoring site selected in structure_manifest; assembly1 archived as backbone/audit context. No fictitious selected site inferred."
+      },
+      {
+        "pdb_id": "4RF3",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "B",
+          "B-2"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H"
+        ],
+        "status": "not_applicable_no_selected_scoring_chain",
+        "recommended_assembly_id": "1",
+        "note": "No ligand-scoring site selected in structure_manifest; assembly1 archived as backbone/audit context. No fictitious selected site inferred."
+      },
+      {
+        "pdb_id": "4RF5",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "A-2",
+          "B",
+          "B-2"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H"
+        ],
+        "status": "not_applicable_no_selected_scoring_chain",
+        "recommended_assembly_id": "1",
+        "note": "No ligand-scoring site selected in structure_manifest; assembly1 archived as backbone/audit context. No fictitious selected site inferred."
+      },
+      {
+        "pdb_id": "1Y1P",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "L"
+        ],
+        "status": "not_applicable_no_selected_scoring_chain",
+        "recommended_assembly_id": "1",
+        "note": "No ligand-scoring site selected in structure_manifest; assembly1 archived as backbone/audit context. No fictitious selected site inferred."
+      },
+      {
+        "pdb_id": "7UUT",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "A",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X"
+        ],
+        "original_protein_label_asym_ids": [
+          "A"
+        ],
+        "original_protein_chain_in_assembly1": true,
+        "selected_auth_protein_chain_present_in_coordinates": true,
+        "reaction_ligand_site_checks": [
+          {
+            "ccd_id": "2RP",
+            "original_auth_chain": "A",
+            "original_auth_resid": "403",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "G"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 6,
+            "assembly1_selected_heavy_atom_count": 6,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.00046999999999997044,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "cofactor_site_checks": [
+          {
+            "ccd_id": "NAP",
+            "original_auth_chain": "A",
+            "original_auth_resid": "402",
+            "selected_altlocs": [
+              ""
+            ],
+            "original_label_asym_ids": [
+              "F"
+            ],
+            "label_ids_in_assembly_generation": true,
+            "original_selected_heavy_atom_count": 48,
+            "assembly1_selected_heavy_atom_count": 48,
+            "selected_atom_identity_set_matches": true,
+            "max_coordinate_absolute_difference_from_original_identity_copy_A": 0.0004999999999997229,
+            "coordinate_copy_preserved": true
+          }
+        ],
+        "status": "selected_site_verified_in_assembly1",
+        "recommended_assembly_id": "1"
+      },
+      {
+        "pdb_id": "7UTC",
+        "checked_assembly_id": "1",
+        "requested_scoring_auth_chain": "",
+        "assembly1_ATOM_auth_asym_ids": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "assembly1_original_label_asym_ids": [
+          "A",
+          "AA",
+          "B",
+          "BA",
+          "C",
+          "CA",
+          "D",
+          "DA",
+          "E",
+          "EA",
+          "F",
+          "FA",
+          "G",
+          "GA",
+          "H",
+          "HA",
+          "I",
+          "IA",
+          "J",
+          "JA",
+          "K",
+          "KA",
+          "L",
+          "LA",
+          "M",
+          "MA",
+          "N",
+          "NA",
+          "O",
+          "OA",
+          "P",
+          "PA",
+          "Q",
+          "QA",
+          "R",
+          "RA",
+          "S",
+          "SA",
+          "T",
+          "TA",
+          "U",
+          "UA",
+          "V",
+          "VA",
+          "W",
+          "WA",
+          "X",
+          "XA",
+          "Y",
+          "YA",
+          "Z"
+        ],
+        "status": "not_applicable_no_selected_scoring_chain",
+        "recommended_assembly_id": "1",
+        "note": "No ligand-scoring site selected in structure_manifest; assembly1 archived as backbone/audit context. No fictitious selected site inferred."
+      }
+    ],
+    "counts": {
+      "total_records": 19,
+      "selected_site_verified_in_assembly1": 13,
+      "not_applicable_no_selected_scoring_chain": 6,
+      "needs_review": 0
+    },
+    "additional_assemblies_needed": false
+  }
+}

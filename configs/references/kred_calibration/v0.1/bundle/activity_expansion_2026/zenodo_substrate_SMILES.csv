@@ -1,0 +1,6 @@
+﻿substrate_id;name;SMILES
+1a;ipatasertib precusor;C[C@H]3CC(O)c2ncnc(N1CCN(C(=O)OC(C)(C)C)CC1)c23
+2a;1-phenylethanone ;CC(=O)C1=CC=CC=C1
+3a;ethyl 2-oxo-4-phenylbutyrate;CCOC(=O)C(=O)CCC1=CC=CC=C1
+4a;1-Boc-3-piperidone ;CC(C)(C)OC(=O)N1CCCC(=O)C1
+5a;4-chloroacetoacetate;C(C(=O)CCl)C(=O)[O-]

@@ -1,0 +1,96 @@
+{
+  "version": "0.1",
+  "audit_date": "2026-10-07",
+  "language": "zh-CN",
+  "scope": "Public audited KRED/selected SDR reference seed set",
+  "counts": {
+    "audited_pdb_entries": 19,
+    "kinetic_records_including_ND": 28,
+    "numeric_kinetic_records": 26,
+    "ND_records": 2,
+    "selectivity_records": 10,
+    "approximate_auxiliary_activity_records": 1,
+    "unconditional_strict_geometry_gold": 0,
+    "reference_sequence_records": 38,
+    "ligand_validation_records": 118
+  },
+  "geometry_groups": {
+    "conditional_pose_reference": 2,
+    "conditional_product_reference": 1,
+    "review_clash": 1,
+    "low_ligand_density": 7,
+    "auxiliary_ensemble_reference": 1,
+    "protein_scaffold_only": 5,
+    "unmatched_product_excluded": 1,
+    "inhibitor_excluded": 1
+  },
+  "activity_expansion_counts": {
+    "round1_total_rows": 49,
+    "round2_total_rows": 66,
+    "duplicate_IDs_between_rounds": [
+      "Ort-EZM-20",
+      "Ort-EZM-6",
+      "Ort-RDM-1",
+      "Ort-RDM-16",
+      "Ort-RDM-23",
+      "Ssal-KRED"
+    ],
+    "duplicate_rows_discrepancies": {},
+    "unique_IDs": 109,
+    "unique_sequences_from_csv": 109,
+    "repeated_identical_sequence_IDs": [],
+    "soluble_unique_IDs_including_WT": 69,
+    "orthologs_soluble_excluding_WT": 68,
+    "insoluble_unique_IDs": 40,
+    "fasta_record_count": 109,
+    "fasta_unique_sequences": 109,
+    "csv_sequences_absent_in_fasta": [],
+    "fasta_example_headers": [
+      "Q9UUN9\t",
+      "PWN99435\t",
+      "ORY53991\t"
+    ],
+    "relative_1a_label_rows": 69,
+    "endpoint_stats": {
+      "2a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 36,
+        "missing_ee": 35,
+        "ee_nonmissing": 34,
+        "max_total_product_mM": 7.7,
+        "nonzero_product_with_missing_ee": [
+          "Ort-EZM-23"
+        ]
+      },
+      "3a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 1,
+        "missing_ee": 1,
+        "ee_nonmissing": 68,
+        "max_total_product_mM": 6.5,
+        "nonzero_product_with_missing_ee": []
+      },
+      "4a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 0,
+        "missing_ee": 0,
+        "ee_nonmissing": 69,
+        "max_total_product_mM": 3.4,
+        "nonzero_product_with_missing_ee": []
+      },
+      "5a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 23,
+        "missing_ee": 23,
+        "ee_nonmissing": 46,
+        "max_total_product_mM": 7.6,
+        "nonzero_product_with_missing_ee": []
+      }
+    }
+  },
+  "notes": [
+    "Multiple PDBs, chains, conformers, metrics and assays are not independent samples.",
+    "Cross-paper and cofactor-state transfer remain explicit.",
+    "No model calibration has been fitted or claimed."
+  ]
+}

@@ -1,0 +1,924 @@
+{
+  "pdb_id": "1Y1P",
+  "files": [
+    {
+      "url": "https://files.rcsb.org/download/1Y1P.cif",
+      "path": "structures/1Y1P/1Y1P.cif",
+      "sha256": "be023e5914d7490239865fbb7d25e0c1b63df349fb281b080c03e7e9aaca0d2e",
+      "bytes": 695736
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/entry/1Y1P",
+      "path": "structures/1Y1P/entry.json",
+      "sha256": "7226d7d7293c02c27c36edc09618850916cd138f6b09c3f869e84a01ab2e0907",
+      "bytes": 12967
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1Y1P/1",
+      "path": "structures/1Y1P/polymer_entity_1.json",
+      "sha256": "92ce41e5e0db581ac7d8385bc1fe5b17113df1040a74521587443a5de7a1c2e7",
+      "bytes": 16447
+    },
+    {
+      "url": "https://files.rcsb.org/pub/pdb/validation_reports/y1/1y1p/1y1p_validation.xml.gz",
+      "path": "structures/1Y1P/1Y1P_validation.xml.gz",
+      "sha256": "1c6cd249a041d4a1ebe036acd736c73ce665c477a11f53b9f04816ea46109565",
+      "bytes": 42040
+    }
+  ],
+  "errors": [],
+  "title": "X-ray structure of aldehyde reductase with NADPH",
+  "resolution_A": [
+    1.6
+  ],
+  "method": [
+    {
+      "crystals_number": 2,
+      "method": "X-RAY DIFFRACTION"
+    }
+  ],
+  "refine": [
+    {
+      "B_iso_mean": 18.2,
+      "aniso_B_1_1": 4.04,
+      "aniso_B_1_2": 0.0,
+      "aniso_B_1_3": 0.0,
+      "aniso_B_2_2": -1.1,
+      "aniso_B_2_3": 0.0,
+      "aniso_B_3_3": -2.93,
+      "ls_R_factor_R_free": 0.239,
+      "ls_R_factor_R_free_error": 0.003,
+      "ls_R_factor_R_work": 0.217,
+      "ls_R_factor_all": 0.22,
+      "ls_R_factor_obs": 0.217,
+      "ls_d_res_high": 1.6,
+      "ls_d_res_low": 74.16,
+      "ls_number_reflns_R_free": 8508,
+      "ls_number_reflns_all": 84533,
+      "ls_number_reflns_obs": 84533,
+      "ls_percent_reflns_R_free": 10.1,
+      "ls_percent_reflns_obs": 93.1,
+      "pdbx_R_Free_selection_details": "RANDOM",
+      "pdbx_data_cutoff_high_absF": 2192638.41,
+      "pdbx_data_cutoff_low_absF": 0.0,
+      "pdbx_diffrn_id": [
+        "1"
+      ],
+      "pdbx_isotropic_thermal_model": "RESTRAINED",
+      "pdbx_ls_cross_valid_method": "THROUGHOUT",
+      "pdbx_ls_sigma_F": 0.0,
+      "pdbx_method_to_determine_struct": "SAD",
+      "pdbx_refine_id": "X-RAY DIFFRACTION",
+      "pdbx_stereochemistry_target_values": "CNS",
+      "solvent_model_details": "FLAT MODEL",
+      "solvent_model_param_bsol": 42.7925,
+      "solvent_model_param_ksol": 0.343688
+    }
+  ],
+  "citation": {
+    "country": "UK",
+    "id": "primary",
+    "journal_abbrev": "J.Mol.Biol.",
+    "journal_id_ASTM": "JMOBAK",
+    "journal_id_CSD": "0070",
+    "journal_id_ISSN": "0022-2836",
+    "journal_volume": "352",
+    "page_first": "551",
+    "page_last": "558",
+    "pdbx_database_id_DOI": "10.1016/j.jmb.2005.07.011",
+    "pdbx_database_id_PubMed": 16095619,
+    "rcsb_ORCID_identifiers": [
+      "?",
+      "?",
+      "?",
+      "?",
+      "?"
+    ],
+    "rcsb_authors": [
+      "Kamitori, S.",
+      "Iguchi, A.",
+      "Ohtaki, A.",
+      "Yamada, M.",
+      "Kita, K."
+    ],
+    "rcsb_journal_abbrev": "J Mol Biol",
+    "title": "X-ray Structures of NADPH-dependent Carbonyl Reductase from Sporobolomyces salmonicolor Provide Insights into Stereoselective Reductions of Carbonyl Compounds",
+    "year": 2005
+  },
+  "nonpolymer_ids": [
+    "2",
+    "3",
+    "4",
+    "5",
+    "6"
+  ],
+  "protein_sequence": "AKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSFSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALALMPPQYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSLEILKSLGRPGWRSIEESIKDLVGSETA",
+  "sequence_sha256": "499f57a707aa05b1c67126c3dc94ef2f3c59b7712e01e418bb8178417a9b7d22",
+  "sequence_length": 342,
+  "entity_poly": {
+    "nstd_linkage": "no",
+    "nstd_monomer": "no",
+    "pdbx_seq_one_letter_code": "AKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSFSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALALMPPQYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSLEILKSLGRPGWRSIEESIKDLVGSETA",
+    "pdbx_seq_one_letter_code_can": "AKIDNAVLPEGSLVLVTGANGFVASHVVEQLLEHGYKVRGTARSASKLANLQKRWDAKYPGRFETAVVEDMLKQGAYDEVIKGAAGVAHIASVVSFSNKYDEVVTPAIGGTLNALRAAAATPSVKRFVLTSSTVSALIPKPNVEGIYLDEKSWNLESIDKAKTLPESDPQKSLWVYAASKTEAELAAWKFMDENKPHFTLNAVLPNYTIGTIFDPETQSGSTSGWMMSLFNGEVSPALALMPPQYYVSAVDIGLLHLGCLVLPQIERRRVYGTAGTFDWNTVLATFRKLYPSKTFPADFPDQGQDLSKFDTAPSLEILKSLGRPGWRSIEESIKDLVGSETA",
+    "pdbx_strand_id": "A,B",
+    "rcsb_artifact_monomer_count": 0,
+    "rcsb_conflict_count": 0,
+    "rcsb_deletion_count": 0,
+    "rcsb_entity_polymer_type": "Protein",
+    "rcsb_insertion_count": 0,
+    "rcsb_mutation_count": 0,
+    "rcsb_non_std_monomer_count": 0,
+    "rcsb_sample_sequence_length": 342,
+    "type": "polypeptide(L)"
+  },
+  "polymer_entity": {
+    "formula_weight": 37.225,
+    "pdbx_description": "Aldehyde reductase II",
+    "pdbx_ec": "1.1.1.2",
+    "pdbx_number_of_molecules": 2,
+    "rcsb_multiple_source_flag": "N",
+    "rcsb_source_part_count": 1,
+    "rcsb_source_taxonomy_count": 1,
+    "src_method": "man",
+    "rcsb_ec_lineage": [
+      {
+        "depth": 1,
+        "id": "1",
+        "name": "Oxidoreductases"
+      },
+      {
+        "depth": 2,
+        "id": "1.1",
+        "name": "Acting on the CH-OH group of donors"
+      },
+      {
+        "depth": 3,
+        "id": "1.1.1",
+        "name": "With NAD+ or NADP+ as acceptor"
+      },
+      {
+        "depth": 4,
+        "id": "1.1.1.2",
+        "name": "alcohol dehydrogenase (NADP+)"
+      }
+    ],
+    "rcsb_macromolecular_names_combined": [
+      {
+        "name": "Aldehyde reductase II",
+        "provenance_code": "ECO:0000304",
+        "provenance_source": "PDB Preferred Name"
+      },
+      {
+        "name": "ARII",
+        "provenance_code": "ECO:0000303",
+        "provenance_source": "PDB Synonym"
+      }
+    ],
+    "rcsb_enzyme_class_combined": [
+      {
+        "depth": 4,
+        "ec": "1.1.1.2",
+        "provenance_source": "PDB Primary Data"
+      }
+    ],
+    "rcsb_polymer_name_combined": {
+      "names": [
+        "Aldehyde reductase 2"
+      ],
+      "provenance_source": "UniProt Name"
+    }
+  },
+  "organism": [
+    {
+      "ncbi_common_names": [
+        "Aessosporon salmonicolor",
+        "Blastoderma salmonicolor",
+        "Sporidiobolus salmonicolor"
+      ],
+      "ncbi_parent_scientific_name": "Eukaryota",
+      "ncbi_scientific_name": "Sporobolomyces salmonicolor",
+      "ncbi_taxonomy_id": 5005,
+      "pdbx_src_id": 1,
+      "provenance_source": "Primary Data",
+      "scientific_name": "Sporidiobolus salmonicolor",
+      "source_type": "genetically engineered",
+      "taxonomy_lineage": [
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "cellular organisms"
+        },
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "biota"
+        },
+        {
+          "depth": 2,
+          "id": "2759",
+          "name": "Eukaryota"
+        },
+        {
+          "depth": 2,
+          "id": "2759",
+          "name": "Eucarya"
+        },
+        {
+          "depth": 2,
+          "id": "2759",
+          "name": "Eucaryotae"
+        },
+        {
+          "depth": 2,
+          "id": "2759",
+          "name": "Eukarya"
+        },
+        {
+          "depth": 2,
+          "id": "2759",
+          "name": "Eukaryotae"
+        },
+        {
+          "depth": 2,
+          "id": "2759",
+          "name": "eukaryotes"
+        },
+        {
+          "depth": 3,
+          "id": "33154",
+          "name": "Opisthokonta"
+        },
+        {
+          "depth": 3,
+          "id": "33154",
+          "name": "Fungi/Metazoa group"
+        },
+        {
+          "depth": 3,
+          "id": "33154",
+          "name": "opisthokonts"
+        },
+        {
+          "depth": 4,
+          "id": "4751",
+          "name": "Fungi"
+        },
+        {
+          "depth": 4,
+          "id": "4751",
+          "name": "Mycota"
+        },
+        {
+          "depth": 5,
+          "id": "451864",
+          "name": "Dikarya"
+        },
+        {
+          "depth": 6,
+          "id": "5204",
+          "name": "Basidiomycota"
+        },
+        {
+          "depth": 6,
+          "id": "5204",
+          "name": "basidiomycete fungi"
+        },
+        {
+          "depth": 6,
+          "id": "5204",
+          "name": "basidiomycetes"
+        },
+        {
+          "depth": 7,
+          "id": "29000",
+          "name": "Pucciniomycotina"
+        },
+        {
+          "depth": 7,
+          "id": "29000",
+          "name": "Urediniomycetes"
+        },
+        {
+          "depth": 7,
+          "id": "29000",
+          "name": "rust fungi & allies"
+        },
+        {
+          "depth": 8,
+          "id": "162481",
+          "name": "Microbotryomycetes"
+        },
+        {
+          "depth": 8,
+          "id": "162481",
+          "name": "Microbotryomycetidae"
+        },
+        {
+          "depth": 9,
+          "id": "231213",
+          "name": "Sporidiobolales"
+        },
+        {
+          "depth": 9,
+          "id": "231213",
+          "name": "Sporidiaceae"
+        },
+        {
+          "depth": 9,
+          "id": "231213",
+          "name": "Sporidiales"
+        },
+        {
+          "depth": 10,
+          "id": "1799696",
+          "name": "Sporidiobolaceae"
+        },
+        {
+          "depth": 11,
+          "id": "5429",
+          "name": "Sporobolomyces"
+        },
+        {
+          "depth": 11,
+          "id": "5429",
+          "name": "Sporidiobolus"
+        },
+        {
+          "depth": 12,
+          "id": "5005",
+          "name": "Sporobolomyces salmonicolor"
+        },
+        {
+          "depth": 12,
+          "id": "5005",
+          "name": "Aessosporon salmonicolor"
+        },
+        {
+          "depth": 12,
+          "id": "5005",
+          "name": "Blastoderma salmonicolor"
+        },
+        {
+          "depth": 12,
+          "id": "5005",
+          "name": "Sporidiobolus salmonicolor"
+        }
+      ]
+    }
+  ],
+  "uniprot_ids": [
+    "Q9UUN9"
+  ],
+  "validation_entry": {
+    "percentilebins": "all,1.6,xray",
+    "attemptedValidationSteps": "molprobity,validation-pack,xtriage,eds,mogul,buster-report,percentiles,writexml",
+    "PDB-deposition-date": "2004-11-19",
+    "PDB-revision-date": "2024-03-13",
+    "PDB-revision-number": "4",
+    "protein-DNA-RNA-entities": "1",
+    "PDB-resolution": "1.60",
+    "PDB-resolution-low": "74.16",
+    "PDB-R": "0.2170",
+    "PDB-Rfree": "0.2390",
+    "pdbid": "1Y1P",
+    "extended_pdbid": "1Y1P",
+    "num-H-reduce": "5291",
+    "clashscore": "5.91",
+    "RestypesNotcheckedForBondAngleGeometry": "NMN,SO4,ACT,AMP,PO4",
+    "percent-rama-outliers": "0.15",
+    "percent-rota-outliers": "0.89",
+    "bonds_rmsz": "0.35",
+    "num_bonds_rmsz": "5375",
+    "angles_rmsz": "0.86",
+    "num_angles_rmsz": "7314",
+    "numMillerIndices": "84881",
+    "xtriage_input_columns": "F_meas_au,F_meas_sigma_au",
+    "acentric_outliers": "1",
+    "TransNCS": "The analyses of the Patterson function reveals a significant off-origin peak that is 28.42 % of the origin peak, indicating pseudo-translational symmetry.  The chance of finding a peak of this or larger height by random in a structure without pseudo-translational symmetry is equal to 1.8498e-03. The detected translational NCS is most likely also responsible for the elevated intensity ratio.  See the relevant section of the logfile for more details.",
+    "WilsonBestimate": "13.658",
+    "TwinL2": "0.340",
+    "DataAnisotropy": "0.438",
+    "centric_outliers": "0",
+    "WilsonBaniso": "[17.060,13.554,10.981,0.000,0.000,0.000]",
+    "IoverSigma": "10.57(1.59A)",
+    "TwinL": "0.504",
+    "percent-RSRZ-outliers": "15.06",
+    "Fo_Fc_correlation": "0.939",
+    "EDS_resolution_low": "74.16",
+    "DataCompleteness": "93.11",
+    "DCC_Rfree": "0.2365",
+    "bulk_solvent_k": "0.331",
+    "B_factor_type": "FULL",
+    "percent-free-reflections": "10.02",
+    "density-fitnessVersion": "1.0.12",
+    "EDS_R": "0.2169",
+    "CCP4version": "9.0.010 (Gargrove)",
+    "num-free-reflections": "8508",
+    "bulk_solvent_b": "43.447",
+    "DCC_refinement_program": "CNS",
+    "DCC_R": "0.2150",
+    "ligands-for-buster-report": "yes",
+    "EDS_resolution": "1.60",
+    "absolute-percentile-clashscore": "45.1",
+    "numPDBids-absolute-percentile-clashscore": "190562",
+    "relative-percentile-clashscore": "28.6",
+    "numPDBids-relative-percentile-clashscore": "4931",
+    "low-resol-relative-percentile-clashscore": "1.6",
+    "high-resol-relative-percentile-clashscore": "1.6",
+    "absolute-percentile-percent-rama-outliers": "47.5",
+    "numPDBids-absolute-percentile-percent-rama-outliers": "187476",
+    "relative-percentile-percent-rama-outliers": "27.1",
+    "numPDBids-relative-percentile-percent-rama-outliers": "4831",
+    "low-resol-relative-percentile-percent-rama-outliers": "1.6",
+    "high-resol-relative-percentile-percent-rama-outliers": "1.6",
+    "absolute-percentile-percent-rota-outliers": "70.3",
+    "numPDBids-absolute-percentile-percent-rota-outliers": "187428",
+    "relative-percentile-percent-rota-outliers": "54.8",
+    "numPDBids-relative-percentile-percent-rota-outliers": "4830",
+    "low-resol-relative-percentile-percent-rota-outliers": "1.6",
+    "high-resol-relative-percentile-percent-rota-outliers": "1.6",
+    "absolute-percentile-percent-RSRZ-outliers": "5.2",
+    "numPDBids-absolute-percentile-percent-RSRZ-outliers": "180081",
+    "relative-percentile-percent-RSRZ-outliers": "4.7",
+    "numPDBids-relative-percentile-percent-RSRZ-outliers": "4672",
+    "low-resol-relative-percentile-percent-RSRZ-outliers": "1.6",
+    "high-resol-relative-percentile-percent-RSRZ-outliers": "1.6",
+    "absolute-percentile-DCC_Rfree": "47.6",
+    "numPDBids-absolute-percentile-DCC_Rfree": "180053",
+    "relative-percentile-DCC_Rfree": "16.4",
+    "numPDBids-relative-percentile-DCC_Rfree": "4673",
+    "low-resol-relative-percentile-DCC_Rfree": "1.6",
+    "high-resol-relative-percentile-DCC_Rfree": "1.6",
+    "XMLcreationDate": "Mar  5, 2026 -- 02:28 AM UTC"
+  },
+  "ligand_validation": [
+    {
+      "num-H-reduce": "14",
+      "NatomsEDS": "22",
+      "avgoccu": "1.000",
+      "mogul_rmsz_numangles": "27",
+      "owab": "16.000",
+      "rscc": "0.931",
+      "EDIAm": "0.770",
+      "mogul_rmsz_numbonds": "21",
+      "mogul_angles_rmsz": "1.09",
+      "rsr": "0.086",
+      "OPIA": "50.000",
+      "mogul_bonds_rmsz": "2.01",
+      "model": "1",
+      "chain": "A",
+      "resnum": "1001",
+      "said": "E",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NMN",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "HC6",
+            "dist": "2.04",
+            "clashmag": "0.57",
+            "cid": "20"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "HC4",
+            "dist": "2.13",
+            "clashmag": "0.48",
+            "cid": "21"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O1P,P,O3P",
+            "numobs": "523",
+            "mean": "110.83",
+            "stdev": "3.90",
+            "mindiff": "0.10",
+            "Zscore": "2.10",
+            "obsval": "119.00"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2P,P,O3P",
+            "numobs": "523",
+            "mean": "110.83",
+            "stdev": "3.90",
+            "mindiff": "0.08",
+            "Zscore": "-2.85",
+            "obsval": "99.74"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2P,P,O1P",
+            "numobs": "262",
+            "mean": "107.80",
+            "stdev": "3.75",
+            "mindiff": "0.02",
+            "Zscore": "2.83",
+            "obsval": "118.40"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2,N1",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.03",
+            "Zscore": "7.19",
+            "obsval": "1.42"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2,C3",
+            "numobs": "5881",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.77",
+            "obsval": "1.34"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C3,C7",
+            "numobs": "2600",
+            "mean": "1.50",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "-2.72",
+            "obsval": "1.46"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5,C4",
+            "numobs": "50000",
+            "mean": "1.38",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "2.21",
+            "obsval": "1.42"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5R,O5R,P,O3P",
+            "numobs": "78",
+            "mean": "64.09",
+            "stdev": "30.34",
+            "mindiff": "6.28",
+            "local_density": "1.28",
+            "obsval": "140.76"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5R,O5R,P,O1P",
+            "numobs": "52",
+            "mean": "71.35",
+            "stdev": "46.82",
+            "mindiff": "24.25",
+            "local_density": "0.00",
+            "obsval": "12.88"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5R,O5R,P,O2P",
+            "numobs": "52",
+            "mean": "54.93",
+            "stdev": "8.56",
+            "mindiff": "35.86",
+            "local_density": "0.00",
+            "obsval": "-114.21"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "11",
+      "NatomsEDS": "22",
+      "avgoccu": "1.000",
+      "mogul_rmsz_numangles": "30",
+      "owab": "17.300",
+      "rscc": "0.935",
+      "EDIAm": "0.805",
+      "mogul_rmsz_numbonds": "21",
+      "mogul_angles_rmsz": "0.43",
+      "rsr": "0.085",
+      "OPIA": "68.180",
+      "mogul_bonds_rmsz": "0.22",
+      "model": "1",
+      "chain": "A",
+      "resnum": "1002",
+      "said": "F",
+      "ent": "5",
+      "seq": ".",
+      "icode": " ",
+      "resname": "AMP",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "rscc": "0.939",
+      "rsr": "0.096",
+      "EDIAm": "0.951",
+      "OPIA": "100.000",
+      "owab": "16.980",
+      "avgoccu": "1.000",
+      "NatomsEDS": "4",
+      "mogul_rmsz_numbonds": "0",
+      "mogul_rmsz_numangles": "0",
+      "model": "1",
+      "chain": "A",
+      "resnum": "1003",
+      "said": "G",
+      "ent": "6",
+      "seq": ".",
+      "icode": " ",
+      "resname": "PO4",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "14",
+      "NatomsEDS": "22",
+      "avgoccu": "1.000",
+      "mogul_rmsz_numangles": "27",
+      "owab": "44.450",
+      "rscc": "0.663",
+      "EDIAm": "0.216",
+      "mogul_rmsz_numbonds": "21",
+      "mogul_angles_rmsz": "1.13",
+      "rsr": "0.205",
+      "OPIA": "13.640",
+      "mogul_bonds_rmsz": "2.01",
+      "model": "1",
+      "chain": "B",
+      "resnum": "2001",
+      "said": "I",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NMN",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "HC4",
+            "dist": "1.98",
+            "clashmag": "0.64",
+            "cid": "10"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H5R1",
+            "dist": "2.05",
+            "clashmag": "0.56",
+            "cid": "11"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H5R2",
+            "dist": "1.87",
+            "clashmag": "0.56",
+            "cid": "12"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "HC6",
+            "dist": "1.87",
+            "clashmag": "0.55",
+            "cid": "13"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "HC6",
+            "dist": "2.06",
+            "clashmag": "0.55",
+            "cid": "14"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "O3R",
+            "dist": "2.14",
+            "clashmag": "0.47",
+            "cid": "15"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O1P,P,O3P",
+            "numobs": "523",
+            "mean": "110.83",
+            "stdev": "3.90",
+            "mindiff": "0.11",
+            "Zscore": "2.14",
+            "obsval": "119.19"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2P,P,O3P",
+            "numobs": "523",
+            "mean": "110.83",
+            "stdev": "3.90",
+            "mindiff": "2.58",
+            "Zscore": "-3.53",
+            "obsval": "97.07"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2P,P,O1P",
+            "numobs": "262",
+            "mean": "107.80",
+            "stdev": "3.75",
+            "mindiff": "0.32",
+            "Zscore": "2.91",
+            "obsval": "118.70"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2,N1",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.03",
+            "Zscore": "6.99",
+            "obsval": "1.42"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2,C3",
+            "numobs": "5881",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.97",
+            "obsval": "1.34"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C3,C7",
+            "numobs": "2600",
+            "mean": "1.50",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "-2.65",
+            "obsval": "1.46"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5,C4",
+            "numobs": "50000",
+            "mean": "1.38",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "2.32",
+            "obsval": "1.42"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5R,O5R,P,O3P",
+            "numobs": "78",
+            "mean": "56.96",
+            "stdev": "21.33",
+            "mindiff": "8.42",
+            "local_density": "1.28",
+            "obsval": "92.29"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4R,C4R,C5R,O5R",
+            "numobs": "522",
+            "mean": "30.91",
+            "stdev": "27.36",
+            "mindiff": "0.22",
+            "local_density": "3.64",
+            "obsval": "-41.76"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "11",
+      "NatomsEDS": "22",
+      "avgoccu": "1.000",
+      "mogul_rmsz_numangles": "30",
+      "owab": "43.590",
+      "rscc": "0.685",
+      "EDIAm": "0.106",
+      "mogul_rmsz_numbonds": "21",
+      "mogul_angles_rmsz": "0.44",
+      "rsr": "0.164",
+      "OPIA": "4.550",
+      "mogul_bonds_rmsz": "0.20",
+      "model": "1",
+      "chain": "B",
+      "resnum": "2002",
+      "said": "J",
+      "ent": "5",
+      "seq": ".",
+      "icode": " ",
+      "resname": "AMP",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H5'2",
+            "dist": "1.87",
+            "clashmag": "0.56",
+            "cid": "12"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H4'",
+            "dist": "2.16",
+            "clashmag": "0.44",
+            "cid": "16"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "N7",
+            "dist": "2.35",
+            "clashmag": "0.42",
+            "cid": "17"
+          }
+        }
+      ]
+    },
+    {
+      "rscc": "0.881",
+      "rsr": "0.170",
+      "EDIAm": "0.397",
+      "OPIA": "50.000",
+      "owab": "38.600",
+      "avgoccu": "1.000",
+      "NatomsEDS": "4",
+      "mogul_rmsz_numbonds": "0",
+      "mogul_rmsz_numangles": "0",
+      "model": "1",
+      "chain": "B",
+      "resnum": "2003",
+      "said": "K",
+      "ent": "6",
+      "seq": ".",
+      "icode": " ",
+      "resname": "PO4",
+      "altcode": " ",
+      "local_validation_children": []
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 KRED calibration reference set v0.1 -- eligibility audit and calibration run
-data digest a1bcd99c01e5e6fd...  19 structures, 28 kinetic records
+data digest 73a65de287bcac85...  19 structures, 28 kinetic records
 independent lineages: 6 among the 19 entries; 3 behind the 22 core kinetic records; 2 with a substrate or product placed in the site
 
 == scenario: as_shipped ==

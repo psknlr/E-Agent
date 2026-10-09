@@ -1,0 +1,123 @@
+{
+  "paper_doi": "10.1038/s41467-026-77715-6",
+  "paper_url": "https://www.nature.com/articles/s41467-026-77715-6",
+  "paper_pdf_url": "https://www.nature.com/articles/s41467-026-77715-6_reference.pdf",
+  "paper_publication_date": "2026-09-15",
+  "paper_status": "Article in Press / early accepted manuscript when retrieved",
+  "dataset_doi": "10.5281/zenodo.19574983",
+  "dataset_license": "CC BY 4.0 (verified via Zenodo API metadata)",
+  "github_license": "MIT (verified LICENSE and README)",
+  "counts": {
+    "round1_total_rows": 49,
+    "round2_total_rows": 66,
+    "duplicate_IDs_between_rounds": [
+      "Ort-EZM-20",
+      "Ort-EZM-6",
+      "Ort-RDM-1",
+      "Ort-RDM-16",
+      "Ort-RDM-23",
+      "Ssal-KRED"
+    ],
+    "duplicate_rows_discrepancies": {},
+    "unique_IDs": 109,
+    "unique_sequences_from_csv": 109,
+    "repeated_identical_sequence_IDs": [],
+    "soluble_unique_IDs_including_WT": 69,
+    "orthologs_soluble_excluding_WT": 68,
+    "insoluble_unique_IDs": 40,
+    "fasta_record_count": 109,
+    "fasta_unique_sequences": 109,
+    "csv_sequences_absent_in_fasta": [],
+    "fasta_example_headers": [
+      "Q9UUN9\t",
+      "PWN99435\t",
+      "ORY53991\t"
+    ],
+    "relative_1a_label_rows": 69,
+    "endpoint_stats": {
+      "2a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 36,
+        "missing_ee": 35,
+        "ee_nonmissing": 34,
+        "max_total_product_mM": 7.7,
+        "nonzero_product_with_missing_ee": [
+          "Ort-EZM-23"
+        ]
+      },
+      "3a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 1,
+        "missing_ee": 1,
+        "ee_nonmissing": 68,
+        "max_total_product_mM": 6.5,
+        "nonzero_product_with_missing_ee": []
+      },
+      "4a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 0,
+        "missing_ee": 0,
+        "ee_nonmissing": 69,
+        "max_total_product_mM": 3.4,
+        "nonzero_product_with_missing_ee": []
+      },
+      "5a": {
+        "numeric_endpoint_rows": 69,
+        "R_and_S_both_exact_zero": 23,
+        "missing_ee": 23,
+        "ee_nonmissing": 46,
+        "max_total_product_mM": 7.6,
+        "nonzero_product_with_missing_ee": []
+      }
+    }
+  },
+  "label_definitions": {
+    "1b": "Dimensionless initial substrate-depletion slope ratio, normalized to Ssal-KRED (FIO_Ssal-KRED). Clarified lysate assay. Must not be pooled as mM conversion or kcat.",
+    "2b_to_5b_R_and_S": "Absolute product formation concentrations in mM after fixed time. Crude E.coli lysate assay with background from empty-vector control subtracted. 10 mM input substrate, 20 h at 20 C per README.",
+    "ee": "Signed ee; positive values correspond to R preference in CSV. Values coded +/-100 correspond to opposite enantiomer undetected / >99% in publication, not proof of mathematically exactly pure material. Missing ee is not zero ee.",
+    "solubly_expressed": "Expression/solubility phenotype; rows coded 0 have blank activity values and are not catalytic-negative labels.",
+    "melting_temperature": "nanoDSF thermal melting temperature in C, not an activity label."
+  },
+  "experimental_conditions": {
+    "2a_5a_preparation": "crude cell extracts from enzymatically lysed bacterial pellets",
+    "2a_5a_input_substrate_mM": 10,
+    "2a_5a_duration_hours": 20,
+    "2a_5a_temperature_C": 20,
+    "cofactor_regeneration": "NADH/NADPH, glucose, GDH per README; concentrations and exact assay pH require SI",
+    "replicates": "README states at least 3 independent replicates and SD where applicable. Summary CSVs lack replicate/SD fields; use Zenodo XLSX for uncertainty.",
+    "1a_input_substrate_mg_ml": 0.1,
+    "1a_monitoring_nm": 340,
+    "1a_kinetic_label": "fold increase over Ssal-KRED, not purified-enzyme intrinsic activity"
+  },
+  "structural_evidence": {
+    "reference": "PDB 1Y1P WT cofactor complex per original JMB2005. Deposition uses covalently linked NMN+AMP+PO4 components, with explicit _struct_conn, rather than single NDP/NAP residue; do not mistake connected CCD fragments for absent cofactor.",
+    "substrate_1a_pose": "MOE2019.01 model, with 2.8 A contacts to Tyr177/Ser133 and 3.8 A constraint involving hydride-donor carbon stated in Fig2 caption; explicitly modeled and not experimental substrate geometry",
+    "ortholog_models": "Boltz-based computational structural workflow. Never count modeled orthologs as experimentally resolved ternary complexes."
+  },
+  "chemical_identity_audits": [
+    {
+      "substrate_id": "1a",
+      "source_original_SMILES": "C[C@H]3CC(O)c2ncnc(N1CCN(C(=O)OC(C)(C)C)CC1)c23",
+      "finding": "Source SMILES contains an alcohol C(O) at the intended reduction site, while Fig2c depicts a ketone C(=O). It resembles product rather than substrate.",
+      "curation_action": "quarantine original chemical identity; do not silently use as ketone or overwrite source",
+      "proposed_corrected_SMILES_pending_stereochemical_validation": "C[C@H]3CC(=O)c2ncnc(N1CCN(C(=O)OC(C)(C)C)CC1)c23",
+      "evidence": "Visual inspection of Fig2c vs Fig2d, main PDF p4."
+    },
+    {
+      "substrate_id": "5a",
+      "source_original_SMILES": "C(C(=O)CCl)C(=O)[O-]",
+      "finding": "Source SMILES encodes 4-chloroacetoacetate carboxylate, but Fig2c explicitly depicts the ethyl ester ClCH2COCH2COOEt. Ethyl group and charge state are wrong for that depicted compound.",
+      "curation_action": "quarantine until corrected with source-preserving provenance",
+      "proposed_corrected_SMILES": "CCOC(=O)CC(=O)CCl",
+      "proposed_corrected_name": "ethyl 4-chloro-3-oxobutanoate (ethyl 4-chloroacetoacetate)",
+      "evidence": "Visual inspection of Fig2c main PDF p4."
+    }
+  ],
+  "additional_source_inconsistencies": [
+    {
+      "item": "Ort-RDM-1 / substrate5a enantioselectivity",
+      "finding": "Narrative on p3 says ee99.3% for Ort-RDM-1; Fig2e on p4 shows86.6, matching CSV signed ee -86.6. Do not overwrite CSV with narrative99.3. Resolve against raw XLSX if this pair enters core."
+    }
+  ],
+  "allowed_current_use": "Relative/activity ranking and sequence-substrate screening reference with explicit label separation and chemical audit. Not a drop-in experimental-complex geometry calibration set."
+}

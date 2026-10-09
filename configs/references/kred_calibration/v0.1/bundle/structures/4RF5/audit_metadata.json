@@ -1,0 +1,467 @@
+{
+  "pdb_id": "4RF5",
+  "files": [
+    {
+      "url": "https://files.rcsb.org/download/4RF5.cif",
+      "path": "structures/4RF5/4RF5.cif",
+      "sha256": "4d1f0e0546ce650657912425fbc757c08560ed6b6d1b54bdc474b870a2a60f0e",
+      "bytes": 800842
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/entry/4RF5",
+      "path": "structures/4RF5/entry.json",
+      "sha256": "efbd4a844542397067bf0a2e90c12fc5b8747b6f67f62bf0324e7e31875ae692",
+      "bytes": 21683
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/polymer_entity/4RF5/1",
+      "path": "structures/4RF5/polymer_entity_1.json",
+      "sha256": "405920fdea3fd269421abdfa8824d3e543b47840d883cdb1ba47dfefaec66001",
+      "bytes": 16858
+    },
+    {
+      "url": "https://files.rcsb.org/pub/pdb/validation_reports/rf/4rf5/4rf5_validation.xml.gz",
+      "path": "structures/4RF5/4RF5_validation.xml.gz",
+      "sha256": "1f3049fa05d04efdb7299d7b8d191bad28b52d9c59e2d4c5846f71a464ff3c86",
+      "bytes": 24753
+    }
+  ],
+  "errors": [],
+  "title": "Crystal structure of ketoreductase from Lactobacillus kefir, E145S mutant",
+  "resolution_A": [
+    1.596
+  ],
+  "method": [
+    {
+      "crystals_number": 1,
+      "method": "X-RAY DIFFRACTION"
+    }
+  ],
+  "refine": [
+    {
+      "B_iso_max": 76.87,
+      "B_iso_mean": 20.34,
+      "B_iso_min": 9.61,
+      "ls_R_factor_R_free": 0.1829,
+      "ls_R_factor_R_work": 0.1634,
+      "ls_R_factor_obs": 0.1654,
+      "ls_d_res_high": 1.596,
+      "ls_d_res_low": 69.56,
+      "ls_number_reflns_R_free": 6807,
+      "ls_number_reflns_obs": 68073,
+      "ls_percent_reflns_R_free": 10.0,
+      "ls_percent_reflns_obs": 99.55,
+      "overall_FOM_work_R_set": 0.8904,
+      "overall_SU_ML": 0.16,
+      "pdbx_R_Free_selection_details": "RANDOM",
+      "pdbx_diffrn_id": [
+        "1"
+      ],
+      "pdbx_ls_cross_valid_method": "THROUGHOUT",
+      "pdbx_ls_sigma_F": 1.34,
+      "pdbx_method_to_determine_struct": "MOLECULAR REPLACEMENT",
+      "pdbx_overall_phase_error": 17.46,
+      "pdbx_refine_id": "X-RAY DIFFRACTION",
+      "pdbx_solvent_shrinkage_radii": 0.9,
+      "pdbx_solvent_vdw_probe_radii": 1.11,
+      "pdbx_starting_model": "PDB ENTRY 1NXQ",
+      "pdbx_stereochemistry_target_values": "ML",
+      "solvent_model_details": "FLAT BULK SOLVENT MODEL"
+    }
+  ],
+  "citation": {
+    "country": "US",
+    "id": "primary",
+    "journal_abbrev": "Proc.Natl.Acad.Sci.USA",
+    "journal_id_ASTM": "PNASA6",
+    "journal_id_CSD": "0040",
+    "journal_id_ISSN": "0027-8424",
+    "journal_volume": "112",
+    "page_first": "E7065",
+    "page_last": "E7072",
+    "pdbx_database_id_DOI": "10.1073/pnas.1507910112",
+    "pdbx_database_id_PubMed": 26644568,
+    "rcsb_ORCID_identifiers": [
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?"
+    ],
+    "rcsb_authors": [
+      "Noey, E.L.",
+      "Tibrewal, N.",
+      "Jimenez-Oses, G.",
+      "Osuna, S.",
+      "Park, J.",
+      "Bond, C.M.",
+      "Cascio, D.",
+      "Liang, J.",
+      "Zhang, X.",
+      "Huisman, G.W.",
+      "Tang, Y.",
+      "Houk, K.N."
+    ],
+    "rcsb_journal_abbrev": "Proc Natl Acad Sci U S A",
+    "title": "Origins of stereoselectivity in evolved ketoreductases.",
+    "year": 2015
+  },
+  "nonpolymer_ids": [
+    "2",
+    "3"
+  ],
+  "protein_sequence": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+  "sequence_sha256": "da4f7976afdc3cfae69186c21cd57ef8f7ba6c4eea36daba01a33c60f80b3472",
+  "sequence_length": 272,
+  "entity_poly": {
+    "nstd_linkage": "no",
+    "nstd_monomer": "no",
+    "pdbx_seq_one_letter_code": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "pdbx_seq_one_letter_code_can": "HHHHHHHHGGLVPRGSHGGSMTDRLKGKVAIVTGGTLGIGLAIADKFVEEGAKVVITGRHADVGEKAAKSIGGTDVIRFVQHDASDEAGWTKLFDTTEEAFGPVTTVVNNAGIAVSKSVEDTTTEEWRKLLSVNLDGVFFGTRLGIQRMKNKGLGASIINMSSISGFVGDPTLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLEGAEEMMSQRTKTPMGHIGEPNDIAWICVYLASDESKFATGAEFVVDGGYTAQ",
+    "pdbx_strand_id": "A,B",
+    "rcsb_artifact_monomer_count": 1,
+    "rcsb_conflict_count": 0,
+    "rcsb_deletion_count": 0,
+    "rcsb_entity_polymer_type": "Protein",
+    "rcsb_insertion_count": 0,
+    "rcsb_mutation_count": 1,
+    "rcsb_non_std_monomer_count": 0,
+    "rcsb_sample_sequence_length": 272,
+    "type": "polypeptide(L)"
+  },
+  "polymer_entity": {
+    "formula_weight": 28.939,
+    "pdbx_description": "NADPH dependent R-specific alcohol dehydrogenase",
+    "pdbx_mutation": "E145S",
+    "pdbx_number_of_molecules": 2,
+    "rcsb_multiple_source_flag": "N",
+    "rcsb_source_part_count": 1,
+    "rcsb_source_taxonomy_count": 1,
+    "src_method": "man",
+    "rcsb_ec_lineage": [
+      {
+        "depth": 1,
+        "id": "1",
+        "name": "Oxidoreductases"
+      },
+      {
+        "depth": 2,
+        "id": "1.1",
+        "name": "Acting on the CH-OH group of donors"
+      },
+      {
+        "depth": 3,
+        "id": "1.1.1",
+        "name": "With NAD+ or NADP+ as acceptor"
+      }
+    ],
+    "rcsb_macromolecular_names_combined": [
+      {
+        "name": "NADPH dependent R-specific alcohol dehydrogenase",
+        "provenance_code": "ECO:0000304",
+        "provenance_source": "PDB Preferred Name"
+      },
+      {
+        "name": "Ketoreductase",
+        "provenance_code": "ECO:0000303",
+        "provenance_source": "PDB Synonym"
+      }
+    ],
+    "rcsb_enzyme_class_combined": [
+      {
+        "depth": 3,
+        "ec": "1.1.1",
+        "provenance_source": "UniProt"
+      }
+    ],
+    "rcsb_polymer_name_combined": {
+      "names": [
+        "NADP-dependent (R)-specific alcohol dehydrogenase"
+      ],
+      "provenance_source": "UniProt Name"
+    }
+  },
+  "organism": [
+    {
+      "ncbi_parent_scientific_name": "Bacteria",
+      "ncbi_scientific_name": "Lentilactobacillus kefiri",
+      "ncbi_taxonomy_id": 33962,
+      "pdbx_src_id": 1,
+      "provenance_source": "Primary Data",
+      "scientific_name": "Lactobacillus kefiri",
+      "source_type": "genetically engineered",
+      "taxonomy_lineage": [
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "cellular organisms"
+        },
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "biota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria (ex Cavalier-Smith 1987)"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria Woese et al. 2024"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteriobiota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "eubacteria"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Bacillati"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmacutes"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicuteota"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicutes"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicutes corrig. Gibbons and Murray 1978 (Approved Lists 1980)"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacteria"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacteria group"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacterida"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillota"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillaeota"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillota corrig. Gibbons and Murray 2021"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillus/Clostridium group"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Clostridium group firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Low G+C firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "clostridial firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "low G+C Gram-positive bacteria"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "low GC Gram+"
+        },
+        {
+          "depth": 5,
+          "id": "91061",
+          "name": "Bacilli"
+        },
+        {
+          "depth": 5,
+          "id": "91061",
+          "name": "Bacillus/Lactobacillus/Streptococcus group"
+        },
+        {
+          "depth": 5,
+          "id": "91061",
+          "name": "Firmibacteria"
+        },
+        {
+          "depth": 6,
+          "id": "186826",
+          "name": "Lactobacillales"
+        },
+        {
+          "depth": 7,
+          "id": "33958",
+          "name": "Lactobacillaceae"
+        },
+        {
+          "depth": 7,
+          "id": "33958",
+          "name": "Leuconostocaceae"
+        },
+        {
+          "depth": 8,
+          "id": "2767893",
+          "name": "Lentilactobacillus"
+        },
+        {
+          "depth": 9,
+          "id": "33962",
+          "name": "Lentilactobacillus kefiri"
+        }
+      ],
+      "rcsb_gene_name": [
+        {
+          "provenance_source": "Primary Data",
+          "value": "adhR"
+        }
+      ]
+    }
+  ],
+  "uniprot_ids": [
+    "Q6WVP7"
+  ],
+  "validation_entry": {
+    "percentilebins": "all,1.596,xray",
+    "attemptedValidationSteps": "molprobity,validation-pack,xtriage,eds,mogul,buster-report,percentiles,writexml",
+    "PDB-deposition-date": "2014-09-24",
+    "PDB-revision-date": "2023-09-20",
+    "PDB-revision-number": "5",
+    "protein-DNA-RNA-entities": "1",
+    "PDB-resolution": "1.60",
+    "PDB-resolution-low": "69.56",
+    "PDB-R": "0.1634",
+    "PDB-Rfree": "0.1829",
+    "pdbid": "4RF5",
+    "extended_pdbid": "4RF5",
+    "num-H-reduce": "3690",
+    "clashscore": "0.54",
+    "RestypesNotcheckedForBondAngleGeometry": "GOL,MG",
+    "percent-rama-outliers": "0.00",
+    "percent-rota-outliers": "0.26",
+    "bonds_rmsz": "0.40",
+    "num_bonds_rmsz": "3776",
+    "angles_rmsz": "0.69",
+    "num_angles_rmsz": "5110",
+    "WilsonBestimate": "16.213",
+    "TwinL2": "0.303",
+    "IoverSigma": "0.93(1.59A)",
+    "xtriage_input_columns": "F_meas_au,F_meas_sigma_au",
+    "DataAnisotropy": "0.721",
+    "WilsonBaniso": "[23.474,11.028,17.271,0.000,0.000,0.000]",
+    "TwinL": "0.473",
+    "TransNCS": "The largest off-origin peak in the Patterson function is 5.57% of the height of the origin peak. No significant pseudotranslation is detected.",
+    "TwinFraction": "l,-k,h:0.025",
+    "acentric_outliers": "0",
+    "numMillerIndices": "68089",
+    "centric_outliers": "0",
+    "num-free-reflections": "6809",
+    "percent-free-reflections": "9.96",
+    "B_factor_type": "FULL",
+    "density-fitnessVersion": "1.0.12",
+    "percent-RSRZ-outliers": "3.59",
+    "DCC_R": "0.1683",
+    "EDS_resolution_low": "69.56",
+    "EDS_resolution": "1.60",
+    "bulk_solvent_k": "0.359",
+    "DCC_Rfree": "0.1866",
+    "DataCompleteness": "99.57",
+    "DCC_refinement_program": "PHENIX",
+    "no-ligands-for-buster-report": "yes",
+    "bulk_solvent_b": "34.727",
+    "Fo_Fc_correlation": "0.962",
+    "CCP4version": "9.0.010 (Gargrove)",
+    "EDS_R": "0.1746",
+    "absolute-percentile-clashscore": "98.5",
+    "numPDBids-absolute-percentile-clashscore": "190562",
+    "relative-percentile-clashscore": "98.3",
+    "numPDBids-relative-percentile-clashscore": "4931",
+    "low-resol-relative-percentile-clashscore": "1.6",
+    "high-resol-relative-percentile-clashscore": "1.6",
+    "absolute-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-absolute-percentile-percent-rama-outliers": "187476",
+    "relative-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-relative-percentile-percent-rama-outliers": "4831",
+    "low-resol-relative-percentile-percent-rama-outliers": "1.6",
+    "high-resol-relative-percentile-percent-rama-outliers": "1.6",
+    "absolute-percentile-percent-rota-outliers": "85.9",
+    "numPDBids-absolute-percentile-percent-rota-outliers": "187428",
+    "relative-percentile-percent-rota-outliers": "78.5",
+    "numPDBids-relative-percentile-percent-rota-outliers": "4830",
+    "low-resol-relative-percentile-percent-rota-outliers": "1.6",
+    "high-resol-relative-percentile-percent-rota-outliers": "1.6",
+    "absolute-percentile-percent-RSRZ-outliers": "45.9",
+    "numPDBids-absolute-percentile-percent-RSRZ-outliers": "180081",
+    "relative-percentile-percent-RSRZ-outliers": "48.4",
+    "numPDBids-relative-percentile-percent-RSRZ-outliers": "4672",
+    "low-resol-relative-percentile-percent-RSRZ-outliers": "1.6",
+    "high-resol-relative-percentile-percent-RSRZ-outliers": "1.6",
+    "absolute-percentile-DCC_Rfree": "89.8",
+    "numPDBids-absolute-percentile-DCC_Rfree": "180053",
+    "relative-percentile-DCC_Rfree": "85.8",
+    "numPDBids-relative-percentile-DCC_Rfree": "4673",
+    "low-resol-relative-percentile-DCC_Rfree": "1.6",
+    "high-resol-relative-percentile-DCC_Rfree": "1.6",
+    "XMLcreationDate": "Mar  9, 2026 -- 08:18 PM UTC"
+  },
+  "ligand_validation": []
+}

@@ -88,10 +88,12 @@ REFERENCE_NAME = "kred_calibration_reference"
 REFERENCE_VERSION = "v0.1"
 MANIFEST_NAME = "MANIFEST.json"
 
-#: Directories whose bytes are the data product. Documentation beside them is
-#: listed in the manifest too, but is not part of ``data_digest``: a typo fix in
-#: the README must not look like a change to the numbers.
-DATA_DIRECTORIES = ("source", "tables", "bindings", "coordinates")
+#: Directories whose bytes are the data product: the delivered workbook, its
+#: conversion, the coordinate and binding records, and the second delivery's
+#: committed files (see :mod:`eagent.eval.kred_bundle`). Documentation beside
+#: them is listed in the manifest too, but is not part of ``data_digest``: a
+#: typo fix in a README must not look like a change to the numbers.
+DATA_DIRECTORIES = ("source", "tables", "bindings", "coordinates", "bundle")
 
 
 class ReferenceSetError(EAgentError):

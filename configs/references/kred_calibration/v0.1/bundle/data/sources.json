@@ -1,0 +1,164 @@
+[
+  {
+    "source_id": "HBDH2018_SI",
+    "title": "Linear Eyring Plots Conceal a Change in the Rate-Limiting Step in an Enzyme Reaction — Supporting Information",
+    "doi": "10.1021/acs.biochem.8b01099.s001",
+    "url": "https://doi.org/10.1021/acs.biochem.8b01099.s001",
+    "location": "Tables S1-S4, 283 K; Methods S4-S5",
+    "access_reuse": "Figshare metadata: CC BY-NC 4.0; this package includes factual extraction and source link, not SI full text",
+    "verification": "Original SI downloaded; table values and fitting-error definition checked"
+  },
+  {
+    "source_id": "HBDH2018",
+    "title": "Linear Eyring Plots Conceal a Change in the Rate-Limiting Step in an Enzyme Reaction",
+    "doi": "10.1021/acs.biochem.8b01099",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6300308/",
+    "location": "Primary kinetic study",
+    "access_reuse": "CC BY 4.0 main paper",
+    "verification": "Primary paper and SI read"
+  },
+  {
+    "source_id": "HBDH2020",
+    "title": "Dissecting the Mechanism of (R)-3-Hydroxybutyrate Dehydrogenase by Kinetic Isotope Effects, Protein Crystallography, and Computational Chemistry",
+    "doi": "10.1021/acscatal.0c04736",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7773212/",
+    "location": "Table 4 mutants; 6ZZO/P/Q/S structures",
+    "access_reuse": "CC BY main paper",
+    "verification": "Primary paper and PDB validation checked"
+  },
+  {
+    "source_id": "LbADH2005",
+    "title": "Atomic resolution structures of R-specific alcohol dehydrogenase from Lactobacillus brevis provide the structural bases of its substrate and cosubstrate specificity",
+    "doi": "10.1016/j.jmb.2005.04.029",
+    "url": "https://doi.org/10.1016/j.jmb.2005.04.029",
+    "location": "Matched WT/G37D reduction kinetics",
+    "access_reuse": "Original full text not directly accessible in this audit",
+    "verification": "Original numeric table not read; values corroborated by BRENDA and explicit reprint"
+  },
+  {
+    "source_id": "LbADH_BRENDA",
+    "title": "BRENDA literature 675348",
+    "doi": null,
+    "url": "https://brenda-enzymes.info/literature.php?e=1.1.1.2&r=675348",
+    "location": "Acetophenone/NAD(P)H entries",
+    "access_reuse": "BRENDA 2026.1 CC BY 4.0",
+    "verification": "Official curated extraction; central kcat and Km values checked"
+  },
+  {
+    "source_id": "LbADH_table_reprint",
+    "title": "Analysis of factors influencing enzyme activity and stability in the solid state",
+    "doi": null,
+    "url": "https://docserv.uni-duesseldorf.de/servlets/DerivateServlet/Derivate-16498/Doctoral%20thesis_Liliya%20Kulishova.pdf",
+    "location": "Kulishova 2010 Table 4-11, printed p129",
+    "access_reuse": "Public university thesis; no full text included",
+    "verification": "Explicit reprint of Schlieben et al.; +/- terms checked"
+  },
+  {
+    "source_id": "TRII2003",
+    "title": "Capturing enzyme structure prior to reaction initiation: tropinone reductase-II-substrate complexes",
+    "doi": "10.1021/bi0272712",
+    "url": "https://doi.org/10.1021/bi0272712",
+    "location": "1IPF pre-reaction complex",
+    "access_reuse": "PDB public; full numeric table not directly read",
+    "verification": "Experimental method via primary abstract/PDB; numeric labels via official BRENDA"
+  },
+  {
+    "source_id": "TRII_BRENDA",
+    "title": "BRENDA literature 654707",
+    "doi": null,
+    "url": "https://www.brenda-enzymes.org/literature.php?e=1.1.1.236&r=654707",
+    "location": "tropinone Km/kcat; NADPH Km; pH7.5 and15 C",
+    "access_reuse": "BRENDA 2026.1 CC BY 4.0",
+    "verification": "Official curated extraction from the 2003 structural paper"
+  },
+  {
+    "source_id": "TRII1999",
+    "title": "Structure of tropinone reductase-II complexed with NADP+ and pseudotropine at 1.9 A resolution: implication for stereospecific substrate binding and catalysis",
+    "doi": "10.1021/bi9825044",
+    "url": "https://doi.org/10.1021/bi9825044",
+    "location": "2AE2 product complex",
+    "access_reuse": "PDB public",
+    "verification": "Sequence core matches 1IPF; kinetic inheritance is cross-paper"
+  },
+  {
+    "source_id": "Sm2020",
+    "title": "Phylogenetics-based identification and characterization of a superior 2,3-butanediol dehydrogenase for Zymomonas mobilis expression",
+    "doi": "10.1186/s13068-020-01820-x",
+    "url": "https://link.springer.com/article/10.1186/s13068-020-01820-x",
+    "location": "Fig8; Bdh activity analysis; 6XEW",
+    "access_reuse": "Open access primary paper",
+    "verification": "Purified-enzyme bar approximate reading only; fixed-condition specific activity"
+  },
+  {
+    "source_id": "PNAS2015",
+    "title": "Origins of stereoselectivity in evolved ketoreductases",
+    "doi": "10.1073/pnas.1507910112",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4697376/",
+    "location": "Table1, Kinetics Experiments, Data deposition",
+    "access_reuse": "Publicly readable on PMC; explicit article reuse license not independently established in this subtask. Do not infer CC BY from PMC hosting.",
+    "verification": "Eight numerical efficiencies + two ND, ten er entries with variant footnote preserved"
+  },
+  {
+    "source_id": "Ssal2024",
+    "title": "Effective engineering of a ketoreductase for the biocatalytic synthesis of an ipatasertib precursor",
+    "doi": "10.1038/s42004-024-01130-5",
+    "url": "https://www.nature.com/articles/s42004-024-01130-5",
+    "location": "Table2; SI1.11/Fig19/p55; Supplementary Data6",
+    "access_reuse": "Article CC BY4.0; GitHub repository has no LICENSE found in audited tree",
+    "verification": "Table, assay, sequences, raw curve metadata checked; M4 saturation and M6 uncertainty flags retained"
+  },
+  {
+    "source_id": "Ssal2005",
+    "title": "Structure of Sporobolomyces salmonicolor aldehyde reductase with NADPH",
+    "doi": "10.1016/j.jmb.2005.07.011",
+    "url": "https://doi.org/10.1016/j.jmb.2005.07.011",
+    "location": "1Y1P; covalently connected cofactor fragments in _struct_conn",
+    "access_reuse": "PDB CC0",
+    "verification": "Current PDB coordinate graph checked; ketone 1a is absent"
+  },
+  {
+    "source_id": "Ortholog2026",
+    "title": "Iterative and data-driven ortholog mining enables reliable discovery of stereoselective ketoreductases",
+    "doi": "10.1038/s41467-026-77715-6",
+    "url": "https://www.nature.com/articles/s41467-026-77715-6",
+    "location": "Fig2; Source Data; public repository",
+    "access_reuse": "Early accepted article version as retrieved on 2026-10-07",
+    "verification": "109 unique sequences; 69 soluble labels; 1a and5a chemical-identity discrepancies quarantined"
+  },
+  {
+    "source_id": "Ortholog2026_Zenodo",
+    "title": "Public data for Ssal-KRED ortholog mining",
+    "doi": "10.5281/zenodo.19574983",
+    "url": "https://zenodo.org/records/19574983",
+    "location": "v1; original substrate_SMILES.csv",
+    "access_reuse": "CC BY4.0",
+    "verification": "Metadata, source SMILES and paper figure compared"
+  },
+  {
+    "source_id": "Ortholog2026_GitHub",
+    "title": "Buller-Lab/Ssal-KRED_orthologs",
+    "doi": null,
+    "url": "https://github.com/Buller-Lab/Ssal-KRED_orthologs",
+    "location": "Round1/2 CSV, 109-sequence FASTA, LICENSE",
+    "access_reuse": "MIT LICENSE preserved alongside downloaded files",
+    "verification": "Rows deduplicated for counts only; original CSVs preserved unchanged"
+  },
+  {
+    "source_id": "wwPDB",
+    "title": "PDB archive usage policies",
+    "doi": null,
+    "url": "https://www.wwpdb.org/about/usage-policies",
+    "location": "mmCIF, validation XML, PDB metadata",
+    "access_reuse": "PDB archive data CC0; retain scientific attribution",
+    "verification": "Original downloaded bytes and SHA256 manifest retained"
+  },
+  {
+    "source_id": "TeSADH2022",
+    "title": "Crystallographic snapshots of ternary complexes of thermophilic secondary alcohol dehydrogenase",
+    "doi": "10.1002/prot.26339",
+    "url": "https://doi.org/10.1002/prot.26339",
+    "location": "7UUT/7UTC exclusion audit",
+    "access_reuse": "PDB public; no full paper included",
+    "verification": "Product/cofactor ambiguity and DMSO exclusion recorded; no matched reductive kcat established"
+  }
+]

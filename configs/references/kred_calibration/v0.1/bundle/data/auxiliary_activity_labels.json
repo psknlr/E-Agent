@@ -1,0 +1,45 @@
+[
+  {
+    "label_id": "SMBDH_WT_ACETOIN_2020",
+    "enzyme": "meso-2,3-butanediol dehydrogenase",
+    "organism": "Serratia marcescens",
+    "uniprot": "H9XP47",
+    "genbank": "AFH00999",
+    "variant": "WT with N-terminal His6-TEV construct",
+    "substrate": "racemic acetoin",
+    "substrate_stereochemistry": "R/S mixture; no separate enantiomer-specific rate",
+    "product": "2,3-butanediol stereoisomers",
+    "cofactor_in_assay": "NADH",
+    "reaction_direction": "ketone reduction",
+    "specific_activity_U_per_nmol_approx": 3.5,
+    "value_is_approximate": true,
+    "value_source": "visual reading of Fig8 bar, about3.5; do not treat as exact tabulated number",
+    "error_description": "error bar shown; triplicate mean±SD; numeric SD not given",
+    "pH": 7.0,
+    "temperature_C": null,
+    "temperature_note": "assay temperature not reported in accessible Methods;30°C culture temperature must not be transferred",
+    "buffer": "100mM potassium phosphate",
+    "substrate_concentration_mM": 25,
+    "cofactor_concentration_mM": 0.25,
+    "reaction_volume_uL": 200,
+    "readout": "NADH oxidation A340 monitored5min, epsilon6.22mM^-1cm^-1",
+    "purified_protein_mass_range_ug": [
+      0.05,
+      1
+    ],
+    "replicates": 3,
+    "unit_definition": "1U consumes1micromole NADH/min",
+    "Km_mM": null,
+    "kcat_s-1": null,
+    "sources": [
+      "sm2020",
+      "sm_fig8"
+    ],
+    "evidence_grade": "same original OA structure paper, same purified construct and substrate; quantitative value approximate figure read",
+    "assay_link_status": "exact samepaper construct; crystal has NAD+ whereas activity uses NADH; activity is racemic mixture, cannot attach enantiomer-specific kcat to HBR or HBS",
+    "pdb_ids": [
+      "6XEW"
+    ],
+    "split_group": "SMBDH_H9XP47_ACETOIN"
+  }
+]

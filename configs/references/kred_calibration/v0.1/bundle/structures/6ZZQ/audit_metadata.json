@@ -1,0 +1,881 @@
+{
+  "pdb_id": "6ZZQ",
+  "files": [
+    {
+      "url": "https://files.rcsb.org/download/6ZZQ.cif",
+      "path": "structures/6ZZQ/6ZZQ.cif",
+      "sha256": "9f28f019f281f9ef6fc07a8a8d66c9a7cac6d6b99a86fdeb762959755e458e19",
+      "bytes": 270644
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/entry/6ZZQ",
+      "path": "structures/6ZZQ/entry.json",
+      "sha256": "5bea8397bf88dfe31464acccc9b5e000aaacf8ca0bc1590c5c3f8814786de800",
+      "bytes": 14139
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/polymer_entity/6ZZQ/1",
+      "path": "structures/6ZZQ/polymer_entity_1.json",
+      "sha256": "757f03322e2c29e80cc28196415dde6c8f0b1ae64409623aff0b8c0b5e6f29da",
+      "bytes": 15965
+    },
+    {
+      "url": "https://files.rcsb.org/pub/pdb/validation_reports/zz/6zzq/6zzq_validation.xml.gz",
+      "path": "structures/6ZZQ/6ZZQ_validation.xml.gz",
+      "sha256": "8f7b786fe1d1a2f117d507cfd96890033d36de67cf6f66b4eadc6e2ce01fc2bd",
+      "bytes": 15500
+    }
+  ],
+  "errors": [],
+  "title": "Crystal structure of (R)-3-hydroxybutyrate dehydrogenase from Acinetobacter baumannii complexed with NAD+ and acetoacetate",
+  "resolution_A": [
+    1.93
+  ],
+  "method": [
+    {
+      "crystals_number": 1,
+      "method": "X-RAY DIFFRACTION"
+    }
+  ],
+  "refine": [
+    {
+      "B_iso_max": 82.55,
+      "B_iso_mean": 33.566,
+      "B_iso_min": 16.18,
+      "aniso_B_1_1": 0.8,
+      "aniso_B_1_2": 0.4,
+      "aniso_B_1_3": 0.0,
+      "aniso_B_2_2": 0.8,
+      "aniso_B_2_3": 0.0,
+      "aniso_B_3_3": -2.59,
+      "correlation_coeff_Fo_to_Fc": 0.964,
+      "correlation_coeff_Fo_to_Fc_free": 0.942,
+      "details": "HYDROGENS HAVE BEEN ADDED IN THE RIDING POSITIONS U VALUES      : REFINED INDIVIDUALLY",
+      "ls_R_factor_R_free": 0.2651,
+      "ls_R_factor_R_work": 0.2087,
+      "ls_R_factor_obs": 0.2117,
+      "ls_d_res_high": 1.93,
+      "ls_d_res_low": 53.57,
+      "ls_number_reflns_R_free": 876,
+      "ls_number_reflns_obs": 16971,
+      "ls_percent_reflns_R_free": 4.9,
+      "ls_percent_reflns_obs": 94.82,
+      "overall_SU_B": 6.279,
+      "overall_SU_ML": 0.17,
+      "pdbx_R_Free_selection_details": "RANDOM",
+      "pdbx_diffrn_id": [
+        "1"
+      ],
+      "pdbx_ls_cross_valid_method": "THROUGHOUT",
+      "pdbx_ls_sigma_F": 0.0,
+      "pdbx_method_to_determine_struct": "MOLECULAR REPLACEMENT",
+      "pdbx_overall_ESU_R": 0.203,
+      "pdbx_overall_ESU_R_Free": 0.185,
+      "pdbx_refine_id": "X-RAY DIFFRACTION",
+      "pdbx_solvent_ion_probe_radii": 0.8,
+      "pdbx_solvent_shrinkage_radii": 0.8,
+      "pdbx_solvent_vdw_probe_radii": 1.2,
+      "pdbx_starting_model": "2V2H",
+      "pdbx_stereochemistry_target_values": "MAXIMUM LIKELIHOOD",
+      "solvent_model_details": "MASK"
+    }
+  ],
+  "citation": {
+    "country": "US",
+    "id": "primary",
+    "journal_abbrev": "Acs Catalysis",
+    "journal_id_ISSN": "2155-5435",
+    "journal_volume": "10",
+    "page_first": "15019",
+    "page_last": "15032",
+    "pdbx_database_id_DOI": "10.1021/acscatal.0c04736",
+    "pdbx_database_id_PubMed": 33391858,
+    "rcsb_ORCID_identifiers": [
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?"
+    ],
+    "rcsb_authors": [
+      "Machado, T.F.G.",
+      "Purg, M.",
+      "McMahon, S.A.",
+      "Read, B.J.",
+      "Oehler, V.",
+      "Aqvist, J.",
+      "Gloster, T.M.",
+      "da Silva, R.G."
+    ],
+    "rcsb_journal_abbrev": "ACS Catal",
+    "title": "Dissecting the Mechanism of ( R )-3-Hydroxybutyrate Dehydrogenase by Kinetic Isotope Effects, Protein Crystallography, and Computational Chemistry.",
+    "year": 2020
+  },
+  "nonpolymer_ids": [
+    "2",
+    "3"
+  ],
+  "protein_sequence": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+  "sequence_sha256": "9fd6cb803872a517ef0dc651933cae3251d3c6c552aaa66a6e25c913ffb31275",
+  "sequence_length": 261,
+  "entity_poly": {
+    "nstd_linkage": "no",
+    "nstd_monomer": "no",
+    "pdbx_seq_one_letter_code": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+    "pdbx_seq_one_letter_code_can": "MTKLLDGKVAFITGSASGIGLEIAKKFAQEGAKVVISDMNAEKCQETANSLKEQGFDALSAPCDVTDEDAYKQAIELTQKTFGTVDILINNAGFQHVAPIEEFPTAVFQKLVQVMLTGAFIGIKHVLPIMKAQKYGRIINMASINGLIGFAGKAGYNSAKHGVIGLTKVAALECARDGITVNALCPGYVDTPLVRGQIADLAKTRNVSLDSALEDVILAMVPQKRLLSVEEIADYAIFLASSKAGGVTGQAVVMDGGYTAQ",
+    "pdbx_strand_id": "A",
+    "rcsb_artifact_monomer_count": 0,
+    "rcsb_conflict_count": 0,
+    "rcsb_deletion_count": 0,
+    "rcsb_entity_polymer_type": "Protein",
+    "rcsb_insertion_count": 0,
+    "rcsb_mutation_count": 0,
+    "rcsb_non_std_monomer_count": 0,
+    "rcsb_sample_sequence_length": 261,
+    "type": "polypeptide(L)"
+  },
+  "polymer_entity": {
+    "formula_weight": 27.568,
+    "pdbx_description": "3-hydroxybutyrate dehydrogenase",
+    "pdbx_number_of_molecules": 1,
+    "rcsb_multiple_source_flag": "N",
+    "rcsb_source_part_count": 1,
+    "rcsb_source_taxonomy_count": 1,
+    "src_method": "man",
+    "rcsb_macromolecular_names_combined": [
+      {
+        "name": "3-hydroxybutyrate dehydrogenase",
+        "provenance_code": "ECO:0000304",
+        "provenance_source": "PDB Preferred Name"
+      }
+    ],
+    "rcsb_polymer_name_combined": {
+      "names": [
+        "3-hydroxybutyrate dehydrogenase"
+      ],
+      "provenance_source": "UniProt Name"
+    }
+  },
+  "organism": [
+    {
+      "beg_seq_num": 1,
+      "end_seq_num": 261,
+      "ncbi_common_names": [
+        "Acinetobacter genomosp. 2",
+        "Acinetobacter genomospecies 2",
+        "Bacterium anitratum"
+      ],
+      "ncbi_parent_scientific_name": "Bacteria",
+      "ncbi_scientific_name": "Acinetobacter baumannii",
+      "ncbi_taxonomy_id": 470,
+      "pdbx_src_id": 1,
+      "provenance_source": "Primary Data",
+      "scientific_name": "Acinetobacter baumannii",
+      "source_type": "genetically engineered",
+      "taxonomy_lineage": [
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "cellular organisms"
+        },
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "biota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria (ex Cavalier-Smith 1987)"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria Woese et al. 2024"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteriobiota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "eubacteria"
+        },
+        {
+          "depth": 3,
+          "id": "3379134",
+          "name": "Pseudomonadati"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Pseudomonadota"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "\"Alphaproteobacteriota\" Whitman et al. 2018"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Alphaproteobacteriota"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Proteobacteria"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "Proteobacteriota"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "proteobacteria"
+        },
+        {
+          "depth": 4,
+          "id": "1224",
+          "name": "purple photosynthetic bacteria and relatives"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Gammaproteobacteria"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Proteobacteria gamma subdivision"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Pseudomonadia"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "Purple bacteria, gamma subdivision"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "g-proteobacteria"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "gamma proteobacteria"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "gamma subdivision"
+        },
+        {
+          "depth": 5,
+          "id": "1236",
+          "name": "gamma subgroup"
+        },
+        {
+          "depth": 6,
+          "id": "2887326",
+          "name": "Moraxellales"
+        },
+        {
+          "depth": 7,
+          "id": "468",
+          "name": "Moraxellaceae"
+        },
+        {
+          "depth": 7,
+          "id": "468",
+          "name": "Acinetobacteraceae"
+        },
+        {
+          "depth": 7,
+          "id": "468",
+          "name": "Branhamaceae"
+        },
+        {
+          "depth": 8,
+          "id": "469",
+          "name": "Acinetobacter"
+        },
+        {
+          "depth": 9,
+          "id": "909768",
+          "name": "Acinetobacter calcoaceticus/baumannii complex"
+        },
+        {
+          "depth": 10,
+          "id": "470",
+          "name": "Acinetobacter baumannii"
+        },
+        {
+          "depth": 10,
+          "id": "470",
+          "name": "Acinetobacter genomosp. 2"
+        },
+        {
+          "depth": 10,
+          "id": "470",
+          "name": "Acinetobacter genomospecies 2"
+        },
+        {
+          "depth": 10,
+          "id": "470",
+          "name": "Bacterium anitratum"
+        }
+      ],
+      "rcsb_gene_name": [
+        {
+          "provenance_source": "Primary Data",
+          "value": "A7M79_09600"
+        },
+        {
+          "provenance_source": "Primary Data",
+          "value": "BGC29_06470"
+        }
+      ]
+    }
+  ],
+  "uniprot_ids": [
+    "A0A1E3M3N6"
+  ],
+  "validation_entry": {
+    "percentilebins": "all,1.93,xray",
+    "attemptedValidationSteps": "molprobity,validation-pack,xtriage,eds,mogul,buster-report,percentiles,writexml",
+    "PDB-deposition-date": "2020-08-05",
+    "PDB-revision-date": "2024-01-31",
+    "PDB-revision-number": "3",
+    "protein-DNA-RNA-entities": "1",
+    "PDB-resolution": "1.93",
+    "PDB-resolution-low": "53.57",
+    "PDB-R": "0.2087",
+    "PDB-Rfree": "0.2651",
+    "pdbid": "6ZZQ",
+    "extended_pdbid": "6ZZQ",
+    "num-H-reduce": "1930",
+    "clashscore": "4.13",
+    "RestypesNotcheckedForBondAngleGeometry": "NAD,AAE",
+    "percent-rama-outliers": "0.00",
+    "percent-rota-outliers": "2.11",
+    "bonds_rmsz": "1.07",
+    "num_bonds_rmsz": "1908",
+    "angles_rmsz": "1.44",
+    "num_angles_rmsz": "2582",
+    "IoverSigma": "1.92(1.94A)",
+    "WilsonBaniso": "[36.009,36.009,20.819,0.000,0.000,0.000]",
+    "acentric_outliers": "1",
+    "TransNCS": "The largest off-origin peak in the Patterson function is 7.14% of the height of the origin peak. No significant pseudotranslation is detected.",
+    "xtriage_input_columns": "F_meas_au,F_meas_sigma_au",
+    "WilsonBestimate": "29.989",
+    "DataAnisotropy": "0.491",
+    "TwinL": "0.494",
+    "centric_outliers": "0",
+    "numMillerIndices": "17847",
+    "TwinL2": "0.329",
+    "percent-free-reflections": "4.84",
+    "bulk_solvent_k": "0.338",
+    "bulk_solvent_b": "34.804",
+    "percent-RSRZ-outliers": "3.08",
+    "EDS_resolution": "1.93",
+    "B_factor_type": "FULL",
+    "DCC_R": "0.2176",
+    "EDS_R": "0.2179",
+    "num-free-reflections": "913",
+    "EDS_resolution_low": "53.57",
+    "CCP4version": "9.0.010 (Gargrove)",
+    "DataCompleteness": "94.83",
+    "DCC_refinement_program": "REFMAC",
+    "ligands-for-buster-report": "yes",
+    "Fo_Fc_correlation": "0.961",
+    "density-fitnessVersion": "1.0.12",
+    "DCC_Rfree": "0.2686",
+    "absolute-percentile-clashscore": "62.0",
+    "numPDBids-absolute-percentile-clashscore": "190562",
+    "relative-percentile-clashscore": "51.4",
+    "numPDBids-relative-percentile-clashscore": "1494",
+    "low-resol-relative-percentile-clashscore": "1.94",
+    "high-resol-relative-percentile-clashscore": "1.94",
+    "absolute-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-absolute-percentile-percent-rama-outliers": "187476",
+    "relative-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-relative-percentile-percent-rama-outliers": "1479",
+    "low-resol-relative-percentile-percent-rama-outliers": "1.94",
+    "high-resol-relative-percentile-percent-rama-outliers": "1.94",
+    "absolute-percentile-percent-rota-outliers": "46.7",
+    "numPDBids-absolute-percentile-percent-rota-outliers": "187428",
+    "relative-percentile-percent-rota-outliers": "36.5",
+    "numPDBids-relative-percentile-percent-rota-outliers": "1479",
+    "low-resol-relative-percentile-percent-rota-outliers": "1.94",
+    "high-resol-relative-percentile-percent-rota-outliers": "1.94",
+    "absolute-percentile-percent-RSRZ-outliers": "51.2",
+    "numPDBids-absolute-percentile-percent-RSRZ-outliers": "180081",
+    "relative-percentile-percent-RSRZ-outliers": "57.1",
+    "numPDBids-relative-percentile-percent-RSRZ-outliers": "1453",
+    "low-resol-relative-percentile-percent-RSRZ-outliers": "1.94",
+    "high-resol-relative-percentile-percent-RSRZ-outliers": "1.94",
+    "absolute-percentile-DCC_Rfree": "19.5",
+    "numPDBids-absolute-percentile-DCC_Rfree": "180053",
+    "relative-percentile-DCC_Rfree": "7.8",
+    "numPDBids-relative-percentile-DCC_Rfree": "1452",
+    "low-resol-relative-percentile-DCC_Rfree": "1.94",
+    "high-resol-relative-percentile-DCC_Rfree": "1.94",
+    "XMLcreationDate": "Mar  5, 2026 -- 06:27 PM UTC"
+  },
+  "ligand_validation": [
+    {
+      "num-H-reduce": "26",
+      "rscc": "0.923",
+      "owab": "37.150",
+      "OPIA": "72.730",
+      "mogul_bonds_rmsz": "0.80",
+      "rsr": "0.079",
+      "NatomsEDS": "44",
+      "mogul_angles_rmsz": "0.86",
+      "EDIAm": "0.854",
+      "mogul_rmsz_numbonds": "46",
+      "avgoccu": "1.000",
+      "mogul_rmsz_numangles": "64",
+      "model": "1",
+      "chain": "A",
+      "resnum": "301",
+      "said": "B",
+      "ent": "2",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAD",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H72N",
+            "dist": "1.63",
+            "clashmag": "0.63",
+            "cid": "1"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H72N",
+            "dist": "2.28",
+            "clashmag": "0.44",
+            "cid": "5"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "N7N",
+            "dist": "2.24",
+            "clashmag": "0.52",
+            "cid": "3"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "C5N",
+            "dist": "2.45",
+            "clashmag": "0.46",
+            "cid": "4"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H6N",
+            "dist": "2.20",
+            "clashmag": "0.41",
+            "cid": "6"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2A,PA,O1A",
+            "numobs": "152",
+            "mean": "112.44",
+            "stdev": "4.65",
+            "mindiff": "0.35",
+            "Zscore": "2.10",
+            "obsval": "122.19"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O3,PN,O1N",
+            "numobs": "23",
+            "mean": "110.70",
+            "stdev": "3.01",
+            "mindiff": "0.94",
+            "Zscore": "-2.57",
+            "obsval": "102.96"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C6N,N1N,C2N",
+            "numobs": "30",
+            "mean": "121.88",
+            "stdev": "0.85",
+            "mindiff": "0.97",
+            "Zscore": "-3.38",
+            "obsval": "119.00"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D",
+            "numobs": "25",
+            "mean": "1.40",
+            "stdev": "0.01",
+            "mindiff": "0.00",
+            "Zscore": "2.22",
+            "obsval": "1.43"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C2N,N1N",
+            "numobs": "30",
+            "mean": "1.35",
+            "stdev": "0.01",
+            "mindiff": "0.01",
+            "Zscore": "3.41",
+            "obsval": "1.38"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O1A",
+            "numobs": "40",
+            "mean": "90.99",
+            "stdev": "60.53",
+            "mindiff": "22.45",
+            "local_density": "0.00",
+            "obsval": "9.76"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O2A",
+            "numobs": "40",
+            "mean": "57.10",
+            "stdev": "18.94",
+            "mindiff": "10.68",
+            "local_density": "0.00",
+            "obsval": "-126.77"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O3",
+            "numobs": "40",
+            "mean": "56.41",
+            "stdev": "14.13",
+            "mindiff": "30.92",
+            "local_density": "0.00",
+            "obsval": "121.78"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4B,C4B,C5B,O5B",
+            "numobs": "522",
+            "mean": "84.16",
+            "stdev": "20.35",
+            "mindiff": "0.12",
+            "local_density": "0.96",
+            "obsval": "-154.79"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O1N",
+            "numobs": "141",
+            "mean": "64.20",
+            "stdev": "34.60",
+            "mindiff": "2.68",
+            "local_density": "1.42",
+            "obsval": "-138.27"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PA,O3,PN,O5D",
+            "numobs": "56",
+            "mean": "97.13",
+            "stdev": "41.00",
+            "mindiff": "6.38",
+            "local_density": "1.79",
+            "obsval": "-23.90"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O3",
+            "numobs": "40",
+            "mean": "54.45",
+            "stdev": "14.07",
+            "mindiff": "27.91",
+            "local_density": "0.00",
+            "obsval": "118.77"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O1N",
+            "numobs": "40",
+            "mean": "63.06",
+            "stdev": "23.79",
+            "mindiff": "16.66",
+            "local_density": "0.00",
+            "obsval": "-130.37"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O2N",
+            "numobs": "40",
+            "mean": "98.85",
+            "stdev": "54.48",
+            "mindiff": "28.42",
+            "local_density": "0.00",
+            "obsval": "2.40"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C2N",
+            "numobs": "29",
+            "mean": "63.87",
+            "stdev": "29.21",
+            "mindiff": "17.15",
+            "local_density": "0.00",
+            "obsval": "62.79"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "62.11",
+            "stdev": "27.34",
+            "mindiff": "8.93",
+            "local_density": "3.45",
+            "obsval": "-113.89"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "5",
+      "rscc": "0.775",
+      "owab": "62.780",
+      "OPIA": "42.860",
+      "mogul_bonds_rmsz": "0.93",
+      "rsr": "0.168",
+      "NatomsEDS": "7",
+      "mogul_angles_rmsz": "0.97",
+      "EDIAm": "0.611",
+      "mogul_rmsz_numbonds": "6",
+      "avgoccu": "1.000",
+      "mogul_rmsz_numangles": "7",
+      "model": "1",
+      "chain": "A",
+      "resnum": "302",
+      "said": "C",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "AAE",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H92",
+            "dist": "1.48",
+            "clashmag": "0.78",
+            "cid": "0"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "O3",
+            "dist": "2.30",
+            "clashmag": "0.62",
+            "cid": "2"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H91",
+            "dist": "2.45",
+            "clashmag": "0.46",
+            "cid": "4"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O3,C2,C4,C5",
+            "numobs": "234",
+            "mean": "59.87",
+            "stdev": "21.21",
+            "mindiff": "1.26",
+            "local_density": "2.99",
+            "obsval": "80.30"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2,C4,C5,O8",
+            "numobs": "44",
+            "mean": "39.66",
+            "stdev": "11.15",
+            "mindiff": "0.13",
+            "local_density": "2.27",
+            "obsval": "46.61"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2,C4,C5,C9",
+            "numobs": "44",
+            "mean": "41.80",
+            "stdev": "8.66",
+            "mindiff": "21.53",
+            "local_density": "0.00",
+            "obsval": "-130.90"
+          }
+        }
+      ]
+    },
+    {
+      "num-H-reduce": "5",
+      "rscc": "0.763",
+      "owab": "66.760",
+      "OPIA": "0.000",
+      "mogul_bonds_rmsz": "0.85",
+      "rsr": "0.166",
+      "NatomsEDS": "7",
+      "mogul_angles_rmsz": "0.89",
+      "EDIAm": "0.146",
+      "mogul_rmsz_numbonds": "6",
+      "avgoccu": "1.000",
+      "mogul_rmsz_numangles": "7",
+      "model": "1",
+      "chain": "A",
+      "resnum": "303",
+      "said": "D",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "AAE",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H41",
+            "dist": "2.51",
+            "clashmag": "0.46",
+            "cid": "11"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O1,C2,C4,C5",
+            "numobs": "56",
+            "mean": "80.69",
+            "stdev": "47.64",
+            "mindiff": "3.68",
+            "local_density": "3.57",
+            "obsval": "45.83"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O3,C2,C4,C5",
+            "numobs": "234",
+            "mean": "91.72",
+            "stdev": "44.67",
+            "mindiff": "0.58",
+            "local_density": "2.99",
+            "obsval": "-134.95"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2,C4,C5,O8",
+            "numobs": "44",
+            "mean": "42.89",
+            "stdev": "9.59",
+            "mindiff": "4.32",
+            "local_density": "2.27",
+            "obsval": "-50.80"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C2,C4,C5,C9",
+            "numobs": "44",
+            "mean": "41.78",
+            "stdev": "8.68",
+            "mindiff": "21.50",
+            "local_density": "0.00",
+            "obsval": "130.94"
+          }
+        }
+      ]
+    }
+  ]
+}

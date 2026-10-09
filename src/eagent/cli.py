@@ -2433,6 +2433,157 @@ def reference_verify_sources(directory: Path | None, docs_dir: Path,
                       f"their source", exit_code=EXIT_FAILED)
 
 
+@reference_group.command("import-bundle")
+@click.argument("archive", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@_DIR_OPTION
+@click.option("--write/--dry-run", default=False,
+              help="Write the committed members into bundle/ and regenerate the "
+                   "manifests. The default reads the archive and reports.")
+def reference_import_bundle(archive: Path, directory: Path | None,
+                            write: bool) -> None:
+    """Ingest the delivered archive: committed by rule, the rest pinned by hash.
+
+    The archive's own kind label decides where each member goes; eight small
+    openly licensed upstream files are committed anyway and listed one by one in
+    the code. Checks the archive against its own manifest, the spreadsheet
+    against the committed one, the coordinates against this project's pins and
+    the JSON tables against the CSV conversion.
+    """
+    from .eval.kred_bundle import BundleError, import_archive
+    from .eval.kred_reference import write_manifest
+
+    out = Out()
+    base = _reference_dir(directory)
+    try:
+        result = import_archive(archive, base, write=write)
+    except BundleError as exc:
+        raise Refusal(str(exc), next_action="the archive did not pass its checks; "
+                      "nothing was written", exit_code=EXIT_FAILED) from exc
+    report = result["report"]
+    out.heading("archive")
+    out.kv("  sha256", report["archive_sha256"][:16] + "...", width=22)
+    out.kv("  audit date", report["archive_audit_date"], width=22)
+    out.heading("disposition")
+    for name, count in report["disposition_counts"].items():
+        mb = report["disposition_bytes"][name] / 1e6
+        out.kv(f"  {name}", f"{count} files, {mb:.2f} MB", width=24)
+    out.heading("checks")
+    for finding in result["findings"]:
+        out.bullet(str(finding))
+    errors = [f for f in result["findings"] if f.severity == "error"]
+    if write and not errors:
+        write_manifest(base)
+        out.line("")
+        out.line(f"written to {result['written']}; MANIFEST.json regenerated")
+    elif not write:
+        out.line("")
+        out.line("Nothing was written (--dry-run is the default).")
+    if errors:
+        raise Refusal(f"{len(errors)} check(s) failed", exit_code=EXIT_FAILED)
+
+
+@reference_group.command("verify-bundle")
+@_DIR_OPTION
+def reference_verify_bundle(directory: Path | None) -> None:
+    """Check the committed bundle against its manifest, and the two exports."""
+    from .eval.kred_bundle import bundle_dir, cross_check_tables, verify_bundle
+
+    out = Out()
+    base = _reference_dir(directory)
+    findings = verify_bundle(base) + cross_check_tables(bundle_dir(base),
+                                                        base / "tables")
+    for finding in findings:
+        out.bullet(str(finding))
+    errors = [f for f in findings if f.severity == "error"]
+    if errors:
+        raise Refusal(f"{len(errors)} problem(s) in the bundle",
+                      exit_code=EXIT_FAILED)
+    out.line("")
+    out.line("bundle intact and the two exports agree")
+
+
+@reference_group.command("activity")
+@_DIR_OPTION
+@click.option("--write-identity", is_flag=True, default=False,
+              help="Recompute the pairwise sequence identities of the soluble "
+                   "orthologs and store the group counts. About 90 seconds.")
+@click.option("--substrate", "substrate_id", default=None,
+              help="Show one substrate's endpoint table (2a, 3a, 4a or 5a).")
+def reference_activity(directory: Path | None, write_identity: bool,
+                       substrate_id: str | None) -> None:
+    """The 2026 ortholog activity data: the first measured labels here.
+
+    Prints what was assayed and what each absence means. A construct that did
+    not express solubly was never assayed and is not a catalytic negative; a
+    soluble one with no detectable product is left-censored, not a measured
+    zero; a blank enantiomeric excess is undefined, not zero.
+    """
+    import json
+
+    from .eval.kred_activity import (
+        ActivityError, endpoint_table, independence, load_activity_set,
+        write_identity_groups,
+    )
+    from .eval.kred_reference import write_manifest
+
+    out = Out()
+    base = _reference_dir(directory)
+    try:
+        activity = load_activity_set(base, strict=False)
+    except ActivityError as exc:
+        raise Refusal(str(exc), next_action="`eagent reference import-bundle "
+                      "<archive> --write`", exit_code=EXIT_UNRESOLVED) from exc
+    counts = activity.counts()
+    out.heading("constructs")
+    for key in ("constructs", "soluble", "insoluble", "endpoint_pairs_assayed",
+                "relative_slope_rows"):
+        out.kv(f"  {key}", counts[key], width=26)
+    out.heading("endpoints by substrate")
+    for sub, tally in counts["by_substrate"].items():
+        out.bullet(f"{sub}: {tally['measured']} measured, "
+                   f"{tally['below_detection']} below detection (censored, not "
+                   f"zero), {tally['not_assayed']} never assayed (insoluble)")
+    if write_identity:
+        path = write_identity_groups(activity)
+        write_manifest(base)
+        out.line("")
+        out.line(f"identity groups written to {path}; MANIFEST.json regenerated")
+    out.heading("how independent these are")
+    try:
+        groups = independence(activity)
+    except ActivityError as exc:
+        out.line(f"  not computed: {exc}")
+    else:
+        out.kv("  soluble constructs", groups["soluble_constructs"], width=30)
+        for threshold, info in groups["groups_by_threshold"].items():
+            marker = "  <- cited" if threshold == groups["cited_threshold"] else ""
+            out.bullet(f"at {threshold} identity: {info['n_groups']} groups, "
+                       f"largest {info['largest_group']}{marker}")
+        out.line("    An ortholog search around one parent is a family, not a "
+                 "sample of enzymes. The group count at the cited threshold is "
+                 "what a claim about independent enzymes may use.")
+    if substrate_id:
+        out.heading(f"substrate {substrate_id}")
+        rows = endpoint_table(activity, substrate_id, "total_product_mM")
+        for record, value in sorted(rows, key=lambda rv: -rv[1])[:12]:
+            ep = record.endpoint(substrate_id)
+            ee = "n/a" if ep.ee_reported is None else f"{ep.ee_reported:g}"
+            out.bullet(f"{record.enzyme_id:16s} total {value:5.2f} mM  "
+                       f"R {ep.product_r_mM:5.2f}  S {ep.product_s_mM:5.2f}  "
+                       f"ee {ee}")
+        out.line(f"    {len(rows)} constructs with detectable product; the rest "
+                 f"are censored or were never assayed.")
+    out.heading("findings")
+    shown = [f for f in activity.findings if f.severity != "info"]
+    for finding in shown:
+        out.bullet(str(finding))
+    if not shown:
+        out.line("none above information level")
+    infos = sum(1 for f in activity.findings if f.severity == "info")
+    out.line(f"    plus {infos} information finding(s), mostly the reported "
+             f"enantiomeric excess against the one the printed products give.")
+
+
 @reference_group.command("import-workbook")
 @click.argument("workbook", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--out", "out_dir", required=True, type=click.Path(path_type=Path),

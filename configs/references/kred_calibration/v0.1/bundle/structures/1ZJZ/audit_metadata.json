@@ -1,0 +1,941 @@
+{
+  "pdb_id": "1ZJZ",
+  "files": [
+    {
+      "url": "https://files.rcsb.org/download/1ZJZ.cif",
+      "path": "structures/1ZJZ/1ZJZ.cif",
+      "sha256": "07beb3f16e59b2be127ea240322150fe0f242e22e01b489653fb4dfdaa460156",
+      "bytes": 614101
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/entry/1ZJZ",
+      "path": "structures/1ZJZ/entry.json",
+      "sha256": "27cacf5a47b4c1956157c96c64d811fcba9c8c2a5467db2b7b6a3f5d301f9a9b",
+      "bytes": 20680
+    },
+    {
+      "url": "https://data.rcsb.org/rest/v1/core/polymer_entity/1ZJZ/1",
+      "path": "structures/1ZJZ/polymer_entity_1.json",
+      "sha256": "48e7e28073a90994c354c9494bfb2be09b39c1059a8785c989c381718d1e86ca",
+      "bytes": 17406
+    },
+    {
+      "url": "https://files.rcsb.org/pub/pdb/validation_reports/zj/1zjz/1zjz_validation.xml.gz",
+      "path": "structures/1ZJZ/1ZJZ_validation.xml.gz",
+      "sha256": "d4e4e1d6fa09ea7acd37057ecde23dfab0cfd9b9cccb1a63559ee507d7fbc148",
+      "bytes": 20945
+    }
+  ],
+  "errors": [],
+  "title": "Structure of R-specific alcohol dehydrogenase (mutant G37D) from Lactobacillus brevis in complex with phenylethanol and NAD",
+  "resolution_A": [
+    1.1
+  ],
+  "method": [
+    {
+      "crystals_number": 1,
+      "method": "X-RAY DIFFRACTION"
+    }
+  ],
+  "refine": [
+    {
+      "B_iso_mean": 10.444,
+      "aniso_B_1_1": -0.09,
+      "aniso_B_1_2": 0.0,
+      "aniso_B_1_3": 0.0,
+      "aniso_B_2_2": 0.12,
+      "aniso_B_2_3": 0.0,
+      "aniso_B_3_3": -0.03,
+      "correlation_coeff_Fo_to_Fc": 0.967,
+      "correlation_coeff_Fo_to_Fc_free": 0.966,
+      "details": "HYDROGENS HAVE BEEN ADDED IN THE RIDING POSITIONS",
+      "ls_R_factor_R_free": 0.13802,
+      "ls_R_factor_R_work": 0.12382,
+      "ls_R_factor_all": 0.12438,
+      "ls_R_factor_obs": 0.12438,
+      "ls_d_res_high": 1.1,
+      "ls_d_res_low": 35.6,
+      "ls_number_reflns_R_free": 3639,
+      "ls_number_reflns_all": 90752,
+      "ls_number_reflns_obs": 87111,
+      "ls_percent_reflns_R_free": 4.0,
+      "ls_percent_reflns_obs": 88.93,
+      "overall_SU_B": 0.297,
+      "overall_SU_ML": 0.015,
+      "pdbx_R_Free_selection_details": "RANDOM",
+      "pdbx_diffrn_id": [
+        "1"
+      ],
+      "pdbx_ls_cross_valid_method": "THROUGHOUT",
+      "pdbx_ls_sigma_F": 0.0,
+      "pdbx_method_to_determine_struct": "MOLECULAR REPLACEMENT",
+      "pdbx_overall_ESU_R": 0.031,
+      "pdbx_overall_ESU_R_Free": 0.029,
+      "pdbx_refine_id": "X-RAY DIFFRACTION",
+      "pdbx_solvent_ion_probe_radii": 0.8,
+      "pdbx_solvent_shrinkage_radii": 0.8,
+      "pdbx_solvent_vdw_probe_radii": 1.4,
+      "pdbx_stereochemistry_target_values": "MAXIMUM LIKELIHOOD",
+      "solvent_model_details": "BABINET MODEL WITH MASK"
+    }
+  ],
+  "citation": {
+    "country": "UK",
+    "id": "primary",
+    "journal_abbrev": "J.Mol.Biol.",
+    "journal_id_ASTM": "JMOBAK",
+    "journal_id_CSD": "0070",
+    "journal_id_ISSN": "0022-2836",
+    "journal_volume": "349",
+    "page_first": "801",
+    "page_last": "813",
+    "pdbx_database_id_DOI": "10.1016/j.jmb.2005.04.029",
+    "pdbx_database_id_PubMed": 15896805,
+    "rcsb_ORCID_identifiers": [
+      "?",
+      "?",
+      "?",
+      "?",
+      "?",
+      "?"
+    ],
+    "rcsb_authors": [
+      "Schlieben, N.H.",
+      "Niefind, K.",
+      "Muller, J.",
+      "Riebel, B.",
+      "Hummel, W.",
+      "Schomburg, D."
+    ],
+    "rcsb_journal_abbrev": "J Mol Biol",
+    "title": "Atomic Resolution Structures of R-specific Alcohol Dehydrogenase from Lactobacillus brevis Provide the Structural Bases of its Substrate and Cosubstrate Specificity",
+    "year": 2005
+  },
+  "nonpolymer_ids": [
+    "2",
+    "3",
+    "4"
+  ],
+  "protein_sequence": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+  "sequence_sha256": "cfe7d480809bf5184be5ade1ff8183dc01a46e1efaa168acb9bb4ec06c948dc0",
+  "sequence_length": 251,
+  "entity_poly": {
+    "nstd_linkage": "no",
+    "nstd_monomer": "no",
+    "pdbx_seq_one_letter_code": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+    "pdbx_seq_one_letter_code_can": "SNRLDGKVAIITGGTLGIGLAIATKFVEEGAKVMITDRHSDVGEKAAKSVGTPDQIQFFQHDSSDEDGWTKLFDATEKAFGPVSTLVNNAGIAVNKSVEETTTAEWRKLLAVNLDGVFFGTRLGIQRMKNKGLGASIINMSSIEGFVGDPSLGAYNASKGAVRIMSKSAALDCALKDYDVRVNTVHPGYIKTPLVDDLPGAEEAMSQRTKTPMGHIGEPNDIAYICVYLASNESKFATGSEFVVDGGYTAQ",
+    "pdbx_strand_id": "A",
+    "rcsb_artifact_monomer_count": 0,
+    "rcsb_conflict_count": 0,
+    "rcsb_deletion_count": 0,
+    "rcsb_entity_polymer_type": "Protein",
+    "rcsb_insertion_count": 0,
+    "rcsb_mutation_count": 1,
+    "rcsb_non_std_monomer_count": 0,
+    "rcsb_sample_sequence_length": 251,
+    "type": "polypeptide(L)"
+  },
+  "polymer_entity": {
+    "formula_weight": 26.714,
+    "pdbx_description": "R-specific alcohol dehydrogenase",
+    "pdbx_ec": "1.1.1.2",
+    "pdbx_mutation": "G37D",
+    "pdbx_number_of_molecules": 1,
+    "rcsb_multiple_source_flag": "N",
+    "rcsb_source_part_count": 1,
+    "rcsb_source_taxonomy_count": 1,
+    "src_method": "man",
+    "rcsb_ec_lineage": [
+      {
+        "depth": 1,
+        "id": "1",
+        "name": "Oxidoreductases"
+      },
+      {
+        "depth": 2,
+        "id": "1.1",
+        "name": "Acting on the CH-OH group of donors"
+      },
+      {
+        "depth": 3,
+        "id": "1.1.1",
+        "name": "With NAD+ or NADP+ as acceptor"
+      },
+      {
+        "depth": 4,
+        "id": "1.1.1.2",
+        "name": "alcohol dehydrogenase (NADP+)"
+      }
+    ],
+    "rcsb_macromolecular_names_combined": [
+      {
+        "name": "R-specific alcohol dehydrogenase",
+        "provenance_code": "ECO:0000304",
+        "provenance_source": "PDB Preferred Name"
+      }
+    ],
+    "rcsb_enzyme_class_combined": [
+      {
+        "depth": 4,
+        "ec": "1.1.1.2",
+        "provenance_source": "PDB Primary Data"
+      }
+    ],
+    "rcsb_polymer_name_combined": {
+      "names": [
+        "R-specific alcohol dehydrogenase"
+      ],
+      "provenance_source": "UniProt Name"
+    }
+  },
+  "organism": [
+    {
+      "ncbi_common_names": [
+        "Bacillus casei g",
+        "Bacillus g",
+        "Betabacterium breve",
+        "Lactobacillus brevis",
+        "Lactobacterium breve"
+      ],
+      "ncbi_parent_scientific_name": "Bacteria",
+      "ncbi_scientific_name": "Levilactobacillus brevis",
+      "ncbi_taxonomy_id": 1580,
+      "pdbx_src_id": 1,
+      "provenance_source": "Primary Data",
+      "scientific_name": "Lactobacillus brevis",
+      "source_type": "genetically engineered",
+      "taxonomy_lineage": [
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "cellular organisms"
+        },
+        {
+          "depth": 1,
+          "id": "131567",
+          "name": "biota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria (ex Cavalier-Smith 1987)"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteria Woese et al. 2024"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "Bacteriobiota"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "bacteria"
+        },
+        {
+          "depth": 2,
+          "id": "2",
+          "name": "eubacteria"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Bacillati"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmacutes"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicuteota"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicutes"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Firmicutes corrig. Gibbons and Murray 1978 (Approved Lists 1980)"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacteria"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacteria group"
+        },
+        {
+          "depth": 3,
+          "id": "1783272",
+          "name": "Terrabacterida"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillota"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillaeota"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillota corrig. Gibbons and Murray 2021"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Bacillus/Clostridium group"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Clostridium group firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "Low G+C firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "clostridial firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "firmicutes"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "low G+C Gram-positive bacteria"
+        },
+        {
+          "depth": 4,
+          "id": "1239",
+          "name": "low GC Gram+"
+        },
+        {
+          "depth": 5,
+          "id": "91061",
+          "name": "Bacilli"
+        },
+        {
+          "depth": 5,
+          "id": "91061",
+          "name": "Bacillus/Lactobacillus/Streptococcus group"
+        },
+        {
+          "depth": 5,
+          "id": "91061",
+          "name": "Firmibacteria"
+        },
+        {
+          "depth": 6,
+          "id": "186826",
+          "name": "Lactobacillales"
+        },
+        {
+          "depth": 7,
+          "id": "33958",
+          "name": "Lactobacillaceae"
+        },
+        {
+          "depth": 7,
+          "id": "33958",
+          "name": "Leuconostocaceae"
+        },
+        {
+          "depth": 8,
+          "id": "2767886",
+          "name": "Levilactobacillus"
+        },
+        {
+          "depth": 9,
+          "id": "1580",
+          "name": "Levilactobacillus brevis"
+        },
+        {
+          "depth": 9,
+          "id": "1580",
+          "name": "Bacillus casei g"
+        },
+        {
+          "depth": 9,
+          "id": "1580",
+          "name": "Bacillus g"
+        },
+        {
+          "depth": 9,
+          "id": "1580",
+          "name": "Betabacterium breve"
+        },
+        {
+          "depth": 9,
+          "id": "1580",
+          "name": "Lactobacillus brevis"
+        },
+        {
+          "depth": 9,
+          "id": "1580",
+          "name": "Lactobacterium breve"
+        }
+      ]
+    }
+  ],
+  "uniprot_ids": [
+    "Q84EX5"
+  ],
+  "validation_entry": {
+    "percentilebins": "all,1.1,xray",
+    "attemptedValidationSteps": "molprobity,validation-pack,xtriage,eds,mogul,buster-report,percentiles,writexml",
+    "PDB-deposition-date": "2005-05-02",
+    "PDB-revision-date": "2024-02-14",
+    "PDB-revision-number": "5",
+    "protein-DNA-RNA-entities": "1",
+    "PDB-resolution": "1.10",
+    "PDB-resolution-low": "35.60",
+    "PDB-R": "0.1238",
+    "PDB-Rfree": "0.1380",
+    "pdbid": "1ZJZ",
+    "extended_pdbid": "1ZJZ",
+    "num-H-reduce": "2434",
+    "clashscore": "11.62",
+    "RestypesNotcheckedForBondAngleGeometry": "NAD,MG,SS2",
+    "percent-rama-outliers": "0.00",
+    "percent-rota-outliers": "0.50",
+    "bonds_rmsz": "0.82",
+    "num_bonds_rmsz": "2506",
+    "angles_rmsz": "0.77",
+    "num_angles_rmsz": "3381",
+    "TransNCS": "The largest off-origin peak in the Patterson function is 8.04% of the height of the origin peak. No significant pseudotranslation is detected.",
+    "TwinL": "0.491",
+    "WilsonBaniso": "[8.176,7.932,8.506,0.000,0.000,0.000]",
+    "centric_outliers": "0",
+    "xtriage_input_columns": "F_meas_au,F_meas_sigma_au",
+    "acentric_outliers": "0",
+    "numMillerIndices": "90750",
+    "TwinL2": "0.324",
+    "DataAnisotropy": "0.070",
+    "WilsonBestimate": "8.206",
+    "IoverSigma": "7.87(1.10A)",
+    "num-free-reflections": "3637",
+    "bulk_solvent_k": "0.412",
+    "DataCompleteness": "88.93",
+    "EDS_resolution_low": "35.60",
+    "ligands-for-buster-report": "yes",
+    "CCP4version": "9.0.010 (Gargrove)",
+    "EDS_R": "0.1556",
+    "Fo_Fc_correlation": "0.949",
+    "bulk_solvent_b": "48.926",
+    "density-fitnessVersion": "1.0.12",
+    "percent-free-reflections": "3.56",
+    "EDS_resolution": "1.10",
+    "percent-RSRZ-outliers": "13.55",
+    "DCC_Rfree": "0.1551",
+    "absolute-percentile-clashscore": "19.3",
+    "numPDBids-absolute-percentile-clashscore": "190562",
+    "relative-percentile-clashscore": "4.7",
+    "numPDBids-relative-percentile-clashscore": "1656",
+    "low-resol-relative-percentile-clashscore": "1.12",
+    "high-resol-relative-percentile-clashscore": "1.08",
+    "absolute-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-absolute-percentile-percent-rama-outliers": "187476",
+    "relative-percentile-percent-rama-outliers": "100.0",
+    "numPDBids-relative-percentile-percent-rama-outliers": "1616",
+    "low-resol-relative-percentile-percent-rama-outliers": "1.12",
+    "high-resol-relative-percentile-percent-rama-outliers": "1.08",
+    "absolute-percentile-percent-rota-outliers": "80.9",
+    "numPDBids-absolute-percentile-percent-rota-outliers": "187428",
+    "relative-percentile-percent-rota-outliers": "54.7",
+    "numPDBids-relative-percentile-percent-rota-outliers": "1612",
+    "low-resol-relative-percentile-percent-rota-outliers": "1.12",
+    "high-resol-relative-percentile-percent-rota-outliers": "1.08",
+    "absolute-percentile-percent-RSRZ-outliers": "6.7",
+    "numPDBids-absolute-percentile-percent-RSRZ-outliers": "180081",
+    "relative-percentile-percent-RSRZ-outliers": "8.0",
+    "numPDBids-relative-percentile-percent-RSRZ-outliers": "1625",
+    "low-resol-relative-percentile-percent-RSRZ-outliers": "1.12",
+    "high-resol-relative-percentile-percent-RSRZ-outliers": "1.08",
+    "absolute-percentile-DCC_Rfree": "97.6",
+    "numPDBids-absolute-percentile-DCC_Rfree": "180053",
+    "relative-percentile-DCC_Rfree": "60.9",
+    "numPDBids-relative-percentile-DCC_Rfree": "1625",
+    "low-resol-relative-percentile-DCC_Rfree": "1.12",
+    "high-resol-relative-percentile-DCC_Rfree": "1.08",
+    "XMLcreationDate": "Mar  9, 2026 -- 12:39 PM UTC"
+  },
+  "ligand_validation": [
+    {
+      "num-H-reduce": "10",
+      "OPIA": "0.000",
+      "EDIAm": "0.015",
+      "mogul_angles_rmsz": "0.38",
+      "NatomsEDS": "9",
+      "rsr": "0.280",
+      "mogul_bonds_rmsz": "0.60",
+      "owab": "55.540",
+      "mogul_rmsz_numbonds": "9",
+      "avgoccu": "1.000",
+      "rscc": "0.535",
+      "mogul_rmsz_numangles": "11",
+      "model": "1",
+      "chain": "A",
+      "resnum": "1260",
+      "said": "C",
+      "ent": "3",
+      "seq": ".",
+      "icode": " ",
+      "resname": "SS2",
+      "altcode": " ",
+      "local_validation_children": []
+    },
+    {
+      "num-H-reduce": "26",
+      "OPIA": "0.000",
+      "EDIAm": "0.036",
+      "mogul_angles_rmsz": "1.82",
+      "NatomsEDS": "44",
+      "rsr": "0.293",
+      "mogul_bonds_rmsz": "1.99",
+      "owab": "63.620",
+      "mogul_rmsz_numbonds": "46",
+      "avgoccu": "1.000",
+      "rscc": "0.481",
+      "mogul_rmsz_numangles": "64",
+      "model": "1",
+      "chain": "A",
+      "resnum": "1270",
+      "said": "D",
+      "ent": "4",
+      "seq": ".",
+      "icode": " ",
+      "resname": "NAD",
+      "altcode": " ",
+      "local_validation_children": [
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H51N",
+            "dist": "1.58",
+            "clashmag": "0.69",
+            "cid": "23"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "C5D",
+            "dist": "2.17",
+            "clashmag": "0.56",
+            "cid": "24"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H3B",
+            "dist": "1.97",
+            "clashmag": "0.47",
+            "cid": "25"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "O2B",
+            "dist": "2.18",
+            "clashmag": "0.44",
+            "cid": "26"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H1D",
+            "dist": "2.18",
+            "clashmag": "0.42",
+            "cid": "27"
+          }
+        },
+        {
+          "tag": "clash",
+          "attributes": {
+            "atom": "H3D",
+            "dist": "2.19",
+            "clashmag": "0.42",
+            "cid": "28"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O5B",
+            "numobs": "40",
+            "mean": "1.59",
+            "stdev": "0.04",
+            "mindiff": "0.02",
+            "Zscore": "-2.25",
+            "obsval": "1.50"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PA,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.06",
+            "Zscore": "-7.20",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C8A,N7A",
+            "numobs": "1913",
+            "mean": "1.31",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "2.35",
+            "obsval": "1.36"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A",
+            "numobs": "1573",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.00",
+            "Zscore": "-2.91",
+            "obsval": "1.33"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,C6A",
+            "numobs": "778",
+            "mean": "1.41",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "2.47",
+            "obsval": "1.47"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A",
+            "numobs": "1310",
+            "mean": "1.39",
+            "stdev": "0.02",
+            "mindiff": "0.01",
+            "Zscore": "4.54",
+            "obsval": "1.47"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "C6A,N6A",
+            "numobs": "2693",
+            "mean": "1.34",
+            "stdev": "0.03",
+            "mindiff": "0.00",
+            "Zscore": "2.15",
+            "obsval": "1.39"
+          }
+        },
+        {
+          "tag": "mog-bond-outlier",
+          "attributes": {
+            "atoms": "PN,O3",
+            "numobs": "23",
+            "mean": "1.59",
+            "stdev": "0.01",
+            "mindiff": "0.06",
+            "Zscore": "-7.56",
+            "obsval": "1.51"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O1A",
+            "numobs": "40",
+            "mean": "56.70",
+            "stdev": "30.00",
+            "mindiff": "16.27",
+            "local_density": "0.00",
+            "obsval": "-79.52"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5B,O5B,PA,O3",
+            "numobs": "40",
+            "mean": "47.94",
+            "stdev": "43.00",
+            "mindiff": "9.35",
+            "local_density": "2.50",
+            "obsval": "37.17"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "PN,O3,PA,O2A",
+            "numobs": "141",
+            "mean": "92.50",
+            "stdev": "49.89",
+            "mindiff": "0.42",
+            "local_density": "2.13",
+            "obsval": "3.20"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C4B,C5B,O5B,PA",
+            "numobs": "474",
+            "mean": "61.13",
+            "stdev": "18.40",
+            "mindiff": "1.31",
+            "local_density": "2.53",
+            "obsval": "-95.12"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O3",
+            "numobs": "40",
+            "mean": "51.25",
+            "stdev": "14.77",
+            "mindiff": "22.98",
+            "local_density": "0.00",
+            "obsval": "113.84"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O1N",
+            "numobs": "40",
+            "mean": "62.70",
+            "stdev": "21.81",
+            "mindiff": "19.03",
+            "local_density": "0.00",
+            "obsval": "-128.00"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "C5D,O5D,PN,O2N",
+            "numobs": "40",
+            "mean": "95.50",
+            "stdev": "54.48",
+            "mindiff": "25.07",
+            "local_density": "0.00",
+            "obsval": "-5.75"
+          }
+        },
+        {
+          "tag": "mog-torsion-outlier",
+          "attributes": {
+            "atoms": "O4D,C1D,N1N,C6N",
+            "numobs": "29",
+            "mean": "61.74",
+            "stdev": "37.93",
+            "mindiff": "2.57",
+            "local_density": "3.45",
+            "obsval": "-125.39"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O2A,PA,O3",
+            "numobs": "23",
+            "mean": "107.27",
+            "stdev": "2.70",
+            "mindiff": "0.23",
+            "Zscore": "2.61",
+            "obsval": "114.32"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C3B,C2B,C1B",
+            "numobs": "925",
+            "mean": "101.46",
+            "stdev": "1.89",
+            "mindiff": "0.08",
+            "Zscore": "2.26",
+            "obsval": "105.73"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,N9A,C8A",
+            "numobs": "505",
+            "mean": "105.74",
+            "stdev": "1.05",
+            "mindiff": "0.18",
+            "Zscore": "3.31",
+            "obsval": "109.22"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N9A,C8A,N7A",
+            "numobs": "576",
+            "mean": "113.94",
+            "stdev": "1.42",
+            "mindiff": "0.00",
+            "Zscore": "-2.52",
+            "obsval": "110.36"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,N7A,C8A",
+            "numobs": "1264",
+            "mean": "103.45",
+            "stdev": "1.57",
+            "mindiff": "0.02",
+            "Zscore": "2.65",
+            "obsval": "107.61"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4A,C5A,N7A",
+            "numobs": "1093",
+            "mean": "110.58",
+            "stdev": "1.14",
+            "mindiff": "0.03",
+            "Zscore": "-2.76",
+            "obsval": "107.43"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C2A,N1A",
+            "numobs": "1995",
+            "mean": "128.58",
+            "stdev": "1.51",
+            "mindiff": "0.00",
+            "Zscore": "-4.01",
+            "obsval": "122.51"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C2A,N3A,C4A",
+            "numobs": "1292",
+            "mean": "111.83",
+            "stdev": "2.44",
+            "mindiff": "0.30",
+            "Zscore": "3.90",
+            "obsval": "121.36"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "N3A,C4A,N9A",
+            "numobs": "441",
+            "mean": "127.17",
+            "stdev": "1.70",
+            "mindiff": "0.56",
+            "Zscore": "4.96",
+            "obsval": "135.59"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C5A,C4A,N3A",
+            "numobs": "997",
+            "mean": "126.72",
+            "stdev": "1.38",
+            "mindiff": "0.30",
+            "Zscore": "-5.59",
+            "obsval": "119.02"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C4D,O4D,C1D",
+            "numobs": "23",
+            "mean": "109.92",
+            "stdev": "0.92",
+            "mindiff": "2.16",
+            "Zscore": "3.97",
+            "obsval": "113.56"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "C3N,C7N,N7N",
+            "numobs": "2600",
+            "mean": "117.74",
+            "stdev": "1.23",
+            "mindiff": "0.07",
+            "Zscore": "3.80",
+            "obsval": "122.43"
+          }
+        },
+        {
+          "tag": "mog-angle-outlier",
+          "attributes": {
+            "atoms": "O7N,C7N,N7N",
+            "numobs": "3292",
+            "mean": "122.62",
+            "stdev": "1.44",
+            "mindiff": "0.01",
+            "Zscore": "-2.33",
+            "obsval": "119.25"
+          }
+        }
+      ]
+    }
+  ]
+}

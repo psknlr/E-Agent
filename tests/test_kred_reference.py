@@ -39,7 +39,7 @@ from eagent.science.units import canonical_unit, convert_measurement, reconcile_
 #: number, a new binding, a re-pinned coordinate file -- also changes this file
 #: in the same commit, where a reviewer will see both. Update it with
 #: ``eagent reference manifest --write`` after reading the diff, not before.
-EXPECTED_DATA_DIGEST = "a1bcd99c01e5e6fdf275361b3780c2544026edf69fe6ec02d3d240a6912a9e65"
+EXPECTED_DATA_DIGEST = "73a65de287bcac85d2d7fb79c489e717fd98382ca4da3c874b4ae60ebbfbb32e"
 
 DELIVERED_WORKBOOK_SHA256 = (
     "c0eac78f178ecf0a82c90f3b451ddddaef706ccd3a763ce0529a679ad25fbf52")

@@ -1,0 +1,63 @@
+[
+  {
+    "pdb_id": "4RF2",
+    "reason": "Lactobacillus kefir WT binary NAP+Mg only; no substrate/product. EvolvedKRED paper10.1073/pnas.1507910112 has usefulactivities but notexperimentalternary.",
+    "url": "https://www.rcsb.org/structure/4RF2"
+  },
+  {
+    "pdb_id": "3WLF",
+    "reason": "Candida parapsilosis CPRADH with actual productFEH(R)-1-phenyl-1,2-ethanediol +Zn but no cofactor; separate3WLE cofactorstructure mustnotbecombinedinto an experimentalternary.",
+    "url": "https://www.rcsb.org/structure/3WLF",
+    "doi": "10.1039/c4cc01752h"
+  },
+  {
+    "pdb_id": "6XNB",
+    "reason": "Leifsonia xyli S154Y variant,1.16A,onlyMg; no substrate/cofactor.",
+    "url": "https://www.rcsb.org/structure/6XNB",
+    "doi": "10.1016/j.abb.2022.109158"
+  },
+  {
+    "pdb_id": "2EWM",
+    "reason": "Aromatoleum/Azoarcus phenylethanoldehydrogenase with NAD+ andsulfate; noactualacetophenone.",
+    "url": "https://www.rcsb.org/structure/2EWM",
+    "doi": "10.1021/bi051596b"
+  },
+  {
+    "pdb_id": "1NXQ",
+    "reason": "LbADH apo; published NADPH+acetophenone ternary was modeled, not an experimental ligand complex.",
+    "url": "https://www.rcsb.org/structure/1NXQ"
+  },
+  {
+    "pdb_id": "1GEG",
+    "reason": "Klebsiella pneumoniae mesoBDH NAD+ +mercaptoethanol inhibitor, not actualacetoin.",
+    "url": "https://www.rcsb.org/structure/1GEG",
+    "pmid": "11173520"
+  },
+  {
+    "pdb_id": "1AE1",
+    "reason": "TRI binaryNADP complex; noactualtropinone.",
+    "url": "https://www.rcsb.org/structure/1AE1"
+  },
+  {
+    "pdb_id": "2AE1",
+    "reason": "TRII apo; noactualsubstrate+cofactorternary.",
+    "url": "https://www.rcsb.org/structure/2AE1"
+  },
+  {
+    "pdb_id": "1IPE",
+    "reason": "TRII NADPH binary fromsame2003paper; ternaryentryis1IPF.",
+    "url": "https://www.rcsb.org/structure/1IPE"
+  },
+  {
+    "pdb_id": "6VSP",
+    "reason": "SmBdhQ247A hasNAD+ +glycerol cryoprotectant; acetoin incrystallization condition was notdepositedat activesite. Fig7same2020paper.",
+    "url": "https://www.rcsb.org/structure/6VSP",
+    "doi": "10.1186/s13068-020-01820-x"
+  },
+  {
+    "pdb_id": "6XEX",
+    "reason": "SmBdhQ247A+V139Q hasNAD+ +ethyleneglycol cryoprotectant; notactualsubstrate. Fig7same2020paper.",
+    "url": "https://www.rcsb.org/structure/6XEX",
+    "doi": "10.1186/s13068-020-01820-x"
+  }
+]

@@ -25,7 +25,7 @@ jobs:
       - name: Install agent and test dependencies
         run: python -m pip install -e '.[dev]'
       - name: Check the actual chat runtime
-        run: python -m pytest tests/test_web.py tests/test_providers.py tests/test_toolloop.py -q
+        run: python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py -q
       - name: Check browser script
         run: node --check web/app.js
       - name: Configure public backend URL

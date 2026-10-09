@@ -1,4 +1,4 @@
-# The MiniMax API key is entered in Render, never committed to this repository.
+# Provider keys can be entered per request in the chat UI; no key is required to deploy.
 services:
   - type: web
     name: eagent-chat
@@ -14,8 +14,6 @@ services:
         value: minimax
       - key: EAGENT_MODEL
         value: MiniMax-M2.7
-      - key: MINIMAX_API_KEY
-        sync: false
       - key: EAGENT_CHAT_TOKEN
         generateValue: true
       - key: EAGENT_ALLOWED_ORIGINS

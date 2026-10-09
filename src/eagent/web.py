@@ -1,7 +1,8 @@
 """HTTP chat transport for the actual, read-only E-Agent reference console.
 
-GitHub Pages serves the browser interface. This process keeps provider keys on
-the server and runs the same loaders, tool loop and numeric guard as the CLI.
+GitHub Pages serves the browser interface. This process runs the same loaders,
+tool loop and numeric guard as the CLI, using server defaults or credentials
+submitted for one chat request. Submitted model settings are never saved.
 Readiness means configured; it does not claim a model has answered a request.
 """
 
@@ -19,11 +20,12 @@ import socket
 import threading
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any
+from typing import Any, Iterable
 from urllib.parse import unquote, urlsplit
 
 from .harness.llm import LLMClient, LLMError, NumericGuard
 from .harness.providers import PROVIDERS, build_client
+from .harness.request_client import RequestModelClient, RequestModelConfig, redact_credentials
 from .harness.toolloop import LoopLimits, SYSTEM_PROMPT, ToolLoop, reference_tools
 
 MAX_BODY_BYTES = 65_536
@@ -54,21 +56,20 @@ def _loopback(host: str) -> bool:
         return False
 
 
-def _redact(value: Any, token: str = "") -> Any:
+def _redact(value: Any, token: str = "", additional_secrets: Iterable[str] = ()) -> Any:
     """Scrub keys and the access token from every outgoing string, including traces."""
     secrets = {token} if token else set()
+    secrets.update(secret for secret in additional_secrets if isinstance(secret, str) and secret)
     secrets.update((os.environ.get(spec.api_key_env) or "").strip()
                    for spec in PROVIDERS.values())
     secrets.discard("")
     if isinstance(value, str):
-        for secret in sorted(secrets, key=len, reverse=True):
-            value = value.replace(secret, "[credential redacted]")
-        return value
+        return redact_credentials(value, secrets)
     if isinstance(value, dict):
-        return {_redact(key, token): _redact(item, token)
+        return {_redact(key, token, secrets): _redact(item, token, secrets)
                 for key, item in value.items()}
     if isinstance(value, (list, tuple)):
-        return [_redact(item, token) for item in value]
+        return [_redact(item, token, secrets) for item in value]
     return value
 
 
@@ -154,7 +155,7 @@ class _JSONProtocolClient(LLMClient):
 
 
 class AgentService:
-    """One configured provider and the repository's actual registered readers."""
+    """Actual readers, optional server defaults and isolated user model clients."""
 
     def __init__(self, config: WebConfig) -> None:
         self.config = config
@@ -165,11 +166,15 @@ class AgentService:
         self.completion_verified = False
         self.loop: ToolLoop | None = None
         self.tools: list[str] = []
+        self._reference_tools: list[Any] = []
+        self.runtime_ready = False
         self._reason = ""
         try:
             tools = reference_tools(self.project_root / "configs" / "references"
                                     / "kred_calibration" / "v0.1")
             self.tools = sorted(tool.name for tool in tools)
+            self._reference_tools = tools
+            self.runtime_ready = True
             if not config.provider:
                 self._reason = "Set EAGENT_PROVIDER to select a provider."
                 return
@@ -178,16 +183,18 @@ class AgentService:
                 return
             client = build_client(config.provider, config.model,
                                   max_tokens=8192, timeout_s=60.0)
-            loop = ToolLoop(_JSONProtocolClient(client), guard=NumericGuard(strict=True),
-                            limits=LoopLimits(max_wall_seconds=180.0))
-            loop.register_all(tools)
-            # Providers return the harness JSON protocol; their HTTP clients
-            # do not translate these schemas into native provider function calls.
-            loop.system = SYSTEM_PROMPT + "\nAvailable tool interfaces:\n" + json.dumps(
-                loop.schemas(), ensure_ascii=False)
-            self.loop = loop
+            self.loop = self._new_loop(client)
         except Exception as exc:  # configuration or loader failure: never pretend ready
             self._reason = str(_redact(f"Runtime initialization failed: {exc}", config.token))
+
+    def _new_loop(self, client: LLMClient) -> ToolLoop:
+        loop = ToolLoop(_JSONProtocolClient(client), guard=NumericGuard(strict=True),
+                        limits=LoopLimits(max_wall_seconds=180.0))
+        loop.register_all(self._reference_tools)
+        # The harness uses its JSON protocol rather than native function calls.
+        loop.system = SYSTEM_PROMPT + "\nAvailable tool interfaces:\n" + json.dumps(
+            loop.schemas(), ensure_ascii=False)
+        return loop
 
     def health(self) -> dict[str, Any]:
         spec = PROVIDERS.get(self.config.provider)
@@ -199,29 +206,43 @@ class AgentService:
             reason = ("The runtime is configured. A provider completion has been verified."
                       if self.completion_verified else
                       "The runtime is configured; a provider completion has not yet been verified.")
-        return {"service": "eagent", "ready": ready,
+        return {"service": "eagent", "ready": ready, "runtime_ready": self.runtime_ready,
                 "provider": self.config.provider, "model": self.config.model,
                 "tools": self.tools, "reason": reason,
                 "completion_verified": self.completion_verified,
+                "configurable_providers": ["minimax", "openai", "anthropic", "custom"],
                 "authentication_required": bool(self.config.token)}
 
-    def chat(self, message: str, history: list[dict[str, str]]) -> tuple[int, dict[str, Any]]:
-        if not self.health()["ready"] or self.loop is None:
+    def chat(self, message: str, history: list[dict[str, str]],
+             model_config: RequestModelConfig | None = None, *,
+             allow_local_api: bool = False) -> tuple[int, dict[str, Any]]:
+        if model_config is not None and not self.runtime_ready:
+            return 503, {"error": self.health()["reason"]}
+        if model_config is None and (not self.health()["ready"] or self.loop is None):
             return 503, {"error": self.health()["reason"]}
         if not self._slots.acquire(blocking=False):
             return 429, {"error": "The agent is busy. Try again when an active chat finishes."}
+        secrets = (model_config.api_key,) if model_config is not None else ()
+
+        def response(status: int, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+            if model_config is not None:
+                payload["model_config"] = model_config.public_metadata()
+            return status, _redact(payload, self.config.token, secrets)
+
         try:
+            loop = (self._new_loop(RequestModelClient(model_config, allow_local=allow_local_api))
+                    if model_config is not None else self.loop)
             question = message
             if history:
                 question = ("Previous conversation (context only; tool results must still "
                             "support factual answers):\n" +
                             json.dumps(history, ensure_ascii=False) +
                             "\nCurrent user message:\n" + message)
-            transcript = self.loop.run(question)
+            transcript = loop.run(question)
 
             def failure(error: str) -> tuple[int, dict[str, Any]]:
-                return 502, {"error": error, "transcript": transcript,
-                             "completion_verified": self.completion_verified}
+                return response(502, {"error": error, "transcript": transcript,
+                                      "completion_verified": False})
 
             provider_error = next((turn["provider_error"] for turn in
                                    transcript["turns"] if "provider_error" in turn), None)
@@ -235,21 +256,23 @@ class AgentService:
             answer = "\n\n".join(part for part in (reasoning, questions) if part)
             if not answer:
                 return failure("The provider returned no answer or clarification in the agent's JSON protocol.")
-            with self._verified_lock:
-                self.completion_verified = True
-            return 200, {"answer": answer, "transcript": transcript,
-                         "completion_verified": True}
+            if model_config is None:
+                with self._verified_lock:
+                    self.completion_verified = True
+            return response(200, {"answer": answer, "transcript": transcript,
+                                  "completion_verified": True})
         except Exception as exc:
             # The provider's own error is useful for invalid model ids. Scrub
             # the entire response rather than logging request data or secrets.
-            return 502, {"error": f"The agent request failed: {exc}"}
+            return response(502, {"error": f"The agent request failed: {exc}",
+                                  "completion_verified": False})
         finally:
             self._slots.release()
 
 
 def _validate_chat(payload: Any) -> tuple[str, list[dict[str, str]]]:
-    if not isinstance(payload, dict) or set(payload) - {"message", "history"}:
-        raise ValueError("Expected a JSON object with message and optional history.")
+    if not isinstance(payload, dict) or set(payload) - {"message", "history", "model_config"}:
+        raise ValueError("Expected a JSON object with message, optional history and optional model_config.")
     message = payload.get("message")
     if not isinstance(message, str) or not message.strip():
         raise ValueError("message must be a nonempty string.")
@@ -279,6 +302,7 @@ class AgentHTTPServer(ThreadingHTTPServer):
         if not _loopback(address[0]) and not service.config.token:
             raise ValueError("EAGENT_CHAT_TOKEN is required when binding beyond localhost.")
         self.service = service
+        self.allow_local_api = _loopback(address[0])
         super().__init__(address, AgentRequestHandler)
 
 
@@ -329,8 +353,9 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.close_connection = True
 
-    def _json(self, status: int, payload: dict[str, Any]) -> None:
-        clean = _redact(payload, self.server.service.config.token)
+    def _json(self, status: int, payload: dict[str, Any],
+              additional_secrets: Iterable[str] = ()) -> None:
+        clean = _redact(payload, self.server.service.config.token, additional_secrets)
         body = json.dumps(clean, ensure_ascii=False).encode("utf-8")
         self._headers(status, "application/json; charset=utf-8", len(body))
         self.wfile.write(body)
@@ -416,12 +441,17 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
             if len(body) != length:
                 raise ValueError("Request body was incomplete.")
-            message, history = _validate_chat(json.loads(body.decode("utf-8")))
+            decoded = json.loads(body.decode("utf-8"))
+            message, history = _validate_chat(decoded)
+            model_config = (RequestModelConfig.from_payload(
+                decoded["model_config"], allow_local=self.server.allow_local_api)
+                if "model_config" in decoded else None)
         except (ValueError, UnicodeDecodeError, socket.timeout) as exc:
             self._json(400, {"error": f"Invalid chat request: {exc}"})
             return
-        status, payload = self.server.service.chat(message, history)
-        self._json(status, payload)
+        status, payload = self.server.service.chat(message, history, model_config,
+                                                  allow_local_api=self.server.allow_local_api)
+        self._json(status, payload, (model_config.api_key,) if model_config is not None else ())
 
 
 def main(argv: list[str] | None = None) -> int:

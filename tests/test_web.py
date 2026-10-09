@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
 import http.client
+import io
 import json
 import os
 from pathlib import Path
@@ -11,9 +13,11 @@ import tempfile
 import threading
 import unittest
 from unittest import mock
+import urllib.error
 
 from eagent.harness.llm import LLMError
 from eagent.harness.providers import OpenAIChatClient
+from eagent.harness.request_client import RequestModelClient
 from eagent.harness.toolloop import LoopLimits
 from eagent.web import (
     AgentHTTPServer, AgentService, MAX_BODY_BYTES, WebConfig, _validate_chat,
@@ -22,6 +26,8 @@ from eagent.web import (
 ROOT = Path(__file__).resolve().parents[1]
 TOKEN = "test-agent-access-secret"
 KEY = "test-minimax-api-key-secret"
+DIY_KEY = "test-request-only-api-key-secret"
+DIY_URL = "https://93.184.216.34/v1/chat/completions"
 
 
 @contextmanager
@@ -60,7 +66,155 @@ def authorized(**extra):
     return {"Authorization": "Bearer " + TOKEN, **extra}
 
 
+def diy_config(**changes):
+    values = {"provider": "openai", "protocol": "openai_chat", "api_key": DIY_KEY,
+              "model": "gpt-example", "api_url": DIY_URL}
+    values.update(changes)
+    return values
+
+
+class ProviderResponse(io.BytesIO):
+    status = 200
+
+    def __init__(self, turn):
+        super().__init__(json.dumps({"choices": [{"message": {"content": json.dumps(turn)}}]}).encode())
+
+
 class WebTransportTests(unittest.TestCase):
+    def test_diy_chat_works_without_server_credentials_and_only_verifies_its_request(self):
+        with running_server() as (server, service):
+            with mock.patch.dict(os.environ, {}, clear=True):
+                no_default = AgentService(WebConfig(project_root=ROOT, token=TOKEN))
+                server.service = no_default
+                health = request(server, "GET", "/api/health")[2]
+                self.assertFalse(health["ready"])
+                self.assertTrue(health["runtime_ready"])
+                self.assertIn("custom", health["configurable_providers"])
+                environment = dict(os.environ)
+                seen = []
+
+                def opener(provider_request, **kwargs):
+                    seen.append(provider_request)
+                    messages = json.loads(provider_request.data)["messages"]
+                    if len(messages) == 2:
+                        return ProviderResponse({"tool_calls": [{"interface": "kinetic_record",
+                            "arguments": {"label_id": "PaHBDH_H150N_AAE_activity_only"}}]})
+                    result = json.loads(messages[-1]["content"].split("\n", 1)[1])[0]
+                    self.assertTrue(result["ok"])
+                    self.assertIsNone(result["value"]["km"])
+                    return ProviderResponse({"reasoning": "This Km is a bound, so the actual loader withholds it."})
+
+                with mock.patch("eagent.harness.request_client._request_opener", return_value=opener):
+                    status, _, body = request(server, "POST", "/api/chat", {
+                        "message": "Inspect its Km.", "model_config": diy_config()}, authorized())
+                self.assertEqual(status, 200, body)
+                self.assertTrue(body["completion_verified"])
+                self.assertEqual(body["transcript"]["tool_calls_made"], 1)
+                self.assertEqual(body["model_config"], {key: value for key, value in diy_config().items()
+                                                        if key != "api_key"})
+                self.assertFalse(no_default.health()["completion_verified"])
+                self.assertFalse(no_default.health()["ready"])
+                self.assertEqual(dict(os.environ), environment)
+                self.assertNotIn(DIY_KEY, repr(no_default.__dict__))
+                self.assertNotIn(DIY_KEY, json.dumps(no_default.health()))
+                self.assertEqual(seen[0].get_header("Authorization"), "Bearer " + DIY_KEY)
+
+    def test_diy_credentials_are_scrubbed_from_success_failure_and_echoed_history(self):
+        with running_server() as (server, service):
+            for fail in (False, True):
+                with self.subTest(fail=fail):
+                    def opener(provider_request, **kwargs):
+                        if fail:
+                            raise RuntimeError(f"transport error {DIY_KEY} {TOKEN}")
+                        return ProviderResponse({"reasoning": f"echo {DIY_KEY} {TOKEN}"})
+
+                    with mock.patch("eagent.harness.request_client._request_opener", return_value=opener):
+                        status, _, body = request(server, "POST", "/api/chat", {
+                            "message": "echo " + DIY_KEY,
+                            "history": [{"role": "user", "content": DIY_KEY}],
+                            "model_config": diy_config()}, authorized())
+                    self.assertEqual(status, 502 if fail else 200, body)
+                    self.assertNotIn(DIY_KEY, json.dumps(body))
+                    self.assertNotIn(TOKEN, json.dumps(body))
+                    self.assertEqual(body["completion_verified"], not fail)
+                    self.assertFalse(service.health()["completion_verified"])
+
+    def test_diy_concurrent_chats_keep_models_keys_and_transcripts_separate(self):
+        barrier = threading.Barrier(2)
+        seen = []
+        lock = threading.Lock()
+
+        def opener(provider_request, **kwargs):
+            body = json.loads(provider_request.data)
+            model = body["model"]
+            key = provider_request.get_header("Authorization")[7:]
+            with lock:
+                seen.append((model, key, body["messages"][-1]["content"]))
+            barrier.wait(timeout=5)
+            return ProviderResponse({"reasoning": f"Response for {model}; echo {key}"})
+
+        with running_server() as (server, service):
+            with mock.patch("eagent.harness.request_client._request_opener", return_value=opener):
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    futures = [pool.submit(request, server, "POST", "/api/chat", {
+                        "message": f"Chat {name}", "model_config": diy_config(model=name, api_key=key)},
+                        authorized()) for name, key in (("model-a", "request-key-a"), ("model-b", "request-key-b"))]
+                    results = [future.result() for future in futures]
+            for result, name in zip(results, ("model-a", "model-b")):
+                self.assertEqual(result[0], 200, result[2])
+                self.assertEqual(result[2]["model_config"]["model"], name)
+                self.assertIn("Response for " + name, result[2]["answer"])
+                self.assertNotIn("request-key-", json.dumps(result[2]))
+            self.assertEqual(set(seen), {("model-a", "request-key-a", "Chat model-a"),
+                                         ("model-b", "request-key-b", "Chat model-b")})
+            self.assertFalse(service.health()["completion_verified"])
+
+    def test_json_escaped_diy_secret_is_scrubbed_from_errors_and_successful_transcript(self):
+        key = 'fake-quote"slash\\credential'
+        escaped = json.dumps(key)[1:-1]
+        with running_server() as (server, _):
+            for fail in (False, True):
+                with self.subTest(fail=fail):
+                    def opener(provider_request, **kwargs):
+                        if fail:
+                            raise urllib.error.HTTPError(DIY_URL, 401, "Unauthorized", {},
+                                io.BytesIO(json.dumps({"error": key}).encode()))
+                        return ProviderResponse({"reasoning": "An escaped credential: " + escaped})
+
+                    with mock.patch("eagent.harness.request_client._request_opener", return_value=opener):
+                        status, _, body = request(server, "POST", "/api/chat", {
+                            "message": key, "model_config": diy_config(api_key=key)}, authorized())
+                    self.assertEqual(status, 502 if fail else 200, body)
+                    self.assertNotIn(key, json.dumps(body))
+                    self.assertNotIn(escaped, json.dumps(body))
+                    self.assertIn("[credential redacted]", body["error"] if fail else body["answer"])
+
+    def test_invalid_diy_settings_never_borrow_environment_credentials_or_call_provider(self):
+        invalid = (diy_config(api_key=""), diy_config(api_url=""), diy_config(model=""),
+                   diy_config(provider="unknown"), diy_config(protocol="unsupported"),
+                   diy_config(protocol="anthropic_messages"), {"provider": "custom"}, None,
+                   diy_config(api_url="http://169.254.169.254/latest/meta-data"))
+        with running_server() as (server, service):
+            with mock.patch.object(RequestModelClient, "complete") as completion:
+                for config in invalid:
+                    with self.subTest(config=config):
+                        status, _, body = request(server, "POST", "/api/chat", {
+                            "message": "Hello", "model_config": config}, authorized())
+                        self.assertEqual(status, 400, body)
+                        self.assertNotIn(DIY_KEY, json.dumps(body))
+                completion.assert_not_called()
+                self.assertFalse(service.health()["completion_verified"])
+
+    def test_local_model_urls_require_a_locally_bound_backend(self):
+        with running_server() as (server, _):
+            payload = {"message": "Hello", "model_config": diy_config(
+                provider="custom", api_url="http://127.0.0.1:11434/v1/chat/completions")}
+            with mock.patch("eagent.harness.request_client._request_opener",
+                            return_value=lambda *a, **kw: ProviderResponse({"reasoning": "Local model answered."})):
+                self.assertEqual(request(server, "POST", "/api/chat", payload, authorized())[0], 200)
+                server.allow_local_api = False
+                self.assertEqual(request(server, "POST", "/api/chat", payload, authorized())[0], 400)
+
     def test_health_distinguishes_configuration_from_verified_completion(self):
         with running_server() as (server, service):
             with mock.patch.object(OpenAIChatClient, "complete") as completion:

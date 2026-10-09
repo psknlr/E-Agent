@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#f4f3ed">
-  <meta name="description" content="Chat with E-Agent about curated enzyme evidence, with real Python tool calls and a visible research audit trail.">
+  <meta name="description" content="Chat with E-Agent using your model API, browser calculations, curated enzyme evidence and a visible research trace.">
   <title>E-Agent · Enzyme research, with evidence</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%231b4132'/%3E%3Cpath d='M22 19h24M22 32h19M22 45h24M22 19v26' fill='none' stroke='%23f4f3ed' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css">
-  <script src="./app.js" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=20261009-browser1">
+  <script src="./reference-tools.js?v=20261009-browser1" defer></script>
+  <script src="./browser-agent.js?v=20261009-browser1" defer></script>
+  <script src="./app.js?v=20261009-browser1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#message">Skip to chat</a>
@@ -28,15 +30,21 @@
 
       <section class="connection-card" aria-labelledby="connection-title">
         <div class="section-heading">
-          <h3 id="connection-title">Agent connection</h3>
+          <h3 id="connection-title">Run E-Agent</h3>
           <button id="settings-toggle" class="icon-button" type="button" aria-label="Open connection settings" aria-expanded="true" aria-controls="connection-settings">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--paper)"/><circle cx="15" cy="17" r="3" fill="var(--paper)"/></svg>
           </button>
         </div>
-        <div class="status-row"><span id="status-dot" class="status-dot"></span><span id="status-label">Not connected</span></div>
-        <p id="status-detail" class="status-detail" role="status" aria-live="polite">Connect a running E-Agent backend to start chatting.</p>
+        <div class="execution-settings">
+          <label for="execution-mode">Run mode</label>
+          <select id="execution-mode"><option value="browser" selected>Browser + API</option><option value="backend">Python backend</option></select>
+          <p id="execution-help" class="field-help">Computations run in this browser. Your model API decides which tools to use.</p>
+        </div>
+        <div class="status-row"><span id="status-dot" class="status-dot"></span><span id="status-label">Loading browser tools</span></div>
+        <p id="status-detail" class="status-detail" role="status" aria-live="polite">Preparing the local calculator and enzyme evidence tools.</p>
         <div id="backend-meta" class="backend-meta" hidden></div>
-        <form id="connection-settings" class="connection-settings">
+        <button id="prepare-browser" class="prepare-button" type="button" hidden>Reload browser tools</button>
+        <form id="connection-settings" class="connection-settings" hidden>
           <label for="backend-url">Backend URL</label>
           <input id="backend-url" type="url" inputmode="url" placeholder="https://your-backend.example" autocomplete="off" spellcheck="false" aria-describedby="backend-help">
           <p id="backend-help" class="field-help">Use HTTPS, or HTTP on localhost.</p>
@@ -58,18 +66,18 @@
             <option value="openai">OpenAI / GPT</option>
             <option value="anthropic">Anthropic / Claude</option>
             <option value="custom">Custom endpoint</option>
-            <option value="server_default">Server default</option>
+            <option value="server_default" disabled hidden>Server default</option>
           </select>
           <p id="provider-help" class="field-help">Presets fill the API URL. You can edit the model and URL.</p>
           <div id="manual-model-fields">
             <label for="provider-key">API key</label>
             <input id="provider-key" type="password" placeholder="Your model provider API key" autocomplete="off" spellcheck="false" maxlength="4096" aria-describedby="provider-key-help">
-            <p id="provider-key-help" class="field-help">Kept only in this tab. Each request sends it to your E-Agent backend, which calls the API URL below. Trust both endpoints. Remote connections use HTTPS; local connections may use HTTP.</p>
+            <p id="provider-key-help" class="field-help">Kept only in this tab and sent directly to your selected API URL. Save and export exclude keys.</p>
             <label for="model-name">Model name</label>
             <input id="model-name" type="text" placeholder="Your exact model name" autocomplete="off" spellcheck="false" maxlength="200">
             <label for="api-url">API URL · full endpoint</label>
             <input id="api-url" type="url" inputmode="url" placeholder="https://provider.example/v1/chat/completions" autocomplete="off" spellcheck="false" maxlength="2048" aria-describedby="api-url-help">
-            <p id="api-url-help" class="field-help">Include the full request path. Use HTTPS and the selected API format. HTTP is allowed for a local endpoint.</p>
+            <p id="api-url-help" class="field-help">Use the full endpoint and selected API format. Browser mode requires the endpoint to allow cross-origin requests (CORS).</p>
             <div id="custom-protocol-field" hidden>
               <label for="model-protocol">API format</label>
               <select id="model-protocol"><option value="openai_chat">OpenAI Chat Completions</option><option value="anthropic_messages">Anthropic Messages</option></select>
@@ -84,18 +92,18 @@
             <input id="template-name" type="text" placeholder="My model settings" maxlength="80" autocomplete="off">
             <div class="template-actions"><button id="save-template" type="button">Save</button><button id="export-template" type="button">Export JSON</button><button id="import-template" type="button">Import JSON</button></div>
             <input id="template-file" type="file" accept="application/json,.json" hidden>
-            <p class="field-help">Templates save the provider, format, model and API URL. API keys and backend tokens are never saved or exported.</p>
+            <p class="field-help">Templates save the run mode, provider, format, model and API URL. API keys and backend tokens are never saved or exported.</p>
           </details>
           <p id="model-feedback" class="field-help" role="status" aria-live="polite"></p>
         </details>
       </section>
 
       <section id="tools-panel" class="tools-panel" aria-labelledby="tools-title" hidden>
-        <h3 id="tools-title" class="eyebrow">CONNECTED PYTHON TOOLS</h3>
+        <h3 id="tools-title" class="eyebrow">BROWSER TOOLS</h3>
         <ul id="tools-list"></ul>
       </section>
 
-      <div class="scope-note"><span class="scope-icon" aria-hidden="true">✳</span><p>Ask about curated enzyme evidence. Uses E-Agent’s Python tools; research conclusions require review.</p></div>
+      <div class="scope-note"><span class="scope-icon" aria-hidden="true">✳</span><p id="scope-help">Calculate in your browser and inspect curated enzyme evidence. Research conclusions require review.</p></div>
       <nav class="sidebar-footer" aria-label="Project links">
         <a href="https://github.com/psknlr/E-Agent" target="_blank" rel="noopener noreferrer">Repository ↗</a>
         <a href="https://github.com/psknlr/E-Agent/blob/main/README.md" target="_blank" rel="noopener noreferrer">Read the science ↗</a>
@@ -114,7 +122,7 @@
             <div class="welcome-copy">
               <div class="welcome-kicker"><span class="short-rule"></span> THE ENZYME RESEARCH AGENT</div>
               <h1 id="welcome-title">From a reaction<br>to <em>evidence.</em></h1>
-              <p>Bring your enzyme question. Explore what is known, what is missing, and what the evidence can actually support.</p>
+              <p>Choose your API, bring your question, and let E-Agent run calculations and inspect enzyme evidence in this browser.</p>
             </div>
             <svg class="molecule" viewBox="0 0 230 245" fill="none" aria-hidden="true">
               <circle cx="117" cy="117" r="91" stroke="#dfe3d8" stroke-dasharray="2 7"/>
@@ -130,8 +138,8 @@
 
           <div class="starter-heading"><h2>A place to begin</h2><span>Or ask a question of your own</span></div>
           <div class="starter-grid">
-            <button class="starter-card" type="button" data-prompt="Audit the curated KRED reference set. Which entries are supported by experimental evidence, and what are the calibration limits?">
-              <span class="starter-number">01 <span aria-hidden="true">↗</span></span><strong>Explore the evidence</strong><span>Audit the curated KRED reference set and its calibration limits.</span>
+            <button class="starter-card" type="button" data-prompt="Use the browser calculator to calculate 2 * 3 + 4, then explain the result and show the calculation in the tool trace.">
+              <span class="starter-number">01 <span aria-hidden="true">↗</span></span><strong>Run a calculation</strong><span>Ask the model to calculate and inspect the actual tool result.</span>
             </button>
             <button class="starter-card" type="button" data-prompt="List the audited structures and inspect 6ZZO. What evidence and limitations are recorded for its cofactor and ligand?">
               <span class="starter-number">02 <span aria-hidden="true">↗</span></span><strong>Inspect a structure</strong><span>Explore 6ZZO, its cofactor, its ligand, and the recorded limitations.</span>
@@ -144,11 +152,11 @@
         </section>
 
         <section id="messages" class="messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></section>
-        <div id="request-progress" class="request-progress" role="status" hidden><span class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Working with the connected E-Agent tools…</span></div>
+        <div id="request-progress" class="request-progress" role="status" hidden><span class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span><span id="progress-label">Working with E-Agent tools…</span></div>
       </div>
 
       <div class="composer-area">
-        <div id="composer-notice" class="composer-notice">Connect your backend in Agent connection to begin.</div>
+        <div id="composer-notice" class="composer-notice">Preparing browser tools. Then enter your API key, model name and API URL.</div>
         <form id="chat-form" class="composer">
           <label class="visually-hidden" for="message">Your enzyme research question</label>
           <textarea id="message" rows="2" maxlength="8000" placeholder="Ask about an enzyme, a reaction, or the evidence…" aria-describedby="composer-help"></textarea>

@@ -168,7 +168,12 @@
     } else {
       headers.Authorization = "Bearer " + config.api_key;
       body.messages.unshift({ role: "system", content: system });
-      body[config.provider === "custom" ? "max_tokens" : "max_completion_tokens"] = 8192;
+      // Match the Python OpenAIChatClient: the OpenAI chat-completions wire
+      // format takes max_tokens, and only MiniMax renames it to
+      // max_completion_tokens (and asks for a separate reasoning channel).
+      // Many OpenAI-compatible gateways reject max_completion_tokens, so the
+      // GPT and custom presets must send the widely accepted max_tokens.
+      body[config.provider === "minimax" ? "max_completion_tokens" : "max_tokens"] = 8192;
       if (config.provider === "minimax") body.reasoning_split = true;
     }
     const serialized = JSON.stringify(body);

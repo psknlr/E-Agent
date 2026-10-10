@@ -21,6 +21,7 @@ function harness(provider, { reference = bundle, timers, changeTools } = {}) {
     fetch: async (url, options) => { calls.push({ url, options }); return url === "./reference-data.json" ? new Response(JSON.stringify(reference), { headers: { "Content-Type": "application/json" } }) : provider(url, options); },
   });
   context.window = context;
+  vm.runInContext(fs.readFileSync(path.join(project, "web/endpoint.js"), "utf8"), context);
   vm.runInContext(fs.readFileSync(path.join(project, "web/reference-tools.js"), "utf8"), context);
   if (changeTools) {
     const original = context.window.EAgentBrowserTools;
@@ -48,10 +49,11 @@ test("prepare loads only the public same-origin reference bundle and validates i
 });
 
 test("MiniMax, GPT, Claude and both custom API formats send the selected model, key and URL", async (parent) => {
-  for (const [provider, protocol] of [["minimax", "openai_chat"], ["openai", "openai_chat"], ["anthropic", "anthropic_messages"], ["custom", "openai_chat"], ["custom", "anthropic_messages"]]) {
+  for (const [provider, protocol] of [["minimax", "openai_chat"], ["minimax_cn", "openai_chat"], ["openai", "openai_chat"], ["anthropic", "anthropic_messages"], ["custom", "openai_chat"], ["custom", "anthropic_messages"]]) {
+    const miniMax = provider.startsWith("minimax");
     await parent.test(provider + " " + protocol, async () => {
       const chosen = config({ provider, protocol });
-      const { runtime, calls } = harness(() => reply({ reasoning: "Ready to inspect the reference evidence." }, { anthropic: protocol === "anthropic_messages", thinking: provider === "minimax" ? "<think>private thinking</think>" : "" }));
+      const { runtime, calls } = harness(() => reply({ reasoning: "Ready to inspect the reference evidence." }, { anthropic: protocol === "anthropic_messages", thinking: miniMax ? "<think>private thinking</think>" : "" }));
       const result = await runtime.chat({ message: "Can you inspect enzyme evidence?", model_config: chosen });
       assert.equal(result.completion_verified, true);
       assert.equal(result.answer, "Ready to inspect the reference evidence.");
@@ -78,12 +80,200 @@ test("MiniMax, GPT, Claude and both custom API formats send the selected model, 
         assert.match(body.system, /Available tool interfaces/);
       } else {
         assert.equal(request.options.headers.Authorization, "Bearer " + key);
-        assert.equal(body[provider === "minimax" ? "max_completion_tokens" : "max_tokens"], 8192);
+        assert.equal(body[miniMax ? "max_completion_tokens" : "max_tokens"], 8192);
         assert.equal(body.messages[0].role, "system");
-        assert.equal(body.reasoning_split, provider === "minimax" ? true : undefined);
+        assert.equal(body.reasoning_split, miniMax ? true : undefined);
       }
     });
   }
+});
+
+test("a pasted base URL is completed, so the request reaches the real chat endpoint", async (parent) => {
+  for (const [provider, protocol, typed, expected] of [
+    ["minimax_cn", "openai_chat", "https://api.minimax.cn/v1", "https://api.minimax.cn/v1/chat/completions"],
+    ["minimax_cn", "openai_chat", "https://api.minimax.cn/v1/", "https://api.minimax.cn/v1/chat/completions"],
+    ["openai", "openai_chat", "https://api.openai.com/v1", "https://api.openai.com/v1/chat/completions"],
+    ["custom", "openai_chat", "https://gateway.example/api/v4", "https://gateway.example/api/v4/chat/completions"],
+    ["anthropic", "anthropic_messages", "https://api.anthropic.com/v1", "https://api.anthropic.com/v1/messages"],
+    ["minimax_cn", "openai_chat", "https://api.minimax.cn/v1/chat/completions", "https://api.minimax.cn/v1/chat/completions"],
+  ]) {
+    await parent.test(provider + " " + typed, async () => {
+      const { runtime, calls } = harness(() => reply({ reasoning: "Ready." }, { anthropic: protocol === "anthropic_messages" }));
+      const result = await runtime.chat({ message: "Can you inspect enzyme evidence?", model_config: config({ provider, protocol, api_url: typed }) });
+      const request = calls.find((entry) => entry.url !== "./reference-data.json");
+      assert.equal(request.url, expected);
+      assert.equal(result.model_config.api_url, expected);
+    });
+  }
+});
+
+// ---- connection test ----------------------------------------------------
+// A real browser reports a CORS block, a wrong path with no CORS headers, a
+// redirect and a dead host with one bare TypeError. These pin how the test
+// tells them apart, and that it can only ever carry a placeholder credential.
+const json = (body, status) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+const refuses = () => { throw new TypeError("Failed to fetch"); };
+
+test("connection test: an answered request means network and CORS are fine, whatever the status", async (parent) => {
+  for (const [status, body, verdict] of [
+    [401, { error: { message: "Incorrect API key provided" } }, "reachable"],
+    [403, {}, "reachable"],
+    [400, { base_resp: { status_code: 2013, status_msg: "invalid params" } }, "reachable"],
+    [200, {}, "reachable"],
+    [404, { error: { message: "no route" } }, "wrong_path"],
+    [405, {}, "wrong_path"],
+    [429, {}, "provider_error"],
+    [503, {}, "provider_error"],
+  ]) {
+    await parent.test("HTTP " + status, async () => {
+      const { runtime } = harness(() => json(body, status));
+      const result = await runtime.testConnection({ api_url: "https://provider.example/v1/chat/completions", protocol: "openai_chat" });
+      assert.equal(result.verdict, verdict);
+      assert.equal(result.status, status);
+      assert.equal(result.endpoint, "https://provider.example/v1/chat/completions");
+      assert.match(result.summary, new RegExp("HTTP " + status));
+    });
+  }
+});
+
+test("connection test: the provider's own error text is shown, bounded", async () => {
+  const { runtime } = harness(() => json({ error: { message: "Incorrect API key provided: " + "x".repeat(500) } }, 401));
+  const result = await runtime.testConnection({ api_url: "https://provider.example/v1/chat/completions", protocol: "openai_chat" });
+  assert.match(result.advice, /Incorrect API key provided/);
+  assert.ok(result.advice.length < 600);
+});
+
+test("connection test: a refused reply from a reachable host is CORS or a wrong path, not an unreachable host", async () => {
+  const { runtime, calls } = harness((url, options) => { if (options.mode === "no-cors") return new Response(null); return refuses(); });
+  const result = await runtime.testConnection({ api_url: "https://provider.example/v1/nope", protocol: "openai_chat" });
+  assert.equal(result.verdict, "blocked");
+  assert.match(result.advice, /CORS/);
+  assert.match(result.advice, /Run in browser/);
+  const probe = calls.at(-1);
+  assert.equal(probe.url, "https://provider.example/");
+  assert.equal(probe.options.method, "GET");
+  assert.equal(probe.options.mode, "no-cors");
+  assert.equal(probe.options.credentials, "omit");
+  assert.equal(probe.options.headers, undefined, "the reachability probe carries no headers at all");
+  assert.equal(probe.options.body, undefined);
+});
+
+test("connection test: a host that does not answer even a bare request is unreachable", async () => {
+  const { runtime, calls } = harness(refuses);
+  const result = await runtime.testConnection({ api_url: "https://api.minimax.cn/v1", protocol: "openai_chat" });
+  assert.equal(result.verdict, "unreachable");
+  assert.match(result.summary, /api\.minimax\.cn/);
+  assert.equal(result.endpoint, "https://api.minimax.cn/v1/chat/completions");
+  assert.equal(calls.length, 2, "one real attempt and one reachability probe");
+});
+
+test("connection test: a silent host times out without a second probe", async () => {
+  const { runtime, calls } = harness((url, options) => new Promise((resolve, reject) => options.signal.addEventListener("abort", () => reject(new TypeError("aborted")), { once: true })), { timers: () => 1 });
+  const result = await runtime.testConnection({ api_url: "https://provider.example/v1/chat/completions", protocol: "openai_chat" });
+  assert.equal(result.verdict, "timeout");
+  assert.equal(calls.length, 1);
+});
+
+test("connection test: sends a placeholder, never a credential, in the chosen provider's format", async (parent) => {
+  for (const [protocol, url] of [["openai_chat", "https://provider.example/v1/chat/completions"], ["anthropic_messages", "https://provider.example/v1/messages"]]) {
+    await parent.test(protocol, async () => {
+      const { runtime, calls } = harness(() => json({}, 401));
+      await runtime.testConnection({ api_url: url, protocol });
+      const request = calls.find((entry) => entry.url === url);
+      assert.equal(request.options.method, "POST");
+      assert.equal(request.options.body, "{}");
+      assert.equal(request.options.mode, "cors");
+      assert.equal(request.options.credentials, "omit");
+      assert.equal(request.options.redirect, "error");
+      assert.equal(request.options.referrerPolicy, "no-referrer");
+      const sent = JSON.stringify(request.options.headers);
+      assert.equal(sent.includes(key), false);
+      if (protocol === "anthropic_messages") {
+        assert.equal(request.options.headers["x-api-key"], "eagent-connection-test");
+        assert.equal(request.options.headers["anthropic-dangerous-direct-browser-access"], "true");
+        assert.equal(request.options.headers.Authorization, undefined);
+      } else assert.equal(request.options.headers.Authorization, "Bearer eagent-connection-test");
+    });
+  }
+});
+
+test("connection test: completes a pasted base URL and rejects unsafe or unsupported input", async () => {
+  const { runtime, calls } = harness(() => json({}, 401));
+  const result = await runtime.testConnection({ api_url: "https://api.minimax.cn/v1", protocol: "openai_chat" });
+  assert.equal(result.endpoint, "https://api.minimax.cn/v1/chat/completions");
+  assert.equal(calls[0].url, "https://api.minimax.cn/v1/chat/completions");
+  for (const changes of [{ api_url: "http://provider.example/v1" }, { api_url: "https://provider.example/" }, { api_url: "https://user:pw@provider.example/v1" }, { api_url: "https://provider.example/v1?key=x" }, { api_url: "" }, { protocol: "unsupported" }]) {
+    // Errors come from the vm realm, so match by message rather than by class.
+    await assert.rejects(runtime.testConnection({ api_url: "https://provider.example/v1", protocol: "openai_chat", ...changes }), /HTTPS API endpoint|complete model API URL|supported API format/, JSON.stringify(changes));
+  }
+});
+
+test("connection test: a cancelled request is reported as cancelled, not as a network verdict", async () => {
+  const controller = new AbortController();
+  const { runtime } = harness((url, options) => new Promise((resolve, reject) => options.signal.addEventListener("abort", () => reject(new TypeError("aborted")), { once: true })));
+  const pending = runtime.testConnection({ api_url: "https://provider.example/v1/chat/completions", protocol: "openai_chat", signal: controller.signal });
+  controller.abort();
+  await assert.rejects(pending, /cancelled/i);
+});
+
+// ---- Run in browser: the stored tools without any model --------------------
+const neverCalled = () => { throw new Error("No model API request should occur."); };
+// Values built inside the vm context have that realm's prototypes, which strict
+// deep equality rejects; compare their data, not their realm.
+const plain = (value) => JSON.parse(JSON.stringify(value));
+
+test("local run answers the 6ZZO question from the stored tools with no model, key or API request", async () => {
+  const { runtime, calls } = harness(neverCalled);
+  const result = await runtime.local({ message: "List the audited structures and inspect 6ZZO. What evidence and limitations are recorded for its cofactor and ligand?" });
+  assert.deepEqual(calls.map((entry) => entry.url), ["./reference-data.json"], "the only request is the same-origin bundle");
+  assert.equal(result.completion_verified, false, "a local run is never a model completion");
+  assert.equal(result.execution, "browser-local");
+  const results = result.transcript.turns[0].results;
+  assert.deepEqual(plain(results.map((entry) => entry.tool)), ["list_structure_entries", "structure_entry"]);
+  assert.equal(result.transcript.tool_calls_made, 2);
+  assert.equal(results.every((entry) => entry.ok === true && entry.rationale.length > 10), true);
+  assert.deepEqual(plain(results[1].value), bundle.results.structure_entry['{"pdb_id":"6ZZO"}'].value, "the record is shown exactly as stored");
+  assert.equal(result.transcript.provider, "none");
+  assert.equal(result.transcript.runs_remotely, false);
+  assert.match(result.answer, /^Ran 2 stored-reference tools in this browser\./);
+  assert.match(result.answer, /No model or API was used and nothing was interpreted/);
+  assert.match(result.transcript.caveat, /No model was called/);
+});
+
+test("local run computes arithmetic with a citation the numeric guard accepts", async () => {
+  const { runtime, calls } = harness(neverCalled);
+  const result = await runtime.local({ message: "calculate (2.5 + 3.5) * 4" });
+  const [entry] = result.transcript.turns[0].results;
+  assert.equal(entry.tool, "calculate");
+  assert.equal(entry.value.value, 24);
+  assert.equal(entry.value.computed, true);
+  assert.equal(entry.value.cite.artifact, "browser_calculation");
+  assert.equal(calls.length, 1);
+});
+
+test("local run says it did not understand, rather than guessing a tool", async () => {
+  const { runtime } = harness(neverCalled);
+  const result = await runtime.local({ message: "Why is the sky blue?" });
+  assert.equal(result.transcript.tool_calls_made, 0);
+  assert.deepEqual(plain(result.transcript.turns[0].results), []);
+  assert.match(result.answer, /could not match this to a stored tool/);
+  assert.equal(result.completion_verified, false);
+});
+
+test("local run reports a refused tool call as a refusal, and rejects bad input and cancellation", async () => {
+  const refusing = harness(neverCalled, { changeTools: (tools) => ({ ...tools, execute: async () => { throw new Error("The tool refused."); } }) });
+  const refused = await refusing.runtime.local({ message: "inspect 6ZZO" });
+  assert.equal(refused.transcript.turns[0].results[0].ok, false);
+  assert.match(refused.transcript.turns[0].results[0].refusal, /The tool refused/);
+
+  const { runtime } = harness(neverCalled);
+  for (const message of ["", "   ", "x".repeat(8001), undefined, 7]) await assert.rejects(runtime.local({ message }), /nonempty question/, String(message).slice(0, 20));
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(runtime.local({ message: "inspect 6ZZO", signal: controller.signal }), /cancelled/i);
+
+  const stale = harness(neverCalled, { changeTools: (tools) => { const { plan, ...rest } = tools; return rest; } });
+  await assert.rejects(stale.runtime.local({ message: "inspect 6ZZO" }), /cannot route questions/);
 });
 
 test("the model drives the real local loader, sees its withheld evidence, and retains follow-up context", async () => {

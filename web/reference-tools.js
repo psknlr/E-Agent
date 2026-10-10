@@ -135,6 +135,52 @@
     return Math.abs(actual - number) <= Math.max(1e-9 * Math.max(Math.abs(actual), Math.abs(number)), 10 ** -(decimals + 6));
   }
 
+  // ---- routing a question to the stored tools without a model ---------------
+  // This is a keyword lookup, not language understanding: it matches ids and
+  // words in the question to the tools that can answer them, and it says why
+  // each tool ran. It never invents an argument; every id it offers comes from
+  // the exported tool data itself.
+  const MAX_LOCAL_CALLS = 8;
+  const ARITHMETIC_TOKEN = /(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|\*\*|[()+\-*\/%^,]|(?:abs|sqrt|log10|log|exp|floor|ceil|round|sin|cos|tan|min|max|pow)(?=\s*\()|pi(?![A-Za-z0-9_])/y;
+  const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const unique = list => [...new Set(list)];
+
+  // Maximal runs of arithmetic tokens. A number or name glued to letters
+  // ("6ZZO", "2a", "api") is part of a word, not an operand.
+  function arithmeticRuns(text) {
+    const runs = [];
+    let current = '', index = 0;
+    const flush = () => { const run = current.replace(/^[\s,]+|[\s,]+$/g, ''); if (run) runs.push(run); current = ''; };
+    while (index < text.length) {
+      if (/\s/.test(text[index])) { current += text[index++]; continue; }
+      ARITHMETIC_TOKEN.lastIndex = index;
+      const match = ARITHMETIC_TOKEN.exec(text);
+      const end = match ? index + match[0].length : index;
+      const word = match && /^[A-Za-z]/.test(match[0]), number = match && /^[\d.]/.test(match[0]);
+      const glued = match && ((word && index > 0 && /[A-Za-z0-9_]/.test(text[index - 1]))
+        || (number && ((index > 0 && /[A-Za-z_]/.test(text[index - 1])) || /[A-Za-z_]/.test(text[end] || ''))));
+      if (match && !glued) { current += match[0]; index = end; }
+      else { flush(); index = match ? end : index + 1; }
+    }
+    flush();
+    return runs;
+  }
+
+  function arithmeticExpression(text) {
+    const keyword = /\b(?:calculat\w*|comput\w*|evaluat\w*|calc|what\s+is|how\s+much|result\s+of)\b|=/i.test(text);
+    const whole = text.trim().replace(/[\s?=.!]+$/g, '');
+    let best = '';
+    for (const run of arithmeticRuns(text)) {
+      if (!/[-+*\/%^(]/.test(run.replace(/^[+-]\s*/, '')) || !/\d|pi/.test(run)) continue;
+      if (/^\d{4}-\d{1,2}-\d{1,2}$|^\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}$/.test(run)) continue;
+      // A bare "2024-10-10" is a date, not a sum, unless the user asked to calculate.
+      if (!(keyword || /[*\/%^(]/.test(run) || whole === run)) continue;
+      try { arithmetic(run); } catch (_) { continue; }
+      if (run.length > best.length) best = run;
+    }
+    return best;
+  }
+
   function parseCitations(text) {
     const citations = [], problems = [];
     for (const match of text.matchAll(/\[cite(?:\s+([^\]]*))?\]/gi)) {
@@ -286,9 +332,81 @@
         + `${report.uncited_quantities.length} uncited, ${report.broken_citations.length} broken citation(s)`;
       return report;
     }
+
+    // The ids the exported tools can answer for, read from the exported
+    // argument keys so a router can only ever offer what execute() can serve.
+    function argumentValues(tool, field) {
+      const values = [];
+      for (const key of own(data.results, tool) ? Object.keys(data.results[tool]) : []) {
+        try { const value = JSON.parse(key)[field]; if (typeof value === 'string' && value) values.push(value); } catch (_) { /* Not an argument key. */ }
+      }
+      return unique(values);
+    }
+    const ids = () => ({pdb_ids: argumentValues('structure_entry', 'pdb_id'), label_ids: argumentValues('kinetic_record', 'label_id'),
+      enzyme_ids: argumentValues('activity_endpoint', 'enzyme_id'), substrate_ids: argumentValues('activity_endpoint', 'substrate_id'),
+      tiers: argumentValues('list_kinetic_records', 'tier')});
+
+    function plan(text) {
+      const calls = [], notes = [];
+      if (typeof text !== 'string' || !text.trim()) return {calls, notes: ['Enter a question or an id.']};
+      const lower = text.toLowerCase(), known = ids();
+      const mentions = id => new RegExp('(?<![A-Za-z0-9_-])' + escapeRegExp(id.toLowerCase()) + '(?![A-Za-z0-9_-])').test(lower);
+      const add = (name, args, why) => {
+        if (calls.some(call => call.interface === name && canonical(call.arguments) === canonical(args))) return;
+        if (calls.length >= MAX_LOCAL_CALLS) { if (!notes.length) notes.push(`Only the first ${MAX_LOCAL_CALLS} lookups were run.`); return; }
+        calls.push({interface: name, arguments: args, rationale: why});
+      };
+
+      const expression = arithmeticExpression(text);
+      if (expression) add('calculate', {expression}, `The message contains the arithmetic expression “${expression}”.`);
+
+      const pdbIds = unique((text.match(/(?<![A-Za-z0-9_])[0-9][A-Za-z0-9]{3}(?![A-Za-z0-9_])/g) || []).map(id => id.toUpperCase())).filter(id => known.pdb_ids.includes(id));
+      if (/\b(?:structures?|pdb|crystal)\b/.test(lower) && (/\b(?:list|show|enumerate|available|which|all|audited)\b/.test(lower) || !pdbIds.length)) {
+        add('list_structure_entries', {}, 'The message asks about the audited structures.');
+      }
+      for (const id of pdbIds) add('structure_entry', {pdb_id: id}, `“${id}” is an audited structure id named in the message.`);
+
+      const labels = known.label_ids.filter(mentions);
+      for (const id of labels) add('kinetic_record', {label_id: id}, `“${id}” is a kinetic record id named in the message.`);
+      if (!labels.length && /\b(?:kinetics?|kcat|km|turnover|michaelis)\b/.test(lower)) {
+        const tier = known.tiers.find(name => new RegExp('\\b' + escapeRegExp(name) + '\\b').test(lower)) || '';
+        add('list_kinetic_records', {tier}, tier ? `The message asks about the ${tier}-tier kinetic records.` : 'The message asks about the kinetic records.');
+      }
+
+      const enzymes = known.enzyme_ids.filter(mentions), substrates = known.substrate_ids.filter(mentions);
+      const activity = /\b(?:activity|activities|orthologs?|enantio\w*|ee|conversion|censor\w*|detection limit)\b/.test(lower);
+      // An independence question is answered by its own tool, not by the generic activity summary too.
+      const independence = /\bindependen\w*/.test(lower);
+      if (enzymes.length) {
+        for (const enzyme of enzymes.slice(0, 2)) {
+          for (const substrate of substrates.length ? substrates : known.substrate_ids) {
+            add('activity_endpoint', {enzyme_id: enzyme, substrate_id: substrate},
+              `“${enzyme}” is an ortholog id and ${substrates.length ? `“${substrate}” a substrate id` : 'no substrate was named, so every substrate is shown'}.`);
+          }
+        }
+      } else if (activity && !independence) {
+        if (/\b(?:constructs?|list|which)\b/.test(lower)) add('list_activity_constructs', {}, 'The message asks which constructs have activity data.');
+        else add('activity_summary', {}, 'The message asks about the ortholog activity data.');
+      }
+      if (independence) {
+        if (activity || enzymes.length) add('activity_independence_groups', {}, 'The message asks about independence of the soluble orthologs.');
+        else add('reference_summary', {}, 'The message asks about independence, which the reference summary reports.');
+      }
+      if (/\b(?:audit|eligib\w*|calibrat\w*|verdict)\b/.test(lower)) add('audit_verdict', {}, 'The message asks for the audit or calibration verdict.');
+      if (/\b(?:summary|overview|reference set|how many|counts?)\b/.test(lower)) add('reference_summary', {}, 'The message asks for an overview of the reference set.');
+      if (/\b(?:source verification|verif(?:y|ied|ication)|printed table)\b/.test(lower)) add('source_verification', {}, 'The message asks whether the numbers match their sources.');
+
+      if (!calls.length) {
+        const enzyme = known.enzyme_ids.includes('Ssal-KRED') ? 'Ssal-KRED' : known.enzyme_ids[0];
+        notes.push('I could not match this to a stored tool. This looks words and ids up directly; it does not interpret free text the way a model does. Try a structure id such as '
+          + `${known.pdb_ids[0] || '6ZZO'}, “list the structures”, “${enzyme} activity on ${known.substrate_ids[0] || '2a'}”, “kinetic records”, “audit verdict”, “summary”, or an expression such as (2.5 + 3.5) * 4.`);
+      }
+      return {calls, notes};
+    }
+
     return {systemPrompt: data.system_prompt, bundleDigest: data.bundle_digest,
       names: schemaList.map(schema => schema.name), toolNames: () => schemaList.map(schema => schema.name),
-      schemas: () => clone(schemaList), execute, inspect, guard: inspect};
+      schemas: () => clone(schemaList), execute, inspect, guard: inspect, ids, plan};
   }
 
   const api = {create, systemPrompt: ''};

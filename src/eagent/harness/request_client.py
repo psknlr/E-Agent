@@ -21,9 +21,12 @@ import urllib.request
 from .llm import LLMClient, LLMError
 
 PROVIDER_PROTOCOLS = {
-    "minimax": "openai_chat", "openai": "openai_chat",
+    "minimax": "openai_chat", "minimax_cn": "openai_chat", "openai": "openai_chat",
     "anthropic": "anthropic_messages", "custom": None,
 }
+#: MiniMax's global and China platforms are one API on two hosts, so they share
+#: every request and reply quirk below.
+MINIMAX_PROVIDERS = frozenset({"minimax", "minimax_cn"})
 PROTOCOLS = {"openai_chat", "anthropic_messages"}
 MAX_RESPONSE_BYTES = 2_097_152
 
@@ -108,7 +111,7 @@ class RequestModelConfig:
         values = {name: payload[name].strip() for name in fields}
         provider, protocol = values["provider"], values["protocol"]
         if provider not in PROVIDER_PROTOCOLS:
-            raise ValueError("provider must be minimax, openai, anthropic or custom.")
+            raise ValueError("provider must be minimax, minimax_cn, openai, anthropic or custom.")
         if protocol not in PROTOCOLS:
             raise ValueError("protocol must be openai_chat or anthropic_messages.")
         expected = PROVIDER_PROTOCOLS[provider]
@@ -232,11 +235,11 @@ class RequestModelClient(LLMClient):
             body["messages"] = ([{"role": "system", "content": system}] if system else []) + body["messages"]
             headers["Authorization"] = "Bearer " + config.api_key
             # New GPT reasoning models reject temperature and seed; omit both.
-            if config.provider in {"openai", "minimax"}:
+            if config.provider == "openai" or config.provider in MINIMAX_PROVIDERS:
                 body["max_completion_tokens"] = self.max_tokens
             else:
                 body["max_tokens"] = self.max_tokens
-            if config.provider == "minimax":
+            if config.provider in MINIMAX_PROVIDERS:
                 body["reasoning_split"] = True
         request = urllib.request.Request(config.api_url, data=json.dumps(body).encode("utf-8"),
                                          method="POST", headers=headers)
@@ -289,7 +292,7 @@ class RequestModelClient(LLMClient):
             if isinstance(text, list):
                 text = "".join(part["text"] for part in text if isinstance(part, dict)
                                and isinstance(part.get("text"), str))
-            if config.provider == "minimax" and isinstance(text, str):
+            if config.provider in MINIMAX_PROVIDERS and isinstance(text, str):
                 text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
                 if "<think>" in text:
                     raise LLMError("The MiniMax reply holds no final message content.")

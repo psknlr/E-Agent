@@ -34,7 +34,7 @@ WEB = ROOT / "web"
 #: Local assets the page pulls in. Each must survive the copy, or the export is
 #: broken in a way a host would only reveal at runtime.
 REQUIRED = ("index.html", "styles.css", "app.js", "browser-agent.js",
-            "reference-tools.js", "reference-data.json", "config.json")
+            "endpoint.js", "reference-tools.js", "reference-data.json", "config.json")
 
 _HOSTNAME = re.compile(
     r"^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)"
@@ -84,7 +84,7 @@ def check_integrity(out: Path) -> None:
             "reference-data.json has an unexpected shape; rebuild it with "
             "scripts/build_browser_bundle.py before exporting")
     index = (out / "index.html").read_text(encoding="utf-8")
-    for asset in ("styles.css", "app.js", "browser-agent.js", "reference-tools.js"):
+    for asset in ("styles.css", "app.js", "browser-agent.js", "endpoint.js", "reference-tools.js"):
         if asset not in index:
             raise SystemExit(f"index.html no longer references {asset}; the page would not load")
 

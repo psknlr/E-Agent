@@ -34,9 +34,11 @@ Content-Type during implementation. The POST returned HTTP 401 with the CORS
 headers intact; these are transport checks, not authenticated model completions. The app also
 implements GPT and Claude request formats, including Claude's browser-access
 header. Endpoint, account and network policies can still reject direct access.
-The page reports network/CORS failures and never uses an opaque `no-cors`
-request or a public proxy. Select an API that allows browser access, or use the
-optional backend mode below. Official
+The page reports network/CORS failures and never sends a question through a
+`no-cors` request or a public proxy. (The one `no-cors` request in the page is
+the bare, keyless reachability check inside **Test connection**, described
+below; its reply is never read.) Select an API that allows browser access, or
+use the optional backend mode below. Official
 [OpenAI browser support documentation](https://developers.openai.com/api/reference/typescript)
 and [Anthropic SDK documentation](https://platform.claude.com/docs/en/cli-sdks-libraries/typescript)
 describe their browser clients.
@@ -48,6 +50,73 @@ Arithmetic is performed by a bounded expression parser, not by executing model
 code. Model numbers are checked against tool citations. This mode supports
 reference queries and arithmetic; structure prediction, docking, pipeline
 execution and experimental approvals remain in the CLI.
+
+## When the page says it could not reach your API
+
+A browser reports a CORS block, a wrong path that answers without CORS headers,
+a redirect and a dead host with the same bare network error, so the page cannot
+tell them apart from the failure alone. **Test connection** (in Model settings,
+Browser + API mode) tells them apart by what the page can observe:
+
+1. It sends one request shaped like a real question (same method, headers and
+   content type, so the browser runs the same CORS preflight) with a
+   **placeholder key, `eagent-connection-test`, never yours**, and an empty body.
+2. If the API answers at all, whatever the status, the network and CORS are fine:
+   a 401 or 403 is the expected rejection of the placeholder, a 404 or 405 means
+   the path is not a chat endpoint, a 429 or 5xx means the provider has a
+   problem.
+3. If the browser withholds the reply, it sends one bare `no-cors` GET to the
+   API host, with no key and no headers, and reads nothing. If that succeeds the
+   host is reachable and the reply was blocked, which means CORS, a path that
+   errors without CORS headers, or a redirect; the page says which are possible
+   rather than pretending to know. If it fails, the host cannot be reached from
+   this browser (DNS, firewall or VPN, a blocker, or a regional restriction).
+
+The result is about the URL and API format only, so typing a key does not clear
+it, and it is hidden in Python backend mode, where the server rather than the
+browser calls the provider.
+
+**Base URLs are completed.** A URL that ends in a bare version segment, such as
+`https://api.minimax.cn/v1`, is a provider's base URL rather than an endpoint:
+posting to it returns a 404 that carries no CORS headers, which a browser reports
+exactly like an unreachable API. The page completes such a URL to
+`/chat/completions` (OpenAI format) or `/messages` (Anthropic format) and says
+so under the field (*Requests will be sent to …*). A URL that does not end in a
+version segment is used exactly as typed, and saved or exported templates keep
+the completed URL.
+
+## Run in browser: compute without a model
+
+**Run in browser**, beside Send, answers from the stored reference tools
+**without any model, API key or network request** (after the evidence bundle has
+loaded), so it works when the API cannot be reached. After a failed model
+request the failure notice offers the same action for the same question.
+
+It is a lookup, not a language model. It matches ids and words in the question to
+the same read-only tools a model is offered, runs them in this browser, and shows
+each tool's reason for running and its stored record exactly as returned, with
+its citation, withheld values and limits; nothing is interpreted or summarized.
+It understands:
+
+| Ask for | Example | Tool |
+| --- | --- | --- |
+| an audited structure | `inspect 6ZZO` | `structure_entry` |
+| the structure list | `list the audited structures` | `list_structure_entries` |
+| a kinetic record or tier | `kinetic records in the core tier` | `kinetic_record`, `list_kinetic_records` |
+| ortholog activity | `Ssal-KRED activity on 2a` | `activity_endpoint`, `activity_summary`, `list_activity_constructs` |
+| independence of the sets | `how independent are the orthologs?` | `activity_independence_groups`, `reference_summary` |
+| the verdicts | `audit verdict`, `overview`, `are the numbers verified?` | `audit_verdict`, `reference_summary`, `source_verification` |
+| arithmetic | `calculate (2.5 + 3.5) * 4` | `calculate` |
+
+When it cannot place a question it says so and shows examples with real ids,
+rather than guessing a tool. A run makes at most 8 lookups and says when it
+clipped. A local run is **not a model completion**: it never changes the chat
+status to *Chat ready* and is not added to the history a model later sees.
+
+What this is not: these tools are small lookups and arithmetic that run on the
+CPU. Structure prediction, docking, sequence search and inverse folding are not
+in the browser; they remain the CLI's adapter seams, which fail loudly when the
+external program is absent.
 
 ## Optional: connect a Python backend
 
@@ -75,10 +144,18 @@ The built-in endpoint presets are:
 
 | Provider | API URL | API format |
 | --- | --- | --- |
-| MiniMax | `https://api.minimax.io/v1/chat/completions` | OpenAI Chat Completions |
+| MiniMax · Global | `https://api.minimax.io/v1/chat/completions` | OpenAI Chat Completions |
+| MiniMax · China | `https://api.minimax.cn/v1` (completed to `/chat/completions`), model `MiniMax-M3` | OpenAI Chat Completions |
 | OpenAI / GPT | `https://api.openai.com/v1/chat/completions` | OpenAI Chat Completions |
 | Anthropic / Claude | `https://api.anthropic.com/v1/messages` | Anthropic Messages |
 | Custom endpoint | Your full endpoint URL | Either supported format |
+
+The China preset's host, `api.minimax.cn`, has not been called from the
+environment this project was written in (its network policy denied the host), so
+its CORS behaviour and model availability are unverified here; **Test
+connection** reports what your own browser can reach. Both MiniMax presets send
+the same request (`max_completion_tokens`, `reasoning_split`, and `<think>`
+removal) because they are one API on two hosts.
 
 Use a model name available to your account and endpoint. See the official
 [MiniMax](https://platform.minimax.io/docs/api-reference/text-chat-openai),
@@ -136,6 +213,11 @@ origin defaults to `https://psknlr.github.io`; override
 `EAGENT_ALLOWED_ORIGINS` with a comma-separated list when hosting a different
 frontend. Add only origins you operate.
 
+To use the MiniMax China platform as the server default, set
+`EAGENT_MINIMAX_BASE_URL=https://api.minimax.cn/v1` and use the API key your
+account has for that host. A request-supplied configuration can name the
+provider `minimax_cn` instead.
+
 Alternatively, select **Server default** to use credentials configured on the
 backend. Set `EAGENT_PROVIDER`, `EAGENT_MODEL`, and the matching environment
 variable (`MINIMAX_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`); provider
@@ -166,6 +248,9 @@ mode needs no backend; provider CORS still applies from the new origin.
 - **Model request failed:** the API or backend responded, but the model request failed;
   check Model settings and retry.
 - **Chat ready:** the active configuration has completed a successful model request.
+
+**Run in browser** and **Test connection** never change this status: a local
+lookup is not a model completion, and a connection test never carries your key.
 
 For Python backend mode, `GET /api/health` reports configuration, actual registered tools and
 `runtime_ready` and `completion_verified`. The default completion flag concerns

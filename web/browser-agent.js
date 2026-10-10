@@ -9,7 +9,10 @@
   const MAX_REQUEST_BYTES = 262144;
   const encoder = new TextEncoder();
   const normalStop = "the model answered without asking for another tool";
-  const protocols = { minimax: "openai_chat", openai: "openai_chat", anthropic: "anthropic_messages", custom: null };
+  const protocols = { minimax: "openai_chat", minimax_cn: "openai_chat", openai: "openai_chat", anthropic: "anthropic_messages", custom: null };
+  // MiniMax's global and China platforms are one API on two hosts, so they
+  // share every request and reply quirk below.
+  const isMiniMax = (provider) => provider === "minimax" || provider === "minimax_cn";
   let referenceBundle = null;
 
   const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -53,16 +56,30 @@
     if (!Object.hasOwn(protocols, config.provider) || !["openai_chat", "anthropic_messages"].includes(config.protocol) || (protocols[config.provider] && protocols[config.provider] !== config.protocol)) throw new Error("The model provider and API format do not match.");
     if (config.api_key.length > 8192 || /[^\x20-\x7e]/.test(config.api_key)) throw new Error("Enter a bounded printable API key without line breaks.");
     if (config.model.length > 256 || /[\x00-\x1f\x7f]/.test(config.model)) throw new Error("Enter a model name of up to 256 characters without control characters.");
-    if (config.api_url.length > 2048 || /[\s\\\x00-\x1f]/.test(config.api_url)) throw new Error("Enter a complete API URL without whitespace or backslashes.");
-    let url;
-    try { url = new URL(config.api_url); } catch (_) { throw new Error("Enter a complete model API URL with its request path."); }
-    const local = ["localhost", "[::1]"].includes(url.hostname) || /^127(?:\.\d{1,3}){3}$/.test(url.hostname);
-    if (url.username || url.password || url.search || url.hash || url.pathname === "/" || (url.protocol !== "https:" && !(url.protocol === "http:" && local))) throw new Error("Use a full HTTPS API endpoint without URL credentials, query parameters or fragments. HTTP is allowed only on loopback.");
+    const url = checkedUrl(config.api_url);
     let decoded;
     try { decoded = decodeURIComponent(config.api_url); } catch (_) { throw new Error("The API URL contains invalid percent encoding."); }
     if (redactString(config.api_url, config.api_key) !== config.api_url || decoded.includes(config.api_key)) throw new Error("Put the API key in its password field, never in the API URL.");
-    config.api_url = url.href;
+    config.api_url = resolveEndpoint(url.href, config.protocol);
     return config;
+  }
+
+  // Shape checks that need no credential, shared by chat and the connection test.
+  function checkedUrl(value) {
+    if (typeof value !== "string" || value.length > 2048 || /[\s\\\x00-\x1f]/.test(value)) throw new Error("Enter a complete API URL without whitespace or backslashes.");
+    let url;
+    try { url = new URL(value); } catch (_) { throw new Error("Enter a complete model API URL with its request path."); }
+    const local = ["localhost", "[::1]"].includes(url.hostname) || /^127(?:\.\d{1,3}){3}$/.test(url.hostname);
+    if (url.username || url.password || url.search || url.hash || url.pathname === "/" || (url.protocol !== "https:" && !(url.protocol === "http:" && local))) throw new Error("Use a full HTTPS API endpoint without URL credentials, query parameters or fragments. HTTP is allowed only on loopback.");
+    return url;
+  }
+
+  // A provider's base URL (https://host/v1) is not an endpoint: POSTing to it
+  // gets a 404 that carries no CORS headers, which a browser reports exactly
+  // like an unreachable API. Complete it to the path it stands for.
+  function resolveEndpoint(href, protocol) {
+    if (!root.EAgentEndpoint || typeof root.EAgentEndpoint.resolve !== "function") throw new Error("The browser endpoint helper did not load. Reload the page.");
+    return root.EAgentEndpoint.resolve(href, protocol).url;
   }
 
   function chatInput(message, history, config) {
@@ -173,8 +190,8 @@
       // max_completion_tokens (and asks for a separate reasoning channel).
       // Many OpenAI-compatible gateways reject max_completion_tokens, so the
       // GPT and custom presets must send the widely accepted max_tokens.
-      body[config.provider === "minimax" ? "max_completion_tokens" : "max_tokens"] = 8192;
-      if (config.provider === "minimax") body.reasoning_split = true;
+      body[isMiniMax(config.provider) ? "max_completion_tokens" : "max_tokens"] = 8192;
+      if (isMiniMax(config.provider)) body.reasoning_split = true;
     }
     const serialized = JSON.stringify(body);
     if (bytes(serialized) > MAX_REQUEST_BYTES) throw new Error("The accumulated agent context exceeded the provider request size limit. Ask a narrower question.");
@@ -198,7 +215,7 @@
       if (payload.choices[0].finish_reason === "length") throw new Error("The provider reply reached its output token limit.");
       content = payload.choices[0].message?.content;
       if (Array.isArray(content)) content = content.filter((part) => object(part) && typeof part.text === "string").map((part) => part.text).join("");
-      if (config.provider === "minimax" && typeof content === "string") {
+      if (isMiniMax(config.provider) && typeof content === "string") {
         content = content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
         if (content.includes("<think>")) throw new Error("The MiniMax reply holds no final message content.");
       }
@@ -239,6 +256,107 @@
       return { ...result, truncated: true, value: truncated };
     }
     return result;
+  }
+
+  // ---- connection test ---------------------------------------------------
+  // The browser reports a CORS block, a wrong path that answers without CORS
+  // headers, a redirect and an unreachable host with the same bare TypeError.
+  // This tells them apart by what the page can actually observe. It sends a
+  // placeholder in place of a credential, so it can never carry the user's key.
+  const PLACEHOLDER_KEY = "eagent-connection-test";
+  const TEST_TIMEOUT_MS = 15000;
+
+  async function attempt(url, options, { signal, timeout = TEST_TIMEOUT_MS } = {}) {
+    checkSignal(signal);
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
+    const abort = () => controller.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal, credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
+      let text = "";
+      if (options.mode !== "no-cors") {
+        try { text = await boundedText(response, 4096, controller.signal); } catch (_) { /* The status alone decides the verdict. */ }
+      }
+      return { reached: true, status: response.status, text };
+    } catch (error) {
+      checkSignal(signal);
+      return { reached: false, timedOut };
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+    }
+  }
+
+  function providerMessage(text) {
+    if (!text) return "";
+    let parsed;
+    try { parsed = JSON.parse(text); } catch (_) { return ""; }
+    const found = [parsed?.error?.message, parsed?.message, parsed?.base_resp?.status_msg, parsed?.msg, typeof parsed?.error === "string" ? parsed.error : ""].find((item) => typeof item === "string" && item.trim());
+    return found ? found.trim().slice(0, 200) : "";
+  }
+
+  async function testConnection({ api_url, protocol, signal } = {}) {
+    checkSignal(signal);
+    if (!["openai_chat", "anthropic_messages"].includes(protocol)) throw new Error("Choose a supported API format.");
+    const endpoint = resolveEndpoint(checkedUrl(api_url).href, protocol);
+    const host = new URL(endpoint).host;
+    const origin = root.location?.origin || "this page’s origin";
+    const headers = { "Content-Type": "application/json", Accept: "application/json" };
+    if (protocol === "anthropic_messages") Object.assign(headers, { "x-api-key": PLACEHOLDER_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" });
+    else headers.Authorization = "Bearer " + PLACEHOLDER_KEY;
+    // The same method, headers and content type as a real question, so the
+    // browser runs the same CORS preflight a real question would.
+    const first = await attempt(endpoint, { method: "POST", headers, body: "{}", mode: "cors", redirect: "error" }, { signal });
+    const base = { endpoint, host };
+    if (first.reached) {
+      const status = first.status, reply = providerMessage(first.text);
+      const heard = reply ? " It said: “" + reply + "”" : "";
+      if (status === 404 || status === 405) return { ...base, verdict: "wrong_path", status, summary: "The host answered HTTP " + status + ", so this browser can reach it, but this path is not a chat endpoint.", advice: "Check the API URL. OpenAI-format endpoints usually end in /chat/completions and Anthropic’s in /messages." + heard };
+      if (status === 429 || status >= 500) return { ...base, verdict: "provider_error", status, summary: "The API is reachable but answered HTTP " + status + ".", advice: "The provider reported a rate limit or a fault. Retry shortly." + heard };
+      return { ...base, verdict: "reachable", status, summary: "The API answered this browser with HTTP " + status + ". Network and CORS are fine.", advice: "The placeholder key was not expected to work. Your real key and model name are checked when you send your first question." + heard };
+    }
+    if (first.timedOut) return { ...base, verdict: "timeout", summary: "No answer from " + host + " within " + TEST_TIMEOUT_MS / 1000 + " seconds.", advice: "The network may be blocking or throttling it. Try again, or open https://" + host + " in a new tab." };
+    // The browser withheld the reply. Ask whether the host is there at all; a
+    // no-cors request carries no key and exposes nothing, it only succeeds if
+    // the host answered.
+    const reachable = await attempt(new URL(endpoint).origin + "/", { method: "GET", mode: "no-cors", redirect: "follow" }, { signal });
+    if (reachable.reached) return { ...base, verdict: "blocked", summary: "The host is reachable, but the browser blocked its reply.", advice: "Either the provider does not allow browser requests from " + origin + " (CORS), or this path answers with an error that has no CORS headers, or it redirects. Check the URL first. If it is right, use an endpoint that allows browser access, or Python backend mode. Run in browser still works without any API." };
+    return { ...base, verdict: "unreachable", summary: "This browser cannot reach " + host + ".", advice: "Usual causes: a DNS or hostname typo, a firewall or VPN, a privacy or ad blocker, or a regional restriction. Open https://" + host + " in a new tab; if it does not load there either, the network is blocking it. Run in browser still works without any API." };
+  }
+
+  // ---- run the stored tools without a model -------------------------------
+  // The browser computes on its own: the question is matched to the same
+  // read-only tools a model would be offered, and each runs here. No model, no
+  // key and no network request is involved, so this works when the API cannot
+  // be reached. It is not a model completion and never counts as one.
+  const LOCAL_SUMMARY = "No model or API was used and nothing was interpreted. Each record below is exactly as stored, with its citation, any withheld values and its limits.";
+  const LOCAL_CAVEAT = "A local run uses the browser port of E-Agent’s read-only reference tools and the published evidence bundle. No model was called, no experiment was run and no reference data was changed.";
+
+  async function local({ message, signal } = {}) {
+    checkSignal(signal);
+    if (typeof message !== "string" || !message.trim() || message.length > 8000) throw new Error("Enter a nonempty question of up to 8000 characters.");
+    await prepare({ signal });
+    const tools = referenceMetadata(referenceBundle).tools;
+    if (typeof tools.plan !== "function") throw new Error("The browser reference tools cannot route questions. Reload the page.");
+    const question = message.trim();
+    const planned = tools.plan(question);
+    const entry = { turn: 0, reasoning: planned.notes.join("\n"), requested: planned.calls.map((call) => call.interface), results: [] };
+    const transcript = { question, provider: "none", runs_remotely: false, execution: "browser-local", limits: { ...LIMITS }, tools_offered: tools.toolNames(), turns: [entry], tool_calls_made: 0, answer: "", caveat: LOCAL_CAVEAT };
+    for (const call of planned.calls) {
+      checkSignal(signal);
+      let result;
+      try { result = boundedResult(await withSignal(tools.execute(call), signal), call); }
+      catch (error) { result = { tool: call.interface, arguments: call.arguments, rationale: call.rationale, ok: false, refusal: error.message || String(error), truncated: false, elapsed_ms: 0 }; }
+      checkSignal(signal);
+      entry.results.push(result);
+      transcript.tool_calls_made++;
+    }
+    const ran = transcript.tool_calls_made;
+    const answer = ran ? ["Ran " + ran + " stored-reference tool" + (ran === 1 ? "" : "s") + " in this browser. " + LOCAL_SUMMARY, ...planned.notes].join("\n\n") : planned.notes.join("\n");
+    transcript.answer = answer;
+    return { answer, notes: planned.notes, transcript, completion_verified: false, execution: "browser-local" };
   }
 
   async function chat({ message, history = [], model_config, signal, onProgress } = {}) {
@@ -327,5 +445,5 @@
     }
   }
 
-  root.EAgentBrowserRuntime = Object.freeze({ prepare, chat });
+  root.EAgentBrowserRuntime = Object.freeze({ prepare, chat, testConnection, local });
 })();

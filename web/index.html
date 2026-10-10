@@ -9,10 +9,11 @@
   <meta name="description" content="Chat with E-Agent using your own model API. Calculations and curated enzyme evidence run in your browser, with every tool call traceable and every missing measurement kept missing.">
   <title>E-Agent · Enzyme research instrument</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b1110'/%3E%3Cpath d='M20 44V20l12 7 12-7v24' fill='none' stroke='%2358d6a0' stroke-width='4.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='27' r='3.4' fill='%23e7b45a'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css?v=20261010-instrument1">
-  <script src="./reference-tools.js?v=20261010-instrument1" defer></script>
-  <script src="./browser-agent.js?v=20261010-instrument1" defer></script>
-  <script src="./app.js?v=20261010-instrument1" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=20261010-local1">
+  <script src="./endpoint.js?v=20261010-local1" defer></script>
+  <script src="./reference-tools.js?v=20261010-local1" defer></script>
+  <script src="./browser-agent.js?v=20261010-local1" defer></script>
+  <script src="./app.js?v=20261010-local1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#message">Skip to chat</a>
@@ -76,7 +77,8 @@
                 <label for="model-provider">Provider preset</label>
                 <div class="select-wrap">
                   <select id="model-provider" aria-describedby="provider-help">
-                    <option value="minimax" selected>MiniMax</option>
+                    <option value="minimax" selected>MiniMax · Global</option>
+                    <option value="minimax_cn">MiniMax · China</option>
                     <option value="openai">OpenAI / GPT</option>
                     <option value="anthropic">Anthropic / Claude</option>
                     <option value="custom">Custom endpoint</option>
@@ -99,12 +101,18 @@
                   <label for="api-url">API URL · full endpoint</label>
                   <input id="api-url" type="url" inputmode="url" placeholder="https://provider.example/v1/chat/completions" autocomplete="off" spellcheck="false" maxlength="2048" aria-describedby="api-url-help">
                   <p id="api-url-help" class="field-help">Use the full endpoint and selected API format. Browser mode requires the endpoint to allow cross-origin requests (CORS).</p>
+                  <p id="api-url-resolved" class="field-help resolved" hidden></p>
                 </div>
                 <div id="custom-protocol-field" class="field" hidden>
                   <label for="model-protocol">API format</label>
                   <div class="select-wrap">
                     <select id="model-protocol"><option value="openai_chat">OpenAI Chat Completions</option><option value="anthropic_messages">Anthropic Messages</option></select>
                   </div>
+                </div>
+                <div id="connection-test-box" class="field test-box">
+                  <button id="test-connection" class="ghost-button" type="button">Test connection</button>
+                  <p class="field-help">Sends one request with a placeholder key, never yours, to see whether this browser can reach the API.</p>
+                  <div id="connection-test" class="test-result" role="status" aria-live="polite" hidden></div>
                 </div>
               </div>
               <p id="server-model-help" class="field-help" hidden>Uses the provider, API key, model and URL configured on your backend.</p>
@@ -161,6 +169,7 @@
               <div class="welcome-kicker"><span class="tick"></span> THE ENZYME RESEARCH AGENT</div>
               <h1 id="welcome-title">From a reaction<br>to <em>evidence</em>.</h1>
               <p>Choose your API, bring your question, and let E-Agent run calculations and inspect enzyme evidence directly in this browser — with every tool call on the record.</p>
+              <p class="welcome-note">No API key yet, or the API unreachable? <strong>Run in browser</strong> looks a question up in the bundled evidence and runs the calculator right here. No model, no network.</p>
               <div class="principles">
                 <span><i aria-hidden="true"></i> Uncertainty stays visible</span>
                 <span><i aria-hidden="true"></i> Tool calls stay traceable</span>
@@ -221,6 +230,7 @@
           <div class="composer-bottom">
             <span id="composer-help">Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line</span>
             <div class="composer-actions">
+              <button id="run-local" class="ghost-button run-local" type="button" disabled title="Look the question up in the bundled evidence and run the calculator here. No model or API key needed.">Run in browser</button>
               <button id="cancel-request" class="cancel-button" type="button" hidden>Cancel</button>
               <button id="send-button" class="send-button" type="submit" disabled><span>Send question</span><svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M10 16V4m-5 5 5-5 5 5"/></svg></button>
             </div>

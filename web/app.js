@@ -16,19 +16,25 @@
     exportTemplate: byId("export-template"), importTemplate: byId("import-template"), templateFile: byId("template-file"),
     execution: byId("execution-mode"), executionHelp: byId("execution-help"), prepare: byId("prepare-browser"),
     keyHelp: byId("provider-key-help"), apiHelp: byId("api-url-help"), scopeHelp: byId("scope-help"), toolsTitle: byId("tools-title"),
-    progressLabel: byId("progress-label"),
+    progressLabel: byId("progress-label"), apiResolved: byId("api-url-resolved"),
+    testBox: byId("connection-test-box"), testButton: byId("test-connection"), testResult: byId("connection-test"),
+    runLocal: byId("run-local"),
   };
   const state = { execution: "browser", backend: "", token: "", health: null, history: [], verified: false, busy: false, connecting: false, controller: null, generation: 0 };
   const storageKey = "eagent.backend_url";
   const templatesKey = "eagent.model_templates.v1";
   const presets = {
     minimax: { protocol: "openai_chat", model: "MiniMax-M2.7", api_url: "https://api.minimax.io/v1/chat/completions" },
+    minimax_cn: { protocol: "openai_chat", model: "MiniMax-M3", api_url: "https://api.minimax.cn/v1" },
     openai: { protocol: "openai_chat", model: "", api_url: "https://api.openai.com/v1/chat/completions" },
     anthropic: { protocol: "anthropic_messages", model: "", api_url: "https://api.anthropic.com/v1/messages" },
     custom: { protocol: "openai_chat", model: "", api_url: "" },
     server_default: { protocol: "openai_chat", model: "", api_url: "" },
   };
   let templates = [];
+  let testController = null;
+  let localRunning = false;
+  const verdictKind = { reachable: "ok", wrong_path: "warn", provider_error: "warn", blocked: "bad", unreachable: "bad", timeout: "bad" };
   const localHost = (hostname) => ["localhost", "127.0.0.1", "[::1]"].includes(hostname.toLowerCase());
   const make = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -62,7 +68,15 @@
     return state.backend ? !localHost(new URL(state.backend).hostname) : true;
   }
 
-  function validateApiUrl(value) {
+  // A base URL such as https://api.minimax.cn/v1 is not an endpoint: posting to
+  // it returns a 404 that has no CORS headers, which the browser reports as an
+  // unreachable API. Complete it to the chat path it stands for.
+  function resolveEndpoint(href, protocol) {
+    if (!window.EAgentEndpoint || typeof window.EAgentEndpoint.resolve !== "function") throw new Error("The browser endpoint helper did not load. Refresh this page to load the latest E-Agent scripts.");
+    return window.EAgentEndpoint.resolve(href, protocol).url;
+  }
+
+  function validateApiUrl(value, protocol) {
     const input = value.trim();
     if (!input) throw new Error("Enter the full model API URL in Model settings.");
     if (input.length > 2048) throw new Error("The API URL is too long.");
@@ -71,7 +85,7 @@
     if (url.username || url.password || url.search || url.hash) throw new Error("API URLs cannot contain credentials, query parameters, or fragments.");
     if (url.protocol !== "https:" && !(url.protocol === "http:" && localHost(url.hostname))) throw new Error("Use HTTPS for a remote API. HTTP is allowed only on localhost.");
     if (url.pathname === "/") throw new Error("Include the full API request path, such as /v1/chat/completions.");
-    return url.href;
+    return resolveEndpoint(url.href, protocol);
   }
 
   function publicProfile() {
@@ -85,7 +99,7 @@
     }
     const model = ui.model.value.trim();
     if (!model || model.length > 200 || /[\x00-\x1f\x7f]/.test(model)) throw new Error("Enter your exact model name in Model settings (up to 200 characters).");
-    return { provider, protocol, model, api_url: validateApiUrl(ui.apiUrl.value) };
+    return { provider, protocol, model, api_url: validateApiUrl(ui.apiUrl.value, protocol) };
   }
 
   function modelConfig() {
@@ -125,6 +139,9 @@
     const configured = !issue;
     const hasToken = !requiresToken() || ui.token.value.trim().length > 0;
     ui.send.disabled = state.busy || state.connecting || !configured || !hasToken || !ui.message.value.trim();
+    const localReady = state.execution === "browser" && state.health?.runtime_ready === true;
+    ui.runLocal.hidden = state.execution !== "browser";
+    ui.runLocal.disabled = state.busy || state.connecting || localRunning || !localReady || !ui.message.value.trim();
     ui.cancel.hidden = !state.busy;
     ui.progress.hidden = !state.busy;
     ui.message.disabled = state.busy;
@@ -133,9 +150,10 @@
     ui.url.disabled = state.busy;
     ui.token.disabled = state.busy;
     ui.reset.disabled = state.busy;
+    ui.testButton.disabled = state.busy || state.connecting || testController !== null;
     for (const input of [ui.provider, ui.apiKey, ui.model, ui.apiUrl, ui.protocol, ui.savedTemplate, ui.templateName, ui.saveTemplate, ui.exportTemplate, ui.importTemplate]) input.disabled = state.busy || state.connecting;
     if (state.busy) ui.notice.textContent = "A model request is running. Its tool trace will appear with the response. You can cancel at any time.";
-    else if (!configured) ui.notice.textContent = issue;
+    else if (!configured) ui.notice.textContent = issue + (localReady ? " Run in browser needs no API key." : "");
     else if (!hasToken) ui.notice.textContent = "Enter your backend access token in Agent connection to send a question.";
     else if (!state.verified) ui.notice.textContent = "Model settings complete. The first successful response will verify chat readiness.";
     else ui.notice.textContent = state.execution === "browser" ? "Chat ready · The selected model API can call the tools running in this browser." : "Chat ready · Questions run through the connected backend and its registered Python tools.";
@@ -170,6 +188,7 @@
     ui.execution.value = state.execution;
     ui.settings.hidden = browserMode;
     ui.toggle.hidden = browserMode;
+    ui.testBox.hidden = !browserMode;
     ui.prepare.hidden = !browserMode || state.health?.runtime_ready === true;
     for (const option of ui.provider.options) if (option.value === "server_default") { option.disabled = browserMode; option.hidden = browserMode; }
     ui.executionHelp.textContent = browserMode ? "Computations run in this browser. Your model API decides which tools to use." : "Run the Python reference agent through your own connected E-Agent backend.";
@@ -215,6 +234,9 @@
     ++state.generation;
     state.controller?.abort();
     state.controller = null;
+    testController?.abort();
+    testController = null;
+    clearTestResult();
     state.busy = false;
     state.connecting = false;
     state.health = null;
@@ -249,8 +271,26 @@
     ui.model.placeholder = ui.provider.value === "anthropic" ? "Your Claude model name" : ui.provider.value === "openai" ? "Your GPT model name" : "Your exact model name";
   }
 
+  // Say so whenever the URL that will be called differs from the one typed.
+  function showResolvedEndpoint() {
+    let text = "";
+    try {
+      const raw = ui.apiUrl.value.trim();
+      if (raw && ui.provider.value !== "server_default") {
+        const protocol = ui.provider.value === "custom" ? ui.protocol.value : presets[ui.provider.value].protocol;
+        const resolved = validateApiUrl(raw, protocol);
+        if (resolved !== new URL(raw).href) text = "Requests will be sent to " + resolved;
+      }
+    } catch (_) { /* An invalid URL is reported where the settings are validated. */ }
+    ui.apiResolved.textContent = text;
+    ui.apiResolved.hidden = !text;
+  }
+
   function modelChanged(clearHistory) {
     state.verified = false;
+    showResolvedEndpoint();
+    // The verdict is about the URL and format, not the key, so typing a key keeps it.
+    if (clearHistory) { testController?.abort(); clearTestResult(); }
     if (clearHistory) {
       const draft = ui.message.value;
       clearConversation();
@@ -303,10 +343,10 @@
       if (value.model !== "" || value.api_url !== "") throw new Error("Server default templates must leave model and API URL empty.");
     } else {
       if (!value.model.trim() || value.model.length > 200 || /[\x00-\x1f\x7f]/.test(value.model)) throw new Error("The template needs a valid model name of up to 200 characters.");
-      validateApiUrl(value.api_url);
+      validateApiUrl(value.api_url, value.protocol);
     }
     // Copy only allowed public fields, even for files loaded from local storage.
-    return { schema: value.schema, version: 2, name: value.name.trim(), execution_mode: executionMode, provider: value.provider, protocol: value.protocol, model: value.model.trim(), api_url: value.provider === "server_default" ? "" : validateApiUrl(value.api_url) };
+    return { schema: value.schema, version: 2, name: value.name.trim(), execution_mode: executionMode, provider: value.provider, protocol: value.protocol, model: value.model.trim(), api_url: value.provider === "server_default" ? "" : validateApiUrl(value.api_url, value.protocol) };
   }
 
   function refreshTemplates(selected = "") {
@@ -318,6 +358,46 @@
       ui.savedTemplate.append(option);
     });
     ui.savedTemplate.value = selected;
+  }
+
+  function clearTestResult() {
+    ui.testResult.replaceChildren();
+    ui.testResult.hidden = true;
+  }
+
+  function showTestResult(kind, summary, advice) {
+    ui.testResult.className = "test-result " + kind;
+    ui.testResult.replaceChildren(make("strong", "", summary));
+    if (advice) ui.testResult.append(make("span", "", advice));
+    ui.testResult.hidden = false;
+  }
+
+  // Probes the endpoint from this browser with a placeholder key. In Python
+  // backend mode the server, not the browser, calls the provider, so a browser
+  // probe would say nothing true; the control is hidden there.
+  async function testConnection() {
+    if (state.execution !== "browser" || state.busy || state.connecting || testController) return;
+    let profile;
+    try { profile = publicProfile(); } catch (error) { showTestResult("bad", "Complete the settings first", error.message); return; }
+    if (typeof window.EAgentBrowserRuntime?.testConnection !== "function") { showTestResult("bad", "The connection test is not available", "Refresh this page to load the latest E-Agent scripts."); return; }
+    const controller = new AbortController();
+    const generation = state.generation;
+    testController = controller;
+    ui.testButton.textContent = "Testing…";
+    clearTestResult();
+    syncComposer();
+    try {
+      const result = await window.EAgentBrowserRuntime.testConnection({ api_url: profile.api_url, protocol: profile.protocol, signal: controller.signal });
+      if (controller.signal.aborted || generation !== state.generation) return;
+      showTestResult(verdictKind[result.verdict] || "warn", result.summary, result.advice);
+    } catch (error) {
+      if (controller.signal.aborted || generation !== state.generation) return;
+      showTestResult("bad", "The connection test could not run", error.message);
+    } finally {
+      if (testController === controller) testController = null;
+      ui.testButton.textContent = "Test connection";
+      syncComposer();
+    }
   }
 
   function templateFeedback(message, error = false) {
@@ -448,11 +528,11 @@
     });
   }
 
-  function appendMessage(role, content, error = false) {
+  function appendMessage(role, content, error = false, label = "") {
     ui.welcome.hidden = true;
     const article = make("article", "message " + role + (error ? " error" : ""));
     const heading = make("div", "message-heading");
-    heading.append(make("span", "message-avatar", role === "user" ? "Y" : "E·"), make("span", "", role === "user" ? "YOU" : error ? "REQUEST NOTICE" : "E-AGENT"));
+    heading.append(make("span", "message-avatar", role === "user" ? "Y" : "E·"), make("span", "", role === "user" ? "YOU" : error ? "REQUEST NOTICE" : label || "E-AGENT"));
     const time = make("time", "", new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     time.dateTime = new Date().toISOString();
     heading.append(time);
@@ -465,14 +545,17 @@
     try { return JSON.stringify(value, null, 2); } catch (_) { return "Transcript could not be serialized."; }
   }
 
-  function addDetail(container, title, value) {
+  function addDetail(container, title, value, open = false) {
     if (value === undefined || value === null || value === "") return;
     const details = make("details");
+    details.open = open;
     details.append(make("summary", "", title), make("pre", "", typeof value === "string" ? value : safeJson(value)));
     container.append(details);
   }
 
-  function addTrace(article, transcript, response) {
+  // `expanded` opens the trace and each returned record: for a local run the
+  // records are the answer, so they should not sit behind a click.
+  function addTrace(article, transcript, response, expanded = false) {
     if (!transcript || typeof transcript !== "object") {
       article.append(make("div", "run-notice", "The agent did not return a tool transcript. This response’s evidence trace is unavailable."));
       return;
@@ -494,11 +577,14 @@
     if (response.warnings) notices.push(typeof response.warnings === "string" ? response.warnings : safeJson(response.warnings));
     if (notices.length) article.append(make("div", "run-notice", notices.join("\n\n")));
     if (transcript.caveat) article.append(make("div", "run-notice neutral", transcript.caveat));
-    if (transcript.stopped_because) {
+    // "Run ended" adds nothing when it only repeats the provider error shown above.
+    const repeatsProviderError = turns.some((turn) => typeof turn.provider_error === "string" && turn.provider_error && String(transcript.stopped_because || "").endsWith(turn.provider_error));
+    if (transcript.stopped_because && !repeatsProviderError) {
       const normal = transcript.stopped_because === "the model answered without asking for another tool";
       article.append(make("div", "run-notice" + (normal ? " neutral" : ""), "Run ended: " + transcript.stopped_because));
     }
     const trace = make("details", "trace");
+    trace.open = expanded;
     const count = Number.isInteger(transcript.tool_calls_made) ? transcript.tool_calls_made : results.length;
     trace.append(make("summary", "", "View research trace · " + count + " tool call" + (count === 1 ? "" : "s") + (failed ? " · " + failed + " failed" : "")));
     const body = make("div", "trace-body");
@@ -515,7 +601,7 @@
         if (result.refusal) item.append(make("p", "field-error", typeof result.refusal === "string" ? result.refusal : safeJson(result.refusal)));
         if (result.truncated) item.append(make("p", "field-error", "The tool result was truncated. The visible output is incomplete."));
         addDetail(item, "Arguments", result.arguments);
-        addDetail(item, "Returned evidence", result.value);
+        addDetail(item, "Returned evidence", result.value, expanded);
         body.append(item);
       }
     }
@@ -627,7 +713,15 @@
     } catch (error) {
       if (generation !== state.generation) return;
       const article = appendMessage("assistant", error.message + "\n\nYour question was not added to the model’s conversation history. You can edit it and retry after resolving the issue.", true);
+      // A bare network error cannot say whether the host is down or CORS blocked the reply; the test can.
+      if (state.execution === "browser" && /could not reach|CORS/i.test(error.message)) article.append(make("div", "run-notice neutral", "Not sure which? Press Test connection in Model settings. It tells an unreachable host from a CORS block or a wrong URL."));
       if (error.data?.transcript) addTrace(article, error.data.transcript, error.data);
+      if (state.execution === "browser" && state.health?.runtime_ready === true && typeof window.EAgentBrowserRuntime?.local === "function") {
+        const action = make("button", "notice-action", "Run this question in the browser instead");
+        action.type = "button";
+        action.addEventListener("click", () => { action.disabled = true; return runLocal(message, { echo: false }); });
+        article.append(action);
+      }
       state.verified = false;
       if (state.execution === "browser") {
         status(error.message.startsWith("Request cancelled") ? "Request cancelled" : "Model request failed", error.message + " Browser tools remain loaded. Check Model settings and retry.", "error");
@@ -662,6 +756,36 @@
     }
   }
 
+  // Compute here, with no model and no key: the question is matched to the
+  // stored reference tools and each one runs in this browser. It is not a model
+  // completion, so it does not verify chat readiness, and it is not added to
+  // the history a model later sees.
+  async function runLocal(text, { echo = true } = {}) {
+    const explicit = typeof text === "string";
+    const message = (explicit ? text : ui.message.value).trim();
+    if (state.execution !== "browser" || state.busy || state.connecting || localRunning || !message) return;
+    if (state.health?.runtime_ready !== true || typeof window.EAgentBrowserRuntime?.local !== "function") return;
+    const generation = state.generation;
+    localRunning = true;
+    syncComposer();
+    if (echo) appendMessage("user", message);
+    if (!explicit) { ui.message.value = ""; resizeInput(); }
+    scrollToLatest();
+    try {
+      const data = await window.EAgentBrowserRuntime.local({ message });
+      if (generation !== state.generation) return;
+      const article = appendMessage("assistant", data.answer, false, "BROWSER TOOLS · NO MODEL");
+      if (data.transcript?.tool_calls_made) addTrace(article, data.transcript, data, true);
+    } catch (error) {
+      if (generation !== state.generation) return;
+      appendMessage("assistant", error.message, true);
+    } finally {
+      localRunning = false;
+      syncComposer();
+      if (generation === state.generation) scrollToLatest();
+    }
+  }
+
   function resizeInput() {
     ui.message.style.height = "auto";
     ui.message.style.height = Math.min(ui.message.scrollHeight, 150) + "px";
@@ -692,6 +816,8 @@
       templateFeedback("Template loaded. Enter your API key again.");
     }
   });
+  ui.testButton.addEventListener("click", testConnection);
+  ui.runLocal.addEventListener("click", () => runLocal());
   ui.saveTemplate.addEventListener("click", saveTemplate);
   ui.exportTemplate.addEventListener("click", exportTemplate);
   ui.importTemplate.addEventListener("click", () => ui.templateFile.click());

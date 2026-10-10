@@ -78,7 +78,7 @@ test("MiniMax, GPT, Claude and both custom API formats send the selected model, 
         assert.match(body.system, /Available tool interfaces/);
       } else {
         assert.equal(request.options.headers.Authorization, "Bearer " + key);
-        assert.equal(body[provider === "custom" ? "max_tokens" : "max_completion_tokens"], 8192);
+        assert.equal(body[provider === "minimax" ? "max_completion_tokens" : "max_tokens"], 8192);
         assert.equal(body.messages[0].role, "system");
         assert.equal(body.reasoning_split, provider === "minimax" ? true : undefined);
       }

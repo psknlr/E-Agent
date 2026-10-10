@@ -142,6 +142,17 @@ variable (`MINIMAX_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`); provider
 base URL overrides are described in [MODELS.md](MODELS.md). Request settings
 never replace these server defaults or borrow their keys.
 
+## Host it on your own domain
+
+The `web/` directory is a self-contained static site, so it can be served from
+any host and any domain, not only this project's GitHub Pages. To publish it at
+a custom domain such as `enzyme.impf.ai`, build a portable copy with
+`python scripts/export_site.py --out dist/site` (add `--cname <domain>` for
+GitHub/Cloudflare Pages, or `--backend-url <https url>` to pin a Python
+backend), upload the result, and add one DNS record. The exact per-host and DNS
+steps are in [`DEPLOY_ENZYME_IMPF.md`](DEPLOY_ENZYME_IMPF.md). Browser + API
+mode needs no backend; provider CORS still applies from the new origin.
+
 ## Status comes from the active runtime
 
 - **Browser tools loaded:** local tools have loaded; complete your model settings

@@ -291,6 +291,8 @@ docs/             the documents listed below
 | [`docs/DATA_LAYER.md`](docs/DATA_LAYER.md) | The six-layer data architecture, joins, identity ladder, lineage, snapshots. *(owned elsewhere)* |
 | [`docs/DATASOURCES.md`](docs/DATASOURCES.md) | The 49 registered sources and the specific caution attached to each. *(owned elsewhere)* |
 | [`docs/HOUSE_DATABASE.md`](docs/HOUSE_DATABASE.md) | The project's own per-substrate database and its four storage-layer refusals. *(owned elsewhere)* |
+| [`docs/WEB_CHAT.md`](docs/WEB_CHAT.md) | The browser chat and optional Python backend: run modes, provider presets, templates, and the status the runtime actually reports. |
+| [`docs/DEPLOY_ENZYME_IMPF.md`](docs/DEPLOY_ENZYME_IMPF.md) | Serve the chat from your own host and domain (e.g. `enzyme.impf.ai`): the portable export, per-host steps, DNS and the CORS note. |
 | [`examples/walkthrough.md`](examples/walkthrough.md) | The pilot task, end to end, with the real commands and their real output. |
 
 ## Status

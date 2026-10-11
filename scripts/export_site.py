@@ -7,6 +7,16 @@ copies it into a clean output folder you can hand to Netlify, Vercel,
 Cloudflare Pages, S3/CloudFront, nginx or GitHub Pages, and optionally pins a
 Python-backend URL and writes a ``CNAME`` for a custom domain.
 
+Two things beyond the plain files:
+
+* The compute engine (``web/engine/``, Python as WebAssembly) is checked against
+  its build manifest and copied with the site. Build it first with
+  ``scripts/build_engine.py``; ``--without-engine`` exports the site without it,
+  and the page then says the engine is not published and keeps working.
+* ``--redirect-to URL`` writes no site at all, only what a host needs to send
+  every visitor to ``URL`` -- for a domain that should simply lead to the GitHub
+  Pages site, which already carries the whole application.
+
 It does NOT rebuild the evidence bundle -- that is
 ``scripts/build_browser_bundle.py`` (run it, or its ``--check``, in CI). This
 exporter only moves verified static files and checks their integrity.
@@ -14,6 +24,7 @@ exporter only moves verified static files and checks their integrity.
     python scripts/export_site.py --out dist/enzyme-impf
     python scripts/export_site.py --cname enzyme.impf.ai
     python scripts/export_site.py --backend-url https://eagent-api.impf.ai
+    python scripts/export_site.py --redirect-to https://psknlr.github.io/E-Agent/ --out dist/enzyme-redirect
 
 Browser + API mode needs no backend; leave ``--backend-url`` unset for it.
 """
@@ -21,6 +32,8 @@ Browser + API mode needs no backend; leave ``--backend-url`` unset for it.
 from __future__ import annotations
 
 import argparse
+import html
+import importlib.util
 import json
 import re
 import shutil
@@ -34,7 +47,28 @@ WEB = ROOT / "web"
 #: Local assets the page pulls in. Each must survive the copy, or the export is
 #: broken in a way a host would only reveal at runtime.
 REQUIRED = ("index.html", "styles.css", "app.js", "browser-agent.js",
-            "endpoint.js", "reference-tools.js", "reference-data.json", "config.json")
+            "endpoint.js", "reference-tools.js", "reference-data.json", "config.json",
+            "agents.js", "agent-catalog.json", "compute-ui.js", "engine-client.js",
+            "engine-install.js", "engine-worker.js")
+
+#: What index.html must still reference, or the page would not load.
+PAGE_ASSETS = ("styles.css", "app.js", "browser-agent.js", "endpoint.js", "reference-tools.js",
+               "agents.js", "compute-ui.js", "engine-client.js", "engine-install.js")
+
+#: A redirect target is embedded in HTML, JavaScript, JSON and several servers'
+#: config languages, so it is held to the characters none of them treat as syntax.
+_SAFE_TARGET = re.compile(r"^[A-Za-z0-9._~:/%-]+$")
+
+#: The engine's loader files must be served as what they are. Netlify and
+#: Cloudflare Pages read this file; for nginx and Apache see docs/DEPLOY_ENZYME_IMPF.md.
+HEADERS = """\
+/engine/pyodide/pyodide.mjs
+  Content-Type: text/javascript; charset=utf-8
+/engine/pyodide/pyodide.asm.mjs
+  Content-Type: text/javascript; charset=utf-8
+/engine/pyodide/pyodide.asm.wasm
+  Content-Type: application/wasm
+"""
 
 _HOSTNAME = re.compile(
     r"^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)"
@@ -58,18 +92,58 @@ def validate_cname(host: str) -> str:
     return host
 
 
-def copy_site(out: Path) -> list[Path]:
+def validate_redirect_target(url: str) -> str:
+    """Accept only a public HTTPS URL made of characters no config language reads as syntax."""
+    text = url.strip()
+    parsed = urlsplit(text)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise ValueError("the redirect target must be a public https:// URL")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("the redirect target cannot carry credentials, a query or a fragment")
+    if not _SAFE_TARGET.match(text) or not _HOSTNAME.match(parsed.hostname):
+        raise ValueError("the redirect target may contain only letters, digits and . _ ~ : / % - "
+                         "in a DNS host name")
+    return text
+
+
+def copy_site(out: Path, *, with_engine: bool = True) -> list[Path]:
     if out.resolve() == WEB.resolve():
         raise SystemExit("refusing to export onto the source web/ directory")
     if out.exists():
         shutil.rmtree(out)
     # Skip caches and editor cruft; copy everything else verbatim.
-    ignore = shutil.ignore_patterns("__pycache__", ".DS_Store", "*.pyc")
+    cruft = shutil.ignore_patterns("__pycache__", ".DS_Store", "*.pyc")
+
+    def ignore(directory: str, names: list[str]) -> set[str]:
+        skipped = set(cruft(directory, names))
+        if not with_engine and Path(directory).resolve() == WEB.resolve():
+            skipped.add("engine")
+        return skipped
+
     shutil.copytree(WEB, out, ignore=ignore)
     return sorted(p for p in out.rglob("*") if p.is_file())
 
 
-def check_integrity(out: Path) -> None:
+def _load_script(name: str):
+    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def check_engine(out: Path) -> None:
+    """The copied engine must be a complete, consistent build of this checkout."""
+    if not (out / "engine" / "manifest.json").is_file():
+        raise SystemExit("the compute engine is not built; run python scripts/build_engine.py "
+                         "first, or export with --without-engine")
+    builder = _load_script("build_engine")
+    problems = builder.check(out / "engine", builder.load_lock())
+    if problems:
+        raise SystemExit("the compute engine is not a consistent build:\n  " + "\n  ".join(problems)
+                         + "\nrun python scripts/build_engine.py")
+
+
+def check_integrity(out: Path, *, with_engine: bool = True) -> None:
     missing = [name for name in REQUIRED if not (out / name).is_file()]
     if missing:
         raise SystemExit(f"export is missing required files: {', '.join(missing)}")
@@ -84,9 +158,62 @@ def check_integrity(out: Path) -> None:
             "reference-data.json has an unexpected shape; rebuild it with "
             "scripts/build_browser_bundle.py before exporting")
     index = (out / "index.html").read_text(encoding="utf-8")
-    for asset in ("styles.css", "app.js", "browser-agent.js", "endpoint.js", "reference-tools.js"):
+    for asset in PAGE_ASSETS:
         if asset not in index:
             raise SystemExit(f"index.html no longer references {asset}; the page would not load")
+    catalog = json.loads((out / "agent-catalog.json").read_text(encoding="utf-8"))
+    if catalog.get("schema") != "eagent.engine.v1" or not catalog.get("agents"):
+        raise SystemExit("agent-catalog.json has an unexpected shape; rebuild it with "
+                         "scripts/build_browser_bundle.py before exporting")
+    if with_engine:
+        check_engine(out)
+
+
+def write_redirect_site(out: Path, target: str, cname: str = "") -> list[str]:
+    """What a host needs to send every visitor to ``target``, and nothing else.
+
+    A page for hosts that only serve files (S3, GitHub Pages), a 404 page that does
+    the same for any other path, and the redirect rule of each common host. The
+    rules answer with a real 301, so crawlers and browsers remember the move.
+    """
+    if out.resolve() == WEB.resolve() or WEB.resolve() in out.resolve().parents:
+        raise SystemExit("refusing to write a redirect site inside the source web/ directory")
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    shown, attribute, script = html.escape(target), html.escape(target, quote=True), json.dumps(target)
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>E-Agent has moved</title>
+<link rel="canonical" href="{attribute}">
+<meta http-equiv="refresh" content="0; url={attribute}">
+<script>location.replace({script});</script>
+<style>body{{font:16px/1.5 system-ui,sans-serif;margin:12vh auto;max-width:34em;padding:0 1.2em;color:#1c2a24}}a{{color:#1f7d58}}</style>
+</head>
+<body>
+<p>E-Agent now lives at <a href="{attribute}">{shown}</a>. You are being taken there.</p>
+</body>
+</html>
+"""
+    files = {
+        "index.html": page,
+        "404.html": page,
+        "_redirects": f"/*  {target}  301\n",
+        "vercel.json": json.dumps({"redirects": [{"source": "/(.*)", "destination": target, "permanent": True}]}, indent=2) + "\n",
+        ".htaccess": f"RewriteEngine On\nRewriteRule ^ {target} [R=301,L]\n",
+        "nginx-redirect.conf.example": (
+            "# Put this in the server block that answers for your domain.\n"
+            f"return 301 {target};\n"),
+    }
+    if cname:
+        files["CNAME"] = cname + "\n"
+    for name, content in files.items():
+        (out / name).write_text(content, encoding="utf-8")
+    return sorted(files)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -100,6 +227,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cname", default=None,
                         help="optional custom domain to write as CNAME, e.g. enzyme.impf.ai "
                              "(only needed for GitHub Pages / Cloudflare-Pages-style hosts)")
+    parser.add_argument("--without-engine", action="store_true",
+                        help="export the site without the compute engine (about 20 MB); the page "
+                             "then reports the engine as not published")
+    parser.add_argument("--redirect-to", default=None, metavar="URL",
+                        help="write only a redirect to this https:// URL instead of a copy of the site")
     args = parser.parse_args(argv)
 
     out = (ROOT / args.out).resolve() if not Path(args.out).is_absolute() else Path(args.out)
@@ -117,7 +249,23 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as exc:
             parser.error(str(exc))
 
-    files = copy_site(out)
+    if args.redirect_to:
+        if backend_url or args.without_engine:
+            parser.error("--redirect-to writes no site, so --backend-url and --without-engine do not apply")
+        try:
+            target = validate_redirect_target(args.redirect_to)
+        except ValueError as exc:
+            parser.error(str(exc))
+        names = write_redirect_site(out, target, cname)
+        print(f"Wrote a redirect to {target} in {out}")
+        print(f"  files: {', '.join(names)}")
+        print("  next: upload the folder to a static host, or copy the rule your host understands")
+        print("        (_redirects: Netlify and Cloudflare Pages; vercel.json; .htaccess: Apache;")
+        print("        nginx-redirect.conf.example: nginx). Details in docs/DEPLOY_ENZYME_IMPF.md.")
+        return 0
+
+    with_engine = not args.without_engine
+    files = copy_site(out, with_engine=with_engine)
 
     # config.json: a pinned backend URL, or an empty one for browser-only mode.
     (out / "config.json").write_text(json.dumps({"backend_url": backend_url}) + "\n",
@@ -125,13 +273,16 @@ def main(argv: list[str] | None = None) -> int:
     if cname:
         (out / "CNAME").write_text(cname + "\n", encoding="utf-8")
         files = sorted(set(files) | {out / "CNAME"})
+    if with_engine:
+        (out / "_headers").write_text(HEADERS, encoding="utf-8")
 
-    check_integrity(out)
+    check_integrity(out, with_engine=with_engine)
 
     total = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
     print(f"Exported the E-Agent chat to {out}")
-    print(f"  files: {sum(1 for _ in out.rglob('*') if _.is_file())}   total: {total/1024:.0f} KiB")
+    print(f"  files: {sum(1 for _ in out.rglob('*') if _.is_file())}   total: {total/1048576:.1f} MiB")
     print(f"  run mode: {'Python backend pinned → ' + backend_url if backend_url else 'Browser + API (no backend)'}")
+    print(f"  compute engine: {'included (Python as WebAssembly, checked against its manifest)' if with_engine else 'not included (--without-engine)'}")
     print(f"  custom domain: {cname or '(none — set --cname for GitHub/Cloudflare Pages)'}")
     print("  next: upload the folder's contents to your host's web root for enzyme.impf.ai")
     print("        (details in docs/DEPLOY_ENZYME_IMPF.md)")

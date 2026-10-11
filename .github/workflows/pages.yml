@@ -22,17 +22,37 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # The tests load the real WebAssembly runtime, so Node is pinned rather than
+      # taken from whatever the runner image ships.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Install agent and test dependencies
         run: python -m pip install -e '.[dev]'
       - name: Check the actual chat runtime
-        run: python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py tests/test_browser_bundle.py -q
-      - name: Check browser evidence matches the Python loaders
+        run: python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py tests/test_browser_bundle.py tests/test_engine.py tests/test_build_engine.py tests/test_export_site.py tests/test_numeric_guard.py tests/test_robustness.py -q
+      - name: Check browser evidence and the agent catalog match the Python code
         run: python scripts/build_browser_bundle.py --check
-      - name: Check browser script
+      - name: Check browser scripts
         run: |
           for script in web/*.js; do node --check "$script"; done
-      - name: Check browser agent, tools and calculations
+      - name: Check browser agent, tools, panels and calculations
         run: node --test tests/browser-*.test.cjs
+      # The engine is Python compiled to WebAssembly, assembled from pinned
+      # registry downloads. Every download is checked against scripts/engine.lock.json
+      # and a mismatch stops the deploy; the cache only saves the transfer.
+      - uses: actions/cache@v4
+        with:
+          path: .cache/engine
+          key: engine-${{ hashFiles('scripts/engine.lock.json') }}
+      - name: Build the compute engine
+        run: python scripts/build_engine.py
+      - name: Check the engine build is complete and current
+        run: python scripts/build_engine.py --check
+      - name: Check the WebAssembly engine against native Python, and the whole stack through it
+        env:
+          EAGENT_REQUIRE_ENGINE: '1'
+        run: node --test tests/engine-*.test.cjs
       - name: Configure public backend URL
         env:
           EAGENT_BACKEND_URL: ${{ vars.EAGENT_BACKEND_URL }}

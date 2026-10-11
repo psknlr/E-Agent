@@ -3,10 +3,15 @@
 Open **[E-Agent chat](https://psknlr.github.io/E-Agent/)**.
 
 The default **Browser + API** mode runs a bounded agent loop in your browser.
-Your selected model chooses local tools, the browser queries the curated enzyme
-reference data or performs arithmetic, and the chat displays the answer,
-citations, guard results and tool transcript. Follow-up questions include a
-bounded conversation history. A Python backend is optional.
+Your selected model is the **controller**: it chooses which agents to call. The
+agents run on your device. The browser queries the curated enzyme reference data,
+performs arithmetic and, once you start the optional **compute engine**, runs the
+project's own Python (compiled to WebAssembly, on your CPU) for sequence
+alignment, intervals, geometry, variant checks, task gate reports and a run
+of the project's own controller. The chat
+displays the answer, citations, guard results and tool transcript. Follow-up
+questions include a bounded conversation history. A Python backend is optional.
+See [`ENGINE.md`](ENGINE.md) for how the compute agents work.
 
 ## Run directly in your browser
 
@@ -19,8 +24,12 @@ bounded conversation history. A Python backend is optional.
    Completions or Anthropic Messages.
 4. Send a question, for example “Inspect Ssal-KRED activity on 2a” or “Use the
    calculator to evaluate `(2.5 + 3.5) * 4` and show the calculation.”
-5. Review the research trace to see the local tools the model actually called.
+5. Review the research trace to see the local tools the model actually called,
+   where each ran (`JS` or `WASM · CPU`) and which project function produced it.
    Chat readiness is verified only after a successful model response.
+6. Optional: in **Compute engine**, press **Start on this device** (about 20 MB,
+   once) to let the model call the compute agents too. Try “Align
+   MKTAYIAKQRQISFVKSHFSRQ with MKTAYLAKQRQVSFVKSHFSRQ and report the identity.”
 
 The browser sends the key and model requests directly to your chosen API URL.
 Keys stay in tab memory and are excluded from saved/exported templates. The
@@ -47,9 +56,35 @@ Browser tools use a deterministic data bundle exported by the repository's
 actual Python reference loaders. Their refused quantities, missing values,
 detection limits, source citations and independence groups are preserved.
 Arithmetic is performed by a bounded expression parser, not by executing model
-code. Model numbers are checked against tool citations. This mode supports
-reference queries and arithmetic; structure prediction, docking, pipeline
-execution and experimental approvals remain in the CLI.
+code. Model numbers are checked against tool citations, including numbers from
+compute agents, which are checked against the exact result that computed them.
+This mode supports reference queries, arithmetic and the compute agents;
+sequence search, structure prediction, docking, the full pipeline and
+experimental approvals remain in the CLI. The page shows which of the pipeline's
+ten steps can run in a browser (five, two partly, three not) from the project's
+own status table.
+
+## Compute agents on your device
+
+The **Compute engine** card (sidebar, under Runtime) finds the engine your site
+was published with and starts it only when you press **Start on this device**,
+or on its own if you tick *Start automatically on this browser*. It loads
+Python as WebAssembly into a worker thread, checks every file against a build
+manifest, and refuses to run unless four self-test calls return exactly what the
+build computed natively. When it reads **RUNNING**:
+
+- **Send** offers the compute agents to your model alongside the evidence
+  tools; untick *Offer compute agents to the model* to withhold them.
+- **Run in browser** routes your question to the same agents by keyword.
+- **Agents** lists every agent, where it runs and what project function it
+  wraps; **This device** shows what the browser reports (CPU threads, memory,
+  WebGPU, WebNN). The agents run on the CPU; the GPU and NPU are detected, not
+  used, because no agent has a kernel for them.
+- Answers show each citation as a chip naming its field; press a chip to see the
+  whole citation.
+
+If the site has no engine, the browser has no WebAssembly or workers, or the
+engine does not match the page, the card says so and the page works as before.
 
 ## When the page says it could not reach your API
 
@@ -107,16 +142,26 @@ It understands:
 | independence of the sets | `how independent are the orthologs?` | `activity_independence_groups`, `reference_summary` |
 | the verdicts | `audit verdict`, `overview`, `are the numbers verified?` | `audit_verdict`, `reference_summary`, `source_verification` |
 | arithmetic | `calculate (2.5 + 3.5) * 4` | `calculate` |
+| two sequences (capital one-letter codes, 8 or more residues) | `align MKTAYIAKQR with MKTAYLAKQR` | `align_sequences` (compute) |
+| a sequence distance | `hamming distance between …` | `sequence_distance` (compute) |
+| substitutions on a sequence | `check K2A and Y9F on MKTAYIAKQR` | `variant_check` (compute) |
+| an interval on a count | `Wilson interval for 7 of 20 poses at 99% confidence` | `wilson_interval` (compute) |
+| coordinates | `distance between 0,0,0 and 3,4,0` | `geometry_measure` (compute) |
+| what a task still lacks | `what is unresolved for KRED_PILOT_001` | `task_gate_report` (compute) |
+| what runs in a browser | `which pipeline steps can run in a browser?` | `pipeline_catalog` (compute) |
+| the controller on a task | `run KRED_PILOT_001 through the pipeline` | `run_pipeline` (compute) |
+
+The rows marked *compute* need the compute engine to be running.
 
 When it cannot place a question it says so and shows examples with real ids,
 rather than guessing a tool. A run makes at most 8 lookups and says when it
 clipped. A local run is **not a model completion**: it never changes the chat
 status to *Chat ready* and is not added to the history a model later sees.
 
-What this is not: these tools are small lookups and arithmetic that run on the
-CPU. Structure prediction, docking, sequence search and inverse folding are not
-in the browser; they remain the CLI's adapter seams, which fail loudly when the
-external program is absent.
+What this is not: these tools are small lookups, arithmetic and bounded
+computations that run on the CPU. Structure prediction, docking, sequence search
+and inverse folding are not in the browser; they remain the CLI's adapter seams,
+which fail loudly when the external program is absent.
 
 ## Optional: connect a Python backend
 
@@ -231,9 +276,14 @@ any host and any domain, not only this project's GitHub Pages. To publish it at
 a custom domain such as `enzyme.impf.ai`, build a portable copy with
 `python scripts/export_site.py --out dist/site` (add `--cname <domain>` for
 GitHub/Cloudflare Pages, or `--backend-url <https url>` to pin a Python
-backend), upload the result, and add one DNS record. The exact per-host and DNS
-steps are in [`DEPLOY_ENZYME_IMPF.md`](DEPLOY_ENZYME_IMPF.md). Browser + API
-mode needs no backend; provider CORS still applies from the new origin.
+backend), upload the result, and add one DNS record. The copy includes the
+compute engine (about 20 MB; build it first with `python scripts/build_engine.py`,
+or pass `--without-engine`). To lead a domain to the existing site instead of
+hosting a copy, `python scripts/export_site.py --redirect-to
+https://psknlr.github.io/E-Agent/ --out dist/redirect` writes only the redirect.
+The exact per-host and DNS steps are in
+[`DEPLOY_ENZYME_IMPF.md`](DEPLOY_ENZYME_IMPF.md). Browser + API mode needs no
+backend; provider CORS still applies from the new origin.
 
 ## Status comes from the active runtime
 
@@ -252,6 +302,13 @@ mode needs no backend; provider CORS still applies from the new origin.
 **Run in browser** and **Test connection** never change this status: a local
 lookup is not a model completion, and a connection test never carries your key.
 
+The **Compute engine** card has its own status: *OFF* (found, not started),
+*STARTING*, *CHECKING* (up, comparing its agents with this page's catalog),
+*RUNNING*, *MISMATCH* (up, but not the agents this page was published with, so
+not offered), *FAILED*, *NOT PUBLISHED* (this site has no engine files),
+*UNSUPPORTED* (no WebAssembly or workers) and *NO CATALOG*. It never changes the
+chat status either.
+
 For Python backend mode, `GET /api/health` reports configuration, actual registered tools and
 `runtime_ready` and `completion_verified`. The default completion flag concerns
 only Server default; a DIY configuration is verified by its own chat response.
@@ -263,11 +320,17 @@ partial answer is not silently presented as a completed run.
 
 ```sh
 python -m pip install -e '.[dev]'
-python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py tests/test_browser_bundle.py -q
+python -m pytest tests/test_web.py tests/test_request_client.py tests/test_providers.py tests/test_toolloop.py tests/test_browser_bundle.py tests/test_engine.py tests/test_build_engine.py tests/test_export_site.py tests/test_numeric_guard.py tests/test_robustness.py -q
 for script in web/*.js; do node --check "$script"; done
 python scripts/build_browser_bundle.py --check
 node --test tests/browser-*.test.cjs
+python scripts/build_engine.py && python scripts/build_engine.py --check
+EAGENT_REQUIRE_ENGINE=1 node --test tests/engine-*.test.cjs
 ```
+
+The last two lines build the compute engine from its pinned downloads and run
+the real WebAssembly runtime against native Python; they need network access to
+the npm registry and PyPI once (downloads are cached in `.cache/engine`).
 
 Automated provider tests simulate HTTP completions. A live model completion
 requires a valid key and reachable API endpoint; passing these tests alone does

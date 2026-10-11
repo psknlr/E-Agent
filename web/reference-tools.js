@@ -10,7 +10,16 @@
     name: 'calculate', description: 'Compute a finite arithmetic expression locally; no code execution or network.',
     parameters: {expression: 'Arithmetic expression using numbers, + - * / % ^, parentheses, pi, e and approved math functions.'}
   };
+  // A number followed by one of these units is a measurement the model must cite.
+  // The pattern is case-insensitive so "NM" and "Percent" are caught, but a
+  // single-letter unit is a unit only in capitals: angstrom is written "A" and
+  // molar "M". A lowercase letter after a number is an identifier (substrate
+  // "2a" in the reference set), and reading it as "2 angstroms" refused every
+  // sentence that named one. This must stay in step with MEASUREMENT_PATTERN in
+  // src/eagent/harness/llm.py.
   const measurement = () => /(?<![\w.+-])([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*(%|percent|angstroms?|A\b|nm|kcal\/mol|kJ\/mol|s-1|s\^-1|\/s|mM|uM|nM|M\b|pLDDT|ee\b|kcat|Km|degrees?|deg\b)/gi;
+
+  const quantities = text => [...text.matchAll(measurement())].filter(match => !/^[am]$/.test(match[2]));
 
   function bounded(value) {
     if (!Number.isFinite(value) || Math.abs(value) > 1e100) throw new Error('Arithmetic must remain finite and within the magnitude limit.');
@@ -292,13 +301,13 @@
       const measuredCitations = new Set();
       const citationRanges = [...text.matchAll(/\[cite(?:\s+[^\]]*)?\]/gi)]
         .map(match => [match.index, match.index + match[0].length]);
-      for (const match of text.matchAll(measurement())) {
+      for (const match of quantities(text)) {
         // Row IDs, hashes and field names describe provenance; their digits
         // are not measurements in the model's prose.
         if (citationRanges.some(([start, end]) => match.index >= start && match.index < end)) continue;
         const token = `${match[1]} ${match[2]}`, end = match.index + match[0].length;
         const citation = parsed.citations.find(item => item.start >= end);
-        if (!citation || measurement().test(text.slice(end, citation.start))) {
+        if (!citation || quantities(text.slice(end, citation.start)).length) {
           report.uncited_quantities.push(token); continue;
         }
         report.cited_quantities.push(token);

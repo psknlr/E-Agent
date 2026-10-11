@@ -30,16 +30,24 @@ from .citation import ArtifactIndex, Citation
 
 
 # Units whose appearance in model prose implies a measurement was made.
+#
+# The pattern is case-insensitive so "NM" and "Percent" are caught, but a
+# single-letter unit is a unit only in capitals: angstrom is written "A" and
+# molar "M". A lowercase letter after a number is an identifier -- substrate
+# "2a" in the reference set -- and reading it as "2 angstroms" made the guard
+# refuse every sentence that named one. ``(?-i:...)`` switches the flag off for
+# just those two letters. Keep this in step with ``measurement`` in
+# web/reference-tools.js.
 MEASUREMENT_PATTERN = re.compile(
     r"""(?<![\w.])
     (-?\d+(?:\.\d+)?)
     \s*
     (
         %|percent|
-        angstrom|angstroms|A\b|nm|
+        angstrom|angstroms|(?-i:A\b)|nm|
         kcal/mol|kJ/mol|
         s-1|s\^-1|/s|
-        mM|uM|nM|M\b|
+        mM|uM|nM|(?-i:M\b)|
         pLDDT|ee\b|
         kcat|Km|
         degrees?|deg\b

@@ -140,6 +140,60 @@ class WhatIsAccepted(_WithTable):
         self.assertIn("hex characters", str(ctx.exception))
 
 
+class IdentifiersAreNotMeasurements(_WithTable):
+    """Substrate ``2a`` was read as "2 angstroms".
+
+    The unit pattern is case-insensitive so that "NM" and "Percent" are caught,
+    which also made ``A`` (angstrom) and ``M`` (molar) match a lowercase letter.
+    The reference set's substrate ids are ``1a`` to ``5a``, so the guard refused
+    every sentence that named one -- including "I will inspect Ssal-KRED on
+    substrate 2a", which a model writes before it has called any tool. These
+    cases mirror the browser guard's tests in tests/browser-tools.test.cjs.
+    """
+
+    IDENTIFIER_SENTENCES = (
+        "I will inspect Ssal-KRED activity on substrate 2a.",
+        "Checking substrates 1a, 3a and 5a next.",
+        "Compare construct Ort-EZM-1 on 4a.",
+        "Buy 2 a day.",
+        "About 5 m away.",
+    )
+
+    def test_a_lowercase_letter_after_a_number_is_an_identifier(self) -> None:
+        for text in self.IDENTIFIER_SENTENCES:
+            with self.subTest(text=text):
+                self.assertEqual(self.guard.inspect(text).uncited_quantities, [])
+                self.guard.check(text)
+
+    def test_the_units_themselves_are_still_caught(self) -> None:
+        for text, expected in (
+                ("The resolution is 2.1 A.", ["2.1 A"]),
+                ("The distance is 3.5A.", ["3.5 A"]),
+                ("A 5 M solution.", ["5 M"]),
+                ("It is 10 nM.", ["10 nM"]),
+                ("It is 5 mM.", ["5 mM"]),
+                ("About 12 %.", ["12 %"]),
+                ("A 90 degrees turn.", ["90 degrees"]),
+                # The alternation lists "angstrom" before "angstroms", so the report
+                # token drops the plural "s"; the quantity is caught either way.
+                ("The resolution is 2.1 angstroms.", ["2.1 angstrom"]),
+                ("It is 10 NM.", ["10 NM"]),
+                ("A 5 Percent gain.", ["5 Percent"])):
+            with self.subTest(text=text):
+                self.assertEqual(self.guard.inspect(text).uncited_quantities, expected)
+
+    def test_an_identifier_between_a_number_and_its_citation_does_not_steal_it(self) -> None:
+        bound = self.guard.inspect(
+            f"The distance is 3.6 A in substrate 2a {cite('distance_A', 'rounded')}.")
+        self.assertEqual(bound.uncited_quantities, [])
+        self.assertEqual(bound.verified_quantities, ["3.6 A"])
+        # A real quantity in between still does: the citation then belongs to
+        # the later number.
+        stolen = self.guard.inspect(
+            f"The distance is 3.6 A and 5 M {cite('distance_A', 'rounded')}.")
+        self.assertEqual(stolen.uncited_quantities, ["3.6 A"])
+
+
 class DerivedValues(_WithTable):
     def test_a_derivation_is_accepted_but_counted_as_unchecked(self) -> None:
         text = f"The ratio is 2 % {cite('plddt', 'derived:plddt/21')}."

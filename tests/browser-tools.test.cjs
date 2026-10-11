@@ -230,3 +230,60 @@ test('ids() hands out copies, so a caller cannot change what the router will off
   assert.equal(runtime.ids().pdb_ids.length, 19);
   assert.equal(runtime.ids().pdb_ids.includes('0000'), false);
 });
+
+// ---- identifiers are not measurements --------------------------------------
+// The unit pattern is case-insensitive, which also made "A" (angstrom) and "M"
+// (molar) match a lowercase letter, so the reference set's substrate ids 1a-5a
+// read as "1 angstrom" and the guard refused every sentence that named one,
+// including the one a model writes before it has called any tool. These cases
+// mirror IdentifiersAreNotMeasurements in tests/test_numeric_guard.py.
+const IDENTIFIER_SENTENCES = [
+  'I will inspect Ssal-KRED activity on substrate 2a.', 'Checking substrates 1a, 3a and 5a next.',
+  'Compare construct Ort-EZM-1 on 4a.', 'Buy 2 a day.', 'About 5 m away.',
+];
+
+test('a lowercase letter after a number is an identifier, not a unit', () => {
+  const runtime = tools();
+  for (const text of IDENTIFIER_SENTENCES) {
+    const report = runtime.inspect(text);
+    assert.deepEqual([...report.uncited_quantities], [], text);
+    assert.equal(report.clean, true, text);
+  }
+});
+
+test('the units themselves are still caught, in either case where more than one letter makes the unit', () => {
+  const runtime = tools();
+  for (const [text, expected] of [
+    ['The resolution is 2.1 A.', ['2.1 A']], ['The distance is 3.5A.', ['3.5 A']], ['A 5 M solution.', ['5 M']],
+    ['It is 10 nM.', ['10 nM']], ['It is 5 mM.', ['5 mM']], ['About 12 %.', ['12 %']], ['A 90 degrees turn.', ['90 degrees']],
+    ['The resolution is 2.1 angstroms.', ['2.1 angstroms']], ['It is 10 NM.', ['10 NM']], ['A 5 Percent gain.', ['5 Percent']],
+  ]) {
+    assert.deepEqual([...runtime.inspect(text).uncited_quantities], expected, text);
+  }
+});
+
+test('an identifier between a number and its citation does not steal the citation', async () => {
+  const runtime = tools();
+  const result = await runtime.execute({interface: 'calculate', arguments: {expression: '3.5987'}});
+  const citation = cite(result.value.cite, 'value');
+  const bound = runtime.inspect(`The distance is 3.6 A in substrate 2a ${citation}.`);
+  assert.equal(bound.clean, true);
+  assert.deepEqual([...bound.verified_quantities], ['3.6 A']);
+  // A real quantity in between still does: the citation then belongs to the later number.
+  assert.deepEqual([...runtime.inspect(`The distance is 3.6 A and 5 M ${citation}.`).uncited_quantities], ['3.6 A']);
+});
+
+test('the Ssal-KRED / 2a answer the user asked for passes when its numbers are cited, and only they are refused when not', async () => {
+  const runtime = tools();
+  const record = await runtime.execute({interface: 'activity_endpoint', arguments: {enzyme_id: 'Ssal-KRED', substrate_id: '2a'}});
+  assert.equal(record.ok, true);
+  const answer = field => cite(record.value.cite, field);
+  const text = `Ssal-KRED on substrate 2a shows 12.5 ee ${answer('ee_reported')} with 7.2 mM total product ${answer('total_product_mM')}.`;
+  const cited = runtime.inspect(text);
+  assert.equal(cited.clean, true, JSON.stringify(cited));
+  assert.deepEqual([...cited.verified_quantities], ['12.5 ee', '7.2 mM']);
+  // Without the citations the guard must still refuse the real quantities, and not the id.
+  const bare = runtime.inspect('Ssal-KRED on substrate 2a shows 12.5 ee with 7.2 mM total product.');
+  assert.deepEqual([...bare.uncited_quantities], ['12.5 ee', '7.2 mM']);
+});
+

@@ -187,7 +187,12 @@ def wilson_interval(
     denom = 1.0 + z2 / n
     centre = (p + z2 / (2.0 * n)) / denom
     half = (z / denom) * math.sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n))
-    return (max(0.0, centre - half), min(1.0, centre + half))
+    # Clamp to [0, 1], then to the point estimate. Mathematically the interval
+    # always contains p; in floating point, at 0 and at n successes, centre - half
+    # leaves a residue of ~1e-17 on the wrong side of p. Applying the contract
+    # here, rather than tolerating the residue in every caller, makes "always
+    # brackets the point estimate" exactly true.
+    return (min(max(0.0, centre - half), p), max(min(1.0, centre + half), p))
 
 
 def classify_robustness(

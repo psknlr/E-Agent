@@ -89,3 +89,25 @@ def test_withheld_bounds_censoring_and_independence_are_preserved():
         assert citation_row["fields"]["product_r_mM_as_printed"] is None
     assert current["results"]["activity_independence_groups"]["{}"]["ok"]
     assert current["results"]["source_verification"]["{}"]["value"]["documents"]
+
+
+def test_checked_in_agent_catalog_is_current_and_cannot_collide_with_reference_tools():
+    from eagent.engine import AGENTS
+
+    path = ROOT / "web" / "agent-catalog.json"
+    catalog = json.loads(path.read_text())
+    assert builder.serialize(builder.build_catalog()) == path.read_text()
+    assert [agent["name"] for agent in catalog["agents"]] == sorted(AGENTS)
+    assert len(catalog["pipeline"]) == 10
+    reference_names = {schema["name"] for schema in bundle()["schemas"]} | {"calculate"}
+    assert not reference_names & set(AGENTS), "a compute agent may not shadow a reference tool"
+
+
+def test_check_rejects_a_stale_agent_catalog_without_modifying_it(tmp_path):
+    stale = tmp_path / "stale-catalog.json"
+    stale.write_text('{"stale":true}\n')
+    result = subprocess.run([sys.executable, str(ROOT / "scripts" / "build_browser_bundle.py"),
+                             "--check", "--catalog-out", str(stale)], capture_output=True, text=True)
+    assert result.returncode == 1
+    assert "agent catalog is stale" in result.stderr
+    assert stale.read_text() == '{"stale":true}\n'

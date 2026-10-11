@@ -247,7 +247,8 @@ def call(name: str, arguments_json: str = "{}") -> str:
                      f"no agent named {label[:80]!r}; the agents are {', '.join(sorted(AGENTS))}")
     try:
         arguments = json.loads(arguments_json) if arguments_json else {}
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, RecursionError):
+        # RecursionError is what a JSON array nested a hundred thousand deep raises.
         return _fail(name, "invalid", "arguments must be a JSON object")
     problem = spec.check(arguments)
     if problem:
@@ -263,8 +264,8 @@ def call(name: str, arguments_json: str = "{}") -> str:
     except Exception as exc:  # noqa: BLE001 -- a bug is reported, never turned into a number
         return _fail(name, "internal", f"{type(exc).__name__}: {str(exc)[:200]}")
     if len(text.encode("utf-8")) > MAX_RESULT_BYTES:
-        return _fail(name, "internal", f"the result is larger than {MAX_RESULT_BYTES} bytes "
-                                       f"and was not reported rather than clipped")
+        return _fail(name, "internal", f"the result is larger than {MAX_RESULT_BYTES} bytes, so it is "
+                                       f"refused rather than clipped")
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     return json.dumps({
         "ok": True, "agent": name, "value": value,

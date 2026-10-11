@@ -22,16 +22,24 @@ WHAT A RESULT CARRIES
 =====================
 Every successful result carries ``cite``: the artifact key, a SHA-256 over the
 canonical JSON of the result's value, and a row id derived from that hash. The
-page registers it with the same numeric guard that checks every number in a
-model's answer, so a model can only quote a computed number by citing the
-result that computed it, and the guard checks the number against that result.
+page registers it with the same numeric guard that checks every number a model
+writes with a unit, so a model can only quote a computed number by citing the
+result that computed it, and the guard checks the number, and the unit it is
+written in, against that result. A field names its unit (``_percent``,
+``_angstrom``, ``_degrees``); one with none is a count, a fraction or a score.
+The guard does not check that a result answers the question asked.
 A refusal carries no ``cite`` and no value: an agent that cannot produce a value
 says so rather than producing a plausible one.
 
 WHAT IS NOT HERE
 ================
-Nothing in this package starts a process, opens a socket, reads outside the
-project tree or runs model-supplied code. The pipeline's external programs
+This package's own code starts no process, opens no socket, reads nothing outside
+the project tree and runs no model-supplied code; a test over its syntax trees
+holds that. The one agent that runs the project's controller (``run_pipeline``)
+calls project code the engine does not control: that code records the machine it
+runs on and, natively, asks ``git`` for the current commit (a failure there is
+caught). None of it appears in a result, the run is given no network, and in a
+browser there is no process to start. The pipeline's external programs
 (sequence search, structure prediction, docking, inverse folding) cannot run in
 a browser and are not faked: :mod:`eagent.engine.pipeline` states which of the
 ten interfaces can run here and which need a program, from the same table the

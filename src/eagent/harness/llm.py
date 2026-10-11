@@ -19,6 +19,7 @@ import abc
 import json
 import os
 import re
+import unicodedata
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -32,35 +33,51 @@ from .citation import ArtifactIndex, Citation
 # Units whose appearance in model prose implies a measurement was made.
 #
 # The pattern is case-insensitive so "NM" and "Percent" are caught, but a
-# single-letter unit is a unit only in capitals: angstrom is written "A" and
-# molar "M". A lowercase letter after a number is an identifier -- substrate
-# "2a" in the reference set -- and reading it as "2 angstroms" made the guard
-# refuse every sentence that named one. ``(?-i:...)`` switches the flag off for
-# just those two letters. Keep this in step with ``measurement`` in
+# single-letter unit is a unit only in capitals: angstrom is written "A" (or
+# with the angstrom sign) and molar "M". A lowercase letter after a number is an
+# identifier -- substrate "2a" in the reference set -- and reading it as "2
+# angstroms" made the guard refuse every sentence that named one.
+# ``(?-i:...)`` switches the flag off for just those letters. The angstrom sign,
+# the degree sign and the micro sign are units too, as are "pct" and "per
+# cent". Text is normalised (see ``_readable``) before it is searched, so the
+# full-width and compatibility forms of these characters reach the pattern as the
+# ones written here. Keep this in step with ``measurement`` in
 # web/reference-tools.js.
 MEASUREMENT_PATTERN = re.compile(
     r"""(?<![\w.])
     (-?\d+(?:\.\d+)?)
     \s*
     (
-        %|percent|
-        angstrom|angstroms|(?-i:A\b)|nm|
+        %|per\s?cent|pct\b|
+        angstrom|angstroms|(?-i:Å)|(?-i:A\b)|nm|
         kcal/mol|kJ/mol|
         s-1|s\^-1|/s|
-        mM|uM|nM|(?-i:M\b)|
+        mM|[uµμ]M|nM|(?-i:M\b)|
         pLDDT|ee\b|
         kcat|Km|
-        degrees?|deg\b
+        degrees?|deg\b|°
     )
     """,
     re.VERBOSE | re.IGNORECASE,
 )
 
+
+def _readable(text: str) -> str:
+    """The text as a person reads it, for the patterns that look for numbers.
+
+    Full-width digits and signs, the angstrom and micro signs and superscript
+    forms are folded to the characters the patterns know (NFKC), and the digits
+    of other scripts become ASCII digits. Without it ``９９．９％`` and
+    ``٩٩ %`` are the same claim as ``99.9 %`` that no pattern sees.
+    """
+    return re.sub(r"\d", lambda digit: str(int(digit.group())),
+                  unicodedata.normalize("NFKC", text))
+
 #: The old citation form: a bracketed file name and nothing else. Recognised
 #: only so the guard can say what is wrong with it. It names no row, no field,
 #: no version and no method, so there is nothing to check a number against.
 LEGACY_CITATION_PATTERN = re.compile(
-    r"\[(?:artifact|table|file|record|evidence):[^\]]+\]", re.IGNORECASE
+    r"\[(?:artifact|table|file|record|evidence):[^\]]{1,300}\]", re.IGNORECASE
 )
 
 
@@ -134,6 +151,7 @@ class NumericGuard:
     # -- inspection --------------------------------------------------------
     def inspect(self, text: str) -> GuardReport:
         report = GuardReport()
+        text = _readable(text)
         citations, problems = citation_mod.parse_citations(text)
         report.broken_citations.extend(problems)
         for legacy in LEGACY_CITATION_PATTERN.finditer(text):

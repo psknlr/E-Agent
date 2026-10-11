@@ -102,12 +102,13 @@ Cloudflare Pages; harmless elsewhere).
 Upload the **contents** of `dist/enzyme-impf/` to the site's web root so that
 `index.html` is served at `/`. No server-side code runs. Serve `.json` as
 `application/json` and `.js` as `text/javascript` (most hosts do by default),
-**and the engine's two loader files, `.mjs`, as JavaScript and `.wasm` as
-`application/wasm`.** Browsers refuse a module script served as anything else;
-the page's Compute engine card says so if yours does. For nginx add
-`types { text/javascript mjs; application/wasm wasm; }` (inside `http` or
-`server`); for Apache `AddType text/javascript .mjs` and
-`AddType application/wasm .wasm`.
+**and the engine's `.wasm` as `application/wasm`**, which browsers require for
+the runtime to start; the page's Compute engine card says so if yours does not.
+For nginx add `types { application/wasm wasm; }` (inside `http` or `server`); for
+Apache `AddType application/wasm .wasm`. The type your host gives `.mjs` files
+does not matter. If your host sends a `Content-Security-Policy` header, allow
+`blob:` and `'wasm-unsafe-eval'` in `script-src` for the engine worker (see
+[`ENGINE.md`](ENGINE.md)); most static hosts send none.
 
 #### B. GitHub Pages on an impf-owned repo — **[you]**
 1. Create/choose a repo under the impf org (e.g. `impf/enzyme`), and copy the
@@ -179,8 +180,8 @@ Open `https://enzyme.impf.ai` (or wherever it leads) and confirm:
    PUBLISHED** if you exported with `--without-engine`). Press **Start on this
    device**: it should reach **RUNNING** in a few seconds, with *Integrity: every
    file checked against its SHA-256* and *Self-test: 4 calls match the native
-   build*. If it says the host serves `.mjs` as something else, fix the type as
-   in step 2A.
+   build*. If it says the WebAssembly binary was refused, serve `.wasm` as
+   `application/wasm` as in step 2A.
 3. Under **Model**, enter your API key, exact model name and full API URL, then
    send “Align MKTAYIAKQRQISFVKSHFSRQ with MKTAYLAKQRQVSFVKSHFSRQ and report the
    identity.” A first successful reply flips the status to **Chat ready** and

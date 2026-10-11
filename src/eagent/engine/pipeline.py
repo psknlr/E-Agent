@@ -106,6 +106,26 @@ _STATUSES = ("runs", "partial", "needs_program")
 _TASKS_DIR = Path(__file__).resolve().parents[3] / "configs" / "tasks"
 _MAX_TASK_YAML = 6000
 
+#: PyYAML's scanner takes time quadratic in how deeply flow collections ("[" and
+#: "{") nest: depth 60 costs 3 ms, depth 500 about 0.1 s and depth 3,000 almost 6 s,
+#: and 6,000 characters can nest 6,000 deep. How many brackets there are does not
+#: matter (a flow list of 2,000 items is 40 ms, and a SMILES string is full of
+#: brackets that close at once), so this bounds depth. A task file nests two or
+#: three deep.
+_MAX_FLOW_DEPTH = 64
+
+
+def _flow_depth(text: str) -> int:
+    """The deepest nesting of "[" and "{" in ``text``, counting every bracket."""
+    depth = deepest = 0
+    for char in text:
+        if char in "[{":
+            depth += 1
+            deepest = max(deepest, depth)
+        elif char in "]}" and depth:
+            depth -= 1
+    return deepest
+
 
 def shipped_tasks() -> list[str]:
     """Ids of the task files this installation ships, in sorted order."""
@@ -197,6 +217,10 @@ def _load_task(args: dict[str, str]) -> TaskSpec:
         text = inline
         if len(text) > _MAX_TASK_YAML:
             raise AgentRefusal(f"task_yaml has {len(text)} characters; the limit is {_MAX_TASK_YAML}")
+    depth = _flow_depth(text)
+    if depth > _MAX_FLOW_DEPTH:
+        raise AgentRefusal(f"the task nests '[' and '{{' {depth} deep; write it in block style "
+                           f"(the limit is {_MAX_FLOW_DEPTH})")
     try:
         # Anchors and aliases are how a small document becomes a very large one; a
         # task file has no use for them, so they are refused before anything expands.
@@ -206,6 +230,8 @@ def _load_task(args: dict[str, str]) -> TaskSpec:
         document = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         raise AgentRefusal(f"the task is not valid YAML: {str(exc).splitlines()[0][:160]}") from None
+    except RecursionError:
+        raise AgentRefusal("the task is nested too deeply to read") from None
     if not isinstance(document, Mapping):
         raise AgentRefusal("a task file holds exactly one task, as a mapping of fields")
     try:

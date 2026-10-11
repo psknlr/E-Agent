@@ -38,7 +38,7 @@ const engineManifest = {
   schema: "eagent.engine.manifest.v1", engine_schema: "eagent.engine.v1", python: "3.14.2", pyodide: "314.0.7", total_bytes: 19630000,
   install: { wheels: [], site_packages_zips: [], project: "eagent-project.zip" },
   selftest: [{ agent: "wilson_interval", arguments: "{}", sha256: digest }],
-  files: Object.fromEntries(["eagent-project.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"].map((name) => [name, { bytes: 1, sha256: digest }])),
+  files: Object.fromEntries(["eagent-project.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"].map((name) => [name, { bytes: 1, sha256: digest }])),
 };
 
 async function harness(options = {}) {
@@ -727,4 +727,20 @@ test("the trace says where each result ran and which project function produced i
   const shown = visibleText(h.ui("messages"));
   assert.match(shown, /Runs eagent\.science\.numbering\.needleman_wunsch · computed in 1\.50 ms on this device/);
   assert.equal((shown.match(/Runs eagent/g) || []).length, 1, "a result without provenance claims none");
+});
+
+test("a number cited only to a calculation of itself is shown as not independently verified", async () => {
+  const guard = { clean: true, fully_verified: false, summary: "0 verified, 1 declared but unchecked, 0 uncited, 0 broken citation(s)", uncited_quantities: [], broken_citations: [], declared_quantities: ["87.5 %"] };
+  const h = await harness({ chat: async () => ({ answer: "Identity is 87.5 %.", completion_verified: true, transcript: { turns: [{ turn: 1, guard, results: [] }], tool_calls_made: 1 } }) });
+  h.input("provider-key", "test-provider-key");
+  await h.send("Identity?");
+  const notices = withClass(h.ui("messages"), "run-notice").map((node) => node.textContent).join("\n");
+  assert.match(notices, /Not independently verified on turn 1: 87\.5 %\./);
+  assert.match(notices, /restates it and does not check it/);
+  assert.doesNotMatch(notices, /Citation guard on turn/, "it is not presented as a refusal");
+  // A fully verified turn says nothing.
+  const quiet = await harness({ chat: async () => ({ answer: "Identity is 87.5 %.", completion_verified: true, transcript: { turns: [{ turn: 1, guard: { ...guard, declared_quantities: [], fully_verified: true }, results: [] }], tool_calls_made: 1 } }) });
+  quiet.input("provider-key", "test-provider-key");
+  await quiet.send("Identity?");
+  assert.doesNotMatch(withClass(quiet.ui("messages"), "run-notice").map((node) => node.textContent).join("\n"), /independently verified/);
 });

@@ -89,7 +89,11 @@ shown as able to run rather than as having run.
 trees pins that no engine module calls what grants or denies a request, or
 resolves a task field, or records a decision, and a flag in a task file is not
 an approval (a test runs a task whose file says every gate is confirmed and
-watches the controller stop at the first anyway).
+watches the controller stop at the first anyway). One dependency is worth
+saying: an interface's own `require_approval` does honour a flag in the file, so
+what keeps a flag from doing anything here is that the controller stops at its
+first decision point, before any later interface is reached. That order is the
+project's, and the test pins it.
 
 ### CPU, GPU and NPU
 
@@ -104,10 +108,11 @@ same contract, with the same parity test against the native answer.
 
 ## How a computed number becomes citable
 
-The existing numeric guard already requires every number with a unit in a
-model's answer to carry `[cite artifact=… sha256=… row=… field=… method=read]`
-and checks the number against the field it cites. Compute agents plug into the
-same mechanism.
+The existing numeric guard already requires every number written with a
+recognised unit (`%`, `Å`, `A`, `°`, `degrees`, `nM`, `kcal/mol`, …) in a model's
+answer to carry `[cite artifact=… sha256=… row=… field=… method=read]` and checks
+the number against the field it cites. Compute agents plug into the same
+mechanism.
 
 1. The engine returns `{"ok": true, "value": …, "cite": {"artifact":
    "engine_compute", "sha256": …, "row": …}}`. The digest is over the canonical
@@ -117,11 +122,31 @@ same mechanism.
    it is immutable, and it belongs to the run that computed it.
 3. The model quotes a number with a citation to the field it came from
    (`identity_percent_over_aligned_columns`, `gates.0.n_unresolved`; nested
-   fields use dotted paths because the citation grammar ends at `]`).
+   fields use dotted paths because the citation grammar ends at `]`). A field
+   carries its unit in its name: `_percent`, `_angstrom` or `_degrees`. A field
+   with none is a count, a fraction or a score, and every fraction has a
+   `_percent` twin that is exactly 100 times it (a test holds this for every
+   field the agents return).
 4. The guard compares the quoted number with that field, rounded to the digits
-   quoted. A wrong number, a wrong field, a field that is null, a fraction cited
-   for a percentage, a row that was never computed, or a real row with a forged
-   digest all fail, and the run stops with the guard's refusal.
+   quoted, **and checks the unit**: a number written with `%` must cite a
+   `_percent` field, one written with `Å` or `A` an `_angstrom` field, one
+   written with `°` or `degrees` a `_degrees` field, and a fraction or a count
+   backs only a number written with no unit. A wrong number, a wrong field, a
+   field that is null, a fraction cited for a percentage, a length in angstroms
+   cited as nanometres, a row that was never computed, or a real row with a
+   forged digest all fail, and the run stops with the guard's refusal.
+
+**What the guard proves, and what it does not.** It proves that a quoted number
+is the one a tool produced in this run, in the unit the tool gave it. It does not
+prove that the tool answered the question that was asked: a value from an earlier
+call in the same run can be quoted for the wrong subject, so the trace shows each
+call's arguments beside its result for a reader to check. It does not prove that
+a calculation's inputs are true either. A calculation of a bare number
+(`calculate("87.5")`) only restates it, so a number cited to one is counted as
+*declared*, not verified, and the page says so. Text is read as a person reads
+it (full-width digits and signs, the angstrom and micro signs and digits of other
+scripts are normalised before matching), but number words ("ninety-nine
+percent") and units outside the list are not seen.
 
 A refusal from an agent ("the sequences are different lengths, so a Hamming
 distance is undefined") carries no value and no citation, so there is nothing a
@@ -145,7 +170,11 @@ The model can only **name an agent and pass strings**.
   A test over the modules' syntax trees keeps it so. The only file it reads is a
   shipped task, by id, from a fixed directory; the only directory it creates is
   the throwaway one `run_pipeline` works in, removed when the run ends (a test
-  checks that, including when the controller fails).
+  checks that, including when the controller fails). What `run_pipeline` *calls*
+  is the project's controller, which is not the engine's own code: it records
+  the machine it runs on and, natively, asks `git` for the current commit (a
+  failure there is caught). None of that appears in a result, the run is given
+  no network, and in a browser there is no process to start.
 * YAML in a task is parsed with the safe loader after anchors and aliases are
   refused, so a small document cannot expand into a large one.
 * The worker has no DOM. In WebAssembly there is no process to start and no raw
@@ -172,9 +201,13 @@ The result is `web/engine/manifest.json`: a SHA-256 for every file, how to
 install them, and a **self-test**: four agent calls whose answers the build
 computed natively. In the visitor's browser:
 
-* the browser checks the runtime's own downloads (the WebAssembly binary, the
-  standard library) against the manifest with subresource integrity, and the
-  installer checks every package and the project against it before installing;
+* the browser checks every download against the manifest with subresource
+  integrity (even on a connection without Web Crypto), and the installer checks
+  each file again before using it: the packages, the project, and the runtime's
+  two JavaScript modules (`pyodide.mjs`, `pyodide.asm.mjs`, 1.3 MB). Those two are
+  run from the very bytes that were checked, from a Blob URL, and are never
+  imported from their addresses; an `import()` would fetch the file again,
+  outside any check;
 * the engine is not "ready" until the four self-test calls return exactly what
   the build computed natively, so a runtime that does the sums differently is
   reported, not used;
@@ -184,9 +217,11 @@ computed natively. In the visitor's browser:
 All zips are stored, with sorted entries and fixed timestamps, so the same
 inputs give the same bytes on any machine and `--check` means something.
 
-The two small `.mjs` loader files are loaded as module scripts, which a browser
-cannot integrity-check from `import()`; they come from the same origin as the
-page's own scripts.
+The manifest covers the engine's files. The page's own scripts (the worker, the
+installer, the client) come from the same host as the page and are trusted as
+the page is: if that host cannot be trusted, nothing it serves can be, this
+engine included. What the check protects against is a stale cache, a half-updated
+deploy, or a file changed in transit or on a mirror.
 
 Upgrading anything is a change to `PINS` in the build script plus
 `python scripts/build_engine.py --update-lock`, which is a diff a reviewer can
@@ -216,8 +251,11 @@ browser*. Once it reports **RUNNING**:
 If the site was published without the engine, if the browser has no
 WebAssembly or workers, or if the engine does not match the page, the card says
 so and everything else keeps working. A call that runs longer than 60 s stops
-the worker (agents are stateless, so nothing is lost) and the next use starts a
-fresh one.
+the worker (agents are stateless, so nothing is lost), the card says so, and
+**Start** runs a fresh one. Nothing restarts it behind your back; until then the
+model is told the engine is not running and answers without it. Cancelling a
+start returns the card to OFF, and a worker that fails after it was running shows
+as an error with **Try again**.
 
 Measured here, in headless Chromium on a 4-thread sandbox: the engine starts in
 about 6.5 s (runtime 3.8 s, packages 0.6 s, project 2.4 s) and holds about
@@ -234,11 +272,16 @@ tested here.
   `run_pipeline` cannot get past a closed decision point: approving is a person's
   act, done on the command line.
 * The engine needs a browser with WebAssembly and module Web Workers, and a
-  host that serves `.mjs` as JavaScript and `.wasm` as `application/wasm`. The
-  card names the problem if the host does not. nginx:
-  `types { text/javascript mjs; application/wasm wasm; }`; Apache:
-  `AddType text/javascript .mjs` and `AddType application/wasm .wasm`;
-  Netlify and Cloudflare Pages read the `_headers` file the exporter writes.
+  host that serves `.wasm` as `application/wasm`. The card names the problem if
+  the host does not. nginx: `types { application/wasm wasm; }`; Apache:
+  `AddType application/wasm .wasm`; Netlify and Cloudflare Pages read the
+  `_headers` file the exporter writes. The type a host gives `.mjs` files does
+  not matter, because those two files are run from checked bytes.
+* If your host sends a `Content-Security-Policy`, the worker's `script-src` must
+  allow `blob:` (the runtime's two JavaScript modules are run from the bytes the
+  page checked, as Blob URLs) and `'wasm-unsafe-eval'` (it compiles
+  WebAssembly). Without them the card says so. GitHub Pages, Netlify and
+  Cloudflare Pages send no such header by default.
 
 ## Adding an agent
 
@@ -270,3 +313,12 @@ and compares them; `tests/engine-agents.test.cjs` drives the whole page stack
 (registry, citations, numeric guard) against the real engine with a scripted
 model. Without a build, the tests that need one are skipped; CI sets
 `EAGENT_REQUIRE_ENGINE=1` so a missing build fails instead.
+
+`tests/engine-browser.test.cjs` starts the real worker in Chromium against a host
+that can change a file's bytes or type. It checks what only a browser can: that
+the engine starts from checked bytes, that a loader module, a package or the
+project altered on the host is refused and its code never runs, that the type a
+host gives `.mjs` does not matter, and that cancelling a start returns the card
+to OFF. Nothing in the repository depends on a browser, so it is skipped unless
+Playwright and a Chromium are installed (`EAGENT_CHROMIUM` names the executable
+if Playwright cannot find it), and CI skips it.

@@ -18,7 +18,7 @@ const fakeManifest = {
   schema: "eagent.engine.manifest.v1", engine_schema: "eagent.engine.v1", python: "3.14.2", pyodide: "314.0.7", total_bytes: 1234,
   install: { wheels: [], site_packages_zips: [], project: "eagent-project.zip" },
   selftest: [{ agent: "wilson_interval", arguments: "{}", sha256: HEX }],
-  files: Object.fromEntries(["eagent-project.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"].map((name) => [name, { bytes: 1, sha256: HEX }])),
+  files: Object.fromEntries(["eagent-project.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"].map((name) => [name, { bytes: 1, sha256: HEX }])),
 };
 const json = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const served = (body = fakeManifest) => async (url) => {
@@ -130,7 +130,7 @@ test("calls need a running engine, validate their shape, and keep their order", 
   assert.deepEqual((await engine.catalog()).schema, "eagent.engine.v1");
 });
 
-test("a call that runs too long stops the worker, and the next use starts a fresh one", async () => {
+test("a call that runs too long stops the worker, says so, and a fresh start runs a new one", async () => {
   let hang = true;
   const workers = fakeWorkers((message, post) => (message.type === "call" && hang ? undefined : ok(message, post)));
   const engine = client(workers, { callTimeoutMs: 30 });
@@ -138,7 +138,8 @@ test("a call that runs too long stops the worker, and the next use starts a fres
   await assert.rejects(engine.call("align_sequences", "{}"), (error) => error.kind === "timeout" && /30 seconds|0 seconds|seconds/.test(error.message));
   assert.equal(workers.made[0].terminated, true, "the runaway worker is ended, not left running");
   assert.equal(engine.state.status, "idle");
-  assert.match(engine.state.note, /restarts on the next use/);
+  assert.match(engine.state.note, /Press Start to run it again/);
+  assert.doesNotMatch(engine.state.note, /restarts/, "nothing restarts it by itself, so the card must not say so");
   await assert.rejects(engine.call("wilson_interval", "{}"), (error) => error.kind === "not_ready");
   hang = false;
   await engine.load();
@@ -203,6 +204,72 @@ test("unload ends the worker and returns to idle", async () => {
   assert.equal(workers.made[0].terminated, true);
   assert.equal(engine.state.status, "idle");
   assert.equal(engine.state.info, null);
+});
+
+test("a worker that fails after it was running leaves the engine in error, not 'ready', and Try again works", async () => {
+  const workers = fakeWorkers(ok);
+  const engine = client(workers);
+  await engine.load();
+  assert.equal(engine.state.status, "ready");
+  const seen = [];
+  engine.subscribe((state) => seen.push(state.status));
+  // The browser reports an uncaught error inside the worker.
+  workers.made[0].onerror({ message: "Uncaught RangeError: out of memory" });
+  assert.equal(engine.state.status, "error", "the card must stop offering agents that cannot answer");
+  assert.equal(engine.state.error.kind, "worker");
+  assert.match(engine.state.error.message, /out of memory/);
+  assert.equal(engine.state.info, null);
+  assert.equal(workers.made[0].terminated, true);
+  await assert.rejects(engine.call("wilson_interval", "{}"), (error) => error.kind === "not_ready");
+  assert.notEqual(await engine.load().then(() => "restarted"), undefined);
+  assert.equal(engine.state.status, "ready", "load starts a fresh worker instead of returning the dead engine");
+  assert.equal(workers.made.length, 2);
+  // Starting again after a failure reads the manifest afresh (idle) before it loads.
+  assert.deepEqual(seen.filter((status, index, all) => all.indexOf(status) === index), ["error", "idle", "loading", "ready"]);
+});
+
+test("calls in flight when the worker fails are rejected, not left waiting", async () => {
+  const workers = fakeWorkers((message, post) => (message.type === "call" ? undefined : ok(message, post)));
+  const engine = client(workers, { callTimeoutMs: 60000 });
+  await engine.load();
+  const pending = engine.call("align_sequences", "{}");
+  await new Promise((resolve) => setImmediate(resolve));
+  workers.made[0].onerror({ message: "crashed" });
+  await assert.rejects(pending, (error) => error.kind === "worker");
+});
+
+test("cancelling a start returns to off, not to an error, and a start after it is not disturbed by it", async () => {
+  const workers = fakeWorkers(async (message, post, worker) => {
+    if (message.type !== "init") return ok(message, post);
+    // The first worker never finishes installing; a later one does.
+    return worker === workers.made[0] ? undefined : ok(message, post);
+  });
+  const engine = client(workers);
+  await engine.probe();
+  const seen = [];
+  engine.subscribe((state) => seen.push(state.status));
+  const first = engine.load();
+  const outcome = first.then(() => "started", (error) => error.kind);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(engine.state.status, "loading");
+  engine.unload();
+  assert.equal(engine.state.status, "idle");
+  assert.equal(workers.made[0].terminated, true);
+  assert.equal(await outcome, "stopped", "the cancelled start reports that it was stopped");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(engine.state.status, "idle", "and its failure handler does not turn the cancel into an error");
+  assert.equal(engine.state.error, null);
+  assert.ok(!seen.includes("error"), `the card never showed a failure: ${seen}`);
+
+  // Cancel, then start again before the cancelled start has finished failing.
+  const second = engine.load();
+  engine.unload();
+  const third = engine.load();
+  assert.equal(await second.then(() => "started", (error) => error.kind), "stopped");
+  const info = await third;
+  assert.equal(engine.state.status, "ready");
+  assert.equal(info.python, "3.14.2");
+  assert.equal(workers.made.at(-1).terminated, false, "the cancelled start must not end the worker that replaced it");
 });
 
 test("the device readout reports what the browser exposes and claims nothing else", async () => {

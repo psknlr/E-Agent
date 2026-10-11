@@ -79,7 +79,7 @@
         unsupported: current.error ? current.error.message : 'This browser cannot run the engine.',
         absent: `${current.note || 'The engine files are not part of this site.'} Evidence lookups and the calculator still work.`,
         nocatalog: 'The agent catalog (agent-catalog.json) did not load, so compute agents cannot be offered. Reload the page.',
-        idle: 'Runs the project\'s own Python on this device\'s CPU, as WebAssembly, in a worker thread. '
+        idle: `${current.note ? current.note + ' ' : ''}Runs the project\'s own Python on this device\'s CPU, as WebAssembly, in a worker thread. `
           + `One download of ${size}; after that your browser keeps the files and only re-checks them. Nothing you type is sent anywhere by it.`,
         loading: 'Starting the Python runtime on this device. Every file is checked against the build manifest before it is used.',
         verifying: 'The engine started. Checking that it holds exactly the agents this page was published with.',
@@ -112,8 +112,8 @@
           ['Runtime', `Python ${info.python} · Pyodide ${info.pyodide}`],
           ['Agents', `${info.agents.length} compute agents`],
           ['Integrity', info.integrity === 'verified'
-            ? 'every file checked against its SHA-256'
-            : 'not checked: this connection has no Web Crypto (use HTTPS)'],
+            ? 'every engine file checked against its SHA-256'
+            : 'every engine file checked by the browser (this connection has no Web Crypto, so the page does not check again; use HTTPS)'],
           ['Self-test', `${info.selftest} calls match the native build`],
           ['Started in', `${seconds(info.timings.total_ms)} s`],
           ['Build', info.bundle_sha256.slice(0, 12)],

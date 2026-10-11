@@ -32,7 +32,11 @@ ALPHABETS = (
 )
 SPECIALS = ("", " ", "0", "-0", "1e999", "-1e999", "nan", "inf", "NaN", "1_0", "0x10", "1e-999", "9" * 400,
             "0,0,0", "0,0,0;0,0,0", "1,2", "a,b,c", "task_id: T1", "task_id: T1\nx: &a 1\ny: *a",
-            "KRED_PILOT_001", "../KRED_PILOT_001", "A" * 5000, "M" * 1201, "M" * 1200)
+            "KRED_PILOT_001", "../KRED_PILOT_001", "A" * 5000, "M" * 1201, "M" * 1200,
+            # Shapes that made a parser slow or deep rather than wrong. The first four
+            # held the worker for many seconds before they were fixed.
+            "1" + " " * 700 + "2" + " " * 700 + "x", "[" * 3000, "{" * 3000, "a: " + "[" * 2500,
+            "- " * 2000, "? " * 2000, " " * 3500 + "1", "1 " * 1900 + "x", '"' * 98 + " " + '"' * 98)
 
 
 def noise(rng: random.Random) -> str:
@@ -85,7 +89,8 @@ def arguments_for(rng: random.Random, spec: core.AgentSpec) -> str:
     """A JSON string that is usually an object over the agent's parameters, sometimes not."""
     roll = rng.random()
     if roll < 0.03:
-        return rng.choice(("", "null", "[]", "5", '"x"', "{", "{}}", "[1,2", "\u0000", "{\"a\":"))
+        return rng.choice(("", "null", "[]", "5", '"x"', "{", "{}}", "[1,2", "\u0000", "{\"a\":",
+                           "[" * 100000, '{"a":' * 20000))
     if roll < 0.55:
         chosen = dict(rng.choice(SEEDS[spec.name]))
         for _ in range(rng.choice((0, 1, 1, 2))):

@@ -60,10 +60,28 @@ MAX_VARIANTS = 40
 _CONFIDENCE_Z = {"0.90": 1.6448536269514722, "0.95": DEFAULT_WILSON_Z,
                  "0.99": 2.5758293035489004}
 
-_COORDINATE = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
-_POINT = re.compile(rf"\s*({_COORDINATE})\s*[,\s]\s*({_COORDINATE})\s*[,\s]\s*({_COORDINATE})\s*",
-                    re.ASCII)
+_COORDINATE = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", re.ASCII)
+#: Between two coordinates: one comma with any spaces around it, or spaces alone.
+#: The first draft of this grammar was one regular expression with
+#: ``\s*[,\s]\s*`` between the coordinates, whose three parts can share a run of
+#: spaces in as many ways as it is long, so a failed match took cubic time (a
+#: 1,400-character argument held the worker for 15 s). Splitting first and
+#: checking each piece is linear, and accepts and refuses exactly the same text.
+_SEPARATOR = re.compile(r"\s*,\s*|\s+", re.ASCII)
+_ASCII_SPACE = " \t\n\r\f\v"
 _VARIANT = re.compile(r"([A-Za-z])(\d{1,5})([A-Za-z])", re.ASCII)
+
+
+def _echo(text: str, limit: int) -> str:
+    """At most ``limit`` printable ASCII characters of ``text``, for a message.
+
+    A refusal may quote what it refused, but never more than a few characters and
+    never a character JSON would have to escape at six bytes apiece: the reply has
+    a fixed size, and what the caller sent is the one thing in it the caller controls.
+    """
+    text = re.sub(r"\s+", " ", text, flags=re.ASCII)
+    shown = "".join(char if " " <= char <= "~" and char not in "\"\\" else "?" for char in text[:limit])
+    return shown + ("..." if len(text) > limit else "")
 
 
 # ---------------------------------------------------------------------------
@@ -229,11 +247,11 @@ def _points(raw: str) -> list[tuple[float, float, float]]:
     chunks = [chunk for chunk in re.split(r"[;\n]", raw) if chunk.strip()]
     points: list[tuple[float, float, float]] = []
     for chunk in chunks:
-        found = _POINT.fullmatch(chunk)
-        if not found:
-            raise AgentRefusal(f"could not read {chunk.strip()!r} as three coordinates "
+        parts = _SEPARATOR.split(chunk.strip(_ASCII_SPACE))
+        if len(parts) != 3 or not all(_COORDINATE.fullmatch(part) for part in parts):
+            raise AgentRefusal(f"could not read {_echo(chunk.strip(), 60)!r} as three coordinates "
                                f"'x, y, z'; separate points with ';'")
-        point = tuple(float(part) for part in found.groups())
+        point = tuple(float(part) for part in parts)
         if any(abs(part) > 1e6 for part in point):
             raise AgentRefusal("coordinates must be within 1e6 angstroms of the origin")
         points.append(point)  # type: ignore[arg-type]
@@ -249,8 +267,8 @@ def _geometry(args: dict[str, str]) -> dict[str, Any]:
                                f"got {len(points)}")
         x, y, z = centroid(points)
         return {"measure": "centroid", "n_points": len(points),
-                "centroid_x": x, "centroid_y": y, "centroid_z": z,
-                "note": "Unweighted mean position, in the units of the input."}
+                "centroid_x_angstrom": x, "centroid_y_angstrom": y, "centroid_z_angstrom": z,
+                "note": "Unweighted mean position. Coordinates are taken as angstroms; no unit conversion happens."}
     needed = _POINTS_NEEDED[measure]
     if len(points) != needed:
         raise AgentRefusal(f"{measure} needs exactly {needed} points, got {len(points)}")
@@ -296,7 +314,7 @@ def _variant_check(args: dict[str, str]) -> dict[str, Any]:
     for token in tokens:
         found = _VARIANT.fullmatch(token)
         if not found:
-            checked.append({"label": token, "valid": False,
+            checked.append({"label": _echo(token, 16), "valid": False,
                             "error": "not of the form <residue><position><residue>"})
             continue
         wild_type, position, mutant = found.group(1).upper(), int(found.group(2)), found.group(3).upper()

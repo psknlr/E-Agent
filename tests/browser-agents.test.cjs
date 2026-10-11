@@ -60,6 +60,10 @@ test("the catalog the page ships is well formed and cannot shadow a reference to
     (c) => { c.schema = "x"; }, (c) => { c.artifact = "other"; }, (c) => { c.agents = []; }, (c) => { c.agents[0].name = "Bad Name"; },
     (c) => { c.agents.push(c.agents[0]); }, (c) => { c.agents[0].parameters = { a: 1 }; }, (c) => { c.agents[0].max_chars = { nope: 5 }; },
     (c) => { c.limits.max_arg_chars = 0; }, (c) => { c.tasks = [1]; }, (c) => { delete c.pipeline; },
+    // The pipeline map is drawn from these fields.
+    (c) => { c.pipeline = [{}]; }, (c) => { c.pipeline = [null]; }, (c) => { c.pipeline[0].interface = 5; },
+    (c) => { c.pipeline[0].runs_in_browser = "sometimes"; }, (c) => { c.pipeline[0].note = null; }, (c) => { c.pipeline[0].order = "1"; },
+    (c) => { c.pipeline[0].order = 0; }, (c) => { c.pipeline[0].interface = "Not A Name"; },
   ]) {
     const copy = plain(catalog);
     mutate(copy);
@@ -208,6 +212,85 @@ test("the numeric guard checks a computed number against the field it cites, and
   assert.equal(fresh.clean, false, "rows belong to the run that computed them");
 });
 
+test("a computed number is backed only by a field in its own unit and scale", async () => {
+  const GEOMETRY = { measure: "distance", distance_angstrom: 5, angle_degrees: 104.5, n_points: 2, centroid_x_angstrom: 1 };
+  const WILSON = { successes: 7, trials: 20, proportion: 0.35, lower: 0.18119182410108206, upper: 0.5671457233147638, confidence: 0.95,
+    proportion_percent: 35, lower_percent: 18.119182410108206, upper_percent: 56.714572331476376, confidence_percent: 95 };
+  const { agents } = composed(engineOf((agent) => envelope(agent, agent === "align_sequences" ? ALIGN : agent === "geometry_measure" ? GEOMETRY : WILSON)));
+  const align = await agents.execute(call("align_sequences", { sequence_a: SEQ_A, sequence_b: SEQ_B }));
+  const geometry = await agents.execute(call("geometry_measure", { measure: "distance", points: "0,0,0; 3,4,0" }));
+  const wilson = await agents.execute(call("wilson_interval", { successes: "7", trials: "20" }));
+  const sentence = (written, result, field) => `The value is ${written} ${citation(result, field)}.`;
+
+  for (const [written, result, field] of [
+    ["91 percent", align, "identity_percent_over_aligned_columns"], ["90.9 %", align, "identity_percent_over_aligned_columns"],
+    ["5 Å", geometry, "distance_angstrom"], ["5.0 A", geometry, "distance_angstrom"], ["5 angstroms", geometry, "distance_angstrom"], ["1 Å", geometry, "centroid_x_angstrom"],
+    ["104.5°", geometry, "angle_degrees"], ["104.5 degrees", geometry, "angle_degrees"], ["56.7 %", wilson, "upper_percent"], ["95 %", wilson, "confidence_percent"],
+    // No unit is claimed, so none is checked: the number is still checked against the field.
+    ["0.909", align, "identity_over_aligned_columns"], ["7", wilson, "successes"],
+  ]) {
+    const report = agents.inspect(sentence(written, result, field));
+    assert.equal(report.clean, true, `${written} / ${field}: ${report.broken_citations}`);
+    assert.equal(report.verified_quantities.length, 1, written);
+  }
+
+  for (const [written, result, field] of [
+    // a fraction is not a percentage, whatever it rounds to
+    ["0.91 %", align, "identity_over_aligned_columns"], ["0.9 percent", align, "identity_over_aligned_columns"], ["1 %", align, "identity_over_aligned_columns"],
+    ["1 percent", wilson, "upper"], ["0 percent", wilson, "lower"], ["1 %", wilson, "confidence"], ["0.35 %", wilson, "proportion"],
+    // a count is not a percentage
+    ["7 %", wilson, "successes"], ["20 %", wilson, "trials"], ["20 %", align, "identical_columns"],
+    // a length in angstroms is not a length in nanometres, an energy or an angle
+    ["5 nm", geometry, "distance_angstrom"], ["5 degrees", geometry, "distance_angstrom"], ["5 kcal/mol", geometry, "distance_angstrom"],
+    ["104.5 Å", geometry, "angle_degrees"], ["104.5°", geometry, "distance_angstrom"],
+    // zero to the nearest hundred thousand is every small number
+    ["0e5 percent", align, "identity_percent_over_aligned_columns"],
+  ]) {
+    const report = agents.inspect(sentence(written, result, field));
+    assert.equal(report.clean, false, `${written} / ${field} should be refused`);
+    assert.deepEqual(report.verified_quantities, [], written);
+  }
+  const hint = agents.inspect(sentence("0.91 %", align, "identity_over_aligned_columns")).broken_citations.join();
+  assert.match(hint, /cite the field ending _percent/, "the refusal says how to fix it");
+});
+
+test("every numeric field the engine really returns carries its unit in its name, and each percentage is its fraction times 100", () => {
+  // The guard reads a field's unit from its name, so a field named otherwise would
+  // be a number the guard could not tell from a count. This runs the real agents.
+  const { execFileSync } = require("node:child_process");
+  const calls = [
+    ["align_sequences", { sequence_a: SEQ_A, sequence_b: SEQ_B }], ["align_sequences", { sequence_a: "MKTAYIAKQRQISF", sequence_b: "MKTAYIAKQR", match: "3", mismatch: "-2", gap_open: "8", gap_extend: "1" }],
+    ["sequence_distance", { sequence_a: "ACDEFGHIK", sequence_b: "ACDEFGHIR", method: "hamming" }], ["sequence_distance", { sequence_a: "MKTAYIAKQR", sequence_b: "MKTAYLAKQR", method: "kmer_jaccard", k: "3" }],
+    ["wilson_interval", { successes: "7", trials: "20" }], ["wilson_interval", { successes: "0", trials: "5", confidence: "0.99" }],
+    ["geometry_measure", { measure: "distance", points: "0,0,0; 3,4,0" }], ["geometry_measure", { measure: "angle", points: "1,0,0; 0,0,0; 0,1,0" }],
+    ["geometry_measure", { measure: "dihedral", points: "1,0,0; 0,0,0; 0,1,0; 0,1,1" }], ["geometry_measure", { measure: "centroid", points: "0,0,0; 2,0,0; 1,3,0" }],
+    ["variant_check", { sequence: "MKTAYIAKQR", variants: "K2A, T3S, Y9F" }], ["pipeline_catalog", {}],
+    ["task_gate_report", { task: catalog.tasks[0] }], ["run_pipeline", { task: catalog.tasks[0] }],
+  ].map(([agent, args]) => [agent, JSON.stringify(args)]);
+  const replies = JSON.parse(execFileSync("python3", [path.join(project, "tests/fixtures/engine_native.py")], {
+    input: JSON.stringify(calls), encoding: "utf8", env: { ...process.env, PYTHONPATH: path.join(project, "src") },
+  })).map((text) => JSON.parse(text));
+  assert.deepEqual(new Set(replies.map((reply) => reply.agent)), new Set(catalog.agents.map((agent) => agent.name)), "every agent is exercised");
+  // A name that mentions a unit the guard does not know would be read as unitless.
+  const UNITISH = /(^|[._])(nm|pm|um|mm|nanomolar|micromolar|molar|kcal|kj|mol|ev|deg|degree|pct|angstroms|celsius|kelvin)([._]|$)/i;
+  const seen = { percent: 0, angstrom: 0, degrees: 0, plain: 0 };
+  for (const reply of replies) {
+    assert.equal(reply.ok, true, JSON.stringify(reply));
+    const numbers = new Map(Agents.leaves(reply.value).filter(([, leaf]) => typeof leaf === "number"));
+    for (const [name, leaf] of numbers) {
+      assert.doesNotMatch(name, UNITISH, `${reply.agent}.${name} names a unit the guard does not know`);
+      const unit = Tools.fieldUnit(name);
+      seen[unit || "plain"] += 1;
+      assert.equal(unit === "percent", /(^|[._])percent([._]|$)/.test(name), name);
+      if (unit !== "percent") continue;
+      const twin = name.replace(/(^|[._])percent(?=[._]|$)/, "").replace(/__+/g, "_").replace(/^[._]|[._]$/g, "");
+      assert.ok(numbers.has(twin), `${reply.agent}.${name} has no fraction ${twin}`);
+      assert.ok(Math.abs(numbers.get(twin) * 100 - leaf) <= 1e-9 * Math.max(1, Math.abs(leaf)), `${reply.agent}.${name} is not ${twin} * 100`);
+    }
+  }
+  assert.ok(seen.percent >= 10 && seen.angstrom >= 4 && seen.degrees >= 2 && seen.plain >= 20, JSON.stringify(seen));
+});
+
 test("nested results are citable by path, and withheld values cannot license a number", async () => {
   const nested = { n_variants: 2, variants: [{ label: "K2A", position: 2, valid: true }, { label: "T3S", position: 3, valid: true }], missing: null, flag: false };
   const { agents } = composed(engineOf((agent) => envelope(agent, nested)));
@@ -258,6 +341,9 @@ test("the live engine must offer exactly the agents the page was published with"
   assert.match(Agents.matchesEngine(catalog, extra).join(), /surprise that this page does not list/);
   const changed = live(); changed.agents[0].parameters = { other: "x" };
   assert.match(Agents.matchesEngine(catalog, changed).join(), /different parameters/);
+  const keys = Object.keys(catalog.agents[0].parameters);
+  const meaning = live(); meaning.agents[0].parameters[keys[0]] += " (now measured in nanometres)";
+  assert.match(Agents.matchesEngine(catalog, meaning).join(), /different parameters/, "a parameter whose description changed is a different contract");
   const reworded = live(); reworded.agents[0].description += " (changed)";
   assert.match(Agents.matchesEngine(catalog, reworded).join(), /described differently/);
   const limits = live(); limits.limits.max_result_bytes = 1;
@@ -469,4 +555,37 @@ test("Run in browser answers a compute question with no model and no network", a
   assert.match(run.transcript.caveat, /Compute agents ran the project’s own Python code on this device/);
   const plain_ = await runtime.local({ message: "list the structures" });
   assert.match(plain_.answer, /Ran 1 stored-reference tool in this browser\./, "without compute the wording is unchanged");
+});
+
+test("the compute caveat is shown only when a compute agent produced a result", async () => {
+  const engine = engineOf(standard);
+  // Offered, never called: the model answers from nothing.
+  const quiet = runtimeWith(() => turn({ reasoning: "Nothing to look up." }));
+  const idle = await quiet.runtime.chat({ message: question, model_config: modelConfig, compute: { engine, catalog } });
+  assert.equal(idle.completion_verified, true);
+  assert.doesNotMatch(idle.transcript.caveat, /Compute agents ran/, "offering an agent is not running one");
+  assert.deepEqual(engine.calls, []);
+
+  // Called, and it refused: no value was produced, so nothing "ran" in the sense the caveat claims.
+  const refusing = engineOf(() => refusal("align_sequences", "invalid", "not scripted"));
+  const asked = runtimeWith((count) => count === 1
+    ? turn({ reasoning: "Align them.", tool_calls: [{ interface: "align_sequences", arguments: { sequence_a: SEQ_A, sequence_b: SEQ_B }, rationale: "r" }] })
+    : turn({ reasoning: "The agent declined." }));
+  const declined = await asked.runtime.chat({ message: question, model_config: modelConfig, compute: { engine: refusing, catalog } });
+  assert.equal(declined.transcript.turns[0].results[0].ok, false);
+  assert.match(declined.transcript.caveat, /Compute agents ran/, "a refusal still came from the engine on this device");
+
+  // A run that fails after a compute agent ran says so; one that fails before does not.
+  const failing = runtimeWith((count) => count === 1
+    ? turn({ reasoning: "Align them.", tool_calls: [{ interface: "align_sequences", arguments: { sequence_a: SEQ_A, sequence_b: SEQ_B }, rationale: "r" }] })
+    : turn({ reasoning: "It is 99 percent identical." }));
+  const error = await failing.runtime.chat({ message: question, model_config: modelConfig, compute: { engine, catalog } }).catch((caught) => caught);
+  assert.match(error.data.transcript.caveat, /Compute agents ran/);
+  const early = runtimeWith(() => turn({ reasoning: "It is 99 percent identical." }));
+  const before = await early.runtime.chat({ message: question, model_config: modelConfig, compute: { engine, catalog } }).catch((caught) => caught);
+  assert.doesNotMatch(before.data.transcript.caveat, /Compute agents ran/);
+
+  // Run in browser: a question that only reaches the stored tools does not claim compute.
+  const stored = await quiet.runtime.local({ message: "list the structures", compute: { engine, catalog } });
+  assert.doesNotMatch(stored.transcript.caveat, /Compute agents ran/);
 });

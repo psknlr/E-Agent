@@ -194,6 +194,79 @@ class IdentifiersAreNotMeasurements(_WithTable):
         self.assertEqual(stolen.uncited_quantities, ["3.6 A"])
 
 
+class UnitsAsTheyAreActuallyWritten(_WithTable):
+    """A measurement does not escape the guard by how its unit is typed.
+
+    The unit list had ``A`` for angstrom and ``degrees`` for an angle, which is
+    not how either is written in a structure paper: ``7.3 Å`` and ``104.5°``
+    asked for no citation at all, and neither did a percentage typed with a
+    full-width sign (common in Chinese-language replies) or a micromolar value
+    with the micro sign. These mirror tests/browser-tools.test.cjs.
+    """
+
+    def caught(self, text: str) -> list[str]:
+        return self.guard.inspect(text).uncited_quantities
+
+    def test_the_angstrom_sign_in_either_form(self) -> None:
+        self.assertEqual(self.caught("The distance is 7.3 Å."), ["7.3 Å"])
+        self.assertEqual(self.caught("The distance is 7.3 Å."), ["7.3 Å"])
+        self.assertEqual(self.caught("The distance is 7.3Å."), ["7.3 Å"])
+        # A + combining ring above is the same character to a reader.
+        self.assertEqual(self.caught("The distance is 7.3 Å."), ["7.3 Å"])
+
+    def test_a_lowercase_a_ring_is_still_an_identifier(self) -> None:
+        self.assertEqual(self.caught("Substrate 2å is not a distance."), [])
+
+    def test_the_degree_sign(self) -> None:
+        self.assertEqual(self.caught("The angle is 104.5° at the vertex."), ["104.5 °"])
+
+    def test_the_micro_sign_and_the_greek_letter(self) -> None:
+        self.assertEqual(self.caught("The Km is 12.5 µM."), ["12.5 μM"])
+        self.assertEqual(self.caught("The Km is 12.5 μM."), ["12.5 μM"])
+
+    def test_pct_and_per_cent(self) -> None:
+        self.assertEqual(self.caught("Identity is 99.9 pct."), ["99.9 pct"])
+        self.assertEqual(self.caught("Identity is 99.9 per cent."), ["99.9 per cent"])
+
+    def test_full_width_and_other_script_digits_are_read_as_the_number(self) -> None:
+        self.assertEqual(self.caught("Identity is ９９．９％."), ["99.9 %"])
+        self.assertEqual(self.caught("Identity is ٩٩ %."), ["99 %"])
+        self.assertEqual(self.caught("Identity is ९९ %."), ["99 %"])
+
+    def test_a_range_written_with_a_hyphen_still_holds_a_quantity(self) -> None:
+        self.assertEqual(self.caught("Identity is 80-95 percent."), ["95 percent"])
+
+    def test_a_full_width_citation_still_checks_the_number(self) -> None:
+        # The reader sees 3.6 Å and a citation; the guard must see the same.
+        text = f"The distance is ３．６ Å {cite('distance_A', 'rounded')}."
+        report = self.guard.inspect(text)
+        self.assertEqual((report.uncited_quantities, report.verified_quantities), ([], ["3.6 Å"]))
+        wrong = self.guard.inspect(f"The distance is ４．６ Å {cite('distance_A', 'rounded')}.")
+        self.assertEqual(len(wrong.broken_citations), 1)
+
+
+class ALongReplyIsNotARiskToTheGuard(_WithTable):
+    """Whatever a model sends, the guard answers in time.
+
+    A run of ``[cite `` openers with no closing bracket used to be rescanned to
+    the end of the text at every opener, which is quadratic in the reply.
+    """
+
+    def test_unterminated_openers_are_linear(self) -> None:
+        import time
+        for text in ("[cite " * 20000, "[artifact:" * 12000, "[cite " + "a" * 60000,
+                     "[cite a=" + "a" * 60000 + "]"):
+            with self.subTest(length=len(text)):
+                started = time.perf_counter()
+                self.guard.inspect(text)
+                self.assertLess(time.perf_counter() - started, 2.0)
+
+    def test_a_citation_longer_than_any_real_one_is_not_a_citation(self) -> None:
+        body = "x" * 600
+        report = self.guard.inspect(f"The pLDDT is 42 pLDDT [cite {body}].")
+        self.assertEqual(report.uncited_quantities, ["42 pLDDT"])
+
+
 class DerivedValues(_WithTable):
     def test_a_derivation_is_accepted_but_counted_as_unchecked(self) -> None:
         text = f"The ratio is 2 % {cite('plddt', 'derived:plddt/21')}."

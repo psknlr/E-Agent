@@ -317,7 +317,7 @@ project's own Python compiled to WebAssembly, on the visitor's CPU (alignment,
 sequence distance, Wilson intervals, geometry, variant checks, task gate reports,
 the pipeline capability map and a run of the project's own controller up to its
 first human decision point), and each number a model quotes from them is
-checked against the exact result that computed it. Three of the pipeline's ten
+checked against the exact result that computed it, in the unit that result gives. Three of the pipeline's ten
 steps cannot run in a browser at all and two only partly; they are reported as
 unavailable, never imitated, and no agent uses the GPU or NPU. See [`docs/ENGINE.md`](docs/ENGINE.md). An
 optional Python backend runs the original `ToolLoop` and reference readers.

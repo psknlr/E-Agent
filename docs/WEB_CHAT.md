@@ -57,7 +57,8 @@ actual Python reference loaders. Their refused quantities, missing values,
 detection limits, source citations and independence groups are preserved.
 Arithmetic is performed by a bounded expression parser, not by executing model
 code. Model numbers are checked against tool citations, including numbers from
-compute agents, which are checked against the exact result that computed them.
+compute agents, which are checked against the exact result that computed them
+and in the unit that result gives (a fraction cannot be quoted as a percentage).
 This mode supports reference queries, arithmetic and the compute agents;
 sequence search, structure prediction, docking, the full pipeline and
 experimental approvals remain in the CLI. The page shows which of the pipeline's

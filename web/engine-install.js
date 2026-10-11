@@ -71,7 +71,7 @@
     for (const name of [...install.wheels, ...install.site_packages_zips, install.project]) {
       if (!Object.prototype.hasOwnProperty.call(files, name)) fail(`installs ${name}, which it does not list`);
     }
-    for (const name of ['pyodide/pyodide.mjs', 'pyodide/pyodide.asm.wasm', 'pyodide/python_stdlib.zip']) {
+    for (const name of ['pyodide/pyodide.mjs', 'pyodide/pyodide.asm.mjs', 'pyodide/pyodide.asm.wasm', 'pyodide/python_stdlib.zip']) {
       if (!Object.prototype.hasOwnProperty.call(files, name)) fail(`does not list ${name}`);
     }
     if (!Array.isArray(manifest.selftest) || !manifest.selftest.length) fail('has no self-test');
@@ -105,13 +105,22 @@
 
   // Install the engine and return the two functions the rest of the page uses.
   //
-  //   loadPyodide  async (options) => pyodide      the runtime's loader
+  //   loadPyodide  async (options, manifest, modules) => pyodide
+  //                the runtime's loader. `modules` holds the bytes of its two
+  //                JavaScript modules ({runtime, asm}), already checked against
+  //                the manifest. The caller runs those bytes, and does not
+  //                import the modules from their URLs, so the code that runs is
+  //                the code that was checked.
   //   indexURL     where the runtime's files are
   //   readBytes    async (name) => Uint8Array      a file of the build, by manifest name
   //   manifest     the parsed manifest.json
   //   onProgress   ({stage, label}) => void
-  async function install({loadPyodide, indexURL, readBytes, manifest, onProgress = () => {}}) {
+  //   prepare      (manifest) => void, called once the manifest is valid and before any
+  //                file is read, so a caller can arrange the browser's own check of
+  //                every download to use the manifest's hashes
+  async function install({loadPyodide, indexURL, readBytes, manifest, onProgress = () => {}, prepare = () => {}}) {
     validateManifest(manifest);
+    prepare(manifest);
     const started = now();
     const timings = {};
     let mark = started;
@@ -138,7 +147,11 @@
     onProgress({stage: 'runtime', label: 'Starting the Python runtime (WebAssembly)'});
     const output = [];
     const keep = line => { if (output.length < 40) output.push(String(line)); };
-    const pyodide = await loadPyodide({indexURL, stdout: keep, stderr: keep}, manifest);
+    // The runtime's two JavaScript modules are read and checked like every other
+    // file, then handed over as bytes. A module imported from its URL would be
+    // fetched again, outside this check, and run without it.
+    const modules = {runtime: await read('pyodide/pyodide.mjs'), asm: await read('pyodide/pyodide.asm.mjs')};
+    const pyodide = await loadPyodide({indexURL, stdout: keep, stderr: keep}, manifest, modules);
     lap('runtime_ms');
 
     const site = pyodide.runPython('import sysconfig\nsysconfig.get_path("purelib")');
@@ -202,7 +215,7 @@
 
   // The message handler both the worker and the tests use. One engine per host;
   // `post` carries progress, the returned value is the reply to one message.
-  function createHost({loadPyodide, indexURL, readBytes, post = () => {}}) {
+  function createHost({loadPyodide, indexURL, readBytes, prepare, post = () => {}}) {
     let engine = null;
     let starting = null;
     const reply = (message, extra) => Object.assign({id: message.id}, extra);
@@ -218,7 +231,7 @@
           if (engine) return reply(message, {type: 'ready', info: engine.info});
           if (!starting) {
             starting = install({
-              loadPyodide, indexURL, readBytes, manifest: message.manifest,
+              loadPyodide, indexURL, readBytes, prepare, manifest: message.manifest,
               onProgress: progress => post(reply(message, {type: 'progress', ...progress})),
             }).then(
               ready => { engine = ready; return ready; },

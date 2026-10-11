@@ -2,8 +2,9 @@
  *
  * The engine is the project's Python running as WebAssembly in a Web Worker, so
  * the page never blocks on it and a call that runs away can be cancelled by
- * ending the worker. Agents are stateless, which is what makes that safe: the
- * next call starts a fresh worker and nothing is lost.
+ * ending the worker. Agents are stateless, which is what makes that safe: nothing
+ * is lost, and pressing Start (load) runs a fresh worker. The client does not
+ * restart one on its own; the card says the engine stopped and why.
  *
  * Nothing here talks to a model or a network other than this site's own files.
  */
@@ -77,6 +78,10 @@
     let worker = null;
     let sequence = 0;
     let loading = null;
+    // Every start, and every unload, begins a new generation. A start still in
+    // flight when the user cancels it belongs to an older one, and must not touch
+    // the state or the worker of whatever came after.
+    let generation = 0;
     let queue = Promise.resolve();
     let state = {status: 'unknown', manifest: null, info: null, progress: null, error: null, note: ''};
 
@@ -109,6 +114,13 @@
         worker = null;
       }
       settleAll(error || new EngineClientError('stopped', 'The engine was stopped.'));
+    }
+
+    // The worker broke after it was up (or while it started): end it and say so,
+    // so the card stops offering agents that can no longer answer.
+    function fail(error) {
+      stop(error);
+      set({status: 'error', info: null, progress: null, error: {kind: error.kind || 'engine', message: error.message}});
     }
 
     function request(message, {timeoutMs, onTimeout}) {
@@ -171,6 +183,8 @@
     async function load() {
       if (state.status === 'ready') return state.info;
       if (loading) return loading;
+      const mine = ++generation;
+      const current = () => mine === generation;
       loading = (async () => {
         const problem = supported();
         if (problem) throw new EngineClientError('unsupported', problem);
@@ -190,7 +204,7 @@
         // A worker script that cannot load (wrong path, blocked, bad MIME type) fires
         // only this; without it the page would wait out the whole time-out.
         worker.onerror = event => {
-          stop(new EngineClientError('worker', `The engine worker failed: ${event && event.message ? event.message
+          fail(new EngineClientError('worker', `The engine worker failed: ${event && event.message ? event.message
             : 'it could not be loaded. Check that engine-worker.js is published next to index.html.'}`));
         };
         const reply = await request({type: 'init', manifest: state.manifest}, {
@@ -200,10 +214,13 @@
         set({status: 'ready', info: reply.info, progress: null, error: null, note: ''});
         return reply.info;
       })().catch(error => {
-        stop(error);
-        set({status: 'error', progress: null, error: {kind: error.kind || 'engine', message: error.message}});
+        // A start the user cancelled leaves the state the cancel set: off, not failed.
+        if (current()) {
+          stop(error);
+          set({status: 'error', progress: null, error: {kind: error.kind || 'engine', message: error.message}});
+        }
         throw error;
-      }).finally(() => { loading = null; });
+      }).finally(() => { if (current()) loading = null; });
       return loading;
     }
 
@@ -220,7 +237,7 @@
           timeoutMs: env.callTimeoutMs,
           onTimeout: error => {
             stop(error);
-            set({status: 'idle', info: null, note: 'The engine was stopped after a call ran too long. It restarts on the next use.'});
+            set({status: 'idle', info: null, note: 'The engine was stopped after a call ran too long. Press Start to run it again.'});
           },
         });
         return reply.json;
@@ -232,11 +249,16 @@
 
     async function catalog() {
       if (state.status !== 'ready') throw new EngineClientError('not_ready', 'The engine is not running.');
-      const reply = await request({type: 'catalog'}, {timeoutMs: env.callTimeoutMs, onTimeout: error => { stop(error); set({status: 'idle', info: null}); }});
+      const reply = await request({type: 'catalog'}, {timeoutMs: env.callTimeoutMs, onTimeout: error => {
+        stop(error);
+        set({status: 'idle', info: null, note: 'The engine stopped answering and was stopped. Press Start to run it again.'});
+      }});
       return JSON.parse(reply.json);
     }
 
     function unload() {
+      generation += 1;
+      loading = null;
       stop(new EngineClientError('stopped', 'The engine was unloaded.'));
       if (state.manifest) set({status: 'idle', info: null, progress: null, error: null, note: ''});
     }

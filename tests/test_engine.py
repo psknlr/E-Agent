@@ -17,12 +17,17 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import itertools
 import json
 import pathlib
+import random
+import re
+import time
 import unittest
 
 import eagent.engine as engine
 from eagent.engine import core
+from eagent.engine.core import AgentRefusal
 from eagent.engine.agents import MAX_ALIGNMENT_TEXT, MAX_SEQUENCE
 from eagent.engine.pipeline import BROWSER_STATUS, pipeline_table
 from eagent.harness.approval import DECISION_POINTS
@@ -122,7 +127,7 @@ class TheEnvelope(unittest.TestCase):
         core.register(spec)
         result = run("_big")
         self.assertEqual((result["ok"], result["kind"]), (False, "internal"))
-        self.assertIn("not reported rather than clipped", result["refusal"])
+        self.assertIn("refused rather than clipped", result["refusal"])
 
     def test_a_bug_is_reported_as_one_and_never_becomes_a_number(self) -> None:
         def broken(args):
@@ -321,7 +326,7 @@ class GeometryMeasure(unittest.TestCase):
         self.assertEqual(value_of("geometry_measure", measure="distance", points="0,0,0; 3,4,0")["distance_angstrom"], 5.0)
         self.assertAlmostEqual(value_of("geometry_measure", measure="angle", points="1,0,0; 0,0,0; 0,1,0")["angle_degrees"], 90.0)
         centre = value_of("geometry_measure", measure="centroid", points="0,0,0; 2,0,0; 0,4,0")
-        self.assertEqual((centre["centroid_x"], centre["centroid_y"], centre["centroid_z"]), (2 / 3, 4 / 3, 0.0))
+        self.assertEqual((centre["centroid_x_angstrom"], centre["centroid_y_angstrom"], centre["centroid_z_angstrom"]), (2 / 3, 4 / 3, 0.0))
 
     def test_the_sign_of_a_torsion_is_kept(self) -> None:
         up = value_of("geometry_measure", measure="dihedral", points="0,0,0; 1,0,0; 1,1,0; 1,1,1")["dihedral_degrees"]
@@ -547,6 +552,18 @@ class RunPipeline(unittest.TestCase):
         self.assertEqual(value["n_steps_run"], 1)
         self.assertEqual([item["gate"] for item in value["waiting_on"]], ["reaction_spec_confirmed"])
 
+    def test_nor_are_flags_for_every_decision_point(self) -> None:
+        # An interface's own `require_approval` honours a flag in the file, so what
+        # keeps a flag from doing anything here is the controller stopping at its
+        # first decision point, before any later interface is reached. Setting all
+        # three flags tests exactly that dependency on the order of the stages.
+        value = value_of("run_pipeline", task_yaml=self.specified(
+            reaction_spec_confirmed=True, synthesis_authorized=True, functional_criteria_confirmed=True))
+        self.assertEqual(value["outcome"], "awaiting_human")
+        self.assertEqual(value["n_steps_run"], 1)
+        self.assertEqual([step["interface"] for step in value["steps"]], ["normalize_reaction"])
+        self.assertEqual([item["gate"] for item in value["waiting_on"]], ["reaction_spec_confirmed"])
+
     def test_the_same_call_gives_the_same_answer_and_the_same_hash(self) -> None:
         first, second = run("run_pipeline", task=PILOT), run("run_pipeline", task=PILOT)
         self.assertEqual(first["value"], second["value"])
@@ -615,6 +632,120 @@ class RunPipeline(unittest.TestCase):
         self.assertEqual(report["n_uncertainties"], 9 * 40)
         self.assertLess(len(report["steps"]), 9)
         self.assertLessEqual(len(report["path"]), 12)
+
+
+class TheResultCarriesNothingAboutTheMachine(unittest.TestCase):
+    """The controller records where it ran; the engine's reply must not repeat it."""
+
+    def test_run_pipeline_does_not_report_the_host_the_platform_or_a_path(self) -> None:
+        import platform
+        import socket
+        import tempfile
+        text = engine.call("run_pipeline", json.dumps({"task": PILOT}))
+        for needle in (socket.gethostname(), platform.platform(), platform.node(), tempfile.gettempdir(),
+                       str(pathlib.Path.home()), str(ROOT_DIR), "rev-parse", "hostname"):
+            if len(needle) > 3:
+                self.assertNotIn(needle, text, needle)
+
+
+class AnArgumentCannotBurnTheWorker(unittest.TestCase):
+    """What a model sends is bounded in length, and must be bounded in time too.
+
+    The argument limit stops a long argument, not a slow one: an ambiguous
+    regular expression or a quadratic scanner turns a few thousand characters
+    into many seconds, and a call past the page's 60 s clock kills the worker and
+    turns the engine off. Each case below was measured before it was fixed.
+    """
+
+    def timed(self, name, **arguments):
+        started = time.perf_counter()
+        result = run(name, **arguments)
+        elapsed = time.perf_counter() - started
+        self.assertLess(elapsed, 1.5, f"{name} took {elapsed:.1f} s on {str(arguments)[:60]!r}")
+        return result
+
+    def test_runs_of_spaces_between_coordinates_are_linear(self) -> None:
+        for points in ("1" + " " * 700 + "2" + " " * 700 + "x", "1" + " " * 1900 + "2" + " " * 1900,
+                       " " * 3990 + "1", ",".join(["1"] * 1900), "1 " * 1900 + "x", "1" + " ," * 1000 + "2"):
+            result = self.timed("geometry_measure", measure="distance", points=points)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["kind"], "refused", points[:20])
+
+    def test_the_point_grammar_accepts_and_refuses_what_the_old_expression_did(self) -> None:
+        from eagent.engine.agents import _COORDINATE, _points
+        coordinate = _COORDINATE.pattern
+        old = re.compile(rf"\s*({coordinate})\s*[,\s]\s*({coordinate})\s*[,\s]\s*({coordinate})\s*", re.ASCII)
+
+        def new(chunk):
+            try:
+                return [list(point) for point in _points(chunk)]
+            except AgentRefusal as exc:
+                if "could not read" in str(exc):
+                    return None
+                return "out of range"
+
+        def agree(chunk):
+            found = old.fullmatch(chunk)
+            got = new(chunk)
+            if not chunk.strip(" \t\n\r\f\v") or ";" in chunk:
+                return
+            self.assertEqual(found is not None, got is not None, repr(chunk))
+            if found and got != "out of range":
+                self.assertEqual(got, [[float(part) for part in found.groups()]], repr(chunk))
+
+        alphabet = ["1", "-", ".", "e", ",", " ", "\t"]
+        for length in range(1, 7):
+            for combination in itertools.product(alphabet, repeat=length):
+                agree("".join(combination))
+        rng = random.Random(20261011)
+        for _ in range(20000):
+            agree("".join(rng.choice(alphabet + ["12", "0.5", " , ", "1e3"]) for _ in range(rng.randrange(1, 12))))
+        for chunk in ("1,2,3", " 1 2 3 ", "1 , 2 , 3", "1,\t2,\n3".replace("\n", " "), "1.5e2 -3 +4", "1,,2,3", ",1,2,3", "1,2,3,", "1 2", "1 2 3 4", "1.5.5 2 3", "٣ 2 1"):
+            agree(chunk)
+
+    def test_a_task_file_nested_thousands_deep_is_refused_at_once(self) -> None:
+        for text in ("[" * 6000, "{" * 6000, "a: " + "[" * 5000, "[" * 3000 + "]" * 3000, "[{" * 1500 + "]}" * 1500,
+                     "[" * 65, "k: " + "[" * 65 + "]" * 65):
+            for agent in ("task_gate_report", "run_pipeline"):
+                result = self.timed(agent, task_yaml=text)
+                self.assertFalse(result["ok"], agent)
+                self.assertEqual(result["kind"], "refused", f"{agent}: {text[:12]}")
+                self.assertIn("block style", result["refusal"])
+
+    def test_many_brackets_are_fine_when_they_do_not_nest(self) -> None:
+        # What costs time is depth, not count: a SMILES string closes every bracket
+        # at once, and a flow list is as cheap at 2,000 items as at 20.
+        smiles = "[CH3:1][C:2](=[O:3])[c:4]1[cH:5][cH:6][cH:7][cH:8][cH:9]1>>[CH3:1][C@H:2]([OH:3])[c:4]1[cH:5][cH:6][cH:7][cH:8][cH:9]1"
+        for text in ("task_id: SMILES_001\ntask_mode: enzyme_mining\nnote: '" + smiles * 40 + "'\n",
+                     "task_id: LIST_001\ntask_mode: enzyme_mining\nnotes: [" + "a, " * 1500 + "]\n",
+                     "task_id: DEEP_001\ntask_mode: enzyme_mining\nnotes: " + "[" * 64 + "]" * 64 + "\n"):
+            for agent in ("task_gate_report",):
+                result = self.timed(agent, task_yaml=text)
+                self.assertNotIn("block style", result.get("refusal", ""), text[:40])
+
+    def test_a_task_nested_without_brackets_is_refused_not_an_internal_error(self) -> None:
+        for text in ("- " * 2900, "? " * 2900, "- - - - " * 700):
+            result = self.timed("task_gate_report", task_yaml=text)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["kind"], "refused", text[:8])
+
+    def test_json_nested_a_hundred_thousand_deep_is_an_invalid_argument(self) -> None:
+        for text in ("[" * 100000, "[" * 100000 + "]" * 100000, '{"a":' * 50000):
+            reply = json.loads(engine.call("wilson_interval", text))
+            self.assertEqual((reply["ok"], reply["kind"]), (False, "invalid"))
+
+    def test_invalid_variants_are_quoted_briefly_so_the_reply_always_fits(self) -> None:
+        for token in ('"' * 98, "\u0001" * 98, "\\" * 98, "é" * 98, "x" * 98):
+            result = run("variant_check", sequence="MKTAYIAKQR", variants=" ".join([token] * 40))
+            self.assertTrue(result["ok"], token[:4])
+            value = result["value"]
+            self.assertEqual(value["n_invalid"], 40)
+            self.assertTrue(all(len(item["label"]) <= 19 for item in value["variants"]))
+            self.assertLessEqual(len(core.canonical(value).encode("utf-8")), core.MAX_RESULT_BYTES)
+        # A real substitution is still shown whole, and plain text as typed; only
+        # what JSON would have to escape is replaced.
+        shown = value_of("variant_check", sequence="MKTAYIAKQR", variants="K2A, bad! caf\u00e9")["variants"]
+        self.assertEqual([item["label"] for item in shown], ["K2A", "bad!", "caf?"])
 
 
 class TheCatalog(unittest.TestCase):

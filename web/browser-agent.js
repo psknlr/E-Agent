@@ -341,6 +341,9 @@
   const LOCAL_CAVEAT = "A local run uses the browser port of E-Agent’s read-only reference tools and the published evidence bundle. No model was called, no experiment was run and no reference data was changed.";
   const COMPUTE_LOCAL_CAVEAT = " Compute agents ran the project’s own Python code on this device (WebAssembly), for exactly the arguments shown, and approved nothing.";
   const COMPUTE_CHAT_CAVEAT = " Compute agents ran the project’s own Python code on the user’s device (WebAssembly); they approved nothing and ran no external program.";
+  const CHAT_CAVEAT = "The model used a browser port of E-Agent’s read-only reference tools and the published evidence bundle. No experiment was run and no reference data was changed. Review the evidence and tool trace.";
+  // A caveat that says compute agents ran must only be shown when one did.
+  const computeRan = (turns) => turns.some((turn) => Array.isArray(turn.results) && turn.results.some((result) => result.executor === "browser-wasm"));
 
   async function local({ message, signal, compute } = {}) {
     checkSignal(signal);
@@ -351,7 +354,7 @@
     const question = message.trim();
     const planned = tools.plan(question);
     const entry = { turn: 0, reasoning: planned.notes.join("\n"), requested: planned.calls.map((call) => call.interface), results: [] };
-    const transcript = { question, provider: "none", runs_remotely: false, execution: "browser-local", limits: { ...LIMITS }, tools_offered: tools.toolNames(), turns: [entry], tool_calls_made: 0, answer: "", caveat: LOCAL_CAVEAT + (compute ? COMPUTE_LOCAL_CAVEAT : "") };
+    const transcript = { question, provider: "none", runs_remotely: false, execution: "browser-local", limits: { ...LIMITS }, tools_offered: tools.toolNames(), turns: [entry], tool_calls_made: 0, answer: "", caveat: LOCAL_CAVEAT };
     for (const call of planned.calls) {
       checkSignal(signal);
       let result;
@@ -363,6 +366,7 @@
     }
     const ran = transcript.tool_calls_made;
     const computed = entry.results.filter((result) => result.executor === "browser-wasm").length;
+    if (computed) transcript.caveat += COMPUTE_LOCAL_CAVEAT;
     const where = computed ? " in this browser (" + computed + " computed on this device by the project’s own Python code)" : " in this browser";
     const answer = ran ? ["Ran " + ran + (computed ? " tool" : " stored-reference tool") + (ran === 1 ? "" : "s") + where + ". " + LOCAL_SUMMARY, ...planned.notes].join("\n\n") : planned.notes.join("\n");
     transcript.answer = answer;
@@ -371,7 +375,8 @@
 
   async function chat({ message, history = [], model_config, signal, onProgress, compute } = {}) {
     let config;
-    let transcript = { question: "", provider: "", runs_remotely: true, execution: "browser", limits: { ...LIMITS }, tools_offered: [], turns: [], tool_calls_made: 0, stopped_because: "The agent did not complete.", answer: "", caveat: "The model used a browser port of E-Agent’s read-only reference tools and the published evidence bundle. No experiment was run and no reference data was changed. Review the evidence and tool trace." };
+    let transcript = { question: "", provider: "", runs_remotely: true, execution: "browser", limits: { ...LIMITS }, tools_offered: [], turns: [], tool_calls_made: 0, stopped_because: "The agent did not complete.", answer: "", caveat: CHAT_CAVEAT };
+    const settleCaveat = () => { transcript.caveat = CHAT_CAVEAT + (computeRan(transcript.turns) ? COMPUTE_CHAT_CAVEAT : ""); };
     const controller = new AbortController();
     const abort = () => controller.abort(signal?.reason);
     signal?.addEventListener("abort", abort, { once: true });
@@ -379,6 +384,7 @@
     const progress = (text) => { if (typeof onProgress === "function") onProgress(redactString(text, config?.api_key)); };
     const failure = (error) => {
       transcript.answer = "";
+      settleCaveat();
       const clean = redact({ error: error.message || String(error), transcript, completion_verified: false, ...(config ? { model_config: publicMetadata(config) } : {}) }, config?.api_key);
       const reported = new Error(clean.error);
       reported.data = clean;
@@ -397,7 +403,6 @@
       await prepare({ signal: controller.signal });
       const tools = referenceMetadata(referenceBundle, compute).tools;
       transcript.tools_offered = tools.toolNames();
-      if (compute) transcript.caveat += COMPUTE_CHAT_CAVEAT;
       const system = tools.systemPrompt + "\nAvailable tool interfaces:\n" + JSON.stringify(tools.schemas());
       const messages = [{ role: "user", content: question }];
       for (let index = 0; index < LIMITS.max_turns; index++) {
@@ -425,6 +430,7 @@
           if (!answer) { transcript.stopped_because = "The provider returned no answer or clarification in the agent protocol."; throw new Error(transcript.stopped_because); }
           transcript.stopped_because = normalStop;
           transcript.answer = answer;
+          settleCaveat();
           return redact({ answer, transcript, completion_verified: true, model_config: publicMetadata(config) }, config.api_key);
         }
         if (turn.tool_calls.length > LIMITS.max_calls_per_turn) entry.clipped = "Only the first " + LIMITS.max_calls_per_turn + " tool calls were executed.";

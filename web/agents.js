@@ -21,6 +21,7 @@
   const HEX64 = /^[0-9a-f]{64}$/;
   const AGENT_NAME = /^[a-z][a-z0-9_]{0,63}$/;
   const MAX_LOCAL_CALLS = 8;
+  const PIPELINE_STATUSES = ['runs', 'partial', 'needs_program'];
 
   const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
   const clone = value => JSON.parse(JSON.stringify(value));
@@ -41,7 +42,12 @@
         fail(`${agent.name} has malformed argument limits`);
       }
     }
-    if (!Array.isArray(catalog.pipeline) || !Array.isArray(catalog.tasks) || catalog.tasks.some(id => typeof id !== 'string')) fail('no pipeline map');
+    // The pipeline map is drawn from these fields, so a step without them is refused
+    // here rather than failing later inside the page.
+    if (!Array.isArray(catalog.pipeline) || catalog.pipeline.some(step => !plainObject(step) || !Number.isInteger(step.order) || step.order < 1
+        || typeof step.interface !== 'string' || !AGENT_NAME.test(step.interface)
+        || !PIPELINE_STATUSES.includes(step.runs_in_browser) || typeof step.note !== 'string')
+        || !Array.isArray(catalog.tasks) || catalog.tasks.some(id => typeof id !== 'string')) fail('no pipeline map');
     return catalog;
   }
 
@@ -80,9 +86,12 @@
       '- Quote a number from an agent only with a citation placed straight after it:',
       `  [cite artifact=${ARTIFACT} sha256=<digest> row=<row> field=<field path> method=read]`,
       '  using the digest and row in that result\'s own "cite", and for field the name of the result field the number',
-      '  came from (a path such as identity_percent_over_aligned_columns, or variants.0.position for the first item of a list).',
-      '  One citation backs one number. Where a result holds a fraction it also holds the same value as a percentage (a',
-      '  field ending _percent); quote a percentage from that field, and cite every number you write, including a confidence level.',
+      '  came from (a path such as identity_percent_over_aligned_columns, or gates.0.n_unresolved for the first item of a list).',
+      '  One citation backs one number, and the number is checked in its unit. A field ending _percent backs a number written',
+      '  with % or percent, _angstrom one written with Å or A, _degrees one written with ° or degrees; a field with none of',
+      '  these (a count, a fraction, a score) backs only a number written with no unit. Where a result holds a fraction it also',
+      '  holds the same value as a percentage (the field ending _percent); quote a percentage from that field. Cite every',
+      '  number you write, including a confidence level, and write it with the unit of the field you cite.',
       '- If an agent refuses, report its refusal. Never compute the number yourself or substitute a nearby one.',
       '- Agents never approve anything. The three decision points (reaction_spec_confirmed, synthesis_authorized,',
       '  functional_criteria_confirmed) can be cleared only by a named person. task_gate_report tells you what a',
@@ -201,7 +210,11 @@
   }
 
   // Whether the live engine offers exactly the agents the page was published
-  // with. A mismatch means the page and the engine come from different builds.
+  // with: the same names, parameters (with their descriptions), agent descriptions
+  // and size limits. That is the contract, not the build: a mismatch means the page
+  // and the engine come from different versions, but two builds that keep the
+  // contract pass. What ties the engine's files to one another is its manifest, and
+  // what ties both to one commit is the exporter and the Pages workflow.
   function matchesEngine(catalog, live) {
     const problems = [];
     if (!plainObject(live) || live.schema !== SCHEMA || !Array.isArray(live.agents)) return ['the engine does not report its agents'];
@@ -212,7 +225,9 @@
     for (const [name, agent] of here) {
       const other = there.get(name);
       if (!other) continue;
-      if (JSON.stringify(Object.keys(agent.parameters).sort()) !== JSON.stringify(Object.keys(other.parameters || {}).sort())) problems.push(`${name} takes different parameters`);
+      // The help text counts: a parameter that now means something else, or takes another size, is a different contract.
+      const entries = parameters => JSON.stringify(Object.entries(plainObject(parameters) ? parameters : {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+      if (entries(agent.parameters) !== entries(other.parameters)) problems.push(`${name} takes different parameters`);
       if (agent.description !== other.description) problems.push(`${name} is described differently`);
     }
     if (live.limits && catalog.limits && (live.limits.max_arg_chars !== catalog.limits.max_arg_chars || live.limits.max_result_bytes !== catalog.limits.max_result_bytes)) {

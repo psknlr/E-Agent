@@ -27,11 +27,9 @@ const install = require(path.join(project, "web", "engine-install.js"));
 const readManifest = () => JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const readBytes = async (name) => new Uint8Array(fs.readFileSync(path.join(engineDir, name)));
 
-let runtime;
-const loadPyodide = async (options) => {
-  runtime ??= (await import(pathToFileURL(path.join(engineDir, "pyodide", "pyodide.mjs")).href)).loadPyodide;
-  return runtime(options);
-};
+// The installer hands the runtime's two JavaScript modules over as checked bytes
+// (see tests/fixtures/engine_inprocess.cjs); this is the loader the tests share.
+const { loadPyodide } = require("./fixtures/engine_inprocess.cjs").loaders;
 const hostFor = (overrides = {}, events = []) => install.createHost({
   loadPyodide, indexURL: path.join(engineDir, "pyodide") + "/", readBytes, post: (message) => events.push(message), ...overrides,
 });
@@ -230,7 +228,7 @@ test("the manifest is validated before anything is read", () => {
     schema: "eagent.engine.manifest.v1", engine_schema: "eagent.engine.v1",
     install: { wheels: ["wheels/a.whl"], site_packages_zips: [], project: "p.zip" },
     selftest: [{ agent: "x", arguments: "{}", sha256: "a".repeat(64) }],
-    files: Object.fromEntries(["wheels/a.whl", "p.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"]
+    files: Object.fromEntries(["wheels/a.whl", "p.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"]
       .map((name) => [name, { bytes: 1, sha256: "b".repeat(64) }])),
   };
   assert.doesNotThrow(() => install.validateManifest(good));
@@ -243,9 +241,71 @@ test("the manifest is validated before anything is read", () => {
     ["an absolute path", broken((m) => { m.files["/etc/passwd"] = { bytes: 1, sha256: "c".repeat(64) }; }), /unsafe path/],
     ["a bad hash", broken((m) => { m.files["p.zip"] = { bytes: 1, sha256: "zz" }; m.files[m.install.project] = { bytes: 1, sha256: "zz" }; }), /no valid size and SHA-256/],
     ["an install of an unlisted file", broken((m) => { m.install.wheels.push("wheels/missing.whl"); }), /which it does not list/],
+    ["no second loader module", broken((m) => { delete m.files["pyodide/pyodide.asm.mjs"]; }), /does not list pyodide\/pyodide\.asm\.mjs/],
     ["no self-test", broken((m) => { m.selftest = []; }), /no self-test/],
     ["a malformed self-test", broken((m) => { m.selftest = [{ agent: 1 }]; }), /malformed self-test/],
   ]) assert.throws(() => install.validateManifest(manifest), pattern, label);
+});
+
+// ---- the runtime's two JavaScript modules ----------------------------------------
+// An import() fetches a file itself, outside the installer's check, and runs
+// whatever the host serves at that moment. So the installer reads and checks both
+// modules like any other file and hands the runtime their bytes; a module that
+// does not match the manifest is never given to it. These tests need no runtime:
+// the loader is a stand-in that records what it was handed.
+const crypto = require("node:crypto");
+const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
+
+function loaderFixture(tamper = {}) {
+  const content = {};
+  const names = ["wheels/a.whl", "p.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"];
+  for (const name of names) content[name] = new TextEncoder().encode(`// ${name}\nexport default 1;\n`);
+  const manifest = {
+    schema: "eagent.engine.manifest.v1", engine_schema: "eagent.engine.v1",
+    install: { wheels: ["wheels/a.whl"], site_packages_zips: [], project: "p.zip" },
+    selftest: [{ agent: "x", arguments: "{}", sha256: "a".repeat(64) }],
+    files: Object.fromEntries(names.map((name) => [name, { bytes: content[name].length, sha256: sha256(content[name]) }])),
+  };
+  const order = [];
+  const served = (name) => (tamper[name] ? tamper[name](content[name]) : content[name]);
+  const calls = [];
+  const stop = new Error("stop after the runtime is handed its modules");
+  return {
+    manifest, order, calls, stop, content,
+    run: () => install.install({
+      manifest, indexURL: "https://site.example/engine/pyodide/",
+      prepare: () => order.push("prepare"),
+      readBytes: async (name) => { order.push(`read ${name}`); return served(name); },
+      loadPyodide: async (options, given, modules) => { order.push("load"); calls.push({ options, given, modules }); throw stop; },
+    }),
+  };
+}
+
+test("the runtime is handed the exact bytes that were checked, after the browser's check was arranged", async () => {
+  const fixture = loaderFixture();
+  await assert.rejects(fixture.run(), (error) => error === fixture.stop);
+  assert.deepEqual(fixture.order.slice(0, 4), ["prepare", "read pyodide/pyodide.mjs", "read pyodide/pyodide.asm.mjs", "load"],
+    "fetch is wrapped before the first file is read, and the modules are read before the runtime starts");
+  const { modules, given } = fixture.calls[0];
+  assert.deepEqual(Object.keys(modules).sort(), ["asm", "runtime"]);
+  assert.equal(sha256(modules.runtime), fixture.manifest.files["pyodide/pyodide.mjs"].sha256);
+  assert.equal(sha256(modules.asm), fixture.manifest.files["pyodide/pyodide.asm.mjs"].sha256);
+  assert.equal(given, fixture.manifest);
+});
+
+test("a loader module that does not match the manifest is never given to the runtime", async () => {
+  const flip = (bytes) => { const copy = Uint8Array.from(bytes); copy[copy.length - 3] ^= 1; return copy; };
+  const longer = (bytes) => Uint8Array.from([...bytes, ...new TextEncoder().encode("fetch('https://evil.example/');")]);
+  for (const [label, tamper] of [
+    ["the second module altered", { "pyodide/pyodide.asm.mjs": flip }],
+    ["the second module extended", { "pyodide/pyodide.asm.mjs": longer }],
+    ["the first module altered", { "pyodide/pyodide.mjs": flip }],
+    ["the first module extended", { "pyodide/pyodide.mjs": longer }],
+  ]) {
+    const fixture = loaderFixture(tamper);
+    await assert.rejects(fixture.run(), (error) => error.kind === "integrity" && /does not match the build manifest|bytes; the build recorded/.test(error.message), label);
+    assert.equal(fixture.calls.length, 0, `${label}: the runtime must not have been started`);
+  }
 });
 
 test("the runtime's own downloads get the browser's integrity check from the manifest", () => {

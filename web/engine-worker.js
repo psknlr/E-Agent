@@ -15,19 +15,18 @@ const BASE = new URL('engine/', self.location.href).href;
 const nativeFetch = self.fetch.bind(self);
 let wrapped = false;
 
-// A module that will not import is almost always a host serving .mjs with a
-// type browsers refuse for scripts. Say so, rather than the browser's one line.
-async function explainImportFailure(error, EngineError) {
-  let type = '';
+// The runtime's two JavaScript modules are run from the bytes the installer has
+// already checked against the manifest, never imported from their URLs. An
+// import() fetches the file itself, outside any check, and would run whatever
+// the host served at that moment. This also means the host's MIME type for .mjs
+// does not matter: the bytes are given a JavaScript type here.
+async function importChecked(bytes) {
+  const url = URL.createObjectURL(new Blob([bytes], {type: 'text/javascript'}));
   try {
-    type = (await nativeFetch(BASE + 'pyodide/pyodide.mjs', {method: 'HEAD'})).headers.get('content-type') || '';
-  } catch (ignored) { /* fall through to the generic message */ }
-  if (type && !/javascript|ecmascript/i.test(type)) {
-    return new EngineError('mime', `This host serves .mjs files as "${type}", and browsers only run module scripts served `
-      + 'as JavaScript. Map the .mjs extension to text/javascript in the host\'s settings '
-      + '(nginx: types { text/javascript mjs; }  Apache: AddType text/javascript .mjs).');
+    return await import(url);
+  } finally {
+    URL.revokeObjectURL(url);
   }
-  return new EngineError('runtime', `The Python runtime could not be loaded: ${error.message}`);
 }
 
 const ready = import('./engine-install.js').then(() => {
@@ -36,15 +35,21 @@ const ready = import('./engine-install.js').then(() => {
     indexURL: BASE + 'pyodide/',
     // The runtime fetches its own WebAssembly binary and standard library.
     // Wrapping fetch for this worker makes the browser check those downloads, and
-    // the ones in readBytes below, against the manifest's hashes.
-    loadPyodide: async (options, manifest) => {
+    // the ones in readBytes below, against the manifest's hashes. It is done before
+    // the first file is read, so the loader modules are covered too.
+    prepare: manifest => {
       if (!wrapped) self.fetch = integrityFetch(nativeFetch, BASE, manifest);
       wrapped = true;
-      let runtime;
+    },
+    loadPyodide: async (options, manifest, modules) => {
+      let runtime, asm;
       try {
-        runtime = await import(BASE + 'pyodide/pyodide.mjs');
+        runtime = await importChecked(modules.runtime);
+        asm = await importChecked(modules.asm);
       } catch (error) {
-        throw await explainImportFailure(error, EngineError);
+        throw new EngineError('runtime', `The Python runtime could not be loaded: ${error.message}. If this host sends a `
+          + 'Content-Security-Policy, its script-src must allow blob: (the runtime is run from bytes this page has checked) '
+          + 'and \'wasm-unsafe-eval\' (it compiles WebAssembly).');
       }
       // When the WebAssembly binary cannot be fetched or compiled, the runtime
       // logs "wasm instantiation failed!" and then waits forever. Hear the log, and
@@ -62,7 +67,9 @@ const ready = import('./engine-install.js').then(() => {
         };
       });
       try {
-        return await Promise.race([runtime.loadPyodide(options), instantiation]);
+        // createPyodideModule hands the runtime its (checked) second module, so it
+        // does not import pyodide.asm.mjs from a URL itself.
+        return await Promise.race([runtime.loadPyodide({...options, createPyodideModule: asm.default}), instantiation]);
       } finally {
         console.warn = warn;
         stalled(new Error('settled'));

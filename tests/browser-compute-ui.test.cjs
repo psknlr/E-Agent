@@ -91,9 +91,9 @@ test("the card says what each state is, and offers only the action that fits it"
   assert.equal(loading.byId("engine-meter").hidden, false);
   assert.equal(loading.byId("engine-stage").textContent, "Installing pydantic-2.14.0");
   assert.equal(loading.byId("engine-stop").textContent, "Cancel");
-  const failed = panels(fakeEngine({ status: "error", error: { kind: "mime", message: "This host serves .mjs files as text/plain" } }));
+  const failed = panels(fakeEngine({ status: "error", error: { kind: "integrity", message: "pyodide/pyodide.asm.mjs could not be fetched, or it does not match the SHA-256 in the build manifest." } }));
   assert.equal(failed.byId("engine-error").hidden, false);
-  assert.match(failed.byId("engine-error").textContent, /serves \.mjs files/);
+  assert.match(failed.byId("engine-error").textContent, /does not match the SHA-256 in the build manifest/);
   assert.equal(failed.byId("engine-start").textContent, "Try again");
   assert.equal(panels(fakeEngine({ status: "idle" })).byId("engine-start").textContent, "Start on this device · 19.6 MB");
 });
@@ -124,7 +124,7 @@ test("a running engine is offered only after it proves it holds the agents this 
   assert.equal(byId("engine-offer-label").hidden, false);
   assert.equal(byId("engine-stop").textContent, "Stop");
   assert.deepEqual(byId("engine-facts").children.map((child) => child.textContent), [
-    "Runtime", "Python 3.14.2 · Pyodide 314.0.7", "Agents", `${catalog.agents.length} compute agents`, "Integrity", "every file checked against its SHA-256",
+    "Runtime", "Python 3.14.2 · Pyodide 314.0.7", "Agents", `${catalog.agents.length} compute agents`, "Integrity", "every engine file checked against its SHA-256",
     "Self-test", "4 calls match the native build", "Started in", "6.4 s", "Build", "dc7634b33bb1"]);
 });
 
@@ -286,4 +286,16 @@ test("the executor chips the trace uses are defined here, once", () => {
   assert.deepEqual(Object.keys(ComputeUI.CHIP), ["browser-js", "browser-wasm"]);
   assert.equal(ComputeUI.CHIP["browser-wasm"].label, "WASM · CPU");
   assert.match(ComputeUI.CHIP["browser-wasm"].title, /WebAssembly.*CPU.*worker/);
+});
+
+test("on a connection without Web Crypto the card says the browser still checked every file, and that the page did not check again", async () => {
+  const engine = fakeEngine({ status: "idle" });
+  const { byId } = panels(engine);
+  engine.set({ status: "ready", info: { ...info, integrity: "unavailable" } });
+  await settle();
+  const row = byId("engine-facts").children.map((child) => child.textContent);
+  const shown = row[row.indexOf("Integrity") + 1];
+  assert.match(shown, /checked by the browser/);
+  assert.match(shown, /no Web Crypto/);
+  assert.doesNotMatch(shown, /^not checked/, "the browser's own check ran, so it must not say nothing was checked");
 });

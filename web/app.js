@@ -626,6 +626,9 @@
         notices.push("Citation guard on turn " + turn.turn + ": " + (guard.summary || "The answer contained quantities or citations that could not be verified."));
         if (guard.uncited_quantities?.length) notices.push("Uncited quantities: " + safeJson(guard.uncited_quantities));
         if (guard.broken_citations?.length) notices.push("Broken citations: " + safeJson(guard.broken_citations));
+      } else if (guard?.declared_quantities?.length) {
+        // Cited, but to a calculation of the number itself: nothing was derived or looked up.
+        notices.push("Not independently verified on turn " + turn.turn + ": " + guard.declared_quantities.map(String).join(", ") + ". Each is cited to a calculation of that very number, which restates it and does not check it.");
       }
     }
     if (failed) notices.push(failed + " tool call" + (failed === 1 ? "" : "s") + " failed or refused. Review the trace below.");

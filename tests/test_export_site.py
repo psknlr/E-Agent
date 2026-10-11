@@ -84,7 +84,7 @@ class TestTheSiteCopy:
         assert json.loads((out / "config.json").read_text()) == {"backend_url": "https://eagent-api.impf.ai"}
 
     def test_it_will_not_overwrite_the_source(self, web):
-        with pytest.raises(SystemExit, match="refusing to export onto the source"):
+        with pytest.raises(SystemExit, match="refusing to use .* as an output directory"):
             export_site.copy_site(web)
 
     @pytest.mark.parametrize("missing", ["engine-worker.js", "agents.js", "agent-catalog.json", "reference-data.json"])
@@ -185,5 +185,74 @@ class TestTheRedirect:
                 run("--redirect-to", TARGET, "--out", tmp_path / "x", *extra)
 
     def test_it_will_not_write_into_the_source_directory(self, web):
-        with pytest.raises(SystemExit, match="refusing to write a redirect site inside"):
+        with pytest.raises(SystemExit, match="refusing to write inside the source web/ directory"):
             export_site.write_redirect_site(web / "nested", TARGET)
+
+
+class TestItOnlyDeletesWhatItMade:
+    """The exporter replaces its output directory, which means deleting it.
+
+    ``--out .`` removed the repository's own ``scripts/`` and ``web/`` in a scratch
+    copy, and the same flag with ``~/Documents`` would have removed those. These run
+    against a stand-in repository so the proof that nothing is deleted is a listing.
+    """
+
+    @pytest.fixture
+    def repo(self, tmp_path, web, monkeypatch):
+        repo = tmp_path / "repo"
+        for name in ("scripts/build.py", "docs/readme.md", "src/code.py"):
+            (repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (repo / name).write_text("precious")
+        monkeypatch.setattr(export_site, "ROOT", repo)
+        monkeypatch.chdir(repo)
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+        (tmp_path / "home").mkdir()
+        return repo
+
+    def untouched(self, repo):
+        assert sorted(p.relative_to(repo).as_posix() for p in repo.rglob("*") if p.is_file()) == [
+            "docs/readme.md", "scripts/build.py", "src/code.py"]
+
+    @pytest.mark.parametrize("flags", [[], ["--redirect-to", TARGET]])
+    def test_the_repository_its_parent_the_current_directory_and_home_are_refused(self, repo, tmp_path, flags):
+        for place in (repo, ".", repo / "..", tmp_path, tmp_path / "home", "/"):
+            with pytest.raises(SystemExit, match="refusing to use .* as an output directory"):
+                run("--out", place, *flags)
+        self.untouched(repo)
+        assert (tmp_path / "home").is_dir()
+
+    @pytest.mark.parametrize("flags", [[], ["--redirect-to", TARGET]])
+    def test_a_folder_it_did_not_make_is_never_deleted(self, repo, tmp_path, flags):
+        other = tmp_path / "Documents"
+        other.mkdir()
+        (other / "thesis.txt").write_text("years of work")
+        with pytest.raises(SystemExit, match="was not made by this script, so it will not be deleted"):
+            run("--out", other, *flags)
+        assert (other / "thesis.txt").read_text() == "years of work"
+
+    def test_a_file_is_not_an_output_directory(self, repo, tmp_path):
+        (tmp_path / "file").write_text("x")
+        with pytest.raises(SystemExit, match="is not a directory"):
+            run("--out", tmp_path / "file")
+
+    @pytest.mark.parametrize("flags", [[], ["--redirect-to", TARGET]])
+    def test_its_own_earlier_export_is_replaced_and_an_empty_folder_is_used(self, repo, tmp_path, flags):
+        out = tmp_path / "dist" / "site"
+        assert run("--out", out, *flags) == 0
+        (out / "stale.txt").write_text("left over")
+        assert run("--out", out, *flags) == 0
+        assert not (out / "stale.txt").exists(), "an earlier export is replaced, not added to"
+        assert (tmp_path / "dist" / ".site.eagent-export").is_file()
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        assert run("--out", empty, *flags) == 0
+
+    def test_the_marker_is_beside_the_folder_so_the_upload_is_exactly_the_deliverable(self, repo, tmp_path):
+        out = tmp_path / "redirect"
+        assert run("--redirect-to", TARGET, "--out", out) == 0
+        assert not any(p.name.endswith("eagent-export") for p in out.rglob("*"))
+        assert marker_exists(out)
+
+
+def marker_exists(out):
+    return export_site.marker_for(out.resolve()).is_file()

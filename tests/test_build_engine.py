@@ -44,6 +44,19 @@ PYODIDE_TARBALL = tar_gz({
     "package/pyodide-lock.json": json.dumps({"info": {"python": "3.14.2", "abi_version": "2026_0"}}).encode(),
     "package/README.md": b"not shipped",
 })
+PYODIDE_FILE_CONTENTS = {
+    **{name: f"contents of {name}".encode() for name in build_engine.PYODIDE_FILES},
+    "pyodide-lock.json": json.dumps({"info": {"python": "3.14.2", "abi_version": "2026_0"}}).encode(),
+}
+
+
+def npm_integrity(data: bytes) -> str:
+    """What the npm registry publishes for a tarball: sha512 in base64."""
+    import base64
+    import hashlib
+    return "sha512-" + base64.b64encode(hashlib.sha512(data).digest()).decode()
+
+
 PYYAML_SDIST = tar_gz({
     "pyyaml-6.0.3/lib/yaml/__init__.py": b"# yaml package\n",
     "pyyaml-6.0.3/lib/yaml/loader.py": b"# loader\n",
@@ -102,7 +115,10 @@ def lock_and_registry():
         "schema": build_engine.LOCK_SCHEMA,
         "pyodide": {"version": build_engine.PINS["pyodide"], "url": "https://registry.example/pyodide.tgz",
                     "sha256": sha256(PYODIDE_TARBALL), "license": "MPL-2.0",
-                    "files": list(build_engine.PYODIDE_FILES)},
+                    "files": list(build_engine.PYODIDE_FILES),
+                    "file_sha256": {name: sha256(f"contents of {name}".encode()) if name != "pyodide-lock.json" else sha256(
+                        json.dumps({"info": {"python": "3.14.2", "abi_version": "2026_0"}}).encode())
+                        for name in build_engine.PYODIDE_FILES}},
         "wheels": wheels,
         "pyyaml": {"version": build_engine.PINS["pyyaml"], "url": "https://files.example/pyyaml.tar.gz",
                    "sha256": sha256(PYYAML_SDIST), "license": "MIT"},
@@ -283,7 +299,7 @@ class TestTheLock:
 
     def test_resolving_picks_exactly_the_pinned_wheel_and_records_its_hash(self, tmp_path):
         files = {"https://registry.npmjs.org/pyodide/" + build_engine.PINS["pyodide"]: json.dumps(
-            {"dist": {"tarball": "https://registry.example/pyodide.tgz", "integrity": "sha512-x"}}).encode(),
+            {"dist": {"tarball": "https://registry.example/pyodide.tgz", "integrity": npm_integrity(PYODIDE_TARBALL)}}).encode(),
             "https://registry.example/pyodide.tgz": PYODIDE_TARBALL}
         for import_name, pypi, version, tag in build_engine.PINS["wheels"]:
             wanted = f"{import_name}-{version}-{tag}.whl"
@@ -304,6 +320,7 @@ class TestTheLock:
         assert {wheel["name"]: wheel["sha256"] for wheel in lock["wheels"]} == {n: "3" * 64 for n, *_ in build_engine.PINS["wheels"]}
         assert lock["pyyaml"]["sha256"] == "5" * 64
         assert lock["pyodide"]["sha256"] == sha256(PYODIDE_TARBALL)
+        assert lock["pyodide"]["file_sha256"] == {name: sha256(PYODIDE_FILE_CONTENTS[name]) for name in build_engine.PYODIDE_FILES}
 
     def test_resolving_refuses_an_ambiguous_release(self, tmp_path):
         files = {"https://registry.npmjs.org/pyodide/" + build_engine.PINS["pyodide"]: json.dumps(
@@ -314,6 +331,97 @@ class TestTheLock:
         with pytest.raises(BuildError, match="expected exactly one"):
             build_engine.resolve_lock(tmp_path, opener=Registry(files))
 
+
+
+class TestTheLockIsInputToo:
+    """The lock is a file in the repository and the registries' replies are somebody
+    else's: both become paths (a cache entry named by a hash, an output file named
+    by a wheel's filename), so a field is checked before it is used as one."""
+
+    def test_a_hash_that_is_a_path_deletes_nothing(self, tmp_path):
+        victim = tmp_path / "outside" / "precious.txt"
+        victim.parent.mkdir()
+        victim.write_text("keep me")
+        cache = tmp_path / "cache" / "engine"
+        for digest in ("../../outside/precious.txt", str(victim), "A" * 64, "ab" * 31, "", "../" + "a" * 64):
+            with pytest.raises(BuildError, match="not a SHA-256"):
+                build_engine.fetch("https://files.example/x", digest, cache, opener=Registry({}))
+        assert victim.read_text() == "keep me"
+
+    @pytest.mark.parametrize("change,message", [
+        (lambda lock: lock["wheels"][0].update(filename="../../../../tmp/evil.whl"), "plain wheel name"),
+        (lambda lock: lock["wheels"][0].update(filename="/etc/passwd.whl"), "plain wheel name"),
+        (lambda lock: lock["wheels"][0].update(filename="sub/dir.whl"), "plain wheel name"),
+        (lambda lock: lock["wheels"][0].update(filename="..whl"), "plain wheel name"),
+        (lambda lock: lock["wheels"][1].update(sha256="../x"), "valid SHA-256"),
+        (lambda lock: lock["wheels"][1].update(url="http://files.example/x.whl"), "https"),
+        (lambda lock: lock["pyodide"].update(sha256="g" * 64), "valid SHA-256"),
+        (lambda lock: lock["pyodide"].pop("file_sha256"), "SHA-256 for each of its files"),
+        (lambda lock: lock["pyodide"]["file_sha256"].update({"pyodide.mjs": "short"}), "SHA-256 for each of its files"),
+        (lambda lock: lock.update(wheels="not a list"), "not a list"),
+    ])
+    def test_a_malformed_lock_builds_nothing(self, tmp_path, lock_and_registry, project, change, message):
+        lock, registry = lock_and_registry
+        change(lock)
+        out = tmp_path / "engine"
+        with pytest.raises(BuildError, match=message):
+            build_engine.build(out, tmp_path / "cache", lock, opener=registry, root=project)
+        assert not out.exists() or not any(out.rglob("*")), "nothing was written"
+        assert registry.requested == [], "and nothing was downloaded"
+
+    def test_a_lock_file_is_validated_when_it_is_read(self, tmp_path, lock_and_registry):
+        lock, _ = lock_and_registry
+        lock["wheels"][0]["filename"] = "../escape.whl"
+        path = tmp_path / "lock.json"
+        path.write_text(json.dumps(lock))
+        with pytest.raises(BuildError, match="malformed"):
+            build_engine.load_lock(path)
+
+    def test_the_committed_lock_passes_the_same_checks(self):
+        assert build_engine.lock_shape_problems(build_engine.load_lock()) == []
+
+    def test_a_wheel_the_registry_names_with_a_path_is_refused_when_resolving(self, tmp_path):
+        files = {"https://registry.npmjs.org/pyodide/" + build_engine.PINS["pyodide"]: json.dumps(
+            {"dist": {"tarball": "https://registry.example/pyodide.tgz", "integrity": npm_integrity(PYODIDE_TARBALL)}}).encode(),
+            "https://registry.example/pyodide.tgz": PYODIDE_TARBALL}
+        import_name, pypi, version, tag = build_engine.PINS["wheels"][0]
+        files[f"https://pypi.org/pypi/{pypi}/{version}/json"] = json.dumps({"urls": [
+            {"packagetype": "bdist_wheel", "filename": f"../../x-{tag}.whl", "url": "https://f.example/x",
+             "digests": {"sha256": "3" * 64}, "size": 3}]}).encode()
+        with pytest.raises(BuildError, match="not a plain filename"):
+            build_engine.resolve_lock(tmp_path, opener=Registry(files))
+
+    def test_a_tarball_that_does_not_match_the_npm_integrity_is_not_pinned(self, tmp_path):
+        base = {"https://registry.example/pyodide.tgz": PYODIDE_TARBALL}
+        for integrity, message in ((npm_integrity(b"something else"), "does not match"), ("md5-abc", "no algorithm")):
+            files = {**base, "https://registry.npmjs.org/pyodide/" + build_engine.PINS["pyodide"]: json.dumps(
+                {"dist": {"tarball": "https://registry.example/pyodide.tgz", "integrity": integrity}}).encode()}
+            with pytest.raises(BuildError, match=message):
+                build_engine.resolve_lock(tmp_path, opener=Registry(files))
+
+    def test_a_version_whose_bytes_changed_is_not_re_pinned_silently(self, lock_and_registry):
+        lock, _ = lock_and_registry
+        resolved = json.loads(json.dumps(lock))
+        assert build_engine.changed_hashes(lock, resolved) == []
+        resolved["wheels"][3]["sha256"] = "9" * 64
+        resolved["pyyaml"]["sha256"] = "8" * 64
+        changes = build_engine.changed_hashes(lock, resolved)
+        assert len(changes) == 2 and any("pydantic_core" in change for change in changes) and any("pyyaml" in change for change in changes)
+        resolved["wheels"][3]["version"] = "9.9.9"
+        assert len(build_engine.changed_hashes(lock, resolved)) == 1, "a new version is allowed to have new bytes"
+
+    def test_update_lock_stops_on_changed_bytes_unless_told_to_accept_them(self, tmp_path, monkeypatch, lock_and_registry, capsys):
+        lock, _ = lock_and_registry
+        path = tmp_path / "lock.json"
+        path.write_text(json.dumps(lock))
+        changed = json.loads(json.dumps(lock))
+        changed["wheels"][0]["sha256"] = "7" * 64
+        monkeypatch.setattr(build_engine, "resolve_lock", lambda cache, **kwargs: changed)
+        assert build_engine.main(["--update-lock", "--lock", str(path), "--cache", str(tmp_path / "c")]) == 1
+        assert "different bytes" in capsys.readouterr().err
+        assert json.loads(path.read_text()) == lock, "the lock was not touched"
+        assert build_engine.main(["--update-lock", "--accept-changed-hashes", "--lock", str(path), "--cache", str(tmp_path / "c")]) == 0
+        assert json.loads(path.read_text())["wheels"][0]["sha256"] == "7" * 64
 
 
 # ---------------------------------------------------------------------------
@@ -419,6 +527,19 @@ class TestCheck:
         out, lock, _, project, _ = built
         lock["pyyaml"]["license"] = "changed"
         assert any("different lock" in problem for problem in build_engine.check(out, lock, root=project))
+
+    @pytest.mark.parametrize("pick", ["a wheel", "a runtime file"])
+    def test_a_locked_file_swapped_together_with_its_manifest_entry_is_reported(self, built, pick):
+        # Changing a file and its manifest entry together makes the build look
+        # self-consistent; the lock, which they cannot change, says otherwise.
+        out, lock, _, project, manifest = built
+        name = "wheels/" + lock["wheels"][4]["filename"] if pick == "a wheel" else "pyodide/pyodide.asm.mjs"
+        evil = b"// not the pinned file\n"
+        (out / name).write_bytes(evil)
+        manifest["files"][name] = {"bytes": len(evil), "sha256": sha256(evil)}
+        manifest["total_bytes"] = sum(entry["bytes"] for entry in manifest["files"].values())
+        (out / "manifest.json").write_text(json.dumps(manifest))
+        assert f"{name} is not the file the lock pins" in build_engine.check(out, lock, root=project)
 
     def test_stale_self_test_answers_are_reported(self, built):
         out, lock, _, project, manifest = built

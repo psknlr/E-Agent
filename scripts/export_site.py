@@ -106,11 +106,50 @@ def validate_redirect_target(url: str) -> str:
     return text
 
 
+def marker_for(out: Path) -> Path:
+    """The file that says this script made ``out``: a sibling, not a member.
+
+    It sits beside the directory so that what is inside it stays exactly what is
+    to be uploaded. A directory that is already there is replaced only if its
+    marker is, so the script never deletes a folder it did not make.
+    """
+    return out.parent / f".{out.name}.eagent-export"
+
+
+def prepare_output(out: Path) -> None:
+    """Make ``out`` a path this script may create, or stop.
+
+    The exporter replaces its output directory, which means deleting it. That is
+    only safe for a directory the exporter made: ``--out .`` once removed the
+    repository's own ``scripts/`` and ``web/``, and ``--out ~/Documents`` would
+    have removed those. So an existing directory is replaced only when it is empty
+    or has the marker an earlier export left, and never when it is, or holds, the
+    repository, the source ``web/``, the current directory or the home directory.
+    """
+    resolved = out.resolve()
+    protected = [ROOT.resolve(), WEB.resolve(), Path.cwd().resolve(), Path.home().resolve(), Path(resolved.anchor)]
+    for place in protected:
+        if resolved == place or resolved in place.parents:
+            raise SystemExit(f"refusing to use {out} as an output directory: it is, or contains, {place}. "
+                             f"Choose a new directory, for example dist/enzyme-impf.")
+    if WEB.resolve() in resolved.parents:
+        raise SystemExit("refusing to write inside the source web/ directory")
+    if resolved.exists():
+        if not resolved.is_dir():
+            raise SystemExit(f"{out} exists and is not a directory")
+        if any(resolved.iterdir()) and not marker_for(resolved).is_file():
+            raise SystemExit(f"{out} already exists and was not made by this script, so it will not be deleted. "
+                             f"Remove it yourself (rm -r {out}) or choose another directory.")
+        shutil.rmtree(resolved)
+
+
+def mark_output(out: Path) -> None:
+    marker_for(out.resolve()).write_text("made by scripts/export_site.py; the folder beside it is safe to replace\n",
+                                         encoding="utf-8")
+
+
 def copy_site(out: Path, *, with_engine: bool = True) -> list[Path]:
-    if out.resolve() == WEB.resolve():
-        raise SystemExit("refusing to export onto the source web/ directory")
-    if out.exists():
-        shutil.rmtree(out)
+    prepare_output(out)
     # Skip caches and editor cruft; copy everything else verbatim.
     cruft = shutil.ignore_patterns("__pycache__", ".DS_Store", "*.pyc")
 
@@ -121,6 +160,7 @@ def copy_site(out: Path, *, with_engine: bool = True) -> list[Path]:
         return skipped
 
     shutil.copytree(WEB, out, ignore=ignore)
+    mark_output(out)
     return sorted(p for p in out.rglob("*") if p.is_file())
 
 
@@ -176,11 +216,9 @@ def write_redirect_site(out: Path, target: str, cname: str = "") -> list[str]:
     the same for any other path, and the redirect rule of each common host. The
     rules answer with a real 301, so crawlers and browsers remember the move.
     """
-    if out.resolve() == WEB.resolve() or WEB.resolve() in out.resolve().parents:
-        raise SystemExit("refusing to write a redirect site inside the source web/ directory")
-    if out.exists():
-        shutil.rmtree(out)
+    prepare_output(out)
     out.mkdir(parents=True)
+    mark_output(out)
     shown, attribute, script = html.escape(target), html.escape(target, quote=True), json.dumps(target)
     page = f"""<!doctype html>
 <html lang="en">

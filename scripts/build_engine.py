@@ -35,9 +35,11 @@ anyway, so the transfer is unaffected.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import io
 import json
+import re
 import shutil
 import sys
 import tarfile
@@ -98,6 +100,13 @@ SELFTEST = (
 
 FIXED_TIME = (1980, 1, 1, 0, 0, 0)
 
+#: The shapes a lock entry's fields must have. The lock is a file in the
+#: repository and the registries' replies are somebody else's input, and both
+#: end up as paths (a cache entry named by a hash, an output file named by a
+#: wheel's filename), so a field is checked before it is used as one.
+_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+_WHEEL_FILENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.whl\Z")
+
 
 class BuildError(RuntimeError):
     """The build cannot proceed without shipping something unverified."""
@@ -124,6 +133,8 @@ def fetch(url: str, sha256: str, cache: Path, *,
     """
     if not url.startswith("https://"):
         raise BuildError(f"{url}\n  only https:// downloads are accepted")
+    if not _SHA256.match(sha256):
+        raise BuildError(f"{url}\n  {sha256!r} is not a SHA-256 digest (64 lowercase hex digits)")
     cache.mkdir(parents=True, exist_ok=True)
     cached = cache / sha256
     if cached.is_file():
@@ -245,7 +256,41 @@ def load_lock(path: Path = LOCK_PATH) -> dict[str, Any]:
     for key in ("pyodide", "wheels", "pyyaml"):
         if key not in lock:
             raise BuildError(f"{path} has no {key!r} section")
+    problems = lock_shape_problems(lock)
+    if problems:
+        raise BuildError(f"{path} is malformed:\n  " + "\n  ".join(problems))
     return lock
+
+
+def lock_shape_problems(lock: dict[str, Any]) -> list[str]:
+    """Why a lock cannot be trusted to name files and hashes, if it cannot."""
+    problems: list[str] = []
+
+    def download(label: str, entry: Any) -> None:
+        if not isinstance(entry, dict):
+            problems.append(f"{label} is not an object")
+            return
+        if not isinstance(entry.get("url"), str) or not entry["url"].startswith("https://"):
+            problems.append(f"{label} has no https:// url")
+        if not isinstance(entry.get("sha256"), str) or not _SHA256.match(entry["sha256"]):
+            problems.append(f"{label} has no valid SHA-256")
+
+    download("pyodide", lock.get("pyodide"))
+    download("pyyaml", lock.get("pyyaml"))
+    runtime = lock.get("pyodide") if isinstance(lock.get("pyodide"), dict) else {}
+    per_file = runtime.get("file_sha256")
+    if not isinstance(per_file, dict) or sorted(per_file) != sorted(PYODIDE_FILES) \
+            or not all(isinstance(value, str) and _SHA256.match(value) for value in per_file.values()):
+        problems.append("pyodide has no SHA-256 for each of its files (run --update-lock)")
+    if not isinstance(lock.get("wheels"), list):
+        problems.append("wheels is not a list")
+        return problems
+    for index, wheel in enumerate(lock["wheels"]):
+        download(f"wheels[{index}]", wheel)
+        if isinstance(wheel, dict) and not (isinstance(wheel.get("filename"), str)
+                                            and _WHEEL_FILENAME.match(wheel["filename"])):
+            problems.append(f"wheels[{index}] has a filename that is not a plain wheel name: {wheel.get('filename')!r}")
+    return problems
 
 
 def lock_matches_pins(lock: dict[str, Any]) -> list[str]:
@@ -271,12 +316,49 @@ def _json(url: str, opener: Callable[..., Any]) -> dict[str, Any]:
         return json.load(response)
 
 
+def check_integrity(integrity: str | None, data: bytes) -> None:
+    """The npm registry publishes an SRI string for each tarball; hold the download to it."""
+    if not integrity:
+        return
+    for token in integrity.split():
+        algorithm, _, expected = token.partition("-")
+        if algorithm in ("sha256", "sha384", "sha512"):
+            actual = base64.b64encode(hashlib.new(algorithm, data).digest()).decode("ascii")
+            if actual != expected:
+                raise BuildError(f"the Pyodide tarball does not match the {algorithm} integrity the npm "
+                                 f"registry published for it; refusing to pin it")
+            return
+    raise BuildError(f"the npm integrity value {integrity!r} uses no algorithm this script can check")
+
+
+def changed_hashes(previous: dict[str, Any], resolved: dict[str, Any]) -> list[str]:
+    """Components whose version is unchanged but whose bytes are not.
+
+    A version's file should never change. When a registry serves a different file
+    under the same version, that is a republished or tampered release, and quietly
+    re-pinning it would turn the lock into a rubber stamp.
+    """
+    changes: list[str] = []
+    old_wheels = {wheel["name"]: wheel for wheel in previous.get("wheels", [])}
+    for wheel in resolved["wheels"]:
+        before = old_wheels.get(wheel["name"])
+        if before and before.get("version") == wheel["version"] and before.get("sha256") != wheel["sha256"]:
+            changes.append(f"{wheel['name']} {wheel['version']}: {before.get('sha256')} -> {wheel['sha256']}")
+    for key in ("pyodide", "pyyaml"):
+        before, now = previous.get(key) or {}, resolved[key]
+        if before.get("version") == now["version"] and before.get("sha256") not in (None, now["sha256"]):
+            changes.append(f"{key} {now['version']}: {before.get('sha256')} -> {now['sha256']}")
+    return changes
+
+
 def resolve_lock(cache: Path, *, opener: Callable[..., Any] = urllib.request.urlopen) -> dict[str, Any]:
     """Resolve :data:`PINS` to URLs and hashes from the registries they live on."""
     npm = _json(f"https://registry.npmjs.org/pyodide/{PINS['pyodide']}", opener)
     tarball_url = npm["dist"]["tarball"]
     with opener(urllib.request.Request(tarball_url), timeout=300) as response:
         tarball = response.read()
+    check_integrity(npm["dist"].get("integrity"), tarball)
+    runtime_files = pyodide_files(tarball)
     wheels = []
     for import_name, pypi_name, version, tag in PINS["wheels"]:
         release = _json(f"https://pypi.org/pypi/{pypi_name}/{version}/json", opener)
@@ -285,6 +367,9 @@ def resolve_lock(cache: Path, *, opener: Callable[..., Any] = urllib.request.url
         if len(chosen) != 1:
             raise BuildError(f"{pypi_name} {version}: expected exactly one *-{tag}.whl, "
                              f"found {[f['filename'] for f in release['urls']]}")
+        if not _WHEEL_FILENAME.match(chosen[0]["filename"]):
+            raise BuildError(f"{pypi_name} {version}: the registry names the wheel {chosen[0]['filename']!r}, "
+                             f"which is not a plain filename")
         wheels.append({"name": import_name, "version": version, "filename": chosen[0]["filename"],
                        "url": chosen[0]["url"], "sha256": chosen[0]["digests"]["sha256"],
                        "bytes": chosen[0]["size"]})
@@ -296,7 +381,8 @@ def resolve_lock(cache: Path, *, opener: Callable[..., Any] = urllib.request.url
         "schema": LOCK_SCHEMA,
         "pyodide": {"version": PINS["pyodide"], "url": tarball_url, "sha256": sha256_bytes(tarball),
                     "integrity": npm["dist"].get("integrity"), "license": "MPL-2.0",
-                    "files": list(PYODIDE_FILES)},
+                    "files": list(PYODIDE_FILES),
+                    "file_sha256": {name: sha256_bytes(runtime_files[name]) for name in PYODIDE_FILES}},
         "wheels": wheels,
         "pyyaml": {"version": PINS["pyyaml"], "url": sdist[0]["url"],
                    "sha256": sdist[0]["digests"]["sha256"], "license": "MIT"},
@@ -347,6 +433,9 @@ def notice(lock: dict[str, Any], python: str) -> str:
 
 def build(out: Path, cache: Path, lock: dict[str, Any], *,
           opener: Callable[..., Any] = urllib.request.urlopen, root: Path = ROOT) -> dict[str, Any]:
+    shape = lock_shape_problems(lock)
+    if shape:
+        raise BuildError("scripts/engine.lock.json is malformed:\n  " + "\n  ".join(shape))
     problems = lock_matches_pins(lock)
     if problems:
         raise BuildError("scripts/engine.lock.json is out of date:\n  " + "\n  ".join(problems)
@@ -359,6 +448,9 @@ def build(out: Path, cache: Path, lock: dict[str, Any], *,
 
     runtime = pyodide_files(fetch(lock["pyodide"]["url"], lock["pyodide"]["sha256"], cache, opener=opener))
     for name, data in runtime.items():
+        if sha256_bytes(data) != lock["pyodide"]["file_sha256"][name]:
+            raise BuildError(f"pyodide/{name} is not the file the lock recorded for it; "
+                             f"refusing to build from a tarball whose contents changed")
         files[f"pyodide/{name}"] = data
     info = json.loads(runtime["pyodide-lock.json"])["info"]
 
@@ -376,6 +468,8 @@ def build(out: Path, cache: Path, lock: dict[str, Any], *,
 
     for name, data in files.items():
         target = out / name
+        if not target.resolve().is_relative_to(out.resolve()):
+            raise BuildError(f"{name} would be written outside {out}")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
 
@@ -415,6 +509,16 @@ def check(out: Path, lock: dict[str, Any], *, root: Path = ROOT) -> list[str]:
             problems.append(f"{name} is listed but missing")
         elif sha256_bytes(path.read_bytes()) != entry["sha256"]:
             problems.append(f"{name} does not match its recorded hash")
+    # The manifest and the files can be changed together; the lock cannot be changed
+    # by whoever changes them, so what it pins is held to its own hashes.
+    listed = manifest.get("files", {})
+    pinned = {f"wheels/{wheel['filename']}": wheel["sha256"] for wheel in lock["wheels"]}
+    pinned.update({f"pyodide/{name}": digest for name, digest in lock["pyodide"]["file_sha256"].items()})
+    for name, digest in sorted(pinned.items()):
+        if name not in listed:
+            problems.append(f"{name} is pinned by the lock but not in the manifest")
+        elif listed[name].get("sha256") != digest:
+            problems.append(f"{name} is not the file the lock pins")
     unlisted = sorted(p.relative_to(out).as_posix() for p in out.rglob("*")
                       if p.is_file() and p.name != "manifest.json"
                       and p.relative_to(out).as_posix() not in manifest.get("files", {}))
@@ -435,10 +539,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="verify an existing build and exit")
     parser.add_argument("--update-lock", action="store_true",
                         help="re-resolve the pinned versions to URLs and hashes, rewrite the lock and exit")
+    parser.add_argument("--accept-changed-hashes", action="store_true",
+                        help="with --update-lock: accept a registry serving different bytes for a version "
+                             "the lock already pins (a version's file should never change)")
     args = parser.parse_args(argv)
     try:
         if args.update_lock:
             lock = resolve_lock(args.cache)
+            if args.lock.is_file():
+                try:
+                    previous = json.loads(args.lock.read_text(encoding="utf-8"))
+                except ValueError:
+                    previous = {}
+                changes = changed_hashes(previous, lock)
+                if changes and not args.accept_changed_hashes:
+                    raise BuildError("the registries now serve different bytes for versions the lock already pins:\n  "
+                                     + "\n  ".join(changes)
+                                     + "\nA version's file should never change. If you know why, rerun with "
+                                       "--accept-changed-hashes.")
             args.lock.write_text(json.dumps(lock, indent=1, sort_keys=True) + "\n", encoding="utf-8")
             print(f"wrote {args.lock.relative_to(ROOT) if args.lock.is_relative_to(ROOT) else args.lock}")
             return 0

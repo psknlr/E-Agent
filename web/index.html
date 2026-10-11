@@ -6,14 +6,18 @@
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0b1110" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f3f5f2" media="(prefers-color-scheme: light)">
-  <meta name="description" content="Chat with E-Agent using your own model API. Calculations and curated enzyme evidence run in your browser, with every tool call traceable and every missing measurement kept missing.">
+  <meta name="description" content="Chat with E-Agent using your own model API as the controller. The agents run on your device: evidence lookups in JavaScript, scientific computation as the project's own Python on your CPU. Every tool call traceable, every missing measurement kept missing.">
   <title>E-Agent · Enzyme research instrument</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b1110'/%3E%3Cpath d='M20 44V20l12 7 12-7v24' fill='none' stroke='%2358d6a0' stroke-width='4.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='27' r='3.4' fill='%23e7b45a'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css?v=20261010-local1">
-  <script src="./endpoint.js?v=20261010-local1" defer></script>
-  <script src="./reference-tools.js?v=20261010-local1" defer></script>
-  <script src="./browser-agent.js?v=20261010-local1" defer></script>
-  <script src="./app.js?v=20261010-local1" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=20261011-engine1">
+  <script src="./endpoint.js?v=20261011-engine1" defer></script>
+  <script src="./reference-tools.js?v=20261011-engine1" defer></script>
+  <script src="./engine-install.js?v=20261011-engine1" defer></script>
+  <script src="./engine-client.js?v=20261011-engine1" defer></script>
+  <script src="./agents.js?v=20261011-engine1" defer></script>
+  <script src="./browser-agent.js?v=20261011-engine1" defer></script>
+  <script src="./compute-ui.js?v=20261011-engine1" defer></script>
+  <script src="./app.js?v=20261011-engine1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#message">Skip to chat</a>
@@ -67,6 +71,23 @@
             <p id="connection-error" class="field-error" role="alert" hidden></p>
             <a class="setup-link" href="https://github.com/psknlr/E-Agent/blob/main/docs/WEB_CHAT.md" target="_blank" rel="noopener noreferrer">Backend setup instructions <span aria-hidden="true">↗</span></a>
           </form>
+        </section>
+
+        <section id="engine-panel" class="panel engine-panel" aria-labelledby="engine-title">
+          <div class="panel-head">
+            <h2 id="engine-title" class="panel-title">Compute engine</h2>
+            <span id="engine-chip" class="chip muted" role="status">CHECKING</span>
+          </div>
+          <p id="engine-summary" class="field-help">Looking for the engine files published with this site.</p>
+          <div id="engine-meter" class="engine-meter" hidden><div class="engine-bar" aria-hidden="true"><i></i></div><span id="engine-stage" class="engine-stage" role="status" aria-live="polite"></span></div>
+          <div class="engine-actions">
+            <button id="engine-start" class="primary-button" type="button" hidden>Start on this device</button>
+            <button id="engine-stop" class="ghost-button" type="button" hidden>Stop</button>
+          </div>
+          <p id="engine-error" class="field-error" role="alert" hidden></p>
+          <dl id="engine-facts" class="facts" hidden></dl>
+          <label id="engine-offer-label" class="check" hidden><input id="engine-offer" type="checkbox" checked><span>Offer compute agents to the model</span></label>
+          <label class="check"><input id="engine-auto" type="checkbox"><span>Start automatically on this browser</span></label>
         </section>
 
         <section class="panel" aria-labelledby="model-title">
@@ -139,9 +160,31 @@
           </details>
         </section>
 
+        <section id="agents-panel" class="panel agents-panel" aria-labelledby="agents-title" hidden>
+          <details id="agents-details">
+            <summary class="panel-summary"><h2 id="agents-title" class="panel-title">Agents</h2><span id="agents-tag" class="summary-tag">ROUTED BY YOUR API</span></summary>
+            <div class="details-body">
+              <div id="agents-groups" class="agent-groups"></div>
+              <p id="agents-note" class="field-help"></p>
+            </div>
+          </details>
+        </section>
+
         <section id="tools-panel" class="panel tools-panel" aria-labelledby="tools-title" hidden>
           <h2 id="tools-title" class="panel-title tools-title">BROWSER TOOLS</h2>
           <ul id="tools-list" class="tools-list"></ul>
+        </section>
+
+        <section id="device-panel" class="panel device-panel" aria-labelledby="device-title">
+          <details id="device-details">
+            <summary class="panel-summary"><h2 id="device-title" class="panel-title">This device</h2><span class="summary-tag">LOCAL ONLY</span></summary>
+            <div class="details-body">
+              <dl id="device-facts" class="facts"></dl>
+              <p id="device-help" class="field-help"></p>
+              <button id="device-gpu" class="ghost-button" type="button">Check the GPU adapter</button>
+              <p id="device-gpu-result" class="field-help" role="status" aria-live="polite" hidden></p>
+            </div>
+          </details>
         </section>
 
         <div class="scope-note"><span class="scope-icon" aria-hidden="true"></span><p id="scope-help">Calculate in your browser and inspect curated enzyme evidence. Research conclusions require review.</p></div>
@@ -168,8 +211,8 @@
             <div class="welcome-copy">
               <div class="welcome-kicker"><span class="tick"></span> THE ENZYME RESEARCH AGENT</div>
               <h1 id="welcome-title">From a reaction<br>to <em>evidence</em>.</h1>
-              <p>Choose your API, bring your question, and let E-Agent run calculations and inspect enzyme evidence directly in this browser — with every tool call on the record.</p>
-              <p class="welcome-note">No API key yet, or the API unreachable? <strong>Run in browser</strong> looks a question up in the bundled evidence and runs the calculator right here. No model, no network.</p>
+              <p>Your model API is the controller: it reads the question and routes it to agents. The agents run on your device — evidence lookups in JavaScript, scientific computation as the project’s own Python on your CPU — and every call stays on the record.</p>
+              <p class="welcome-note">No API key yet, or the API unreachable? <strong>Run in browser</strong> routes a question to the same agents by keyword. No model, no network.</p>
               <div class="principles">
                 <span><i aria-hidden="true"></i> Uncertainty stays visible</span>
                 <span><i aria-hidden="true"></i> Tool calls stay traceable</span>
@@ -195,6 +238,35 @@
             </svg>
           </div>
 
+          <div id="flow-panel" class="flow" aria-labelledby="flow-title">
+            <div class="starter-head"><h2 id="flow-title">How a question runs</h2><span>Controller on the API · agents on your device</span></div>
+            <ol class="flow-steps">
+              <li class="flow-node">
+                <span class="flow-tag">1 · YOU</span>
+                <strong>Question and API key</strong>
+                <p>Your key stays in this tab and goes only to the API you choose.</p>
+              </li>
+              <li class="flow-arrow" aria-hidden="true"></li>
+              <li class="flow-node flow-controller">
+                <span class="flow-tag">2 · CONTROLLER</span>
+                <strong>Your model API</strong>
+                <p>Chooses which agents to call and reads their results. It computes nothing, approves nothing and cannot add an agent.</p>
+              </li>
+              <li class="flow-arrow" aria-hidden="true"></li>
+              <li class="flow-node flow-agents">
+                <span class="flow-tag">3 · AGENTS · THIS DEVICE</span>
+                <strong id="flow-agent-count">Agents</strong>
+                <ul class="flow-lanes">
+                  <li><i class="lane js" aria-hidden="true"></i><span>Evidence and calculator · JavaScript</span><b id="flow-js-count"></b></li>
+                  <li><i class="lane wasm" aria-hidden="true"></i><span>Compute · Python as WebAssembly on your CPU</span><b id="flow-wasm-count"></b></li>
+                </ul>
+              </li>
+            </ol>
+            <p class="flow-caption">The pipeline’s ten steps, and where each can run</p>
+            <ol id="flow-pipeline" class="pipeline-chips"></ol>
+            <p id="flow-pipeline-summary" class="flow-legend"></p>
+          </div>
+
           <div class="starter-head"><h2>A place to begin</h2><span>Or ask a question of your own</span></div>
           <div class="starter-grid">
             <button class="starter-card" type="button" data-prompt="Use the browser calculator to calculate 2 * 3 + 4, then explain the result and show the calculation in the tool trace.">
@@ -216,6 +288,28 @@
               <span class="starter-go" aria-hidden="true">↗</span>
             </button>
           </div>
+
+          <div class="starter-head compute-head"><h2>Compute on this device</h2><span>Start the compute engine first</span></div>
+          <div class="starter-grid">
+            <button class="starter-card compute" type="button" data-prompt="Align MKTAYIAKQRQISFVKSHFSRQ with MKTAYLAKQRQVSFVKSHFSRQ and report the identity over aligned columns, the coverage and the gaps.">
+              <span class="starter-index">04</span>
+              <strong>Align two sequences</strong>
+              <span class="starter-desc">The project’s own aligner runs on your CPU; each number it reports is cited to the result.</span>
+              <span class="starter-go" aria-hidden="true">↗</span>
+            </button>
+            <button class="starter-card compute" type="button" data-prompt="Seven of twenty docking poses were catalytically productive. Give the 95% Wilson interval for that proportion and say what it does and does not tell me.">
+              <span class="starter-index">05</span>
+              <strong>Put an interval on a fraction</strong>
+              <span class="starter-desc">Wilson interval for 7 of 20 poses, honest about what it leaves out.</span>
+              <span class="starter-go" aria-hidden="true">↗</span>
+            </button>
+            <button class="starter-card compute" type="button" data-prompt="Run the pilot task KRED_PILOT_001 through the pipeline on this device. Which steps ran, where does it stop, and which human decision is it waiting on?">
+              <span class="starter-index">06</span>
+              <strong>Run the pipeline here</strong>
+              <span class="starter-desc">The project’s own controller, in your browser. It stops at the first decision only a named person can make.</span>
+              <span class="starter-go" aria-hidden="true">↗</span>
+            </button>
+          </div>
         </section>
 
         <section id="messages" class="messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></section>
@@ -229,6 +323,7 @@
           <textarea id="message" rows="2" maxlength="8000" placeholder="Ask about an enzyme, a reaction, or the evidence…" aria-describedby="composer-help"></textarea>
           <div class="composer-bottom">
             <span id="composer-help">Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line</span>
+            <span id="composer-compute" class="composer-chip" title="Compute agents run on this device’s CPU as WebAssembly" hidden></span>
             <div class="composer-actions">
               <button id="run-local" class="ghost-button run-local" type="button" disabled title="Look the question up in the bundled evidence and run the calculator here. No model or API key needed.">Run in browser</button>
               <button id="cancel-request" class="cancel-button" type="button" hidden>Cancel</button>

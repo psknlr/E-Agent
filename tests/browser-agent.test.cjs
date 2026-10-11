@@ -276,6 +276,33 @@ test("local run reports a refused tool call as a refusal, and rejects bad input 
   await assert.rejects(stale.runtime.local({ message: "inspect 6ZZO" }), /cannot route questions/);
 });
 
+// The first real model run refused with 'Uncited quantities: ["2 a"]': the guard
+// read substrate id "2a" as "2 angstroms" in the reasoning a model writes before
+// it has called any tool, so no tool ever ran. This drives that exact exchange.
+test("a model that names substrate 2a before calling the tool is not refused, and its cited answer verifies", async () => {
+  let turn = 0;
+  const { runtime } = harness((url, options) => {
+    const body = JSON.parse(options.body);
+    if (turn++ === 0) {
+      return reply({ reasoning: "I will inspect Ssal-KRED activity on substrate 2a first.", tool_calls: [{ interface: "activity_endpoint", arguments: { enzyme_id: "Ssal-KRED", substrate_id: "2a" }, rationale: "Read the stored record for this pair." }] });
+    }
+    const latest = body.messages.at(-1).content;
+    assert.ok(latest.startsWith("Tool results:\n"));
+    const record = JSON.parse(latest.slice("Tool results:\n".length))[0];
+    assert.equal(record.ok, true);
+    const c = record.value.cite;
+    return reply({ reasoning: `Ssal-KRED on substrate 2a shows 12.5 ee [cite artifact=${c.artifact} sha256=${c.sha256} row=${c.row} field=ee_reported method=read].` });
+  });
+  const result = await runtime.chat({ message: "Inspect Ssal-KRED activity on 2a. Explain missing values and detection limits before comparing it with other constructs.", model_config: config() });
+  assert.equal(result.completion_verified, true);
+  assert.equal(result.transcript.tool_calls_made, 1);
+  assert.equal(result.transcript.turns[0].guard.clean, true, "the planning turn names 2a and must not be refused");
+  assert.equal(result.transcript.turns[0].results[0].ok, true);
+  assert.equal(result.transcript.turns[1].guard.clean, true);
+  assert.deepEqual(plain(result.transcript.turns[1].guard.verified_quantities), ["12.5 ee"]);
+  assert.match(result.answer, /substrate 2a shows 12\.5 ee/);
+});
+
 test("the model drives the real local loader, sees its withheld evidence, and retains follow-up context", async () => {
   let round = 0;
   const { runtime } = harness((url, options) => {

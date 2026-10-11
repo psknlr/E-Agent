@@ -1,0 +1,72 @@
+{
+ "pyodide": {
+  "file_sha256": {
+   "pyodide-lock.json": "5dc2fc119108bc148c7457dc86e7675b5c87e1cafd420b9c34c1eaef7b36c010",
+   "pyodide.asm.mjs": "f7cdc8ece80678ceb712f8e65ebe6d3a83203a180c399865f49612a051693635",
+   "pyodide.asm.wasm": "cc36e3cab04fdfc9a63ff13eb52eae2b911bf46c025cc7b281f394bd3de1d5e6",
+   "pyodide.mjs": "6f1d60f7bf529beb300f0f47983c921d3982363640ba20af0e38efdddbc66109",
+   "python_stdlib.zip": "fa1957e5777068fc4f7437f96d860ae2fbe9c19732ba06c84e004ec16dd7dd7a"
+  },
+  "files": [
+   "pyodide.mjs",
+   "pyodide.asm.mjs",
+   "pyodide.asm.wasm",
+   "python_stdlib.zip",
+   "pyodide-lock.json"
+  ],
+  "integrity": "sha512-0YvXxEhfEdpLfb/XkM2BFAeMROq0iMUX2bzzH9pOttyMcWkwq+HbE5uyuGD82LN7y2q+SNvi/6V5JEsOlD2R1A==",
+  "license": "MPL-2.0",
+  "sha256": "66b7949e5a0cba2250b586d7e368bf12fb482800748d182c4618254b685ffaa0",
+  "url": "https://registry.npmjs.org/pyodide/-/pyodide-314.0.7.tgz",
+  "version": "314.0.7"
+ },
+ "pyyaml": {
+  "license": "MIT",
+  "sha256": "d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f",
+  "url": "https://files.pythonhosted.org/packages/05/8e/961c0007c59b8dd7729d542c61a4d537767a59645b82a0b521206e1e25c2/pyyaml-6.0.3.tar.gz",
+  "version": "6.0.3"
+ },
+ "schema": "eagent.engine.lock.v1",
+ "wheels": [
+  {
+   "bytes": 45571,
+   "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+   "name": "typing_extensions",
+   "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+   "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+   "version": "4.16.0"
+  },
+  {
+   "bytes": 13427,
+   "filename": "annotated_types-0.8.0-py3-none-any.whl",
+   "name": "annotated_types",
+   "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+   "url": "https://files.pythonhosted.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl",
+   "version": "0.8.0"
+  },
+  {
+   "bytes": 14750,
+   "filename": "typing_inspection-0.4.4-py3-none-any.whl",
+   "name": "typing_inspection",
+   "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+   "url": "https://files.pythonhosted.org/packages/67/81/4add07e5172b7ac40d8ed5ff580409a7801a4fe26d529bdd915401dabfbe/typing_inspection-0.4.4-py3-none-any.whl",
+   "version": "0.4.4"
+  },
+  {
+   "bytes": 1483929,
+   "filename": "pydantic_core-2.50.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+   "name": "pydantic_core",
+   "sha256": "ab3f95f737fc1b258b8210308fc02ce1442cf5950cf6d30b09ad89ab9e8afebd",
+   "url": "https://files.pythonhosted.org/packages/bf/c1/30d36746051e42bb67df986ee874f787526edb99205f6b1583c33dd81202/pydantic_core-2.50.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+   "version": "2.50.0"
+  },
+  {
+   "bytes": 487109,
+   "filename": "pydantic-2.14.0-py3-none-any.whl",
+   "name": "pydantic",
+   "sha256": "15fab1bea6f1dc5003b54fc2ecab230c1fd1dbade2acd4addc52d81e32416d4b",
+   "url": "https://files.pythonhosted.org/packages/2d/eb/9146591cc819d040475bf7f2be786710c7f7eb8083693bf859728da2ca9c/pydantic-2.14.0-py3-none-any.whl",
+   "version": "2.14.0"
+  }
+ ]
+}

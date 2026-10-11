@@ -230,3 +230,179 @@ test('ids() hands out copies, so a caller cannot change what the router will off
   assert.equal(runtime.ids().pdb_ids.length, 19);
   assert.equal(runtime.ids().pdb_ids.includes('0000'), false);
 });
+
+// ---- identifiers are not measurements --------------------------------------
+// The unit pattern is case-insensitive, which also made "A" (angstrom) and "M"
+// (molar) match a lowercase letter, so the reference set's substrate ids 1a-5a
+// read as "1 angstrom" and the guard refused every sentence that named one,
+// including the one a model writes before it has called any tool. These cases
+// mirror IdentifiersAreNotMeasurements in tests/test_numeric_guard.py.
+const IDENTIFIER_SENTENCES = [
+  'I will inspect Ssal-KRED activity on substrate 2a.', 'Checking substrates 1a, 3a and 5a next.',
+  'Compare construct Ort-EZM-1 on 4a.', 'Buy 2 a day.', 'About 5 m away.',
+];
+
+test('a lowercase letter after a number is an identifier, not a unit', () => {
+  const runtime = tools();
+  for (const text of IDENTIFIER_SENTENCES) {
+    const report = runtime.inspect(text);
+    assert.deepEqual([...report.uncited_quantities], [], text);
+    assert.equal(report.clean, true, text);
+  }
+});
+
+test('the units themselves are still caught, in either case where more than one letter makes the unit', () => {
+  const runtime = tools();
+  for (const [text, expected] of [
+    ['The resolution is 2.1 A.', ['2.1 A']], ['The distance is 3.5A.', ['3.5 A']], ['A 5 M solution.', ['5 M']],
+    ['It is 10 nM.', ['10 nM']], ['It is 5 mM.', ['5 mM']], ['About 12 %.', ['12 %']], ['A 90 degrees turn.', ['90 degrees']],
+    ['The resolution is 2.1 angstroms.', ['2.1 angstroms']], ['It is 10 NM.', ['10 NM']], ['A 5 Percent gain.', ['5 Percent']],
+  ]) {
+    assert.deepEqual([...runtime.inspect(text).uncited_quantities], expected, text);
+  }
+});
+
+test('an identifier between a number and its citation does not steal the citation', async () => {
+  const runtime = tools();
+  const result = await runtime.execute({interface: 'calculate', arguments: {expression: '7.1974 / 2'}});
+  const citation = cite(result.value.cite, 'value');
+  const bound = runtime.inspect(`The distance is 3.6 A in substrate 2a ${citation}.`);
+  assert.equal(bound.clean, true);
+  assert.deepEqual([...bound.verified_quantities], ['3.6 A']);
+  // A real quantity in between still does: the citation then belongs to the later number.
+  assert.deepEqual([...runtime.inspect(`The distance is 3.6 A and 5 M ${citation}.`).uncited_quantities], ['3.6 A']);
+});
+
+test('the Ssal-KRED / 2a answer the user asked for passes when its numbers are cited, and only they are refused when not', async () => {
+  const runtime = tools();
+  const record = await runtime.execute({interface: 'activity_endpoint', arguments: {enzyme_id: 'Ssal-KRED', substrate_id: '2a'}});
+  assert.equal(record.ok, true);
+  const answer = field => cite(record.value.cite, field);
+  const text = `Ssal-KRED on substrate 2a shows 12.5 ee ${answer('ee_reported')} with 7.2 mM total product ${answer('total_product_mM')}.`;
+  const cited = runtime.inspect(text);
+  assert.equal(cited.clean, true, JSON.stringify(cited));
+  assert.deepEqual([...cited.verified_quantities], ['12.5 ee', '7.2 mM']);
+  // Without the citations the guard must still refuse the real quantities, and not the id.
+  const bare = runtime.inspect('Ssal-KRED on substrate 2a shows 12.5 ee with 7.2 mM total product.');
+  assert.deepEqual([...bare.uncited_quantities], ['12.5 ee', '7.2 mM']);
+});
+
+
+// ---- units as they are actually written, and text a person reads differently ---
+// The unit list had "A" for angstrom and "degrees" for an angle, which is not how
+// either is written in a structure paper, and a percentage typed with a
+// full-width sign (common in Chinese-language replies) was not seen at all.
+// These mirror UnitsAsTheyAreActuallyWritten in tests/test_numeric_guard.py.
+test('the angstrom sign, degree sign, micro sign, pct and per cent are units', () => {
+  const runtime = tools();
+  for (const [text, expected] of [
+    ['The distance is 7.3 Å.', ['7.3 Å']], ['The distance is 7.3 Å.', ['7.3 Å']], ['The distance is 7.3Å.', ['7.3 Å']],
+    ['The distance is 7.3 Å.', ['7.3 Å']], ['The angle is 104.5° at the vertex.', ['104.5 °']],
+    ['The Km is 12.5 µM.', ['12.5 μM']], ['The Km is 12.5 μM.', ['12.5 μM']], ['Identity is 99.9 pct.', ['99.9 pct']],
+    ['Identity is 99.9 per cent.', ['99.9 per cent']],
+  ]) assert.deepEqual([...runtime.inspect(text).uncited_quantities], expected, text);
+  assert.deepEqual([...runtime.inspect('Substrate 2å is not a distance.').uncited_quantities], [], 'a lowercase a-ring is still an identifier');
+});
+
+test('full-width and other-script digits are the number they spell', async () => {
+  const runtime = tools();
+  assert.deepEqual([...runtime.inspect('Identity is ９９．９％.').uncited_quantities], ['99.9 %']);
+  assert.deepEqual([...runtime.inspect('Identity is ٩٩ %.').uncited_quantities], ['99 %']);
+  assert.deepEqual([...runtime.inspect('Identity is ९९ %.').uncited_quantities], ['99 %']);
+  assert.deepEqual([...runtime.inspect('Identity is 80-95 percent.').uncited_quantities], ['95 percent'], 'a hyphenated range holds a quantity');
+  // The reader sees 3.6 Å and a citation; the guard sees the same.
+  const result = await runtime.execute({interface: 'calculate', arguments: {expression: '7.1974 / 2'}});
+  const citation = cite(result.value.cite, 'value');
+  const right = runtime.inspect(`The distance is ３．６ Å ${citation}.`);
+  assert.deepEqual([...right.verified_quantities], ['3.6 Å']);
+  assert.equal(runtime.inspect(`The distance is ４．６ Å ${citation}.`).clean, false);
+});
+
+// ---- a number that no tool derived -----------------------------------------------
+test('a calculation of a bare number restates it and verifies nothing', async () => {
+  const runtime = tools();
+  const bare = await runtime.execute({interface: 'calculate', arguments: {expression: '87.5'}});
+  const report = runtime.inspect(`The identity is 87.5 % ${cite(bare.value.cite, 'value')}.`);
+  assert.equal(report.clean, true, 'it is cited');
+  assert.deepEqual([...report.verified_quantities], []);
+  assert.deepEqual([...report.declared_quantities], ['87.5 %']);
+  assert.equal(report.fully_verified, false);
+  for (const expression of ['(87.5)', '+87.5', '-(-87.5)', '875e-1', 'pi']) {
+    const result = await runtime.execute({interface: 'calculate', arguments: {expression}});
+    const value = result.value.value;
+    const again = runtime.inspect(`It is ${value} nM ${cite(result.value.cite, 'value')}.`);
+    assert.deepEqual([...again.verified_quantities], [], expression);
+  }
+  // A derivation is checked: the number is what the arithmetic gives.
+  const derived = await runtime.execute({interface: 'calculate', arguments: {expression: '350 / 4'}});
+  const checked = runtime.inspect(`The identity is 87.5 % ${cite(derived.value.cite, 'value')}.`);
+  assert.deepEqual([...checked.verified_quantities], ['87.5 %']);
+  assert.deepEqual([...checked.declared_quantities], []);
+  assert.equal(checked.fully_verified, true);
+  assert.equal(runtime.inspect(`The identity is 88.5 % ${cite(derived.value.cite, 'value')}.`).clean, false);
+});
+
+test('a zero with a positive exponent says nothing about the value', async () => {
+  const runtime = tools();
+  const result = await runtime.execute({interface: 'calculate', arguments: {expression: '90.9 + 0'}});
+  const citation = cite(result.value.cite, 'value');
+  for (const written of ['0e5', '0E5', '0.0e3', '-0e2', '0e1']) {
+    assert.equal(runtime.inspect(`Identity is ${written} percent ${citation}.`).clean, false, written);
+  }
+  // Scientific notation is still read at the precision it is written.
+  assert.equal(runtime.inspect(`Identity is 9e1 percent ${citation}.`).clean, true);
+  assert.equal(runtime.inspect(`Identity is 90.9 percent ${citation}.`).clean, true);
+  assert.equal(runtime.inspect(`Identity is 0e0 percent ${citation}.`).clean, false);
+});
+
+// ---- whatever a model sends, the guard answers in time ---------------------------
+test('the guard is linear in the length of a reply', async () => {
+  const runtime = tools();
+  const result = await runtime.execute({interface: 'calculate', arguments: {expression: '1 + 1'}});
+  const real = cite(result.value.cite, 'value');
+  const replies = {
+    'a quantity every few characters, one citation at the end': '1 nM '.repeat(12000) + real,
+    'openers that never close': '[cite '.repeat(12000),
+    'one opener with a very long body, never closed': '[cite ' + 'a'.repeat(63000),
+    'one opener with a very long body': '[cite a=' + 'a'.repeat(63000) + ']',
+    'legacy openers that never close': '[artifact:'.repeat(6000),
+    'many short citations': (`1 nM ${real} `).repeat(500),
+    'digits of other scripts': '٩'.repeat(30000) + ' %',
+  };
+  for (const [label, reply] of Object.entries(replies)) {
+    const started = Date.now();
+    const report = runtime.inspect(reply);
+    const took = Date.now() - started;
+    assert.ok(took < 1500, `${label}: ${took} ms`);
+    assert.equal(typeof report.clean, 'boolean', label);
+  }
+  const huge = runtime.inspect('[cite a=' + 'a'.repeat(5000) + ']');
+  assert.match(huge.broken_citations.join(), /longer than any citation can be/);
+});
+
+// ---- whatever a model sends, the guard answers ---------------------------------------
+test('a seeded fuzz of hostile text never makes the guard throw, hang, or contradict itself', async () => {
+  const runtime = tools();
+  const real = await runtime.execute({interface: 'calculate', arguments: {expression: '350 / 4'}});
+  const citation = cite(real.value.cite, 'value');
+  let state = 0x9e3779b9;
+  const next = () => { state ^= state << 13; state >>>= 0; state ^= state >>> 17; state ^= state << 5; state >>>= 0; return state; };
+  const pick = list => list[next() % list.length];
+  const pieces = ['87.5', ' ', '%', ' percent', ' A', 'Å', 'Å', '°', ' nM', 'µM', ' mM', '1e5', '0e9', '-', '+', '.', ',', '[cite ', ']', '[', '=',
+    'artifact=', 'sha256=', 'row=', 'field=', 'method=read', citation, '９９', '٩', '०', '①', '🧬', '\ud800', '\u0000', 'ee', 'pLDDT', ' s-1', 'x'.repeat(60), '\n',
+    '[artifact:', '[cite artifact=browser_calculation', ' kcal/mol', '2a', '6ZZO', '​', '‮'];
+  for (let round = 0; round < 3000; round += 1) {
+    let text = '';
+    for (let part = 0, parts = 1 + next() % 40; part < parts; part += 1) text += pick(pieces);
+    const started = Date.now();
+    const report = runtime.inspect(text);
+    assert.ok(Date.now() - started < 500, `took too long on ${JSON.stringify(text.slice(0, 80))}`);
+    assert.equal(report.clean, report.uncited_quantities.length === 0 && report.broken_citations.length === 0);
+    assert.equal(report.fully_verified, report.clean && report.declared_quantities.length === 0);
+    for (const list of [report.uncited_quantities, report.cited_quantities, report.verified_quantities, report.declared_quantities, report.broken_citations]) {
+      assert.ok(Array.isArray(list) && list.every(item => typeof item === 'string'));
+    }
+    // A number is verified or declared only if it was cited.
+    for (const token of [...report.verified_quantities, ...report.declared_quantities]) assert.ok(report.cited_quantities.includes(token), token);
+  }
+});

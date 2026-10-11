@@ -1,7 +1,11 @@
 """Export deterministic browser evidence by running the actual reference readers.
 
-Run this at build time; the published chat needs no Python process. --check
-refuses a stale checked-in bundle without changing it.
+Run this at build time; the published chat needs no Python process. Two files
+are written: the reference bundle (what the stored-evidence tools return) and
+the agent catalog (which compute agents exist, what each wraps, and where each
+of the ten pipeline interfaces can run). Both are generated from code, so the
+page cannot describe a capability the code does not have. --check refuses a
+stale checked-in copy of either without changing it.
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ from typing import Any, Iterator
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from eagent.engine import static_catalog
 from eagent.errors import EAgentError
 from eagent.harness.toolloop import SYSTEM_PROMPT, reference_tools
 
@@ -114,25 +119,35 @@ def build_bundle(root: Path = ROOT) -> dict[str, Any]:
     return bundle
 
 
+def build_catalog() -> dict[str, Any]:
+    return static_catalog()
+
+
 def serialize(bundle: dict[str, Any]) -> str:
     return canonical(bundle) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="verify the checked-in export without writing")
+    parser.add_argument("--check", action="store_true", help="verify the checked-in exports without writing")
     parser.add_argument("--out", type=Path, default=ROOT / "web" / "reference-data.json")
+    parser.add_argument("--catalog-out", type=Path, default=ROOT / "web" / "agent-catalog.json")
     args = parser.parse_args(argv)
-    expected = serialize(build_bundle())
+    exports = [("reference bundle", args.out, serialize(build_bundle())),
+               ("agent catalog", args.catalog_out, serialize(build_catalog()))]
     if args.check:
-        if not args.out.is_file() or args.out.read_text(encoding="utf-8") != expected:
-            print("Browser reference bundle is stale; run scripts/build_browser_bundle.py", file=sys.stderr)
+        stale = [label for label, path, expected in exports
+                 if not path.is_file() or path.read_text(encoding="utf-8") != expected]
+        for label in stale:
+            print(f"Browser {label} is stale; run scripts/build_browser_bundle.py", file=sys.stderr)
+        if stale:
             return 1
-        print("Browser reference bundle matches the actual readers.")
-    else:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(expected, encoding="utf-8")
-        print(f"Exported browser reference bundle ({len(expected.encode('utf-8'))} bytes).")
+        print("Browser reference bundle and agent catalog match the actual code.")
+        return 0
+    for label, path, expected in exports:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(expected, encoding="utf-8")
+        print(f"Exported browser {label} ({len(expected.encode('utf-8'))} bytes).")
     return 0
 
 

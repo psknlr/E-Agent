@@ -91,7 +91,12 @@ VERIFIABLE_METHODS: frozenset[str] = frozenset({"read", "rounded"})
 #: while staying readable in prose.
 MIN_SHA256_PREFIX: int = 12
 
-_CITATION_RE = re.compile(r"\[cite\s+([^\]]+)\]", re.IGNORECASE)
+#: A citation's body is a few short key=value pairs. The bound is what keeps a
+#: long run of ``[cite `` with no closing bracket from being rescanned to the end
+#: of the text at every opener; a body longer than any real one is not a citation.
+MAX_CITATION_CHARS: int = 500
+
+_CITATION_RE = re.compile(r"\[cite\s+([^\]]{1,%d})\]" % MAX_CITATION_CHARS, re.IGNORECASE)
 _PAIR_RE = re.compile(r'(\w+)\s*=\s*(?:"([^"]*)"|(\S+?))(?=\s+\w+\s*=|\s*$)')
 
 #: Columns tried, in order, when matching a citation's ``row`` against a table.

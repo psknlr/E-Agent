@@ -6,11 +6,73 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const plainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
   const canonical = args => JSON.stringify(Object.fromEntries(Object.keys(args).sort().map(key => [key, args[key]])));
+  // Citations to these artifacts are checked against results computed in this
+  // browser during the current run, not against the published bundle. A page
+  // registers a row only after computing it; the model can only name one.
+  const COMPUTED_ARTIFACTS = Object.freeze(['browser_calculation', 'engine_compute']);
+  const MAX_COMPUTED_ROWS = 500, MAX_COMPUTED_FIELDS = 2000;
   const calculateSchema = {
     name: 'calculate', description: 'Compute a finite arithmetic expression locally; no code execution or network.',
     parameters: {expression: 'Arithmetic expression using numbers, + - * / % ^, parentheses, pi, e and approved math functions.'}
   };
-  const measurement = () => /(?<![\w.+-])([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*(%|percent|angstroms?|A\b|nm|kcal\/mol|kJ\/mol|s-1|s\^-1|\/s|mM|uM|nM|M\b|pLDDT|ee\b|kcat|Km|degrees?|deg\b)/gi;
+  // A number followed by one of these units is a measurement the model must cite.
+  // The pattern is case-insensitive so "NM" and "Percent" are caught, but a
+  // single-letter unit is a unit only in capitals: angstrom is written "A" and
+  // molar "M". A lowercase letter after a number is an identifier (substrate
+  // "2a" in the reference set), and reading it as "2 angstroms" refused every
+  // sentence that named one. The angstrom sign, the degree sign and the micro
+  // sign are units too. A number may follow a hyphen ("80-95 percent" holds a
+  // quantity); only a letter, digit, underscore or point before it makes it part
+  // of a longer token. This must stay in step with MEASUREMENT_PATTERN in
+  // src/eagent/harness/llm.py.
+  const measurement = () => /(?<![\w.])([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*(%|per\s?cent|pct\b|angstroms?|Å|A\b|nm|kcal\/mol|kJ\/mol|s-1|s\^-1|\/s|mM|[uµμ]M|nM|M\b|pLDDT|ee\b|kcat|Km|degrees?|deg\b|°)/gi;
+
+  const quantities = text => [...text.matchAll(measurement())].filter(match => !/^[amå]$/.test(match[2]));
+
+  // The text as a person reads it. Full-width digits and signs, the angstrom and
+  // micro signs and superscript forms become the characters the patterns know,
+  // and so do the digits of other scripts. Without this, "９９．９％" and "٩٩ %" are
+  // the same claim as "99.9 %" that no pattern sees.
+  function readable(text) {
+    return text.normalize('NFKC').replace(/\p{Nd}/gu, char => {
+      const point = char.codePointAt(0);
+      if (point < 128) return char;
+      // Decimal digits come in unbroken runs of ten, zero first.
+      let first = point;
+      while (first > 128 && point - first < 100 && /\p{Nd}/u.test(String.fromCodePoint(first - 1))) first -= 1;
+      return String((point - first) % 10);
+    });
+  }
+
+  // What a unit is a unit of, written in prose and named in a field. A number may
+  // be backed by a computed field only when the two agree: a fraction does not
+  // back a percentage, and a distance in angstroms does not back one in
+  // nanometres. Computed fields carry their unit in their name (distance_angstrom,
+  // identity_percent_over_aligned_columns, angle_degrees); a field with none is a
+  // count, a fraction or a score.
+  const UNIT_WORDS = Object.freeze({percent: 'a percentage', angstrom: 'in angstroms', degrees: 'in degrees'});
+  function proseUnit(unit) {
+    const text = unit.toLowerCase().replace(/\s+/g, '');
+    if (text === '%' || text === 'percent' || text === 'pct') return 'percent';
+    if (text === 'a' || text === 'å' || text.startsWith('angstrom')) return 'angstrom';
+    if (text === '°' || text === 'deg' || text.startsWith('degree')) return 'degrees';
+    return text;
+  }
+  function fieldUnit(name) {
+    const parts = String(name).toLowerCase().split(/[._]/);
+    return parts.includes('percent') ? 'percent' : parts.includes('angstrom') ? 'angstrom' : parts.includes('degrees') ? 'degrees' : '';
+  }
+  // Why a computed field cannot back a number written with this unit; empty when it can.
+  function unitProblem(artifact, field, unit) {
+    if (artifact !== 'engine_compute') return '';
+    const wanted = proseUnit(unit), have = fieldUnit(field);
+    if (wanted === have) return '';
+    return `${field} is ${have ? UNIT_WORDS[have] : 'a count, fraction or score with no unit'}, so it cannot back a number written in ${unit}`
+      + (wanted === 'percent' && !have ? '; cite the field ending _percent' : '') + '.';
+  }
+
+  // A calculation of a bare number (87.5, -3, pi) restates it; nothing was derived.
+  const bareNumber = source => /^[()+\-\s]*(?:(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|pi|e)[()\s]*$/i.test(source);
 
   function bounded(value) {
     if (!Number.isFinite(value) || Math.abs(value) > 1e100) throw new Error('Arithmetic must remain finite and within the magnitude limit.');
@@ -130,6 +192,9 @@
     const number = Number(cited), components = cited.toLowerCase().split('e');
     const decimals = (components[0].includes('.') ? components[0].split('.')[1].length : 0) - Number(components[1] || 0);
     if (!Number.isFinite(number)) return false;
+    // "0e5" is zero to the nearest hundred thousand: at that precision every
+    // smaller number rounds to it, so it says nothing about the value.
+    if (number === 0 && Number(components[1] || 0) > 0) return false;
     if (Math.abs(decimals) > 100) return Math.abs(number - stored) <= Math.max(Number.MIN_VALUE, 1e-9 * Math.max(Math.abs(number), Math.abs(stored)));
     const actual = rounded(stored, decimals);
     return Math.abs(actual - number) <= Math.max(1e-9 * Math.max(Math.abs(actual), Math.abs(number)), 10 ** -(decimals + 6));
@@ -181,22 +246,46 @@
     return best;
   }
 
-  function parseCitations(text) {
+  // A model's reply can be long and need not be well formed, so nothing that reads
+  // it may take more than linear time in its length. Citations are found by
+  // looking for the next "]" rather than with a pattern that can back up over the
+  // rest of the text, and a citation longer than any real one is malformed.
+  const MAX_CITATION_CHARS = 500;
+
+  // Where every "[cite ...]" sits in the text, well formed or not.
+  function citationSpans(text) {
+    const spans = [], opener = /\[cite(?=[\s\]])/gi;
+    let found;
+    while ((found = opener.exec(text)) !== null) {
+      const close = text.indexOf(']', found.index);
+      if (close < 0) break; // nothing later can be closed either
+      spans.push({start: found.index, end: close + 1, body: text.slice(found.index + 5, close)});
+      opener.lastIndex = close + 1;
+    }
+    return spans;
+  }
+
+  function parseCitations(text, spans = citationSpans(text)) {
     const citations = [], problems = [];
-    for (const match of text.matchAll(/\[cite(?:\s+([^\]]*))?\]/gi)) {
+    for (const span of spans) {
+      const whole = text.slice(span.start, span.end);
+      if (span.body.length > MAX_CITATION_CHARS) {
+        problems.push(`${whole.slice(0, 80)}…]: malformed citation; longer than any citation can be.`);
+        continue;
+      }
       const fields = Object.create(null);
       let duplicate = false;
-      for (const pair of (match[1] || '').matchAll(/(\w+)\s*=\s*(?:"([^"]*)"|(\S+?))(?=\s+\w+\s*=|\s*$)/g)) {
+      for (const pair of span.body.matchAll(/(\w+)\s*=\s*(?:"([^"]*)"|(\S+?))(?=\s+\w+\s*=|\s*$)/g)) {
         const key = pair[1].toLowerCase();
         if (own(fields, key)) duplicate = true;
         fields[key] = (pair[2] ?? pair[3]).trim();
       }
       const missing = ['artifact', 'sha256', 'row', 'field', 'method'].filter(key => !fields[key]);
       if (duplicate || missing.length || !/^[0-9a-f]{12,64}$/i.test(fields.sha256 || '')) {
-        problems.push(`${match[0]}: malformed citation${missing.length ? '; missing ' + missing.join(', ') : ''}.`);
+        problems.push(`${whole}: malformed citation${missing.length ? '; missing ' + missing.join(', ') : ''}.`);
         continue;
       }
-      citations.push({...fields, sha256: fields.sha256.toLowerCase(), start: match.index, end: match.index + match[0].length});
+      citations.push({...fields, sha256: fields.sha256.toLowerCase(), start: span.start, end: span.end});
     }
     return {citations, problems};
   }
@@ -207,6 +296,9 @@
         || !plainObject(bundle.results) || !plainObject(bundle.citation_rows)
         || !/^[0-9a-f]{64}$/.test(bundle.reference_digest || '') || !/^[0-9a-f]{64}$/.test(bundle.bundle_digest || '')) {
       throw new Error('The browser reference bundle is invalid or has an unsupported version.');
+    }
+    if (COMPUTED_ARTIFACTS.some(name => own(bundle.citation_rows, name))) {
+      throw new Error('The browser citation index may not define an artifact that is computed in the browser.');
     }
     for (const artifact of Object.values(bundle.citation_rows)) {
       if (!plainObject(artifact)) throw new Error('The browser citation index is invalid.');
@@ -220,8 +312,32 @@
     // The snapshot and per-session computations never expose mutable source rows.
     const data = clone(bundle), schemaList = [...data.schemas, clone(calculateSchema)];
     const schemaMap = new Map(schemaList.map(schema => [schema.name, schema]));
-    const computedRows = Object.create(null);
+    const computed = Object.fromEntries(COMPUTED_ARTIFACTS.map(name => [name, Object.create(null)]));
     api.systemPrompt = data.system_prompt;
+
+    // Make a result computed in this browser citable. The row is immutable: the
+    // same computation always gives the same digest and so the same row, and a
+    // different result under an existing row id is refused rather than replaced.
+    function registerComputed(artifact, row, entry) {
+      if (!COMPUTED_ARTIFACTS.includes(artifact)) throw new Error('Not a computed artifact.');
+      if (typeof row !== 'string' || !/^[A-Za-z0-9_-]{1,96}$/.test(row)) throw new Error('A computed row id is a short identifier.');
+      if (!plainObject(entry) || !/^[0-9a-f]{64}$/.test(entry.sha256 || '') || !plainObject(entry.fields)
+          || !Array.isArray(entry.field_names) || entry.field_names.some(name => typeof name !== 'string')
+          || Object.values(entry.fields).some(value => value !== null && !(typeof value === 'number' && Number.isFinite(value)))
+          || Object.keys(entry.fields).length > MAX_COMPUTED_FIELDS || entry.field_names.length > MAX_COMPUTED_FIELDS
+          || (entry.literal !== undefined && typeof entry.literal !== 'boolean')) {
+        throw new Error('A computed row needs a SHA-256 and bounded finite numeric fields.');
+      }
+      const rows = computed[artifact];
+      if (own(rows, row)) {
+        if (rows[row].sha256 !== entry.sha256) throw new Error('A different result already holds this computed row.');
+        return;
+      }
+      if (Object.keys(rows).length >= MAX_COMPUTED_ROWS) throw new Error('Too many computed rows in one run.');
+      // A row that only restates a number cannot verify it, so the guard counts a
+      // number it backs as declared, not verified.
+      rows[row] = {sha256: entry.sha256, fields: clone(entry.fields), field_names: [...entry.field_names], literal: entry.literal === true};
+    }
 
     async function execute(call) {
       const started = Date.now();
@@ -246,7 +362,7 @@
           const digest = [...new Uint8Array(await scope.crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload)))]
             .map(byte => byte.toString(16).padStart(2, '0')).join('');
           const row = 'calculation-' + digest.slice(0, 16);
-          computedRows[row] = {sha256: digest, fields: {value}, field_names: ['value']};
+          registerComputed('browser_calculation', row, {sha256: digest, fields: {value}, field_names: ['value'], literal: bareNumber(args.expression)});
           result.value = {expression: args.expression, value, computed: true,
             method: 'bounded arithmetic parser; no scientific measurement',
             cite: {artifact: 'browser_calculation', sha256: digest, row, field: 'value', method: 'read'}};
@@ -268,12 +384,14 @@
       const report = {clean: false, fully_verified: false, summary: '', uncited_quantities: [],
         cited_quantities: [], verified_quantities: [], declared_quantities: [], broken_citations: []};
       if (typeof text !== 'string') { report.broken_citations.push('Model output must be text.'); text = ''; }
-      const parsed = parseCitations(text);
+      text = readable(text);
+      const spans = citationSpans(text);
+      const parsed = parseCitations(text, spans);
       report.broken_citations.push(...parsed.problems);
       const validRows = new Map();
       for (const citation of parsed.citations) {
         let row;
-        if (citation.artifact === 'browser_calculation') row = own(computedRows, citation.row) ? computedRows[citation.row] : null;
+        if (COMPUTED_ARTIFACTS.includes(citation.artifact)) row = own(computed[citation.artifact], citation.row) ? computed[citation.artifact][citation.row] : null;
         else if (own(data.citation_rows, citation.artifact) && own(data.citation_rows[citation.artifact], citation.row)) {
           row = data.citation_rows[citation.artifact][citation.row];
         }
@@ -286,30 +404,41 @@
           report.broken_citations.push('An uncomputed derivation must first use calculate.');
         } else validRows.set(citation, row);
       }
-      for (const old of text.matchAll(/\[(?:artifact|table|file|record|evidence):[^\]]+\]/gi)) {
+      for (const old of text.matchAll(/\[(?:artifact|table|file|record|evidence):[^\]]{1,300}\]/gi)) {
         report.broken_citations.push(`${old[0]}: legacy citation does not identify a version, row and field.`);
       }
+      // A number counts as verified when its source can be checked against the
+      // number, and as declared when it cannot: a calculation of a bare number
+      // only restates what the model already wrote.
+      const accept = (token, row) => (row.literal ? report.declared_quantities : report.verified_quantities).push(token);
       const measuredCitations = new Set();
-      const citationRanges = [...text.matchAll(/\[cite(?:\s+[^\]]*)?\]/gi)]
-        .map(match => [match.index, match.index + match[0].length]);
-      for (const match of text.matchAll(measurement())) {
+      const found = quantities(text);
+      let inside = 0, next = 0;
+      found.forEach((match, position) => {
+        const end = match.index + match[0].length;
         // Row IDs, hashes and field names describe provenance; their digits
         // are not measurements in the model's prose.
-        if (citationRanges.some(([start, end]) => match.index >= start && match.index < end)) continue;
-        const token = `${match[1]} ${match[2]}`, end = match.index + match[0].length;
-        const citation = parsed.citations.find(item => item.start >= end);
-        if (!citation || measurement().test(text.slice(end, citation.start))) {
-          report.uncited_quantities.push(token); continue;
+        while (inside < spans.length && spans[inside].end <= match.index) inside += 1;
+        if (inside < spans.length && match.index >= spans[inside].start) return;
+        // A quantity is backed by the first citation after it, unless another
+        // quantity comes first.
+        while (next < parsed.citations.length && parsed.citations[next].start < end) next += 1;
+        const citation = parsed.citations[next], following = found[position + 1];
+        const token = `${match[1]} ${match[2]}`;
+        if (!citation || (following && following.index + following[0].length <= citation.start)) {
+          report.uncited_quantities.push(token); return;
         }
         report.cited_quantities.push(token);
         measuredCitations.add(citation);
         const row = validRows.get(citation);
-        if (!row) continue;
+        if (!row) return;
         if (!own(row.fields, citation.field) || !agrees(match[1], row.fields[citation.field])) {
-          report.broken_citations.push(`${token}: the cited field is withheld, ambiguous, absent or contradicts the reference value.`); continue;
+          report.broken_citations.push(`${token}: the cited field is withheld, ambiguous, absent or contradicts the reference value.`); return;
         }
-        report.verified_quantities.push(token);
-      }
+        const mismatch = unitProblem(citation.artifact, citation.field, match[2]);
+        if (mismatch) { report.broken_citations.push(`${token}: ${mismatch}`); return; }
+        accept(token, row);
+      });
       // Arithmetic and record counts may be unitless. Validate a cited plain
       // number too, without treating every uncited conversational number as a
       // claimed experimental measurement.
@@ -324,7 +453,7 @@
         report.cited_quantities.push(number);
         if (!own(row.fields, citation.field) || !agrees(number, row.fields[citation.field])) {
           report.broken_citations.push(`${number}: the cited plain number contradicts or is withheld by its source.`);
-        } else report.verified_quantities.push(number);
+        } else accept(number, row);
       }
       report.clean = report.uncited_quantities.length === 0 && report.broken_citations.length === 0;
       report.fully_verified = report.clean && report.declared_quantities.length === 0;
@@ -406,10 +535,10 @@
 
     return {systemPrompt: data.system_prompt, bundleDigest: data.bundle_digest,
       names: schemaList.map(schema => schema.name), toolNames: () => schemaList.map(schema => schema.name),
-      schemas: () => clone(schemaList), execute, inspect, guard: inspect, ids, plan};
+      schemas: () => clone(schemaList), execute, inspect, guard: inspect, ids, plan, registerComputed};
   }
 
-  const api = {create, systemPrompt: ''};
+  const api = {create, systemPrompt: '', fieldUnit};
   scope.EAgentBrowserTools = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : window);

@@ -66,6 +66,18 @@ class TestWilsonInterval(unittest.TestCase):
                 self.assertGreaterEqual(lo, 0.0)
                 self.assertLessEqual(hi, 1.0)
 
+    def test_interval_brackets_the_point_estimate_exactly(self) -> None:
+        """No tolerance. At 0 and at n successes the arithmetic alone leaves ~1e-17
+        on the wrong side of p, and a bound above its own estimate is incoherent."""
+        for trials in range(1, 201):
+            for successes in range(trials + 1):
+                lo, hi = wilson_interval(successes, trials)
+                p = successes / trials
+                self.assertLessEqual(lo, p, msg=f"{successes}/{trials}")
+                self.assertGreaterEqual(hi, p, msg=f"{successes}/{trials}")
+                self.assertGreaterEqual(lo, 0.0)
+                self.assertLessEqual(hi, 1.0)
+
     def test_five_out_of_five_is_not_certainty(self) -> None:
         """The whole point: a perfect small sample must not report +/- 0."""
         lo, hi = wilson_interval(5, 5)

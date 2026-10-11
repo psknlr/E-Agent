@@ -6,6 +6,11 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const plainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
   const canonical = args => JSON.stringify(Object.fromEntries(Object.keys(args).sort().map(key => [key, args[key]])));
+  // Citations to these artifacts are checked against results computed in this
+  // browser during the current run, not against the published bundle. A page
+  // registers a row only after computing it; the model can only name one.
+  const COMPUTED_ARTIFACTS = Object.freeze(['browser_calculation', 'engine_compute']);
+  const MAX_COMPUTED_ROWS = 500, MAX_COMPUTED_FIELDS = 2000;
   const calculateSchema = {
     name: 'calculate', description: 'Compute a finite arithmetic expression locally; no code execution or network.',
     parameters: {expression: 'Arithmetic expression using numbers, + - * / % ^, parentheses, pi, e and approved math functions.'}
@@ -217,6 +222,9 @@
         || !/^[0-9a-f]{64}$/.test(bundle.reference_digest || '') || !/^[0-9a-f]{64}$/.test(bundle.bundle_digest || '')) {
       throw new Error('The browser reference bundle is invalid or has an unsupported version.');
     }
+    if (COMPUTED_ARTIFACTS.some(name => own(bundle.citation_rows, name))) {
+      throw new Error('The browser citation index may not define an artifact that is computed in the browser.');
+    }
     for (const artifact of Object.values(bundle.citation_rows)) {
       if (!plainObject(artifact)) throw new Error('The browser citation index is invalid.');
       for (const row of Object.values(artifact)) {
@@ -229,8 +237,29 @@
     // The snapshot and per-session computations never expose mutable source rows.
     const data = clone(bundle), schemaList = [...data.schemas, clone(calculateSchema)];
     const schemaMap = new Map(schemaList.map(schema => [schema.name, schema]));
-    const computedRows = Object.create(null);
+    const computed = Object.fromEntries(COMPUTED_ARTIFACTS.map(name => [name, Object.create(null)]));
     api.systemPrompt = data.system_prompt;
+
+    // Make a result computed in this browser citable. The row is immutable: the
+    // same computation always gives the same digest and so the same row, and a
+    // different result under an existing row id is refused rather than replaced.
+    function registerComputed(artifact, row, entry) {
+      if (!COMPUTED_ARTIFACTS.includes(artifact)) throw new Error('Not a computed artifact.');
+      if (typeof row !== 'string' || !/^[A-Za-z0-9_-]{1,96}$/.test(row)) throw new Error('A computed row id is a short identifier.');
+      if (!plainObject(entry) || !/^[0-9a-f]{64}$/.test(entry.sha256 || '') || !plainObject(entry.fields)
+          || !Array.isArray(entry.field_names) || entry.field_names.some(name => typeof name !== 'string')
+          || Object.values(entry.fields).some(value => value !== null && !(typeof value === 'number' && Number.isFinite(value)))
+          || Object.keys(entry.fields).length > MAX_COMPUTED_FIELDS || entry.field_names.length > MAX_COMPUTED_FIELDS) {
+        throw new Error('A computed row needs a SHA-256 and bounded finite numeric fields.');
+      }
+      const rows = computed[artifact];
+      if (own(rows, row)) {
+        if (rows[row].sha256 !== entry.sha256) throw new Error('A different result already holds this computed row.');
+        return;
+      }
+      if (Object.keys(rows).length >= MAX_COMPUTED_ROWS) throw new Error('Too many computed rows in one run.');
+      rows[row] = {sha256: entry.sha256, fields: clone(entry.fields), field_names: [...entry.field_names]};
+    }
 
     async function execute(call) {
       const started = Date.now();
@@ -255,7 +284,7 @@
           const digest = [...new Uint8Array(await scope.crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload)))]
             .map(byte => byte.toString(16).padStart(2, '0')).join('');
           const row = 'calculation-' + digest.slice(0, 16);
-          computedRows[row] = {sha256: digest, fields: {value}, field_names: ['value']};
+          registerComputed('browser_calculation', row, {sha256: digest, fields: {value}, field_names: ['value']});
           result.value = {expression: args.expression, value, computed: true,
             method: 'bounded arithmetic parser; no scientific measurement',
             cite: {artifact: 'browser_calculation', sha256: digest, row, field: 'value', method: 'read'}};
@@ -282,7 +311,7 @@
       const validRows = new Map();
       for (const citation of parsed.citations) {
         let row;
-        if (citation.artifact === 'browser_calculation') row = own(computedRows, citation.row) ? computedRows[citation.row] : null;
+        if (COMPUTED_ARTIFACTS.includes(citation.artifact)) row = own(computed[citation.artifact], citation.row) ? computed[citation.artifact][citation.row] : null;
         else if (own(data.citation_rows, citation.artifact) && own(data.citation_rows[citation.artifact], citation.row)) {
           row = data.citation_rows[citation.artifact][citation.row];
         }
@@ -415,7 +444,7 @@
 
     return {systemPrompt: data.system_prompt, bundleDigest: data.bundle_digest,
       names: schemaList.map(schema => schema.name), toolNames: () => schemaList.map(schema => schema.name),
-      schemas: () => clone(schemaList), execute, inspect, guard: inspect, ids, plan};
+      schemas: () => clone(schemaList), execute, inspect, guard: inspect, ids, plan, registerComputed};
   }
 
   const api = {create, systemPrompt: ''};

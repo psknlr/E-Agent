@@ -155,11 +155,17 @@
     }
   }
 
-  function referenceMetadata(bundle) {
+  // `compute` ({ engine, catalog }) adds the compute agents to the registry the
+  // model is offered. Without it the registry is the stored-reference tools alone.
+  function referenceMetadata(bundle, compute) {
     if (!root.EAgentBrowserTools || typeof root.EAgentBrowserTools.create !== "function") throw new Error("The browser reference tools did not load. Reload the page.");
-    const tools = root.EAgentBrowserTools.create(bundle);
+    let tools = root.EAgentBrowserTools.create(bundle);
     if (!tools || typeof tools.schemas !== "function" || typeof tools.toolNames !== "function" || typeof tools.execute !== "function" || typeof tools.inspect !== "function" || typeof tools.systemPrompt !== "string") throw new Error("The browser reference tool runtime is incompatible with this page.");
-    return { tools, metadata: { runtime_ready: true, tools: tools.toolNames(), execution: "browser" } };
+    if (compute) {
+      if (!root.EAgentAgents || typeof root.EAgentAgents.compose !== "function") throw new Error("The agent registry did not load. Reload the page.");
+      tools = root.EAgentAgents.compose({ tools, engine: compute.engine, catalog: compute.catalog });
+    }
+    return { tools, metadata: { runtime_ready: true, tools: tools.toolNames(), schemas: tools.schemas(), execution: "browser" } };
   }
 
   async function prepare({ signal } = {}) {
@@ -333,17 +339,19 @@
   // be reached. It is not a model completion and never counts as one.
   const LOCAL_SUMMARY = "No model or API was used and nothing was interpreted. Each record below is exactly as stored, with its citation, any withheld values and its limits.";
   const LOCAL_CAVEAT = "A local run uses the browser port of E-Agent’s read-only reference tools and the published evidence bundle. No model was called, no experiment was run and no reference data was changed.";
+  const COMPUTE_LOCAL_CAVEAT = " Compute agents ran the project’s own Python code on this device (WebAssembly), for exactly the arguments shown, and approved nothing.";
+  const COMPUTE_CHAT_CAVEAT = " Compute agents ran the project’s own Python code on the user’s device (WebAssembly); they approved nothing and ran no external program.";
 
-  async function local({ message, signal } = {}) {
+  async function local({ message, signal, compute } = {}) {
     checkSignal(signal);
     if (typeof message !== "string" || !message.trim() || message.length > 8000) throw new Error("Enter a nonempty question of up to 8000 characters.");
     await prepare({ signal });
-    const tools = referenceMetadata(referenceBundle).tools;
+    const tools = referenceMetadata(referenceBundle, compute).tools;
     if (typeof tools.plan !== "function") throw new Error("The browser reference tools cannot route questions. Reload the page.");
     const question = message.trim();
     const planned = tools.plan(question);
     const entry = { turn: 0, reasoning: planned.notes.join("\n"), requested: planned.calls.map((call) => call.interface), results: [] };
-    const transcript = { question, provider: "none", runs_remotely: false, execution: "browser-local", limits: { ...LIMITS }, tools_offered: tools.toolNames(), turns: [entry], tool_calls_made: 0, answer: "", caveat: LOCAL_CAVEAT };
+    const transcript = { question, provider: "none", runs_remotely: false, execution: "browser-local", limits: { ...LIMITS }, tools_offered: tools.toolNames(), turns: [entry], tool_calls_made: 0, answer: "", caveat: LOCAL_CAVEAT + (compute ? COMPUTE_LOCAL_CAVEAT : "") };
     for (const call of planned.calls) {
       checkSignal(signal);
       let result;
@@ -354,12 +362,14 @@
       transcript.tool_calls_made++;
     }
     const ran = transcript.tool_calls_made;
-    const answer = ran ? ["Ran " + ran + " stored-reference tool" + (ran === 1 ? "" : "s") + " in this browser. " + LOCAL_SUMMARY, ...planned.notes].join("\n\n") : planned.notes.join("\n");
+    const computed = entry.results.filter((result) => result.executor === "browser-wasm").length;
+    const where = computed ? " in this browser (" + computed + " computed on this device by the project’s own Python code)" : " in this browser";
+    const answer = ran ? ["Ran " + ran + (computed ? " tool" : " stored-reference tool") + (ran === 1 ? "" : "s") + where + ". " + LOCAL_SUMMARY, ...planned.notes].join("\n\n") : planned.notes.join("\n");
     transcript.answer = answer;
     return { answer, notes: planned.notes, transcript, completion_verified: false, execution: "browser-local" };
   }
 
-  async function chat({ message, history = [], model_config, signal, onProgress } = {}) {
+  async function chat({ message, history = [], model_config, signal, onProgress, compute } = {}) {
     let config;
     let transcript = { question: "", provider: "", runs_remotely: true, execution: "browser", limits: { ...LIMITS }, tools_offered: [], turns: [], tool_calls_made: 0, stopped_because: "The agent did not complete.", answer: "", caveat: "The model used a browser port of E-Agent’s read-only reference tools and the published evidence bundle. No experiment was run and no reference data was changed. Review the evidence and tool trace." };
     const controller = new AbortController();
@@ -385,8 +395,9 @@
       timer = setTimeout(() => controller.abort(new Error("The agent’s 180 s wall-clock limit was reached; no completion was verified.")), LIMITS.max_wall_seconds * 1000);
       progress("Reading the published reference bundle…");
       await prepare({ signal: controller.signal });
-      const tools = referenceMetadata(referenceBundle).tools;
+      const tools = referenceMetadata(referenceBundle, compute).tools;
       transcript.tools_offered = tools.toolNames();
+      if (compute) transcript.caveat += COMPUTE_CHAT_CAVEAT;
       const system = tools.systemPrompt + "\nAvailable tool interfaces:\n" + JSON.stringify(tools.schemas());
       const messages = [{ role: "user", content: question }];
       for (let index = 0; index < LIMITS.max_turns; index++) {

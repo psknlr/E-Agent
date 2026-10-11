@@ -30,7 +30,31 @@ class Element {
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 const event = { preventDefault() {} };
 
+// What the compute engine reports when it is up, and the worker that reports it.
+const catalogFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../web/agent-catalog.json"), "utf8"));
+const engineInfo = { python: "3.14.2", pyodide: "314.0.7", agents: catalogFile.agents.map((agent) => agent.name), integrity: "verified", selftest: 4, timings: { total_ms: 6400 }, bundle_sha256: "dc7634b33bb1" + "0".repeat(52) };
+const digest = "ab".repeat(32);
+const engineManifest = {
+  schema: "eagent.engine.manifest.v1", engine_schema: "eagent.engine.v1", python: "3.14.2", pyodide: "314.0.7", total_bytes: 19630000,
+  install: { wheels: [], site_packages_zips: [], project: "eagent-project.zip" },
+  selftest: [{ agent: "wilson_interval", arguments: "{}", sha256: digest }],
+  files: Object.fromEntries(["eagent-project.zip", "pyodide/pyodide.mjs", "pyodide/pyodide.asm.wasm", "pyodide/python_stdlib.zip"].map((name) => [name, { bytes: 1, sha256: digest }])),
+};
+
 async function harness(options = {}) {
+  const workers = [];
+  class EngineWorker {
+    constructor(url, settings) { this.url = url; this.settings = settings; workers.push(this); }
+    postMessage(message) {
+      setImmediate(() => {
+        if (this.terminated) return;
+        const reply = (extra) => this.onmessage({ data: { id: message.id, ...extra } });
+        if (message.type === "init") { reply({ type: "progress", stage: "runtime", label: "Starting the Python runtime (WebAssembly)" }); reply(options.engineFails ? { type: "error", kind: "integrity", message: "wheels/x.whl does not match the build manifest" } : { type: "ready", info: engineInfo }); }
+        else if (message.type === "catalog") reply({ type: "result", json: JSON.stringify({ schema: "eagent.engine.v1", agents: catalogFile.agents.map(({ name, description, parameters }) => ({ name, description, parameters })), limits: catalogFile.limits }) });
+      });
+    }
+    terminate() { this.terminated = true; }
+  }
   const elements = new Map();
   const ui = (id) => {
     if (!elements.has(id)) elements.set(id, new Element());
@@ -38,7 +62,7 @@ async function harness(options = {}) {
   };
   ui("model-provider").options = ["minimax", "minimax_cn", "openai", "anthropic", "custom", "server_default"].map((value) => ({ value, text: value }));
   ui("model-provider").value = "minimax";
-  const storage = new Map();
+  const storage = new Map(options.seed || []);
   const exports = [];
   const browserCalls = [];
   const requests = [];
@@ -71,6 +95,8 @@ async function harness(options = {}) {
   const fetch = async (url, request = {}) => {
     requests.push({ url, ...request });
     if (url === "./config.json") return { ok: true, json: async () => ({ backend_url: backend }) };
+    if (options.compute && url === "./agent-catalog.json") return { ok: true, json: async () => catalogFile };
+    if (options.compute && url === "engine/manifest.json") return options.noEngine ? { ok: false, status: 404 } : { ok: true, status: 200, json: async () => engineManifest };
     if (options.realRuntime && url === "./reference-data.json") return new Response(fs.readFileSync(path.join(__dirname, "../web/reference-data.json"), "utf8"), { status: 200 });
     if (options.realRuntime && url === "https://api.minimax.io/v1/chat/completions") {
       if (options.providerError) throw new TypeError("Mock browser network/CORS failure");
@@ -92,7 +118,7 @@ async function harness(options = {}) {
     throw new Error("Unexpected network request: " + url);
   };
   const context = vm.createContext({
-    document: { getElementById: ui, createElement: (tag) => new Element(tag), createTextNode: (text) => ({ textContent: text }), querySelectorAll: () => [] },
+    document: { getElementById: ui, createElement: (tag) => new Element(tag), createTextNode: (text) => ({ textContent: text }), querySelectorAll: (selector) => (selector === ".starter-card" ? options.starters || [] : []) },
     window: { EAgentBrowserRuntime: runtime, matchMedia: () => ({ matches: false }), location: { hostname: "example.org", protocol: "https:", origin: "https://example.org" } },
     localStorage: { getItem: (key) => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     URL: TestURL, Blob, TextEncoder, TextDecoder, AbortController, crypto: webcrypto, fetch,
@@ -101,7 +127,9 @@ async function harness(options = {}) {
   // In a real page, window and globalThis address the same browser global.
   Object.assign(context, context.window);
   context.window = context;
+  if (options.compute) Object.assign(context, { Worker: EngineWorker, WebAssembly });
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../web/endpoint.js"), "utf8"), context);
+  if (options.compute) for (const filename of ["engine-install.js", "engine-client.js", "agents.js", "compute-ui.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../web", filename), "utf8"), context);
   if (options.realRuntime) {
     for (const filename of ["reference-tools.js", "browser-agent.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../web", filename), "utf8"), context);
   }
@@ -110,7 +138,7 @@ async function harness(options = {}) {
   const input = (id, value) => { ui(id).value = value; return ui(id).listeners.input?.(event); };
   const chooseMode = async (value) => { ui("execution-mode").value = value; await ui("execution-mode").listeners.change(event); await flush(); };
   const send = async (message) => { input("message", message); await ui("chat-form").listeners.submit(event); };
-  return { ui, storage, exports, browserCalls, testCalls, localCalls, requests, backend, input, chooseMode, send };
+  return { ui, storage, exports, browserCalls, testCalls, localCalls, requests, backend, input, chooseMode, send, workers };
 }
 
 test("default Browser + API prepares local tools and chats without a backend connection", async () => {
@@ -527,4 +555,176 @@ test("real browser runtime reports CORS/network failure without a false ready st
   assert.match(h.ui("status-detail").textContent, /CORS/);
   assert.equal(h.ui("send-button").disabled, false);
   assert.equal(h.ui("prepare-browser").hidden, true);
+});
+
+// ---- the compute engine, as the page wires it -----------------------------------
+const untilReady = async (h) => { for (let turn = 0; turn < 50 && h.ui("engine-chip").textContent !== "RUNNING"; turn += 1) await flush(); };
+const startEngine = async (h) => { await h.ui("engine-start").click(); await untilReady(h); assert.equal(h.ui("engine-chip").textContent, "RUNNING"); };
+
+test("the page finds the engine and its catalog at boot, and starts nothing without being asked", async () => {
+  const h = await harness({ compute: true });
+  assert.deepEqual(h.requests.map((request) => request.url).sort(), ["./agent-catalog.json", "./config.json", "engine/manifest.json"]);
+  assert.equal(h.workers.length, 0, "no worker, no download: starting is the visitor's choice");
+  assert.equal(h.ui("engine-chip").textContent, "OFF");
+  assert.equal(h.ui("engine-start").hidden, false);
+  assert.equal(h.ui("engine-start").textContent, "Start on this device · 19.6 MB");
+  assert.equal(h.ui("flow-agent-count").textContent, `${2 + catalogFile.agents.length} agents`, "the diagram counts the page's own two reference tools in this harness");
+  h.input("provider-key", "test-provider-key");
+  await h.send("Calculate 2 * 3 + 4");
+  assert.equal("compute" in h.browserCalls[0], false, "a model is offered no compute agents before the engine runs");
+  assert.match(h.ui("progress-label").textContent, /Running calculate|Calling your model API and running browser tools/);
+});
+
+test("once the engine runs, the model and Run in browser are both offered the compute agents", async () => {
+  const h = await harness({ compute: true });
+  await startEngine(h);
+  assert.equal(h.workers.length, 1);
+  assert.equal(JSON.stringify(h.workers[0].settings), '{"type":"module"}', "the runtime's loader needs a module worker");
+  assert.equal(h.ui("composer-compute").hidden, false);
+  h.input("provider-key", "test-provider-key");
+  assert.match(h.ui("composer-notice").textContent, /Compute agents are on: Python runs on this device’s CPU\./);
+  await h.send("Align two sequences");
+  assert.deepEqual(Object.keys(h.browserCalls[0].compute), ["engine", "catalog"]);
+  assert.equal(h.browserCalls[0].compute.catalog.agents.length, catalogFile.agents.length);
+  assert.equal(h.browserCalls[0].compute.engine.state.status, "ready");
+  h.input("message", "Align MKTAYIAKQR with MKTAYLAKQR");
+  await h.ui("run-local").click();
+  assert.deepEqual(Object.keys(h.localCalls[0]), ["message", "compute"]);
+  assert.match(visibleText(h.ui("messages")), /BROWSER AGENTS · NO MODEL/);
+});
+
+test("switching the offer off, stopping the engine or leaving the browser mode takes the compute agents away", async () => {
+  const h = await harness({ compute: true });
+  await startEngine(h);
+  h.input("provider-key", "test-provider-key");
+  h.ui("engine-offer").checked = false;
+  await h.ui("engine-offer").listeners.change(event);
+  await h.send("Calculate 2 * 3 + 4");
+  assert.equal("compute" in h.browserCalls[0], false, "switched off");
+  assert.equal(h.ui("composer-compute").hidden, true);
+  h.ui("engine-offer").checked = true;
+  await h.ui("engine-offer").listeners.change(event);
+  await h.chooseMode("backend");
+  for (const id of ["engine-panel", "device-panel", "flow-panel", "agents-panel"]) assert.equal(h.ui(id).hidden, true, id + " describes the browser, so it is hidden for the Python backend");
+  await h.chooseMode("browser");
+  for (const id of ["engine-panel", "device-panel", "flow-panel", "agents-panel"]) assert.equal(h.ui(id).hidden, false, id);
+  assert.equal(h.ui("tools-panel").hidden, true, "the agents panel replaces the plain list in the browser mode");
+  await h.ui("engine-stop").click();
+  for (let turn = 0; turn < 5; turn += 1) await flush();
+  assert.equal(h.ui("engine-chip").textContent, "OFF");
+  h.input("provider-key", "test-provider-key");
+  await h.send("Calculate again");
+  assert.equal("compute" in h.browserCalls.at(-1), false, "a stopped engine is not offered");
+  assert.equal(h.workers[0].terminated, true);
+});
+
+test("a site published without the engine says so and works exactly as before", async () => {
+  const h = await harness({ compute: true, noEngine: true });
+  assert.equal(h.ui("engine-chip").textContent, "NOT PUBLISHED");
+  assert.equal(h.ui("engine-start").hidden, true);
+  assert.match(h.ui("engine-summary").textContent, /published without the engine files/);
+  h.input("provider-key", "test-provider-key");
+  await h.send("Calculate 2 * 3 + 4");
+  assert.equal(h.browserCalls.length, 1);
+  assert.equal("compute" in h.browserCalls[0], false);
+  assert.equal(h.workers.length, 0);
+});
+
+test("an engine that fails to start is reported on its card and the page keeps working", async () => {
+  const h = await harness({ compute: true, engineFails: true });
+  await h.ui("engine-start").click();
+  for (let turn = 0; turn < 10; turn += 1) await flush();
+  assert.equal(h.ui("engine-chip").textContent, "FAILED");
+  assert.match(h.ui("engine-error").textContent, /does not match the build manifest/);
+  assert.equal(h.ui("engine-start").textContent, "Try again");
+  h.input("provider-key", "test-provider-key");
+  await h.send("Calculate 2 * 3 + 4");
+  assert.equal("compute" in h.browserCalls[0], false);
+  assert.equal(h.ui("status-label").textContent, "Chat ready");
+});
+
+test("a saved preference starts the engine on its own, and only in the browser mode", async () => {
+  const stored = new Map([["eagent.engine.auto", "on"]]);
+  const h = await harness({ compute: true, seed: stored });
+  for (let turn = 0; turn < 50 && h.ui("engine-chip").textContent !== "RUNNING"; turn += 1) await flush();
+  assert.equal(h.ui("engine-chip").textContent, "RUNNING");
+  assert.equal(h.workers.length, 1);
+});
+
+test("a compute example reminds the visitor to start the engine, and stops saying so once it runs", async () => {
+  const starter = (prompt, className) => ({ dataset: { prompt }, className, listeners: {}, addEventListener(name, fn) { this.listeners[name] = fn; }, click() { return this.listeners.click(); } });
+  const compute = starter("Align MKTAYIAKQR with MKTAYLAKQR", "starter-card compute");
+  const plain = starter("Calculate 2 * 3 + 4", "starter-card");
+  const h = await harness({ compute: true, starters: [compute, plain] });
+  h.input("provider-key", "test-provider-key");
+  compute.click();
+  assert.equal(h.ui("message").value, "Align MKTAYIAKQR with MKTAYLAKQR");
+  assert.match(h.ui("composer-notice").textContent, /This example uses compute agents: start the compute engine in the sidebar/);
+  plain.click();
+  assert.doesNotMatch(h.ui("composer-notice").textContent, /compute agents: start/);
+  compute.click();
+  await startEngine(h);
+  compute.click();
+  assert.doesNotMatch(h.ui("composer-notice").textContent, /compute agents: start/, "nothing to remind once the engine is on");
+  compute.click();
+  h.input("message", "Align MKTAYIAKQR with MKTAYLAKQR now");
+  assert.doesNotMatch(h.ui("composer-notice").textContent, /compute agents: start/);
+});
+
+const citation = (field, extra = "") => `[cite artifact=engine_compute sha256=${"ab".repeat(32)} row=align_sequences-abababababababab field=${field} method=read${extra}]`;
+
+test("citations in an answer become chips that name the field and open to the whole citation", async () => {
+  const answer = `Identity is 90.9 percent ${citation("identity_percent_over_aligned_columns")}, with 0 gaps ${citation("gap_columns")}. See [cite row=x] and [brackets].`;
+  const h = await harness({ chat: async () => ({ answer, completion_verified: true, transcript: { turns: [], tool_calls_made: 0 } }) });
+  h.input("provider-key", "test-provider-key");
+  await h.send("Align them");
+  const body = withClass(h.ui("messages"), "message-body").at(-1);
+  const chips = body.children.filter((node) => node.tagName === "button");
+  assert.deepEqual(chips.map((chip) => chip.textContent), ["identity_percent_over_aligned_columns", "gap_columns"]);
+  assert.equal(chips[0].title, citation("identity_percent_over_aligned_columns"), "hover shows the whole citation");
+  assert.equal(chips[0].type, "button");
+  assert.match(chips[0]["aria-label"], /Citation to identity_percent_over_aligned_columns in engine_compute/);
+  assert.equal(chips[0].className, "cite");
+  chips[0].click();
+  assert.equal(chips[0].textContent, citation("identity_percent_over_aligned_columns"));
+  assert.equal(chips[0].className, "cite open");
+  chips[0].click();
+  assert.equal(chips[0].textContent, "identity_percent_over_aligned_columns");
+  const text = body.children.filter((node) => node.tagName !== "button").map((node) => node.textContent).join("");
+  assert.equal(text, "Identity is 90.9 percent , with 0 gaps . See [cite row=x] and [brackets].", "everything else, including a malformed citation, is left as written");
+});
+
+test("only an assistant's answer is rendered with chips: questions, errors and plain answers are untouched", async () => {
+  const h = await harness({ chat: async () => ({ answer: "A plain answer with 3 numbers and no citation.", completion_verified: true, transcript: { turns: [], tool_calls_made: 0 } }) });
+  h.input("provider-key", "test-provider-key");
+  const asked = `My own text with ${citation("x")} in it`;
+  await h.send(asked);
+  const bodies = withClass(h.ui("messages"), "message-body");
+  assert.equal(bodies[0].textContent, asked, "the user's message is shown as typed");
+  assert.equal(bodies[0].children.length, 0);
+  assert.equal(bodies[1].textContent, "A plain answer with 3 numbers and no citation.");
+  assert.equal(bodies[1].children.length, 0, "no citation, no chips");
+  const failing = await harness({ chat: async () => { throw new Error(`The model said ${citation("x")}`); } });
+  failing.input("provider-key", "test-provider-key");
+  await failing.send("anything");
+  const error = withClass(failing.ui("messages"), "message-body").at(-1);
+  assert.match(error.textContent, /\[cite artifact=engine_compute/);
+  assert.equal(error.children.length, 0);
+});
+
+test("the trace says where each result ran and which project function produced it", async () => {
+  const results = [
+    { tool: "align_sequences", ok: true, executor: "browser-wasm", wraps: "eagent.science.numbering.needleman_wunsch", compute_ms: 1.5, elapsed_ms: 12, value: { identity: 0.9 } },
+    { tool: "reference_summary", ok: true, executor: "browser-js", elapsed_ms: 3, value: {} },
+    { tool: "older_result", ok: true, value: {} },
+  ];
+  const h = await harness({ compute: true, chat: async () => ({ answer: "Done.", completion_verified: true, transcript: { turns: [{ turn: 1, results }], tool_calls_made: 3 } }) });
+  h.input("provider-key", "test-provider-key");
+  await h.send("Align");
+  const chips = withClass(h.ui("messages"), "executor");
+  assert.deepEqual(chips.map((chip) => [chip.textContent, chip.className]), [["WASM · CPU", "executor wasm"], ["JS", "executor js"]]);
+  assert.match(chips[0].title, /WebAssembly.*CPU/);
+  const shown = visibleText(h.ui("messages"));
+  assert.match(shown, /Runs eagent\.science\.numbering\.needleman_wunsch · computed in 1\.50 ms on this device/);
+  assert.equal((shown.match(/Runs eagent/g) || []).length, 1, "a result without provenance claims none");
 });

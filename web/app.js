@@ -20,7 +20,7 @@
     testBox: byId("connection-test-box"), testButton: byId("test-connection"), testResult: byId("connection-test"),
     runLocal: byId("run-local"),
   };
-  const state = { execution: "browser", backend: "", token: "", health: null, history: [], verified: false, busy: false, connecting: false, controller: null, generation: 0 };
+  const state = { execution: "browser", backend: "", token: "", health: null, history: [], verified: false, busy: false, connecting: false, controller: null, generation: 0, computeHint: false };
   const storageKey = "eagent.backend_url";
   const templatesKey = "eagent.model_templates.v1";
   const presets = {
@@ -42,6 +42,19 @@
     if (text !== undefined) node.textContent = String(text);
     return node;
   };
+
+  // The compute engine (Python as WebAssembly, on this device) and the panels that
+  // show it. Absent when those scripts did not load; the page then behaves as it
+  // did before they existed.
+  const engine = window.EAgentEngineClient ? window.EAgentEngineClient.create() : null;
+  const safeStorage = { get: (key) => { try { return localStorage.getItem(key); } catch (_) { return null; } }, set: (key, value) => { try { localStorage.setItem(key, value); } catch (_) { /* optional */ } } };
+  const compute = engine && window.EAgentComputeUI && window.EAgentAgents
+    ? window.EAgentComputeUI.create({ byId, make, engine, agents: window.EAgentAgents, storage: safeStorage, onChange: () => syncComposer() })
+    : null;
+  const computeOption = () => (compute && state.execution === "browser" ? compute.option() : null);
+  // The runtime gets a compute option only when there is one, so a page without the
+  // engine passes exactly the arguments it always did.
+  const computeArgument = () => { const option = computeOption(); return option ? { compute: option } : {}; };
 
   function validateBackend(value) {
     const text = value.trim();
@@ -157,6 +170,8 @@
     else if (!hasToken) ui.notice.textContent = "Enter your backend access token in Agent connection to send a question.";
     else if (!state.verified) ui.notice.textContent = "Model settings complete. The first successful response will verify chat readiness.";
     else ui.notice.textContent = state.execution === "browser" ? "Chat ready · The selected model API can call the tools running in this browser." : "Chat ready · Questions run through the connected backend and its registered Python tools.";
+    if (!state.busy && configured && hasToken && computeOption()) ui.notice.textContent += " Compute agents are on: Python runs on this device’s CPU.";
+    if (state.computeHint && !state.busy && !computeOption() && state.execution === "browser") ui.notice.textContent += " This example uses compute agents: start the compute engine in the sidebar to let them run.";
   }
 
   function hideSettings(hidden) {
@@ -179,7 +194,8 @@
     state.health = data;
     ui.tools.replaceChildren();
     for (const tool of Array.isArray(data.tools) ? data.tools : []) ui.tools.append(make("li", "", tool));
-    ui.toolsPanel.hidden = ui.tools.childElementCount === 0;
+    ui.toolsPanel.hidden = ui.tools.childElementCount === 0 || (state.execution === "browser" && Boolean(compute));
+    if (compute && state.execution === "browser") compute.setReference(data.schemas, Array.isArray(data.tools) ? data.tools : []);
     refreshConfigurationStatus();
   }
 
@@ -196,6 +212,7 @@
     ui.apiHelp.textContent = browserMode ? "Use the full endpoint and selected API format. Browser mode requires the endpoint to allow cross-origin requests (CORS)." : "Include the full request path. Use HTTPS and the selected API format. HTTP is allowed for a local endpoint.";
     ui.scopeHelp.textContent = browserMode ? "Calculate in your browser and inspect curated enzyme evidence. Research conclusions require review." : "Use E-Agent’s Python reference tools through your backend. Research conclusions require review.";
     ui.toolsTitle.textContent = browserMode ? "BROWSER TOOLS" : "CONNECTED PYTHON TOOLS";
+    if (compute) compute.setActive(browserMode);
   }
 
   async function prepareBrowser() {
@@ -528,6 +545,44 @@
     });
   }
 
+  // A citation reads [cite artifact=… sha256=… row=… field=… method=read]. In an
+  // answer it is shown as a chip naming the field it points at; activating the
+  // chip shows the whole citation, and the transcript keeps the raw text. A
+  // bracket that is not a well-formed citation is left exactly as written.
+  const citationPattern = /\[cite(?:\s+([^\]]*))?\]/gi;
+  function citationFields(text) {
+    const fields = Object.create(null);
+    for (const pair of (text || "").matchAll(/(\w+)\s*=\s*(?:"([^"]*)"|(\S+?))(?=\s+\w+\s*=|\s*$)/g)) fields[pair[1].toLowerCase()] = pair[2] ?? pair[3];
+    return fields;
+  }
+
+  function answerBody(content) {
+    const parts = [];
+    let last = 0;
+    for (const match of content.matchAll(citationPattern)) {
+      const fields = citationFields(match[1]);
+      if (!fields.artifact || !fields.field || !fields.row || !fields.sha256) continue;
+      parts.push(document.createTextNode(content.slice(last, match.index)));
+      const chip = make("button", "cite", fields.field);
+      chip.type = "button";
+      chip.title = match[0];
+      chip.setAttribute("aria-label", "Citation to " + fields.field + " in " + fields.artifact + ". Activate to show the whole citation.");
+      let open = false;
+      chip.addEventListener("click", () => {
+        open = !open;
+        chip.textContent = open ? match[0] : fields.field;
+        chip.className = open ? "cite open" : "cite";
+      });
+      parts.push(chip);
+      last = match.index + match[0].length;
+    }
+    if (!parts.length) return make("div", "message-body", content);
+    parts.push(document.createTextNode(content.slice(last)));
+    const body = make("div", "message-body");
+    body.append(...parts);
+    return body;
+  }
+
   function appendMessage(role, content, error = false, label = "") {
     ui.welcome.hidden = true;
     const article = make("article", "message " + role + (error ? " error" : ""));
@@ -536,7 +591,7 @@
     const time = make("time", "", new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     time.dateTime = new Date().toISOString();
     heading.append(time);
-    article.append(heading, make("div", "message-body", content));
+    article.append(heading, role === "assistant" && !error ? answerBody(content) : make("div", "message-body", content));
     ui.messages.append(article);
     return article;
   }
@@ -596,8 +651,15 @@
         const label = result.ok === false ? "Failed / refused" : result.ok === true ? "Completed" : "Status not reported";
         const elapsed = typeof result.elapsed_ms === "number" ? " · " + (result.elapsed_ms / 1000).toFixed(2) + "s" : "";
         heading.append(make("span", "", result.tool || "Unnamed tool"), make("span", "tool-state" + (result.ok === false ? " failed" : ""), label + elapsed));
+        const where = window.EAgentComputeUI?.CHIP?.[result.executor];
+        if (where) {
+          const chip = make("span", "executor " + (result.executor === "browser-wasm" ? "wasm" : "js"), where.label);
+          chip.title = where.title;
+          heading.append(chip);
+        }
         item.append(heading);
         if (result.rationale) item.append(make("p", "tool-reason", result.rationale));
+        if (result.wraps) item.append(make("p", "tool-reason", "Runs " + result.wraps + (typeof result.compute_ms === "number" ? " · computed in " + result.compute_ms.toFixed(2) + " ms on this device" : "")));
         if (result.refusal) item.append(make("p", "field-error", typeof result.refusal === "string" ? result.refusal : safeJson(result.refusal)));
         if (result.truncated) item.append(make("p", "field-error", "The tool result was truncated. The visible output is incomplete."));
         addDetail(item, "Arguments", result.arguments);
@@ -653,7 +715,7 @@
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 245000);
     try {
       return await window.EAgentBrowserRuntime.chat({
-        message, history, model_config: configuration, signal: controller.signal,
+        message, history, model_config: configuration, signal: controller.signal, ...computeArgument(),
         onProgress: (detail) => {
           if (generation === state.generation && typeof detail === "string") ui.progressLabel.textContent = detail;
         },
@@ -694,7 +756,7 @@
     ui.message.value = "";
     resizeInput();
     state.busy = true;
-    ui.progressLabel.textContent = state.execution === "browser" ? "Calling your model API and running browser tools…" : "Working with the connected Python tools…";
+    ui.progressLabel.textContent = state.execution === "browser" ? (computeOption() ? "Calling your model API and running agents on this device…" : "Calling your model API and running browser tools…") : "Working with the connected Python tools…";
     status("Request running", "Waiting for the model and E-Agent tool loop to finish.", "checking");
     scrollToLatest();
     try {
@@ -772,9 +834,9 @@
     if (!explicit) { ui.message.value = ""; resizeInput(); }
     scrollToLatest();
     try {
-      const data = await window.EAgentBrowserRuntime.local({ message });
+      const data = await window.EAgentBrowserRuntime.local({ message, ...computeArgument() });
       if (generation !== state.generation) return;
-      const article = appendMessage("assistant", data.answer, false, "BROWSER TOOLS · NO MODEL");
+      const article = appendMessage("assistant", data.answer, false, computeOption() ? "BROWSER AGENTS · NO MODEL" : "BROWSER TOOLS · NO MODEL");
       if (data.transcript?.tool_calls_made) addTrace(article, data.transcript, data, true);
     } catch (error) {
       if (generation !== state.generation) return;
@@ -796,7 +858,7 @@
   ui.execution.addEventListener("change", () => { ui.savedTemplate.value = ""; switchExecution(ui.execution.value); });
   ui.prepare.addEventListener("click", prepareBrowser);
   ui.form.addEventListener("submit", send);
-  ui.message.addEventListener("input", () => { resizeInput(); syncComposer(); });
+  ui.message.addEventListener("input", () => { state.computeHint = false; resizeInput(); syncComposer(); });
   ui.message.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); if (!ui.send.disabled) ui.form.requestSubmit(); }
   });
@@ -855,6 +917,7 @@
   });
   document.querySelectorAll(".starter-card").forEach((button) => button.addEventListener("click", () => {
     ui.message.value = button.dataset.prompt;
+    state.computeHint = String(button.className).split(" ").includes("compute");
     resizeInput();
     syncComposer();
     ui.message.focus();
@@ -870,6 +933,7 @@
       ui.modelSettings.open = false;
     }
     const preparation = prepareBrowser();
+    const engineReady = startComputeEngine();
     let saved = "";
     try { saved = localStorage.getItem(storageKey) || ""; } catch (_) { /* URL storage is optional. */ }
     let configured = "";
@@ -889,8 +953,23 @@
       } catch (_) { if (state.execution === "backend") { status("Not connected", "The saved backend URL is invalid. Open connection settings to update it."); hideSettings(false); } }
     }
     await preparation;
+    await engineReady;
     syncComposer();
     resizeInput();
+  }
+
+  // Find the engine this site was published with and the catalog that describes
+  // its agents. Neither starts anything: loading the engine is the visitor's choice
+  // (or their saved choice to start it automatically).
+  async function startComputeEngine() {
+    if (!compute) return;
+    try {
+      const response = await fetch("./agent-catalog.json", { cache: "no-cache", credentials: "omit" });
+      if (response.ok) compute.setCatalog(await response.json());
+    } catch (_) { /* the engine card says the catalog is missing */ }
+    try { await engine.probe(); } catch (_) { /* probe reports through the engine state */ }
+    compute.renderAll();
+    if (compute.autoStart() && engine.state.status === "idle" && state.execution === "browser") compute.start();
   }
   initialize();
 })();

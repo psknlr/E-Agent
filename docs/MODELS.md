@@ -48,6 +48,12 @@ A model given the CSV would have read `5400` and reported a Michaelis constant.
 | `openai` | chat completions (system prompt is the first message) | `OPENAI_API_KEY` | `https://api.openai.com/v1` (`EAGENT_OPENAI_BASE_URL`) |
 | `minimax` | chat completions, at `chat/completions` | `MINIMAX_API_KEY` | `https://api.minimax.io/v1` (`EAGENT_MINIMAX_BASE_URL`) |
 
+The MiniMax China platform's base URL is `https://api.minimax.cn/v1`; set
+`EAGENT_MINIMAX_BASE_URL` to use it for the server default. In the web settings'
+request-scoped configuration it is the `minimax_cn` provider, which sends exactly
+the same request as `minimax`. That host has not been called from the environment
+this was written in, so its behaviour is unverified here.
+
 `OpenAIChatClient` is one client with a configurable base URL, so any service
 speaking the chat-completions format — a different vendor, a self-hosted model
 — is a configuration change and not a new class:

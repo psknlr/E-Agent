@@ -210,7 +210,7 @@ class AgentService:
                 "provider": self.config.provider, "model": self.config.model,
                 "tools": self.tools, "reason": reason,
                 "completion_verified": self.completion_verified,
-                "configurable_providers": ["minimax", "openai", "anthropic", "custom"],
+                "configurable_providers": ["minimax", "minimax_cn", "openai", "anthropic", "custom"],
                 "authentication_required": bool(self.config.token)}
 
     def chat(self, message: str, history: list[dict[str, str]],

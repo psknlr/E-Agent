@@ -90,6 +90,7 @@ class WebTransportTests(unittest.TestCase):
                 self.assertFalse(health["ready"])
                 self.assertTrue(health["runtime_ready"])
                 self.assertIn("custom", health["configurable_providers"])
+                self.assertIn("minimax_cn", health["configurable_providers"])
                 environment = dict(os.environ)
                 seen = []
 

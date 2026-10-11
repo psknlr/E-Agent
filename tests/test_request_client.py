@@ -39,6 +39,7 @@ class RequestClientTests(unittest.TestCase):
         variants = (
             ("openai", "openai_chat", {"choices": [{"message": {"content": "answer"}}]}),
             ("minimax", "openai_chat", {"choices": [{"message": {"content": "<think>private</think>answer"}}]}),
+            ("minimax_cn", "openai_chat", {"choices": [{"message": {"content": "<think>private</think>answer"}}]}),
             ("custom", "openai_chat", {"choices": [{"message": {"content": [{"type": "text", "text": "answer"}]}}]}),
             ("anthropic", "anthropic_messages", {"content": [{"type": "thinking", "thinking": "private"},
                                                                        {"type": "text", "text": "answer"}]}),
@@ -77,7 +78,7 @@ class RequestClientTests(unittest.TestCase):
                     self.assertEqual(body["messages"][0]["role"], "system")
                     token_field = "max_tokens" if provider == "custom" else "max_completion_tokens"
                     self.assertEqual(body[token_field], 8192)
-                    self.assertEqual(body.get("reasoning_split"), True if provider == "minimax" else None)
+                    self.assertEqual(body.get("reasoning_split"), True if provider.startswith("minimax") else None)
 
     def test_configuration_requires_every_field_and_compatible_protocol(self):
         original = configuration().public_metadata() | {"api_key": KEY}

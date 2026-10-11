@@ -36,14 +36,26 @@ async function harness(options = {}) {
     if (!elements.has(id)) elements.set(id, new Element());
     return elements.get(id);
   };
-  ui("model-provider").options = ["minimax", "openai", "anthropic", "custom", "server_default"].map((value) => ({ value, text: value }));
+  ui("model-provider").options = ["minimax", "minimax_cn", "openai", "anthropic", "custom", "server_default"].map((value) => ({ value, text: value }));
   ui("model-provider").value = "minimax";
   const storage = new Map();
   const exports = [];
   const browserCalls = [];
   const requests = [];
+  const testCalls = [];
+  const localCalls = [];
   const backend = "https://test-backend.example";
   const runtime = {
+    local: async (args) => {
+      localCalls.push(args);
+      if (options.local) return options.local(args);
+      return { answer: "Ran 1 stored-reference tool in this browser. No model or API was used and nothing was interpreted.", notes: [], completion_verified: false, execution: "browser-local", transcript: { turns: [{ turn: 0, results: [{ tool: "calculate", ok: true, rationale: "The message contains an expression.", value: { value: 10 } }] }], tool_calls_made: 1 } };
+    },
+    testConnection: async (args) => {
+      testCalls.push(args);
+      if (options.testConnection) return options.testConnection(args);
+      return { verdict: "reachable", endpoint: args.api_url, summary: "The API answered this browser with HTTP 401. Network and CORS are fine.", advice: "Your real key is checked on the first question." };
+    },
     prepare: options.prepare || (async () => ({ runtime_ready: true, tools: ["calculate", "inspect_structure"], execution: "browser" })),
     chat: async (args) => {
       browserCalls.push(args);
@@ -89,6 +101,7 @@ async function harness(options = {}) {
   // In a real page, window and globalThis address the same browser global.
   Object.assign(context, context.window);
   context.window = context;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../web/endpoint.js"), "utf8"), context);
   if (options.realRuntime) {
     for (const filename of ["reference-tools.js", "browser-agent.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../web", filename), "utf8"), context);
   }
@@ -97,7 +110,7 @@ async function harness(options = {}) {
   const input = (id, value) => { ui(id).value = value; return ui(id).listeners.input?.(event); };
   const chooseMode = async (value) => { ui("execution-mode").value = value; await ui("execution-mode").listeners.change(event); await flush(); };
   const send = async (message) => { input("message", message); await ui("chat-form").listeners.submit(event); };
-  return { ui, storage, exports, browserCalls, requests, backend, input, chooseMode, send };
+  return { ui, storage, exports, browserCalls, testCalls, localCalls, requests, backend, input, chooseMode, send };
 }
 
 test("default Browser + API prepares local tools and chats without a backend connection", async () => {
@@ -117,6 +130,252 @@ test("default Browser + API prepares local tools and chats without a backend con
   assert.equal(h.ui("progress-label").textContent, "Running calculate");
   assert.equal(h.ui("messages").childElementCount, 2);
   assert.equal(h.requests.length, 1);
+});
+
+test("the MiniMax China preset fills M3 and its base URL, shows the endpoint it will call, and sends that", async () => {
+  const h = await harness();
+  assert.equal(h.ui("api-url-resolved").hidden, true, "a full endpoint needs no notice");
+  h.ui("model-provider").value = "minimax_cn";
+  h.ui("model-provider").listeners.change(event);
+  assert.equal(h.ui("model-name").value, "MiniMax-M3");
+  assert.equal(h.ui("api-url").value, "https://api.minimax.cn/v1");
+  assert.equal(h.ui("api-url-resolved").hidden, false);
+  assert.equal(h.ui("api-url-resolved").textContent, "Requests will be sent to https://api.minimax.cn/v1/chat/completions");
+  h.input("provider-key", "test-provider-key");
+  await h.send("Calculate 2 * 3 + 4");
+  assert.equal(h.browserCalls[0].model_config.provider, "minimax_cn");
+  assert.equal(h.browserCalls[0].model_config.api_url, "https://api.minimax.cn/v1/chat/completions");
+  h.input("api-url", "https://api.minimax.cn/v1/chat/completions");
+  assert.equal(h.ui("api-url-resolved").hidden, true);
+});
+
+test("templates keep the completed China endpoint and import back into the same preset", async () => {
+  const h = await harness();
+  h.ui("model-provider").value = "minimax_cn";
+  h.ui("model-provider").listeners.change(event);
+  h.ui("template-name").value = "China M3";
+  h.ui("save-template").click();
+  const saved = JSON.parse(h.storage.get("eagent.model_templates.v1"))[0];
+  assert.equal(saved.provider, "minimax_cn");
+  assert.equal(saved.model, "MiniMax-M3");
+  assert.equal(saved.api_url, "https://api.minimax.cn/v1/chat/completions");
+  h.ui("model-provider").value = "openai";
+  h.ui("model-provider").listeners.change(event);
+  h.ui("template-file").files = [{ size: 500, text: async () => JSON.stringify(saved) }];
+  await h.ui("template-file").listeners.change(event);
+  assert.equal(h.ui("model-provider").value, "minimax_cn");
+  assert.equal(h.ui("api-url").value, "https://api.minimax.cn/v1/chat/completions");
+});
+
+const visibleText = (node) => [node.textContent, ...(node.children || []).map(visibleText)].join("\n");
+
+test("Test connection sends only the URL and format, shows the verdict, and never touches the typed key", async () => {
+  const h = await harness();
+  h.input("provider-key", "typed-secret-key");
+  await h.ui("test-connection").click();
+  assert.equal(h.testCalls.length, 1);
+  assert.deepEqual(Object.keys(h.testCalls[0]).sort(), ["api_url", "protocol", "signal"]);
+  assert.equal(h.testCalls[0].api_url, "https://api.minimax.io/v1/chat/completions");
+  assert.equal(h.testCalls[0].protocol, "openai_chat");
+  assert.equal(JSON.stringify(h.testCalls[0]).includes("typed-secret-key"), false);
+  assert.equal(h.ui("connection-test").hidden, false);
+  assert.match(visibleText(h.ui("connection-test")), /Network and CORS are fine/);
+  assert.match(h.ui("connection-test").className, /\bok\b/);
+  assert.equal(h.ui("test-connection").textContent, "Test connection");
+  assert.equal(h.ui("test-connection").disabled, false);
+  assert.equal(h.requests.some((request) => request.url.includes("minimax")), false, "the page itself makes no provider request; the runtime does");
+});
+
+test("Test connection completes a pasted base URL before probing it", async () => {
+  const h = await harness();
+  h.ui("model-provider").value = "minimax_cn";
+  h.ui("model-provider").listeners.change(event);
+  await h.ui("test-connection").click();
+  assert.equal(h.testCalls[0].api_url, "https://api.minimax.cn/v1/chat/completions");
+});
+
+test("Test connection shows each kind of failure distinctly and clears when the URL changes", async () => {
+  for (const [verdict, kind] of [["blocked", "bad"], ["unreachable", "bad"], ["timeout", "bad"], ["wrong_path", "warn"], ["provider_error", "warn"]]) {
+    const h = await harness({ testConnection: async () => ({ verdict, summary: "Summary for " + verdict, advice: "Advice for " + verdict }) });
+    await h.ui("test-connection").click();
+    assert.match(h.ui("connection-test").className, new RegExp("\\b" + kind + "\\b"), verdict);
+    assert.match(visibleText(h.ui("connection-test")), new RegExp("Summary for " + verdict));
+    assert.match(visibleText(h.ui("connection-test")), new RegExp("Advice for " + verdict));
+    h.input("api-url", "https://api.minimax.io/v1/other");
+    assert.equal(h.ui("connection-test").hidden, true, verdict + " result should be stale after the URL changed");
+  }
+});
+
+test("typing a key does not discard a connection verdict, because the verdict does not involve the key", async () => {
+  const h = await harness();
+  await h.ui("test-connection").click();
+  h.input("provider-key", "typed-after-the-test");
+  assert.equal(h.ui("connection-test").hidden, false);
+});
+
+test("Test connection reports a runtime failure, and incomplete settings, without calling the runtime", async () => {
+  const failing = await harness({ testConnection: async () => { throw new Error("Use a full HTTPS API endpoint."); } });
+  await failing.ui("test-connection").click();
+  assert.match(visibleText(failing.ui("connection-test")), /could not run/);
+  assert.match(visibleText(failing.ui("connection-test")), /full HTTPS API endpoint/);
+  assert.match(failing.ui("connection-test").className, /\bbad\b/);
+  assert.equal(failing.ui("test-connection").disabled, false, "the control must recover after a failure");
+
+  const incomplete = await harness();
+  incomplete.input("model-name", "");
+  await incomplete.ui("test-connection").click();
+  assert.equal(incomplete.testCalls.length, 0);
+  assert.match(visibleText(incomplete.ui("connection-test")), /Complete the settings first/);
+});
+
+test("Test connection is offered only in Browser + API mode and a mode switch discards its verdict", async () => {
+  const h = await harness();
+  assert.equal(h.ui("connection-test-box").hidden, false);
+  await h.ui("test-connection").click();
+  assert.equal(h.ui("connection-test").hidden, false);
+  await h.chooseMode("backend");
+  assert.equal(h.ui("connection-test-box").hidden, true);
+  assert.equal(h.ui("connection-test").hidden, true);
+  await h.chooseMode("browser");
+  assert.equal(h.ui("connection-test-box").hidden, false);
+  assert.equal(h.ui("connection-test").hidden, true);
+});
+
+const descendants = (node) => [node, ...(node.children || []).flatMap(descendants)];
+const withClass = (root, name) => descendants(root).filter((node) => node.className === name || String(node.className).split(" ").includes(name));
+
+test("Run in browser works with no API key, calls no model, and is neither verification nor model history", async () => {
+  const h = await harness();
+  assert.equal(h.ui("run-local").disabled, true, "nothing to run yet");
+  h.input("message", "Calculate 2 * 3 + 4");
+  assert.equal(h.ui("send-button").disabled, true, "sending to a model still needs a key");
+  assert.equal(h.ui("run-local").disabled, false, "running locally does not");
+  assert.match(h.ui("composer-notice").textContent, /Run in browser needs no API key/);
+  await h.ui("run-local").click();
+  assert.equal(h.localCalls.length, 1);
+  assert.deepEqual(Object.keys(h.localCalls[0]), ["message"], "no key, model settings or URL are passed");
+  assert.equal(h.localCalls[0].message, "Calculate 2 * 3 + 4");
+  assert.equal(h.browserCalls.length, 0, "no model request");
+  assert.equal(h.ui("messages").childElementCount, 2);
+  assert.equal(h.ui("message").value, "");
+  const shown = visibleText(h.ui("messages"));
+  assert.match(shown, /BROWSER TOOLS · NO MODEL/);
+  assert.match(shown, /View research trace · 1 tool call/);
+  assert.match(shown, /nothing was interpreted/);
+  assert.equal(withClass(h.ui("messages"), "trace").every((node) => node.open === true), true, "the evidence is the answer, so it opens");
+  assert.notEqual(h.ui("status-label").textContent, "Chat ready");
+  assert.equal(h.ui("run-local").disabled, true, "re-enabled only by a new question");
+  h.input("provider-key", "test-provider-key");
+  await h.send("Now ask the model");
+  assert.equal(h.browserCalls[0].history.length, 0, "the local exchange is not part of the model's context");
+});
+
+test("after a failed model request one click runs the same question locally, without repeating it", async () => {
+  const h = await harness({ chat: async () => { throw new Error("The browser could not reach this model API. CORS may block it."); } });
+  h.input("provider-key", "test-provider-key");
+  await h.send("List the audited structures");
+  const actions = withClass(h.ui("messages"), "notice-action");
+  assert.equal(actions.length, 1);
+  assert.equal(h.ui("message").value, "List the audited structures", "the draft is kept so the model can be retried after fixing settings");
+  await actions[0].click();
+  await flush();
+  assert.equal(actions[0].disabled, true);
+  assert.equal(h.localCalls[0].message, "List the audited structures");
+  assert.equal(withClass(h.ui("messages"), "user").length, 1, "the question is not shown twice");
+  assert.match(visibleText(h.ui("messages")), /BROWSER TOOLS · NO MODEL/);
+  assert.equal(h.ui("message").value, "List the audited structures", "a recovery run leaves the draft alone");
+  assert.equal(h.ui("status-label").textContent, "Model request failed", "the model failure is still reported as a failure");
+});
+
+test("Run in browser is offered only in Browser + API mode, once the tools have loaded", async () => {
+  const h = await harness();
+  h.input("message", "inspect 6ZZO");
+  assert.equal(h.ui("run-local").hidden, false);
+  await h.chooseMode("backend");
+  assert.equal(h.ui("run-local").hidden, true);
+  await h.chooseMode("browser");
+  assert.equal(h.ui("run-local").hidden, false);
+
+  const unloaded = await harness({ prepare: async () => { throw new Error("The published reference bundle is unavailable (HTTP 404)."); } });
+  unloaded.input("message", "inspect 6ZZO");
+  assert.equal(unloaded.ui("run-local").disabled, true, "no tools, nothing to run");
+  await unloaded.ui("run-local").click();
+  assert.equal(unloaded.localCalls.length, 0);
+});
+
+test("a question the router cannot place shows its guidance and no empty trace", async () => {
+  const h = await harness({ local: async () => ({ answer: "I could not match this to a stored tool. Try a structure id.", notes: ["x"], completion_verified: false, execution: "browser-local", transcript: { turns: [{ turn: 0, results: [] }], tool_calls_made: 0 } }) });
+  h.input("message", "Why is the sky blue?");
+  await h.ui("run-local").click();
+  assert.match(visibleText(h.ui("messages")), /could not match this to a stored tool/);
+  assert.equal(withClass(h.ui("messages"), "trace").length, 0);
+});
+
+test("a local run that fails is reported, and the control recovers", async () => {
+  const h = await harness({ local: async () => { throw new Error("The browser reference tools cannot route questions. Reload the page."); } });
+  h.input("message", "inspect 6ZZO");
+  await h.ui("run-local").click();
+  assert.match(visibleText(h.ui("messages")), /cannot route questions/);
+  assert.equal(withClass(h.ui("messages"), "error").length, 1);
+  h.input("message", "inspect 1IPF");
+  assert.equal(h.ui("run-local").disabled, false);
+});
+
+test("a mode switch while a local run is pending drops its result", async () => {
+  let finish;
+  const h = await harness({ local: () => new Promise((resolve) => { finish = resolve; }) });
+  h.input("message", "inspect 6ZZO");
+  const pending = h.ui("run-local").click();
+  await h.chooseMode("backend");
+  finish({ answer: "Stale local answer", notes: [], completion_verified: false, execution: "browser-local", transcript: { turns: [], tool_calls_made: 0 } });
+  await pending;
+  assert.equal(h.ui("messages").childElementCount, 0);
+});
+
+test("the shipped UI and real runtime answer the 6ZZO question with no key and no model request", async () => {
+  const h = await harness({ realRuntime: true });
+  assert.equal(h.ui("status-label").textContent, "Browser tools loaded");
+  h.input("message", "List the audited structures and inspect 6ZZO. What evidence and limitations are recorded for its cofactor and ligand?");
+  await h.ui("run-local").click();
+  await flush();
+  const shown = visibleText(h.ui("messages"));
+  assert.match(shown, /View research trace · 2 tool calls/);
+  assert.match(shown, /list_structure_entries/);
+  assert.match(shown, /structure_entry/);
+  assert.match(shown, /"pdb_id": "6ZZO"/);
+  assert.match(shown, /BROWSER TOOLS · NO MODEL/);
+  assert.equal(h.requests.some((request) => /minimax|openai|anthropic/.test(request.url)), false, "no provider was contacted");
+  assert.equal(h.ui("provider-key").value, "", "and no key was needed");
+});
+
+test("a reach or CORS failure points to Test connection once, and does not repeat itself as 'Run ended'", async () => {
+  const sentence = "The browser could not reach this model API. CORS may block it.";
+  const h = await harness({ chat: async () => {
+    const error = new Error(sentence);
+    error.data = { transcript: { turns: [{ turn: 0, provider_error: sentence }], tool_calls_made: 0, stopped_because: "The provider call failed: " + sentence } };
+    throw error;
+  } });
+  h.input("provider-key", "test-provider-key");
+  await h.send("Anything");
+  // Only what is on screen: the message and its notices. The collapsed "Full
+  // transcript" holds the same strings as JSON and is not displayed.
+  const shown = [...withClass(h.ui("messages"), "message-body"), ...withClass(h.ui("messages"), "run-notice")].map((node) => node.textContent).join("\n");
+  assert.equal(shown.split("could not reach this model API").length - 1, 2, "once as the notice and once as the provider error, not three times");
+  assert.equal((shown.match(/Press Test connection/g) || []).length, 1);
+  assert.equal(/Run ended/.test(shown), false);
+});
+
+test("a failure that is not about reaching the API gets no connection hint, and a different stop reason still shows", async () => {
+  const h = await harness({ chat: async () => {
+    const error = new Error("The provider returned malformed JSON in the agent protocol.");
+    error.data = { transcript: { turns: [{ turn: 0, provider_error: "The provider returned malformed JSON in the agent protocol." }], tool_calls_made: 0, stopped_because: "The turn limit of 6 was reached." } };
+    throw error;
+  } });
+  h.input("provider-key", "test-provider-key");
+  await h.send("Anything");
+  const shown = [...withClass(h.ui("messages"), "message-body"), ...withClass(h.ui("messages"), "run-notice")].map((node) => node.textContent).join("\n");
+  assert.equal(/Press Test connection/.test(shown), false);
+  assert.match(shown, /Run ended: The turn limit of 6 was reached\./);
 });
 
 test("provider failure retains browser tools and permits retry without a backend token", async () => {

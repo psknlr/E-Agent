@@ -337,7 +337,7 @@
   // read-only tools a model would be offered, and each runs here. No model, no
   // key and no network request is involved, so this works when the API cannot
   // be reached. It is not a model completion and never counts as one.
-  const LOCAL_SUMMARY = "No model or API was used and nothing was interpreted. Each record below is exactly as stored, with its citation, any withheld values and its limits.";
+  const LOCAL_SUMMARY = "No model or API was used and nothing was interpreted. Each result below is exactly as its tool returned it, with its citation, any withheld values and its limits.";
   const LOCAL_CAVEAT = "A local run uses the browser port of E-Agent’s read-only reference tools and the published evidence bundle. No model was called, no experiment was run and no reference data was changed.";
   const COMPUTE_LOCAL_CAVEAT = " Compute agents ran the project’s own Python code on this device (WebAssembly), for exactly the arguments shown, and approved nothing.";
   const COMPUTE_CHAT_CAVEAT = " Compute agents ran the project’s own Python code on the user’s device (WebAssembly); they approved nothing and ran no external program.";

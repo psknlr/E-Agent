@@ -130,13 +130,22 @@ and dihedral maths, the Wilson interval and the submodular batch selection. The
 `chem`, `bio` and `numeric` extras in `pyproject.toml` are optional and change
 behaviour in exactly one documented way — when `rdkit` is present,
 `normalize_reaction` offers a stereocentre perception as a *proposal requiring
-confirmation*, never as a resolved value.
+confirmation*, never as a resolved value. Nothing else reads an extra without
+being asked: substrate scaffold keys, in particular, are computed by the same
+pure-Python route in every install, so one dataset has one key space whichever
+machine it was keyed on.
 
 Tests:
 
 ```bash
 PYTHONPATH=src python3 -m pytest tests -q
 ```
+
+`.github/workflows/ci.yml` runs that whole suite on every pull request, on
+three installs (the floor of `requires-python`, the current version, and the
+current version with the optional extras), alongside the browser runtime
+checks and the shipped-configuration validators. `.github/workflows/pages.yml`
+additionally builds and checks the WebAssembly engine when main is deployed.
 
 ---
 

@@ -266,7 +266,14 @@ Three states only:
 | `errors.py`, `envelope.py`, `provenance.py`, `context.py` | implemented | typed failures, uniform envelope, run manifest, run context |
 | `schemas/chem.py`, `reaction.py`, `record.py`, `candidate.py`, `variant.py`, `batch.py`, `templates.py` | implemented | pydantic v2, validators exercised by the suite |
 
-### Deterministic science core (pure Python; numpy/scipy/rdkit/biopython absent)
+### Deterministic science core (pure Python; numpy/scipy/rdkit/biopython optional)
+
+Every component below runs with nothing but the required dependencies. The
+`chem`, `bio` and `numeric` extras are declared optional and now have a CI leg
+of their own, because code reachable only in a supported install and never run
+by any check is code nobody has tested: the first run of that leg found the
+scaffold-key default silently changing with the install, and a leakage audit
+that reported a provenance-less split as clean.
 
 | Component | State | Note |
 | --- | --- | --- |

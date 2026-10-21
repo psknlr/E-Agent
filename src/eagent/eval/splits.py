@@ -70,13 +70,18 @@ That case is **reported short**, with the arithmetic, rather than relaxed.
 
 SCAFFOLDS WITHOUT RDKIT
 =======================
-rdkit is not installed in this environment, and a scaffold key is still
-needed. :func:`scaffold_key` uses rdkit's Murcko scaffold when rdkit is
-importable and otherwise computes a pure-Python *ring-and-linker skeleton*
-(the 2-core of the molecular graph) hashed with a Weisfeiler-Lehman
-refinement. :class:`ScaffoldKey` carries the basis it used and a list of the
-limitations that basis has; the two bases produce different key spaces and
-must never be mixed inside one split, which :func:`audit_leakage` reports.
+A scaffold key is needed whether or not an optional chemistry toolkit is
+installed, and the key must not change when one is. :func:`scaffold_key`
+therefore always computes the same pure-Python *ring-and-linker skeleton* (the
+2-core of the molecular graph, plus the core's composition and the non-halogen
+heteroatoms within two bonds of it) hashed with a Weisfeiler-Lehman
+refinement. It keeps a ring-attached carbonyl, which is the point: rdkit's
+Bemis-Murcko framework removes every exocyclic substituent and so cannot tell
+an aromatic ketone from benzene. That framework is available on request
+(``prefer_rdkit=True``) and has its own basis. :class:`ScaffoldKey` carries
+the basis it used and a list of the limitations that basis has; the bases
+produce different key spaces and must never be mixed inside one split, which
+:func:`audit_leakage` reports.
 
 NOTHING HERE INVENTS A FACET
 ============================
@@ -356,12 +361,12 @@ def _rdkit_murcko_smiles(smiles: str) -> tuple[str, bool] | None:
     the whole molecule is returned instead, flagged acyclic, because an empty
     key would fuse every acyclic substrate into one scaffold group.
     """
-    try:  # pragma: no cover - rdkit is not installed in this environment
+    try:  # the absent-rdkit leg; CI runs one install with it and one without
         from rdkit import Chem  # type: ignore
         from rdkit.Chem.Scaffolds import MurckoScaffold  # type: ignore
     except Exception:
         return None
-    try:  # pragma: no cover - exercised only where rdkit is installed
+    try:
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return None
@@ -655,40 +660,65 @@ def _substrate_fields(substrate: Any) -> tuple[str | None, str | None]:
             str(inchikey) if inchikey else None)
 
 
-def scaffold_key(substrate: Any, *, prefer_rdkit: bool = True) -> ScaffoldKey:
+def scaffold_key(substrate: Any, *, prefer_rdkit: bool = False) -> ScaffoldKey:
     """Scaffold key for a substrate, with its basis and its limitations attached.
 
     Accepts a :class:`~eagent.schemas.chem.SubstrateSpec`, anything carrying
     one (an :class:`~eagent.schemas.record.ExperimentRecord`), or a bare SMILES
     string.
 
-    Resolution order, strongest first:
+    Resolution order:
 
-    1. rdkit's Murcko scaffold, when rdkit is importable;
-    2. the pure-Python ring-and-linker skeleton of the parsed SMILES;
-    3. for an acyclic molecule, the whole skeleton (a molecule with no ring has
+    1. the pure-Python ring-and-linker skeleton of the parsed SMILES, which
+       keeps the reacting group;
+    2. for an acyclic molecule, the whole skeleton (a molecule with no ring has
        no Murcko framework, and returning the empty framework would fuse every
        acyclic substrate into one group -- conservative, and meaningless);
-    4. the first block of an InChIKey, which is a *constitution* hash and not a
+    3. the first block of an InChIKey, which is a *constitution* hash and not a
        scaffold, flagged as such;
-    5. unresolved, with the thing a curator must supply.
+    4. unresolved, with the thing a curator must supply.
 
     There is no step that derives a key from the substrate's name.
+
+    **Why rdkit is not the default**, although it is the better chemistry
+    toolkit by every other measure. ``MurckoScaffold.GetScaffoldForMol`` returns
+    the Bemis-Murcko *framework*: ring systems and the linkers between them,
+    with every exocyclic substituent removed. The carbonyl that the whole
+    campaign is about is an exocyclic substituent, so acetophenone,
+    4-chloroacetophenone, phenol, aniline and plain benzene all reduce to
+    ``c1ccccc1`` and share one key. Holding out "aromatic ketones" would then
+    hold out every benzenoid, and the substrate axis of the split stops
+    discriminating -- the regression that
+    ``tests/test_scaffold_functional_group.py`` exists to prevent. Preferring it
+    silently also made the key space depend on whether an optional extra
+    happened to be installed: two machines, one dataset, two sets of keys, and
+    nothing in the output to say which.
+
+    Pass ``prefer_rdkit=True`` to ask for the framework anyway -- it perceives
+    aromaticity, so it separates benzene from cyclohexane where this module's
+    reader cannot, and it parses SMILES this module's reader refuses. The basis
+    is recorded on the key, and a split that mixes bases says so.
     """
     smiles, inchikey = _substrate_fields(substrate)
 
     if smiles and prefer_rdkit:
         resolved = _rdkit_murcko_smiles(smiles)
-        if resolved is not None:  # pragma: no cover - needs rdkit installed
+        if resolved is not None:
             body, is_acyclic = resolved
             prefix = "acyclic:rdkit-murcko" if is_acyclic else "scaffold:rdkit-murcko"
             return ScaffoldKey(
                 key=f"{prefix}:{body}",
                 basis=ScaffoldBasis.RDKIT_MURCKO,
                 limitations=(
-                    "rdkit's Murcko scaffold keeps exocyclic double bonds and "
-                    "perceives aromaticity; keys from this basis are NOT "
-                    "comparable with the pure-Python ring-and-linker keys.",
+                    "rdkit's Murcko framework discards every exocyclic "
+                    "substituent, the reacting group included: a ring-attached "
+                    "ketone, phenol and amine all reduce to the bare ring, so "
+                    "this basis cannot separate an aromatic ketone from any "
+                    "other benzenoid.",
+                    "it does perceive aromaticity, so benzene and cyclohexane "
+                    "are separated here and collide in the pure-Python key.",
+                    "keys from this basis are NOT comparable with the "
+                    "pure-Python ring-and-linker keys.",
                 ),
                 source_smiles=smiles,
             )
@@ -1097,7 +1127,7 @@ def audit_leakage(
     scaffold_lookup: Mapping[str, Any] | Callable[[Any], Any] | None = None,
     registry: Any | None = None,
     source_lookup: Mapping[str, Any] | Callable[[Any], Any] | None = None,
-    prefer_rdkit: bool = True,
+    prefer_rdkit: bool = False,
 ) -> LeakageAudit:
     """Report every overlap between two folds, by category.
 
@@ -1164,12 +1194,14 @@ def audit_leakage(
         detail=("a parent sequence and one of its variants, or two variants of "
                 "one parent, sit on opposite sides"),
     ))
+    train_pubs = {rid: _publication_facets(obj, sequence_cluster_lookup)
+                  for rid, obj in zip(train_ids, train_list)}
+    test_pubs = {rid: _publication_facets(obj, sequence_cluster_lookup)
+                 for rid, obj in zip(test_ids, test_list)}
     overlaps.extend(_facet_overlaps(
         LeakageCategory.SHARED_PUBLICATION,
-        {rid: _publication_facets(obj, sequence_cluster_lookup)
-         for rid, obj in zip(train_ids, train_list)},
-        {rid: _publication_facets(obj, sequence_cluster_lookup)
-         for rid, obj in zip(test_ids, test_list)},
+        train_pubs,
+        test_pubs,
         detail=("rows from one paper share its construct, assay, calibration "
                 "and analyst, so they are not independent samples"),
     ))
@@ -1218,6 +1250,24 @@ def audit_leakage(
         train_sources, test_sources, registry)
     overlaps.extend(recuration)
     notes.extend(recuration_notes)
+    recorded_provenance = any(
+        bool(v) for mapping in (train_sources, test_sources,
+                                train_pubs, test_pubs)
+        for v in mapping.values())
+    if not recorded_provenance:
+        # Every detector of "two spellings of one lineage" -- the shared
+        # publication facet and both re-curation detectors -- reads provenance
+        # off the rows. With none recorded anywhere, all of them return
+        # nothing, and an empty result is indistinguishable in the audit from
+        # having looked and found the two sides independent. A row that names
+        # its paper is a row whose provenance was checked and found distinct;
+        # a row that names neither paper nor upstream resource is a row nobody
+        # can place, and placing it is what the facet is for.
+        unchecked.append(
+            "no row on either side records a publication or an upstream "
+            "source, so 'the two sides are independent' was not checked; an "
+            "independence claim needs evidence provenance on the rows, or a "
+            "source_lookup")
 
     if regime is not None and regime.holds_out_sequences \
             and sequence_cluster_lookup is None:
@@ -1362,7 +1412,7 @@ def grouped_split(
     scaffold_lookup: Mapping[str, Any] | Callable[[Any], Any] | None = None,
     registry: Any | None = None,
     source_lookup: Mapping[str, Any] | Callable[[Any], Any] | None = None,
-    prefer_rdkit: bool = True,
+    prefer_rdkit: bool = False,
     seed: int = 0,
 ) -> GroupedSplit:
     """Split records into folds whose unit is a group, never a row.

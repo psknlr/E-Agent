@@ -247,13 +247,26 @@ registry's own honesty flag: 23 of the registered sources record their lineage
 as **admittedly incomplete**, so a clean re-curation audit today is a statement
 about what the registry knows.
 
+An audit that found nothing also says so differently from an audit that had
+nothing to look at: when no row on either side records a publication or an
+upstream source, every independence detector returns empty, and that is routed
+to `unchecked` — so `proven_clean` is false — rather than read as two
+independent sides.
+
 Scaffold keys carry the basis they were computed from (`ScaffoldBasis`), because
-an rdkit Murcko scaffold and this module's pure-Python ring-and-linker skeleton
+an rdkit Murcko framework and this module's pure-Python ring-and-linker skeleton
 agree about which molecules share a core far more often than they agree about
 the *string* that names it — and comparing a key from one with a key from the
 other reads as "different scaffold" for the same molecule, which is the
-direction that leaks. rdkit is absent here, so keys fall back to the
-ring-and-linker skeleton or to an InChIKey constitution block, and
+direction that leaks. The default is always the ring-and-linker skeleton, in
+every install: it keeps a ring-attached carbonyl, which the Bemis–Murcko
+framework discards along with every other exocyclic substituent, so on that
+basis acetophenone, its chloro analogue, phenol, aniline and plain benzene are
+one scaffold and the substrate axis of a carbonyl-reduction split stops
+discriminating. The framework is available on request (`prefer_rdkit=True`) and
+is the stronger key on exactly one axis — it perceives aromaticity, so it
+separates benzene from cyclohexane where the pure-Python reader cannot. Keys
+fall back to an InChIKey constitution block when no SMILES was recorded, and
 `UNRESOLVED` is a real outcome rather than a silent default.
 
 ---

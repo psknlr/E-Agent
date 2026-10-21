@@ -51,6 +51,18 @@ THE COMPARATORS
 ``spectrum_krr_calibrated``
     the same score through its out-of-fold Platt map; absent for a target
     that lacks enough of both classes.
+``cofactor_determinant``
+    the motif-anchored cofactor determinant of
+    :mod:`eagent.science.cofactor_determinant`, read off the sequence through
+    the rule a family template declares. It is **not fitted**: it has no
+    parameters, sees no training fold, and would score the same with the folds
+    shuffled -- so it is the only comparator here that cannot be flattered by
+    leakage, and the leaky second run is a control on the others rather than on
+    it. It answers one question (which nicotinamide), so it is scored on the
+    cofactor target and on no other, and it abstains rather than guessing when
+    the anchor is absent or repeated: an abstention takes the neutral score and
+    the coverage line reports how often it happened. Present only when the
+    caller supplies the rules, which the report records verbatim.
 """
 
 from __future__ import annotations
@@ -65,6 +77,9 @@ from typing import Any, Mapping, Sequence
 
 from ..errors import EAgentError
 from ..provenance import sha256_obj
+from ..science.cofactor_determinant import (
+    AnchoredDeterminantRule, DeterminantOutcome, read_determinant,
+)
 from ..science.enzyme_substrate import (
     EnzymeSubstrateModel, Example, KernelCache, auroc, average_precision,
     brier, cluster_bootstrap_ci, expected_calibration_error, grouped_folds,
@@ -87,9 +102,54 @@ __all__ = [
     "run_sdr_suite",
     "run_benchmark",
     "precision_at_k",
+    "COMPARATORS",
+    "DETERMINANT_TARGETS",
+    "SDR_FAMILY_TEMPLATE_ID",
+    "sdr_determinant_rules",
 ]
 
+#: Every comparator, in report order. One tuple, so a comparator cannot be
+#: added to the scoring loop and forgotten in the macro average, or the other
+#: way round.
+COMPARATORS: tuple[str, ...] = (
+    "prevalence",
+    "nearest_neighbour",
+    "spectrum_krr",
+    "spectrum_krr_calibrated",
+    "cofactor_determinant",
+)
+
+#: Which target the determinant comparator answers, and the cofactor a
+#: positive label on that target means. Scoring a 2'-phosphate determinant
+#: against a sterol-substructure label would produce a number with no content,
+#: so the mapping is explicit and short rather than inferred from the target
+#: name.
+DETERMINANT_TARGETS: Mapping[str, str] = {"sdr:cofactor_NADP": "NADPH"}
+
+#: Comparators that produce a ranking score and no probability. Passing a
+#: probability list of ``None``s to the metrics would be reported as a Brier
+#: score of nothing rather than as no Brier score.
+_RANKING_ONLY: frozenset[str] = frozenset(
+    {"nearest_neighbour", "cofactor_determinant"})
+
+#: What an outcome contributes as a ranking score. ``PRESENT`` ranks above
+#: ``ABSENT``; every refusal takes the neutral middle, so an abstention earns
+#: no credit and is not scored as a wrong call either, and the report says how
+#: often each outcome occurred.
+_DETERMINANT_SCORE: Mapping[DeterminantOutcome, float] = {
+    DeterminantOutcome.PRESENT: 1.0,
+    DeterminantOutcome.ABSENT: 0.0,
+    DeterminantOutcome.ANCHOR_ABSENT: 0.5,
+    DeterminantOutcome.ANCHOR_NOT_UNIQUE: 0.5,
+    DeterminantOutcome.WINDOW_TRUNCATED: 0.5,
+}
+
 SDR_VERSION_DOI = "10.5281/zenodo.7141435"
+
+#: The family template whose cofactor determinant this dataset can be scored
+#: against. The dataset is SDR sequences, so an AKR or MDR rule would be
+#: applied to the wrong fold.
+SDR_FAMILY_TEMPLATE_ID = "fam.sdr.v1"
 
 #: md5 of each file, as the Zenodo record itself states them (fixture
 #: ``tests/fixtures/zenodo/record_7141435.json``). Checked on every load: a
@@ -228,6 +288,7 @@ class TargetResult:
     n_positive: int
     comparators: dict[str, dict[str, Any]] = field(default_factory=dict)
     delta_auroc_vs_nearest_neighbour: dict[str, Any] | None = None
+    delta_auroc_determinant_vs_nearest_neighbour: dict[str, Any] | None = None
 
 
 @dataclass
@@ -244,6 +305,8 @@ class BenchmarkReport:
     reliability: dict[str, list[dict[str, Any]]]
     similarity_to_training: dict[str, Any]
     uncalibrated_targets: list[str]
+    determinant_rules: list[dict[str, Any]] = field(default_factory=list)
+    determinant_outcomes: dict[str, dict[str, int]] = field(default_factory=dict)
     digest: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -257,6 +320,8 @@ class BenchmarkReport:
             "reliability": self.reliability,
             "similarity_to_training": self.similarity_to_training,
             "uncalibrated_targets": self.uncalibrated_targets,
+            "determinant_rules": self.determinant_rules,
+            "determinant_outcomes": self.determinant_outcomes,
             "digest": self.digest,
         }
 
@@ -271,7 +336,9 @@ class BenchmarkReport:
             f"clustering: {self.clustering.get('method')}",
             f"median max-similarity of a test sequence to its training folds: "
             f"{self.similarity_to_training.get('median')}", ""]
-        names = ("prevalence", "nearest_neighbour", "spectrum_krr_calibrated")
+        names = ["prevalence", "nearest_neighbour", "spectrum_krr_calibrated"]
+        if any("cofactor_determinant" in t.comparators for t in self.targets):
+            names.append("cofactor_determinant")
         lines.append(f"{'target':<30}{'n':>5}{'pos':>5}  "
                      + "".join(f"{c:>26}" for c in names)
                      + "      (AUROC [95% cluster-bootstrap CI])")
@@ -315,9 +382,54 @@ class BenchmarkReport:
             f"{len(wins)} target(s) {wins}, worse on {len(losses)} {losses}, "
             f"indistinguishable on "
             f"{len(self.targets) - len(wins) - len(losses)}")
+        lines += self._determinant_lines()
         for t, why in sorted(self.skipped_targets.items()):
             lines.append(f"skipped {t}: {why}")
         return "\n".join(lines)
+
+    def _determinant_lines(self) -> list[str]:
+        """The determinant's rule, what it could not read, and the paired test.
+
+        The coverage line is not decoration. A rule that abstains on a fifth of
+        the pool and ranks well on the rest is a different instrument from one
+        that answers everywhere, and the AUROC alone does not distinguish them
+        because an abstention sits at the neutral score.
+        """
+        if not self.determinant_rules:
+            return []
+        out = ["", "COFACTOR DETERMINANT (a rule, not a fit: no parameters, no "
+                   "training fold consulted):"]
+        for r in self.determinant_rules:
+            out.append(
+                f"  {r['cofactor']}: {'/'.join(r['accepted_residues'])} at "
+                f"offsets {r['window'][0]}..{r['window'][1]} from motif "
+                f"{r['anchor_motif']} ({r['anchor_pattern']}), from "
+                f"{r['source_template_id']}"
+                + ("; THE RULE ITSELF NEEDS CURATION" if r["needs_curation"]
+                   else ""))
+        for target, counts in sorted(self.determinant_outcomes.items()):
+            total = sum(counts.values()) or 1
+            determined = counts.get("present", 0) + counts.get("absent", 0)
+            out.append(
+                f"  {target}: read on {determined}/{total} sequences "
+                f"({determined / total:.0%}); "
+                + ", ".join(f"{k}={v}" for k, v in counts.items())
+                + ". An unread sequence takes the neutral score.")
+        for t in self.targets:
+            d = t.delta_auroc_determinant_vs_nearest_neighbour
+            if not d:
+                continue
+            ci = d.get("ci95")
+            out.append(
+                f"  {t.target}: AUROC difference against nearest_neighbour "
+                f"{d['delta']:+.3f}"
+                + (f" [{ci[0]:+.3f},{ci[1]:+.3f}]" if ci else " (no interval)")
+                + " -- "
+                + ("the interval excludes zero"
+                   if d["interval_excludes_zero"]
+                   else "the interval includes zero, so this pool does not "
+                        "separate them"))
+        return out
 
 
 def _f(v: float | None) -> str:
@@ -352,16 +464,76 @@ def _metrics(scores: list[float], probs: list[float] | None, labels: list[bool],
     return out
 
 
+class _DeterminantScorer:
+    """Scores the determinant comparator, and counts what it could not read.
+
+    Memoised per sequence: the rule is a pure function of the sequence, so a
+    sequence appearing under several targets is read once. There is nothing to
+    fit, which is the point -- no training fold is consulted and the score is
+    the same whichever fold the row landed in.
+    """
+
+    def __init__(self, rules: Sequence[AnchoredDeterminantRule]) -> None:
+        from ..tools.annotate_family import compile_motif
+
+        self._compile = compile_motif
+        self._by_cofactor: dict[str, AnchoredDeterminantRule] = {}
+        for rule in rules:
+            if rule.cofactor in self._by_cofactor:
+                raise RetrospectiveError(
+                    f"two determinant rules for {rule.cofactor}; the benchmark "
+                    f"would have to choose between them")
+            self._by_cofactor[rule.cofactor] = rule
+        self._cache: dict[tuple[str, str], float] = {}
+        self.outcomes: dict[str, dict[str, int]] = {}
+
+    @property
+    def active(self) -> bool:
+        return bool(self._by_cofactor)
+
+    def rule_records(self) -> list[dict[str, Any]]:
+        return [
+            {"cofactor": r.cofactor, "source_template_id": r.source_template_id,
+             "anchor_motif": r.anchor_motif, "anchor_pattern": r.anchor_pattern,
+             "window": list(r.window),
+             "accepted_residues": sorted(r.accepted_residues),
+             "needs_curation": r.needs_curation}
+            for r in sorted(self._by_cofactor.values(), key=lambda r: r.cofactor)
+        ]
+
+    def score(self, sequence: str, target: str) -> float | None:
+        """The ranking score for this target, or ``None`` if it has no rule."""
+        cofactor = DETERMINANT_TARGETS.get(target)
+        rule = self._by_cofactor.get(cofactor or "")
+        if rule is None:
+            return None
+        key = (sequence, target)
+        if key not in self._cache:
+            call = read_determinant(sequence, rule, compile_pattern=self._compile)
+            counts = self.outcomes.setdefault(target, {})
+            counts[call.outcome.value] = counts.get(call.outcome.value, 0) + 1
+            self._cache[key] = _DETERMINANT_SCORE[call.outcome]
+        return self._cache[key]
+
+
 def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | None = None,
                   *, cluster_assignment: Mapping[str, str] | None = None,
                   clustering_note: Mapping[str, Any] | None = None,
-                  kernel: KernelCache | None = None) -> BenchmarkReport:
+                  kernel: KernelCache | None = None,
+                  determinant_rules: Sequence[AnchoredDeterminantRule] = ()
+                  ) -> BenchmarkReport:
     """Run every comparator over identical folds and report out-of-fold results.
 
     ``cluster_assignment`` maps ``example_id`` to a cluster id (the caller
     clusters, so the clustering method is the caller's and is recorded). With
     ``protocol.grouped`` False the folds ignore clusters -- the leaky variant,
     run on purpose to measure how much leakage flatters the numbers.
+
+    ``determinant_rules`` are the motif-anchored cofactor rules a family
+    template declares. They are passed in rather than loaded here so that the
+    report records which rule produced the column, and so that this module
+    stays free of template discovery. With none supplied the comparator is
+    absent from the report rather than reported as zero.
     """
     protocol = protocol or BenchmarkProtocol()
     if not examples:
@@ -402,9 +574,9 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
 
     pooled: dict[str, dict[str, dict[str, list]]] = {
         t: {c: {"score": [], "prob": [], "label": [], "cluster": [], "id": []}
-            for c in ("prevalence", "nearest_neighbour", "spectrum_krr",
-                      "spectrum_krr_calibrated")}
+            for c in COMPARATORS}
         for t in keep}
+    determinant = _DeterminantScorer(determinant_rules)
     max_sims: list[float] = []
     uncalibrated: set[str] = set()
     factor_cache: dict = {}
@@ -443,11 +615,16 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
             # the fold's prevalence as the score would let the *difference in
             # prevalence between folds* masquerade as ranking skill (or its
             # opposite) once the folds are pooled.
-            for name, score, prob in (
-                    ("prevalence", 0.0, prevalence),
-                    ("nearest_neighbour", sim_pos - sim_neg, None),
-                    ("spectrum_krr", raw, min(max((raw + 1.0) / 2.0, 0.0), 1.0)),
-                    ("spectrum_krr_calibrated", raw, pred.probability)):
+            columns = [
+                ("prevalence", 0.0, prevalence),
+                ("nearest_neighbour", sim_pos - sim_neg, None),
+                ("spectrum_krr", raw, min(max((raw + 1.0) / 2.0, 0.0), 1.0)),
+                ("spectrum_krr_calibrated", raw, pred.probability),
+            ]
+            det = determinant.score(e.sequence, e.target)
+            if det is not None:
+                columns.append(("cofactor_determinant", det, None))
+            for name, score, prob in columns:
                 s = slot[name]
                 s["score"].append(score)
                 s["prob"].append(prob)
@@ -465,6 +642,11 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                           n_positive=sum(labels))
         for name, s in slot.items():
             probs = s["prob"]
+            if not s["score"]:
+                # A comparator that answers a different question is absent from
+                # this target rather than present with a placeholder: an empty
+                # cell reads as "not applicable", a zero reads as "measured".
+                continue
             if name == "spectrum_krr_calibrated":
                 if any(p is None for p in probs):
                     # a calibrated number only where every fold produced one
@@ -479,16 +661,21 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                     continue
             tr.comparators[name] = _metrics(
                 s["score"],
-                None if name == "nearest_neighbour" else [float(p) for p in probs],
+                None if name in _RANKING_ONLY else [float(p) for p in probs],
                 s["label"], s["cluster"], protocol, protocol.seed)
         tr.delta_auroc_vs_nearest_neighbour = _paired_delta(
             slot["spectrum_krr"], slot["nearest_neighbour"], protocol)
+        if slot["cofactor_determinant"]["score"]:
+            tr.delta_auroc_determinant_vs_nearest_neighbour = _paired_delta(
+                slot["cofactor_determinant"], slot["nearest_neighbour"],
+                protocol)
         results.append(tr)
 
     macro: dict[str, dict[str, float | None]] = {}
-    for name in ("prevalence", "nearest_neighbour", "spectrum_krr",
-                 "spectrum_krr_calibrated"):
+    for name in COMPARATORS:
         cells = [t.comparators.get(name, {}) for t in results]
+        if not any(cells):
+            continue
         macro[name] = {m: _mean([c.get(m) for c in cells])
                        for m in ("auroc", "average_precision", "brier", "ece")}
         # A mean over a different number of targets per metric is a trap when
@@ -526,7 +713,10 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                                                        "its own group)"}),
         targets=results, skipped_targets=skipped, macro=macro,
         reliability=reliability, similarity_to_training=similarity,
-        uncalibrated_targets=sorted(uncalibrated))
+        uncalibrated_targets=sorted(uncalibrated),
+        determinant_rules=determinant.rule_records(),
+        determinant_outcomes={t: dict(sorted(c.items()))
+                              for t, c in sorted(determinant.outcomes.items())})
     report.digest = sha256_obj({k: v for k, v in report.to_dict().items()
                                 if k != "digest"})
     return report
@@ -560,11 +750,33 @@ class SdrSuite:
         return "\n".join(lines)
 
 
+def sdr_determinant_rules(template_dir: str | Path | None = None
+                          ) -> list[AnchoredDeterminantRule]:
+    """The anchored cofactor rules the shipped SDR family template declares.
+
+    Read from the template library rather than written here, so that the rule
+    the benchmark scores is the same object the pipeline would apply, and a
+    change to one moves the other.
+    """
+    from ..harness.templates import TemplateLibrary, default_template_dir
+    from ..science.cofactor_determinant import rules_from_template
+
+    library = TemplateLibrary.load(Path(template_dir or default_template_dir()))
+    template = library.get(SDR_FAMILY_TEMPLATE_ID)
+    if template is None:
+        return []
+    return rules_from_template(template)
+
+
 def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = None,
-                  *, sweep: Sequence[float] = (0.03, 0.1, 0.3, 1.0)) -> SdrSuite:
+                  *, sweep: Sequence[float] = (0.03, 0.1, 0.3, 1.0),
+                  determinant_rules: Sequence[AnchoredDeterminantRule] | None = None
+                  ) -> SdrSuite:
     """Load the SDR dataset, cluster it, and run the grouped, ungrouped and sweep runs."""
     from ..tools.mine_sequences import cluster_sequences
     protocol = protocol or BenchmarkProtocol()
+    rules = (list(determinant_rules) if determinant_rules is not None
+             else sdr_determinant_rules())
     dataset = load_sdr(data_dir)
     examples = sdr_examples(dataset)
     items = sorted({(e.example_id, e.sequence) for e in examples})
@@ -579,7 +791,8 @@ def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = Non
     def run(proto: BenchmarkProtocol) -> BenchmarkReport:
         report = run_benchmark(examples, proto,
                                cluster_assignment=dict(clustering.assignment),
-                               clustering_note=note, kernel=kernel)
+                               clustering_note=note, kernel=kernel,
+                               determinant_rules=rules)
         report.dataset_md5 = dict(dataset.file_md5)
         return report
 

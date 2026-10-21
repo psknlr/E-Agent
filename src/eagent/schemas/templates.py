@@ -145,6 +145,18 @@ class FamilyTemplate(BaseModel):
     cofactor_preference: dict[str, str] = Field(
         default_factory=dict, description="cofactor -> evidence string"
     )
+    cofactor_recognition_rules: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Each: {cofactor, anchor_motif, window, accepted_residues, "
+                    "evidence, needs_curation}. A per-sequence determinant "
+                    "anchored on one of this template's own conserved motifs, "
+                    "read by eagent.science.cofactor_determinant. Positions "
+                    "are offsets from the anchor match, not reference "
+                    "numbering, so the rule is usable before a family "
+                    "reference sequence has been curated. Presence of a "
+                    "determinant is evidence for that cofactor; absence is "
+                    "not evidence for another one.",
+    )
     typical_fold: str | None = None
     oligomeric_state: str | None = None
     catalytic_template_ids: list[str] = Field(default_factory=list)

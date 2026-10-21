@@ -46,7 +46,7 @@
           ],
           "brier": 0.1351941524586241,
           "log_loss": 0.4583058389398095,
-          "ece": 0.11144951443631115
+          "ece": 0.11144951443631121
         },
         "nearest_neighbour": {
           "auroc": 0.7766572987270624,
@@ -65,9 +65,9 @@
             0.5470038482682793,
             0.7890823713558991
           ],
-          "brier": 0.12193718226748473,
-          "log_loss": 0.4688926099387827,
-          "ece": 0.04662616141142569
+          "brier": 0.1219371822674849,
+          "log_loss": 0.4688926099387828,
+          "ece": 0.04662616141142576
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.6769714002314432,
@@ -87,7 +87,8 @@
           0.03307560137457055
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:cofactor_NADP",
@@ -102,9 +103,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.23822360278312812,
+          "brier": 0.23822360278312757,
           "log_loss": 0.6706989174459035,
-          "ece": 0.0014676572765375262
+          "ece": 0.0014676572765391915
         },
         "nearest_neighbour": {
           "auroc": 0.7417900153854315,
@@ -123,9 +124,9 @@
             0.7485636114911081,
             0.9160614761020098
           ],
-          "brier": 0.16255696719233093,
-          "log_loss": 0.49363425861492094,
-          "ece": 0.09217373930084978
+          "brier": 0.16255696719233062,
+          "log_loss": 0.4936342586149207,
+          "ece": 0.09217373930084967
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.8485330786779139,
@@ -135,9 +136,18 @@
             0.7485636114911081,
             0.9160614761020098
           ],
-          "brier": 0.15897603135464144,
-          "log_loss": 0.47931806929653037,
-          "ece": 0.07458206249631641
+          "brier": 0.15897603135464117,
+          "log_loss": 0.4793180692965295,
+          "ece": 0.07458206249631578
+        },
+        "cofactor_determinant": {
+          "auroc": 0.5832139636054963,
+          "average_precision": 0.696783396921943,
+          "prevalence": 0.6398601398601399,
+          "auroc_ci": [
+            0.4603197259491864,
+            0.6879528985507246
+          ]
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -145,6 +155,14 @@
         "ci95": [
           0.011084743645787709,
           0.21589823220257998
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": {
+        "delta": -0.15857605177993528,
+        "ci95": [
+          -0.2947483307652799,
+          -0.011852791878172564
         ],
         "interval_excludes_zero": true
       }
@@ -162,9 +180,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.17808915437393288,
+          "brier": 0.17808915437393263,
           "log_loss": 0.5444510375368825,
-          "ece": 0.05962562335878927
+          "ece": 0.05962562335878967
         },
         "nearest_neighbour": {
           "auroc": 0.6513888888888889,
@@ -183,9 +201,9 @@
             0.3980084745762712,
             0.6427754915409236
           ],
-          "brier": 0.18209434031560479,
-          "log_loss": 0.7216042008376001,
-          "ece": 0.10129312073470578
+          "brier": 0.1820943403156051,
+          "log_loss": 0.721604200837603,
+          "ece": 0.1012931207347059
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.5215579710144927,
@@ -205,7 +223,8 @@
           0.021995233231188238
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:sterol_substructure",
@@ -220,9 +239,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.20654808940204564,
+          "brier": 0.2065480894020454,
           "log_loss": 0.6048201376897047,
-          "ece": 0.07652319535015142
+          "ece": 0.0765231953501524
         },
         "nearest_neighbour": {
           "auroc": 0.6818887853370612,
@@ -241,9 +260,9 @@
             0.5745739910313902,
             0.7972630912830249
           ],
-          "brier": 0.18612999801879018,
-          "log_loss": 0.638552449083797,
-          "ece": 0.0308725008518365
+          "brier": 0.1861299980187908,
+          "log_loss": 0.6385524490837986,
+          "ece": 0.030872500851836154
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.6830796313554934,
@@ -263,7 +282,8 @@
           0.11259090909090919
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_0",
@@ -278,9 +298,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.10386681025643832,
+          "brier": 0.10386681025643779,
           "log_loss": 0.37018924312597645,
-          "ece": 0.08062260224267573
+          "ece": 0.08062260224267576
         },
         "nearest_neighbour": {
           "auroc": 0.5790406673618352,
@@ -300,8 +320,8 @@
             0.6685971685971686
           ],
           "brier": 0.10939317514483465,
-          "log_loss": 1.1851769296589534,
-          "ece": 0.08183774374610939
+          "log_loss": 1.1851769296589525,
+          "ece": 0.08183774374610948
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.4413972888425443,
@@ -321,7 +341,8 @@
           0.010625561209218759
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_1",
@@ -336,9 +357,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.14880201172345153,
+          "brier": 0.1488020117234508,
           "log_loss": 0.4875953441714944,
-          "ece": 6.963190819297971e-05
+          "ece": 6.963190819322951e-05
         },
         "nearest_neighbour": {
           "auroc": 0.798787788087399,
@@ -357,9 +378,9 @@
             0.6424242424242425,
             0.871485292926019
           ],
-          "brier": 0.12405951232725078,
-          "log_loss": 0.3868508325352918,
-          "ece": 0.028241439354363955
+          "brier": 0.12405951232725071,
+          "log_loss": 0.38685083253529123,
+          "ece": 0.028241439354364156
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.7610745285842562,
@@ -370,8 +391,8 @@
             0.871485292926019
           ],
           "brier": 0.12662545279292775,
-          "log_loss": 0.4085143426712093,
-          "ece": 0.040291656850104454
+          "log_loss": 0.4085143426712095,
+          "ece": 0.04029165685010462
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -381,7 +402,8 @@
           0.0677506775067751
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_2",
@@ -396,9 +418,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.2228015173198431,
+          "brier": 0.22280151731984366,
           "log_loss": 0.6394440394770935,
-          "ece": 0.122367618013933
+          "ece": 0.12236761801393314
         },
         "nearest_neighbour": {
           "auroc": 0.6934579439252336,
@@ -417,9 +439,9 @@
             0.5353839037927844,
             0.763704128440367
           ],
-          "brier": 0.20349916497301374,
-          "log_loss": 0.6690608326691683,
-          "ece": 0.04266261223281952
+          "brier": 0.20349916497301393,
+          "log_loss": 0.6690608326691686,
+          "ece": 0.042662612232819586
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.6502213477619282,
@@ -439,7 +461,8 @@
           0.05930147950521458
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_3",
@@ -454,9 +477,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.0725420572924826,
+          "brier": 0.07254205729248211,
           "log_loss": 0.27934555347150364,
-          "ece": 1.2045580475975037e-05
+          "ece": 1.2045580476516271e-05
         },
         "nearest_neighbour": {
           "auroc": 0.9008771929824562,
@@ -475,9 +498,9 @@
             0.7041958041958042,
             0.9670418006430869
           ],
-          "brier": 0.050097443924343045,
-          "log_loss": 0.2680161807770453,
-          "ece": 0.07063332826252636
+          "brier": 0.050097443924343094,
+          "log_loss": 0.26801618077704603,
+          "ece": 0.07063332826252633
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.8804093567251462,
@@ -497,7 +520,8 @@
           0.08951612903225814
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_4",
@@ -512,9 +536,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.12561441739922974,
+          "brier": 0.12561441739922935,
           "log_loss": 0.42387557683672344,
-          "ece": 0.00011939917489772744
+          "ece": 0.00011939917489886542
         },
         "nearest_neighbour": {
           "auroc": 0.7066037735849057,
@@ -533,9 +557,9 @@
             0.5560026827632462,
             0.7594206974128234
           ],
-          "brier": 0.12171796452980796,
-          "log_loss": 0.3955911035199099,
-          "ece": 0.03365843322681314
+          "brier": 0.12171796452980806,
+          "log_loss": 0.39559110351991034,
+          "ece": 0.03365843322681326
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.6588336192109777,
@@ -555,7 +579,8 @@
           0.07234251968503935
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_5",
@@ -570,9 +595,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.1293790734796973,
+          "brier": 0.12937907347969746,
           "log_loss": 0.4351820079720519,
-          "ece": 9.604765485204947e-05
+          "ece": 9.604765485227151e-05
         },
         "nearest_neighbour": {
           "auroc": 0.6494949494949495,
@@ -591,9 +616,9 @@
             0.7071596244131455,
             0.9046648279170164
           ],
-          "brier": 0.1108330559021585,
-          "log_loss": 0.3424754847227657,
-          "ece": 0.07224489441783255
+          "brier": 0.11083305590215864,
+          "log_loss": 0.34247548472276607,
+          "ece": 0.0722448944178327
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.8079124579124579,
@@ -603,9 +628,9 @@
             0.7071596244131455,
             0.9046648279170164
           ],
-          "brier": 0.11887750157725019,
-          "log_loss": 0.3683223462241204,
-          "ece": 0.0739396887245592
+          "brier": 0.11887750157725037,
+          "log_loss": 0.368322346224121,
+          "ece": 0.07393968872455944
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -615,7 +640,8 @@
           0.28096618357487924
         ],
         "interval_excludes_zero": true
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_7",
@@ -630,9 +656,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.223721028713454,
+          "brier": 0.22372102871345437,
           "log_loss": 0.6415398657903617,
-          "ece": 0.14179819595243087
+          "ece": 0.1417981959524314
         },
         "nearest_neighbour": {
           "auroc": 0.747505868544601,
@@ -651,9 +677,9 @@
             0.4052865827181937,
             0.7033657148464332
           ],
-          "brier": 0.22646016560666715,
-          "log_loss": 0.7490923398860746,
-          "ece": 0.10185221219865069
+          "brier": 0.22646016560666674,
+          "log_loss": 0.7490923398860734,
+          "ece": 0.10185221219865062
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.5527679968701096,
@@ -673,7 +699,8 @@
           -0.07773332658125287
         ],
         "interval_excludes_zero": true
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     },
     {
       "target": "sdr:substrate_cluster_8",
@@ -688,9 +715,9 @@
             0.5,
             0.5
           ],
-          "brier": 0.04334023310855909,
+          "brier": 0.043340233108559285,
           "log_loss": 0.1854636870624234,
-          "ece": 2.018163044768817e-05
+          "ece": 2.018163044750776e-05
         },
         "nearest_neighbour": {
           "auroc": 0.5980629539951574,
@@ -709,9 +736,9 @@
             0.2585275244849713,
             0.8004613610149942
           ],
-          "brier": 0.04428549232065859,
-          "log_loss": 0.6479565521838503,
-          "ece": 0.027162939842207523
+          "brier": 0.04428549232065855,
+          "log_loss": 0.6479565521838504,
+          "ece": 0.02716293984220757
         },
         "spectrum_krr_calibrated": {
           "auroc": 0.5193704600484261,
@@ -731,7 +758,8 @@
           0.037267080745341574
         ],
         "interval_excludes_zero": false
-      }
+      },
+      "delta_auroc_determinant_vs_nearest_neighbour": null
     }
   ],
   "skipped_targets": {
@@ -741,14 +769,14 @@
     "prevalence": {
       "auroc": 0.5,
       "average_precision": 0.2325135961144615,
-      "brier": 0.15234351235924054,
-      "ece": 0.04951430938164128,
+      "brier": 0.15234351235924037,
+      "ece": 0.04951430938164176,
       "n_targets_auroc": 12.0,
       "n_targets_probability": 12.0
     },
     "nearest_neighbour": {
       "auroc": 0.7104630105262485,
-      "average_precision": 0.4411195164610438,
+      "average_precision": 0.44111951646104375,
       "brier": null,
       "ece": null,
       "n_targets_auroc": 12.0,
@@ -756,19 +784,27 @@
     },
     "spectrum_krr": {
       "auroc": 0.6668440947695992,
-      "average_precision": 0.3808890406700887,
-      "brier": 0.13692203854357873,
-      "ece": 0.060771593798345076,
+      "average_precision": 0.3808890406700886,
+      "brier": 0.13692203854357882,
+      "ece": 0.0607715937983451,
       "n_targets_auroc": 12.0,
       "n_targets_probability": 12.0
     },
     "spectrum_krr_calibrated": {
       "auroc": 0.6668440947695992,
-      "average_precision": 0.3808890406700887,
-      "brier": 0.13482632857493979,
-      "ece": 0.06293780269032669,
+      "average_precision": 0.3808890406700886,
+      "brier": 0.13482632857493976,
+      "ece": 0.06293780269032662,
       "n_targets_auroc": 12.0,
       "n_targets_probability": 3.0
+    },
+    "cofactor_determinant": {
+      "auroc": 0.5832139636054963,
+      "average_precision": 0.696783396921943,
+      "brier": null,
+      "ece": null,
+      "n_targets_auroc": 1.0,
+      "n_targets_probability": 0.0
     }
   },
   "reliability": {
@@ -777,42 +813,42 @@
         "lo": 0.0,
         "hi": 0.1,
         "n": 1269,
-        "mean_predicted": 0.037369186688369485,
+        "mean_predicted": 0.03736918668836946,
         "fraction_positive": 0.06304176516942474
       },
       {
         "lo": 0.1,
         "hi": 0.2,
         "n": 868,
-        "mean_predicted": 0.14821605387120487,
+        "mean_predicted": 0.1482160538712049,
         "fraction_positive": 0.16359447004608296
       },
       {
         "lo": 0.2,
         "hi": 0.3,
         "n": 671,
-        "mean_predicted": 0.2459174987314978,
+        "mean_predicted": 0.24591749873149746,
         "fraction_positive": 0.2533532041728763
       },
       {
         "lo": 0.3,
         "hi": 0.4,
         "n": 378,
-        "mean_predicted": 0.3466986127768915,
+        "mean_predicted": 0.3466986127768913,
         "fraction_positive": 0.2962962962962963
       },
       {
         "lo": 0.4,
         "hi": 0.5,
         "n": 189,
-        "mean_predicted": 0.44306255991712723,
+        "mean_predicted": 0.4430625599171275,
         "fraction_positive": 0.4021164021164021
       },
       {
         "lo": 0.5,
         "hi": 0.6,
         "n": 117,
-        "mean_predicted": 0.5504974056123003,
+        "mean_predicted": 0.5504974056123004,
         "fraction_positive": 0.4700854700854701
       },
       {
@@ -826,21 +862,21 @@
         "lo": 0.7,
         "hi": 0.8,
         "n": 50,
-        "mean_predicted": 0.7518867330912307,
+        "mean_predicted": 0.7518867330912304,
         "fraction_positive": 0.86
       },
       {
         "lo": 0.8,
         "hi": 0.9,
         "n": 42,
-        "mean_predicted": 0.8430091239852304,
+        "mean_predicted": 0.8430091239852305,
         "fraction_positive": 0.9761904761904762
       },
       {
         "lo": 0.9,
         "hi": 1.0,
         "n": 17,
-        "mean_predicted": 0.9488464765059862,
+        "mean_predicted": 0.948846476505986,
         "fraction_positive": 1.0
       }
     ],
@@ -849,28 +885,28 @@
         "lo": 0.0,
         "hi": 0.1,
         "n": 308,
-        "mean_predicted": 0.053873660960611094,
+        "mean_predicted": 0.05387366096061112,
         "fraction_positive": 0.048701298701298704
       },
       {
         "lo": 0.1,
         "hi": 0.2,
         "n": 200,
-        "mean_predicted": 0.14379939836250485,
+        "mean_predicted": 0.14379939836250502,
         "fraction_positive": 0.215
       },
       {
         "lo": 0.2,
         "hi": 0.3,
         "n": 106,
-        "mean_predicted": 0.24340003550052033,
+        "mean_predicted": 0.24340003550051972,
         "fraction_positive": 0.3018867924528302
       },
       {
         "lo": 0.3,
         "hi": 0.4,
         "n": 34,
-        "mean_predicted": 0.3423865001299293,
+        "mean_predicted": 0.3423865001299292,
         "fraction_positive": 0.3235294117647059
       },
       {
@@ -884,7 +920,7 @@
         "lo": 0.5,
         "hi": 0.6,
         "n": 37,
-        "mean_predicted": 0.5411848965333765,
+        "mean_predicted": 0.5411848965333759,
         "fraction_positive": 0.43243243243243246
       },
       {
@@ -898,21 +934,21 @@
         "lo": 0.7,
         "hi": 0.8,
         "n": 35,
-        "mean_predicted": 0.752205174309838,
+        "mean_predicted": 0.7522051743098396,
         "fraction_positive": 0.6
       },
       {
         "lo": 0.8,
         "hi": 0.9,
         "n": 45,
-        "mean_predicted": 0.8503033391624711,
+        "mean_predicted": 0.8503033391624706,
         "fraction_positive": 0.7777777777777778
       },
       {
         "lo": 0.9,
         "hi": 1.0,
         "n": 84,
-        "mean_predicted": 0.9625261944279282,
+        "mean_predicted": 0.9625261944279272,
         "fraction_positive": 0.9523809523809523
       }
     ]
@@ -920,8 +956,8 @@
   "similarity_to_training": {
     "n_test_sequences": 309,
     "median": 0.4117569334583815,
-    "p10": 0.37745714410018544,
-    "p90": 0.4689534317740192,
+    "p10": 0.3774571441001855,
+    "p90": 0.4689534317740195,
     "measure": "max k-mer cosine of a test sequence to any training-fold sequence"
   },
   "uncalibrated_targets": [
@@ -935,5 +971,30 @@
     "sdr:substrate_cluster_7",
     "sdr:substrate_cluster_8"
   ],
-  "digest": "adca1e63ccca22fe0952e05aff56a245f09fd0eef54680acba88d51910db923c"
+  "determinant_rules": [
+    {
+      "cofactor": "NADPH",
+      "source_template_id": "fam.sdr.v1",
+      "anchor_motif": "rossmann_glycine_rich_sdr",
+      "anchor_pattern": "G-x(3)-G-x-G",
+      "window": [
+        7,
+        9
+      ],
+      "accepted_residues": [
+        "K",
+        "R"
+      ],
+      "needs_curation": true
+    }
+  ],
+  "determinant_outcomes": {
+    "sdr:cofactor_NADP": {
+      "absent": 99,
+      "anchor_absent": 36,
+      "anchor_not_unique": 21,
+      "present": 130
+    }
+  },
+  "digest": "091957a0929c30780c92a87a8a2d884a163560f068d7d37788f6e638468efef1"
 }

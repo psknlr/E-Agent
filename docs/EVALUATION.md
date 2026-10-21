@@ -400,6 +400,26 @@ ungrouped folds to price leakage.
 | prevalence | 0.500 | constant score, by construction |
 | nearest neighbour (k-mer cosine) | **0.710** | homology transfer |
 | spectrum-kernel model | 0.667 | better on 2 targets (NADP cofactor, one substrate cluster), worse on 1, indistinguishable on 9 (paired cluster-bootstrap interval) |
+| cofactor determinant | 0.583 | one target only (NADP cofactor), and it loses there: see below |
+
+**The cofactor determinant, scored and found wanting.** The motif-anchored
+determinant of `science/cofactor_determinant.py` — a basic residue in the three
+positions after the glycine-rich loop, as `fam.sdr.v1` describes it — is the one
+comparator here that is **not fitted**: no parameters, no training fold, and an
+AUROC that is identical under grouped and ungrouped folds, so leakage cannot
+flatter it. On the NADP cofactor target it reaches **0.58 [0.46, 0.69]**, an
+interval containing 0.5, against **0.74** for nearest neighbour on the same
+rows; the paired interval on the difference, −0.159 [−0.295, −0.012], excludes
+zero. It reads 80 % of the pool (36 sequences carry no GxxxGxG at all, 21 carry
+several and it refuses to choose between them), and an unread sequence takes
+the neutral score rather than a guess.
+
+So the rule locates a candidate 2′-phosphate contact and **may not be read as a
+cofactor call**: nothing in the pipeline sets `cofactor_preference` from it, and
+`FamilyAnnotation.cofactor_determinants` is a separate field for that reason.
+The window is the textbook one and has never been fitted to an alignment — which
+is exactly what the template's `curator_must_supply` asks for, and the point at
+which this should be measured again.
 
 * Ungrouped folds: nearest neighbour 0.967 and the model 0.948 -- **an
   optimism of about 0.26-0.28 AUROC** from near-duplicates straddling the split.

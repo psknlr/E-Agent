@@ -97,6 +97,68 @@ cofactor_preference:
     sterically and electrostatically incompatible with a 2'-phosphate. Its
     presence is evidence for NAD(H); its absence is not proof of NADP(H).
 
+# Per-sequence determinants, anchored on a motif above rather than on a family
+# reference numbering, so that they are readable before a curator has supplied
+# a reference sequence. Read by eagent.science.cofactor_determinant.
+#
+#   window: [first, last] -- INCLUSIVE offsets from the first residue of the
+#   anchor match. The anchor is seven residues (offsets 0-6), so [7, 9] is the
+#   three residues immediately C-terminal to the glycine-rich motif.
+#
+# Only the NADP(H) determinant is expressible this way. The NAD(H) one sits at
+# the C-terminal end of the second beta-strand, tens of residues downstream
+# through a segment whose length varies between subfamilies: a window wide
+# enough to contain it would hit an Asp by chance in most sequences, so it is
+# NOT written here and needs the reference numbering that family_numbering.py
+# is waiting on.
+cofactor_recognition_rules:
+  - cofactor: NADPH
+    anchor_motif: rossmann_glycine_rich_sdr
+    window: [7, 9]
+    accepted_residues: [R, K]
+    description: >-
+      A basic residue in the three positions immediately C-terminal to the
+      glycine-rich loop, which in NADP(H)-preferring Rossmann enzymes pairs
+      with the 2'-phosphate of the adenosine ribose. The window stops at the
+      end of the motif rather than spanning it: the conserved glycines
+      themselves contact the pyrophosphate through their backbone and have no
+      side chain to donate, so a window that included them would be testing
+      the composition of the loop rather than reading a determinant. Presence
+      is evidence for NADP(H). Absence is NOT evidence for NAD(H): see the
+      cofactor_preference note above, and several subfamilies place the basic
+      residue outside this window.
+    evidence: >-
+      textbook: the 2'-phosphate of NADP(H) is read by basic side chains in and
+      around the dinucleotide-binding glycine-rich loop, and the loop position
+      is the determinant most often cited for the SDR superfamily. ONE SIGNAL,
+      NOT A MEASUREMENT -- it is a per-sequence hypothesis about which
+      nicotinamide to assay first, and an enzyme assayed with the wrong
+      nicotinamide and recorded as inactive is the error this is meant to
+      reduce, not a verdict it is meant to deliver.
+    needs_curation: true
+    measured_on: >-
+      SCORED AND FOUND WANTING. Over the 286 cofactor-labelled sequences of the
+      SDR deposit (Zenodo 7141435), on the same folds grouped by sequence
+      cluster at 40 % identity as every other comparator, this rule reaches
+      AUROC 0.58 with a 95 % cluster-bootstrap interval of [0.46, 0.69] -- an
+      interval that contains 0.5. Nearest-neighbour homology transfer reaches
+      0.74 on the same rows and the paired interval on the difference,
+      -0.159 [-0.295, -0.012], excludes zero: the rule is MEASURABLY WORSE than
+      asking which labelled sequence looks most like this one. It reads 80 % of
+      the pool (36 sequences carry no GxxxGxG, 21 carry several). So: this rule
+      LOCATES a candidate 2'-phosphate contact and MAY NOT BE READ AS A
+      COFACTOR CALL, and nothing in the pipeline sets cofactor_preference from
+      it. The labels are UniProtKB annotations rather than assays, which bounds
+      what the number means in both directions; it does not rescue it.
+      See docs/results/sdr_label_recovery.txt.
+    curator_must_supply: >-
+      The window and the accepted residues confirmed against an alignment of
+      this project's own seed set with the 2'-phosphate contacts taken from
+      cofactor-bound structures, plus a primary reference (PMID or DOI). The
+      window here was written from the textbook description of the loop and was
+      not fitted to an alignment in this environment; it is deliberately short,
+      because a wide window turns the rule into a composition test.
+
 typical_fold: >-
   Rossmann fold (single-domain, three-layer alpha/beta/alpha dinucleotide-binding
   fold). Distinct from the AKR TIM barrel and from the two-domain MDR/ADH

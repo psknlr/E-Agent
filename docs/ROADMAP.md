@@ -282,6 +282,7 @@ that reported a provenance-less split as clean.
 | `science/family_numbering.py` | implemented, **reference data not shipped** | cross-subfamily position equivalence through a sourced family reference, validated against conserved anchors; refuses across families, below the identity floor, and into a gap. The machinery ships; **a curator must supply each scheme's reference sequence and where it came from**, because a fabricated reference would silently shift every position derived from it |
 | `science/geometry.py` | implemented | distance, angle, dihedral, centroid, clash screen; measurement only, no thresholds |
 | `science/stereo.py` | implemented | signed face calls; **does not perceive CIP priorities** and does not estimate ee |
+| `science/cofactor_determinant.py` | implemented, **measured and found wanting** | reads a template's motif-anchored cofactor determinant off a sequence; five outcomes, and a repeated or missing anchor refuses rather than guessing. Scored on the SDR deposit it does not beat homology transfer, so it may record a position and may not set a cofactor preference |
 | `science/robustness.py` | implemented | pose robustness, Wilson interval, circularity guard, cross-method agreement |
 | `science/scorecard.py` | implemented | gates, ordinal levels, Pareto front, lexicographic rank, `refuse_linear_blend` |
 | `science/diversity.py` | implemented | pocket signatures, submodular selection, family quotas, control reservation |
@@ -293,7 +294,7 @@ that reported a provenance-less split as clean.
 | `normalize_reaction` | implemented | runs fully offline; rdkit stereocentre perception would be a *proposal* only, and rdkit is absent |
 | `retrieve_evidence` | implemented, **data seam** | all connectors are cache-first; with an empty cache it reports 12 query gaps and 0 records |
 | `mine_sequences` | implemented, **tool seam** | `blastp`, `mmseqs2`, `hmmsearch` absent; adapters drive injectable runners |
-| `annotate_family` | implemented | needs seed accessions and references the templates do not yet carry |
+| `annotate_family` | implemented | needs seed accessions and references the templates do not yet carry. Motif-anchored cofactor determinants are read and recorded (`science/cofactor_determinant.py`), and deliberately do not set `cofactor_preference`: the one shipped rule was scored on the SDR deposit at AUROC 0.58 [0.46, 0.69] against 0.74 for nearest-neighbour homology transfer, so it locates a residue and calls nothing |
 | `prepare_structures` | implemented, **tool seam** | `StructurePredictor` absent (`UnavailablePredictor`); needs a local structure index |
 | `model_complexes` | implemented, **tool seam** | `DockingRunner` and `ComplexPredictor` absent |
 | `evaluate_catalysis` | implemented | runs; every verdict is caveated because all 17 windows are uncalibrated |

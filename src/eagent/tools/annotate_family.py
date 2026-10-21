@@ -71,6 +71,13 @@ from ..schemas import (
     Candidate, CatalyticMapping, CatalyticTemplate, ConfidenceLevel,
     FamilyAnnotation, FamilyTemplate, SequenceRecord,
 )
+from ..science.cofactor_determinant import (
+    AnchoredDeterminantRule,
+    DeterminantCall,
+    DeterminantError,
+    read_determinant,
+    rules_from_template,
+)
 from ..science.diversity import jaccard_distance, kmer_set
 from ..science.numbering import Alignment, needleman_wunsch, three_to_one
 from .base import ScientificInterface
@@ -881,6 +888,44 @@ def _cofactor_call(sequence: str, hypothesis: FamilyHypothesis,
     return None, None
 
 
+def read_cofactor_determinants(sequence: str, family_template: Any
+                               ) -> list[dict[str, Any]]:
+    """Every motif-anchored cofactor determinant this template declares.
+
+    One entry per rule, refusals included, because "the anchor motif is not in
+    this sequence" is the thing a curator needs to see and an empty list would
+    hide it. The entries locate residues; **none of them is a cofactor call.**
+
+    That restraint is a measurement, not caution for its own sake. The one
+    determinant this repository ships was scored on the only cofactor-labelled
+    dataset it has, over the same grouped folds as every other comparator, and
+    reached AUROC 0.58 with a 95 % interval of [0.46, 0.69] -- an interval that
+    contains 0.5, against 0.74 for plain nearest-neighbour homology transfer on
+    the same rows (``docs/results/sdr_label_recovery.txt``). A signal with no
+    demonstrated skill may be recorded, and may point an engineering proposal
+    at a residue; it may not set ``cofactor_preference``, because an enzyme
+    assayed with the wrong nicotinamide is recorded as inactive and leaves the
+    pool. When the window has been fitted to an alignment with the contacts
+    taken from cofactor-bound structures -- what the template's
+    ``curator_must_supply`` asks for -- that is the point to measure it again
+    and revisit this.
+    """
+    try:
+        rules = rules_from_template(family_template)
+    except DeterminantError as exc:
+        raise TemplateError(str(exc)) from exc
+    out: list[dict[str, Any]] = []
+    for rule in rules:
+        call = read_determinant(sequence, rule, compile_pattern=compile_motif)
+        entry = call.to_dict()
+        entry["anchor_motif"] = rule.anchor_motif
+        entry["window_offsets"] = list(rule.window)
+        entry["accepted_residues"] = sorted(rule.accepted_residues)
+        entry["is_cofactor_call"] = False
+        out.append(entry)
+    return out
+
+
 # ==========================================================================
 # Sequence similarity network
 # ==========================================================================
@@ -1372,6 +1417,8 @@ class AnnotateFamily(ScientificInterface):
         hypothesis = hset.get(winner.template_id)
         cofactor, cofactor_evidence = _cofactor_call(record.sequence, hypothesis,
                                                      winner.ref_to_index)
+        determinants = read_cofactor_determinants(record.sequence,
+                                                  hypothesis.family_template)
         conflicting = list(winner.conflicting)
         conflicting += [f"competing_family:{cid}" for cid in competing]
         annotation = FamilyAnnotation(
@@ -1382,6 +1429,7 @@ class AnnotateFamily(ScientificInterface):
             matched_motifs=winner.matched_motifs,
             cofactor_preference=cofactor,
             cofactor_preference_evidence=cofactor_evidence,
+            cofactor_determinants=determinants,
             sequence_cluster_id=cluster_id,
             signals_supporting=sorted(set(winner.supporting)),
             signals_conflicting=sorted(set(conflicting)),
@@ -1396,7 +1444,7 @@ class AnnotateFamily(ScientificInterface):
         "confidence", "n_signals_supporting", "signals_supporting",
         "signals_conflicting", "identity_to_reference_pct", "n_motifs_matched",
         "motifs", "domains", "cofactor_preference", "cofactor_preference_evidence",
-        "catalytic_roles_mapped", "missing_roles", "substituted_roles",
+        "cofactor_determinants", "catalytic_roles_mapped", "missing_roles", "substituted_roles",
         "alignment_quality", "network_cluster_id", "numbering_basis",
     )
 
@@ -1422,6 +1470,13 @@ class AnnotateFamily(ScientificInterface):
             "domains": ",".join(str(d.get("id")) for d in annotation.domains),
             "cofactor_preference": annotation.cofactor_preference,
             "cofactor_preference_evidence": annotation.cofactor_preference_evidence,
+            # Positions, not a call: the outcome travels with every entry so a
+            # refusal ("anchor_absent") is as visible in the table as a hit.
+            "cofactor_determinants": ",".join(
+                f"{d['cofactor']}:{d['outcome']}"
+                + ("@" + "/".join(f"{res}{pos}" for pos, res in d["hits"])
+                   if d["hits"] else "")
+                for d in annotation.cofactor_determinants),
             "catalytic_roles_mapped": ",".join(
                 f"{k}={v}" for k, v in sorted(mapping.role_to_residue.items())),
             "missing_roles": ",".join(sorted(mapping.missing_roles)),

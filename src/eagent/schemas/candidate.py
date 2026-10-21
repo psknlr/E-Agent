@@ -85,6 +85,14 @@ class FamilyAnnotation(BaseModel):
     matched_motifs: list[dict[str, Any]] = Field(default_factory=list)
     cofactor_preference: str | None = None
     cofactor_preference_evidence: str | None = None
+    #: Motif-anchored cofactor determinants read off this sequence, refusals
+    #: included. Kept apart from ``cofactor_preference`` on purpose: these
+    #: locate a residue, and the one rule the repository ships has no
+    #: demonstrated skill at recovering a cofactor label (see
+    #: ``tools.annotate_family.read_cofactor_determinants``). A reader that
+    #: wants a preference must take the preference field, which this never
+    #: sets.
+    cofactor_determinants: list[dict[str, Any]] = Field(default_factory=list)
     sequence_cluster_id: str | None = None
     phylogenetic_clade: str | None = None
     signals_supporting: list[str] = Field(default_factory=list)

@@ -1,0 +1,107 @@
+name: CI
+
+# The deploy workflow (pages.yml) runs the ten test files that the published
+# chat interface depends on, and it runs them only after a push to main has
+# already happened. Everything else in the repository -- the controller, the
+# approval queue, the independent verifier, the data layer, the science
+# modules, the evaluation package, the CLI -- had no check at all on a pull
+# request. The whole Python suite takes about ninety seconds, so there is no
+# budget argument for running a tenth of it.
+#
+# The engine build stays in pages.yml: it assembles a WebAssembly runtime from
+# pinned registry downloads, and the deploy is the gate that matters for it.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python suite — ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The floor of requires-python, so a 3.11-or-later syntax or stdlib
+          # call cannot reach main while the metadata still promises 3.10.
+          - label: 3.10, required dependencies only
+            python: '3.10'
+            install: '.[dev]'
+          - label: 3.12, required dependencies only
+            python: '3.12'
+            install: '.[dev]'
+          # rdkit, biopython, numpy and pyhmmer are declared optional extras,
+          # which means the code behind them is reachable in a supported
+          # install and was never run by any check. The first run of this leg
+          # found two real defects. The other two legs are the absent-extra
+          # path: the profile-search provider must refuse there, not fall back.
+          - label: 3.12, with the optional extras
+            python: '3.12'
+            install: '.[dev,chem,bio,numeric,search]'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: python -m pip install -e '${{ matrix.install }}'
+      - name: Run the whole suite
+        run: python -m pytest -q
+
+  browser:
+    name: Browser runtime and bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: python -m pip install -e '.[dev]'
+      - name: Check browser evidence and the agent catalog match the Python code
+        run: python scripts/build_browser_bundle.py --check
+      - name: Check browser scripts parse
+        run: |
+          for script in web/*.js; do node --check "$script"; done
+      - name: Check browser agent, tools, panels and calculations
+        run: node --test tests/browser-*.test.cjs
+
+  configs:
+    name: Shipped configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: python -m pip install -e '.[dev]'
+      # Each of these reads only what is checked in: no network, no cache that
+      # a contributor has to populate first.
+      - name: Lint the template library
+        run: python -m eagent.cli templates lint
+      - name: Validate the pilot task
+        run: python -m eagent.cli validate configs/tasks/KRED_PILOT_001.yaml
+      - name: Report data-source coverage
+        run: python -m eagent.cli sources coverage
+      - name: Verify the hash-pinned reference set
+        run: python -m eagent.cli reference verify

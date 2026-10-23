@@ -86,7 +86,8 @@ actually occupies the reactive position in a pose.
 | `pfam_ids`, `interpro_ids` | accessions; **empty is honest**, an invented IPR number would become a hard filter in mining |
 | `domain_architecture` | prose describing the fold and the variable regions |
 | `conserved_motifs` | each `{name, pattern, role, evidence}` — a motif **supports** a family assignment and is not an activity prediction |
-| `cofactor_preference` | cofactor → evidence string |
+| `cofactor_preference` | cofactor → evidence string. A statement about the **family**, which is why `annotate_family` labels it "not verified on this sequence" when it has nothing better |
+| `cofactor_recognition_rules` | each `{cofactor, anchor_motif, window, accepted_residues, evidence}` — a **per-sequence** determinant, read by `science/cofactor_determinant.py`. `window` is a pair of inclusive offsets from the first residue of the named motif's match, so the rule needs no family reference numbering and is usable before one has been curated. The anchor must occur exactly once or the reader refuses; presence of a determinant is evidence for that cofactor and absence is **not** evidence for another. Entries land in `FamilyAnnotation.cofactor_determinants` and **never** in `cofactor_preference`: the one rule shipped was scored on the SDR deposit and lost to nearest-neighbour homology transfer (`measured_on` in the file, and `docs/EVALUATION.md` §9.1), so it locates a residue and does not call a cofactor |
 | `typical_fold`, `oligomeric_state` | |
 | `catalytic_template_ids` | the mechanisms this family may be evaluated against |
 | `seed_accessions` | mining seeds; empty here because none was verified |

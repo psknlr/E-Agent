@@ -5,21 +5,34 @@ can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
 **Where the project is today.** The harness is complete and tested: the whole suite
-passes (2919 tests plus 696 subtests at the time of writing). **Four public
+passes (3515 tests plus 874 subtests with the optional extras installed;
+without them the extra-dependent tests skip rather than fail). **Four public
 databases have been called live** (UniProtKB, RCSB PDB, Rhea, Zenodo) and one
 real dataset has been downloaded through a checksum-verified route; a first
 real reference set of KRED complexes (19 entries, 28 kinetic records) has been
 stored, hash-pinned and audited, and cannot calibrate any shipped window. **No
-structure predictor, docking program, inverse-folding model or search binary has
-ever been run, and no plate has ever been read.** Milestone 1 is therefore
+structure predictor, docking program or inverse-folding model has ever been
+run, and no plate has ever been read.** One of that list has since come off it:
+HMMER3 now runs here through the `search` extra (`pyhmmer`, which ships it as a
+library), and §9.1 of `docs/EVALUATION.md` reports a profile search over the
+SDR pool as a benchmark comparator. No search has been run against a sequence
+*database*, which is a different gap with a different cause: there is no local
+database file and the public hosts are unreachable from this environment. Milestone 1 is therefore
 *built but not demonstrated*, and milestones 2 and 3 have not started because
 they require a laboratory, not more code. §5 is the component-by-component
 table, and §7 says what the latest round of work did and did not establish.
 
 **What the repository can claim, in one sentence:** it has a sound machinery of
-claiming, a sequence-to-annotated-class model that is better than a
-nearest-neighbour baseline on a few classes and no better on most, and a
+claiming, a sequence-to-annotated-class model that is **not better than
+homology transfer** -- it beats a *k-mer* nearest-neighbour baseline on one of
+twelve classes and loses on two, and against a real profile search it loses on
+four and wins on none; refitting the head on that profile similarity raises it
+from 0.599 to 0.653 macro AUROC, the one change that has helped it, and still
+leaves it under the baseline's 0.694 (§9.1 of `docs/EVALUATION.md`) -- and a
 simulation showing that feeding labels back helps *on annotation-derived data*.
+Every one of those numbers fell by 0.07 to 0.10 when the benchmark's fold
+grouping was audited with the clustering's own aligner and found to be leaking;
+the grouping is now computed completely and pinned.
 It does **not** support the sentence "the agent has learned from experiments and
 validated new-enzyme discovery": no experiment has been run.
 
@@ -52,10 +65,22 @@ bundle.
   see `docs/DATASOURCES.md`), while every other connector's client is generic
   and refuses with `RequestShapeNotVerifiedError` rather than calling a URL
   nobody checked it against.
-- **No search binary, structure predictor, docking program or inverse-folding
-  model is installed.** Adapters now exist for MMseqs2 clustering, gnina and
-  Boltz, and were tested against fakes that write output in the documented
-  shape. **They have never been run against the real binaries.**
+- **No structure predictor, docking program or inverse-folding model is
+  installed, and of the search binaries only HMMER3 is reachable.** The MMseqs2
+  clustering, gnina and Boltz adapters were tested against fakes that write
+  output in the documented shape, and **have never been run against the real
+  binaries**. The `hmmsearch` adapter is no longer in that list: `pyhmmer`
+  ships HMMER3 on PyPI as a library, so installing the `search` extra makes a
+  real profile search available with no binary and no network.
+  `PyhmmerRunner` (`tools/pyhmmer_search.py`) sits behind the adapter's own
+  injectable-runner seam and hands it **HMMER's own `--domtblout`**, so the
+  shipped parser has now been held to real output rather than to a fixture
+  written from the same documentation as the parser. That found a defect a fake
+  could not: `SequenceDatabase.fasta_path` was read against the connector cache
+  by `resolve_fasta` and against the search's scratch working directory by
+  `target`, two meanings for one field, now refused with the fix named. What is
+  still missing for *mining* is a database to search, which is a reachability
+  and licensing question rather than a program.
 - **Licences: 4 of 56 facets were read, 4 are reported, 48 are unknown.** Read:
   Boltz code and weights (MIT, per the 2.2.1 release's LICENSE and README),
   AutoDock Vina code (Apache-2.0), the gnina licence statement (dual GPL /
@@ -266,7 +291,14 @@ Three states only:
 | `errors.py`, `envelope.py`, `provenance.py`, `context.py` | implemented | typed failures, uniform envelope, run manifest, run context |
 | `schemas/chem.py`, `reaction.py`, `record.py`, `candidate.py`, `variant.py`, `batch.py`, `templates.py` | implemented | pydantic v2, validators exercised by the suite |
 
-### Deterministic science core (pure Python; numpy/scipy/rdkit/biopython absent)
+### Deterministic science core (pure Python; numpy/scipy/rdkit/biopython optional)
+
+Every component below runs with nothing but the required dependencies. The
+`chem`, `bio` and `numeric` extras are declared optional and now have a CI leg
+of their own, because code reachable only in a supported install and never run
+by any check is code nobody has tested: the first run of that leg found the
+scaffold-key default silently changing with the install, and a leakage audit
+that reported a provenance-less split as clean.
 
 | Component | State | Note |
 | --- | --- | --- |
@@ -275,6 +307,7 @@ Three states only:
 | `science/family_numbering.py` | implemented, **reference data not shipped** | cross-subfamily position equivalence through a sourced family reference, validated against conserved anchors; refuses across families, below the identity floor, and into a gap. The machinery ships; **a curator must supply each scheme's reference sequence and where it came from**, because a fabricated reference would silently shift every position derived from it |
 | `science/geometry.py` | implemented | distance, angle, dihedral, centroid, clash screen; measurement only, no thresholds |
 | `science/stereo.py` | implemented | signed face calls; **does not perceive CIP priorities** and does not estimate ee |
+| `science/cofactor_determinant.py` | implemented, **measured and found wanting** | reads a template's motif-anchored cofactor determinant off a sequence; five outcomes, and a repeated or missing anchor refuses rather than guessing. Scored on the SDR deposit it does not beat homology transfer, so it may record a position and may not set a cofactor preference |
 | `science/robustness.py` | implemented | pose robustness, Wilson interval, circularity guard, cross-method agreement |
 | `science/scorecard.py` | implemented | gates, ordinal levels, Pareto front, lexicographic rank, `refuse_linear_blend` |
 | `science/diversity.py` | implemented | pocket signatures, submodular selection, family quotas, control reservation |
@@ -285,8 +318,8 @@ Three states only:
 | --- | --- | --- |
 | `normalize_reaction` | implemented | runs fully offline; rdkit stereocentre perception would be a *proposal* only, and rdkit is absent |
 | `retrieve_evidence` | implemented, **data seam** | all connectors are cache-first; with an empty cache it reports 12 query gaps and 0 records |
-| `mine_sequences` | implemented, **tool seam** | `blastp`, `mmseqs2`, `hmmsearch` absent; adapters drive injectable runners |
-| `annotate_family` | implemented | needs seed accessions and references the templates do not yet carry |
+| `mine_sequences` | implemented; `hmmsearch` **runs for real**, `blastp` and `mmseqs2` still seams | HMMER3 is no longer absent — `pyhmmer` (the `search` extra) ships it as a library, `PyhmmerRunner` drives the shipped adapter through it, and the adapter's `--domtblout` parser has been run against HMMER's own output on the in-repo SDR FASTA (242 hits at E≤1e-5, coverage ≤1, no invented percent identity). The measured consequence of having a real alignment is in §9.1 of `docs/EVALUATION.md`. What remains missing for *mining* is a database to search, not the program: no local database file is present and the public hosts are unreachable here. `blastp` and `mmseqs2` have still never met their real binaries |
+| `annotate_family` | implemented | needs seed accessions and references the templates do not yet carry. Motif-anchored cofactor determinants are read and recorded (`science/cofactor_determinant.py`), and deliberately do not set `cofactor_preference`: the one shipped rule was scored on the SDR deposit at AUROC 0.58 [0.46, 0.69] against 0.74 for nearest-neighbour homology transfer, so it locates a residue and calls nothing |
 | `prepare_structures` | implemented, **tool seam** | `StructurePredictor` absent (`UnavailablePredictor`); needs a local structure index |
 | `model_complexes` | implemented, **tool seam** | `DockingRunner` and `ComplexPredictor` absent |
 | `evaluate_catalysis` | implemented | runs; every verdict is caveated because all 17 windows are uncalibrated |
@@ -331,7 +364,8 @@ Three states only:
 | `eval/splits.py` | implemented | three regimes, grouped splitting, six-category audit |
 | `eval/metrics.py` | implemented | pre-registration guard, both denominators, signed ee, round-two report |
 | `eval/baselines.py` | implemented, **1 seam** | `homology_multi_seed`, `docking_score_ranking`, `full_agent` run; `substrate_specificity_model` accepts `science/enzyme_substrate.candidate_scorer`; `family_function_prediction` reports unavailable by name |
-| `eval/retrospective.py` | implemented | label recovery on the SDR deposit, grouped folds, leakage priced; **annotation-derived labels** |
+| `eval/retrospective.py` | implemented | label recovery on the SDR deposit, leakage priced, folds grouped by a **complete** clustering that is pinned and digest-verified on every run; **annotation-derived labels** |
+| `eval/grouping_audit.py` | implemented | checks that a fold grouping holds, with the clustering's own aligner rather than the k-mer proxy. It found the benchmark's own grouping leaking (§7) and reports every result as a lower bound on breaches, naming the pairs no screen looked at |
 | `eval/feedback_simulation.py` | implemented | feedback on/off over identical replicates; **annotation-derived labels revealed as if assayed** |
 | `science/enzyme_substrate.py` | implemented | spectrum-kernel heads, probabilities only where a grouped out-of-fold calibration shows skill |
 | `science/calibration.py`, `tools/calibrate_windows.py` | implemented | Wilks tolerance-interval calibration records, verified by digest; run on a real reference set, which cannot calibrate any shipped window (§7) |
@@ -382,8 +416,14 @@ In the order that unblocks the most:
    lists in `evidence_gaps.tsv`, each through
    `OfflineConnector.store_import(...)`. This is a curation task, not a coding
    task.
-3. **Install one search binary** and point `mine_sequences` at a local sequence
-   database file with a recorded snapshot date.
+3. **Give `mine_sequences` a database.** The program half is done: HMMER3 runs
+   here as a library and `PyhmmerRunner` drives the shipped adapter through it,
+   so a profile search against any local FASTA works today
+   (`pip install 'eagent[search]'`). What is left is a sequence database file
+   with a recorded snapshot date — the blocker, and a network and licensing
+   question rather than a coding one. `blastp` and `mmseqs2` remain untested
+   against their real binaries, and the same trick does not apply: neither
+   ships as an importable library.
 4. **Deposit mmCIF structures** into a local structure index, or install a
    predictor and record its version and licence facets.
 5. **Calibrate one window.** Pick the SDR hydride-transfer distance, supply
@@ -427,20 +467,58 @@ and a reference set, and nothing here substitutes for either.
 **Measured on the SDR deposit (annotation-derived labels), recorded in
 `docs/results/`**
 
+- **The fold grouping the whole file rests on was leaking, and it was found by
+  checking it rather than by reasoning about it.** The benchmark grouped folds
+  with a greedy clustering that compares each sequence only against cluster
+  representatives and stops at the first match; an audit with the clustering's
+  own aligner (`eval/grouping_audit.py`) found **60 cross-fold pairs at or
+  above the 0.4 identity threshold, over 49 of 309 sequences, the closest at
+  0.816**, and none of the 60 had both members as representatives. A second
+  pass at half the k-mer screen found 120, so the screen was not good enough
+  either, and no cheap *sound* screen exists -- the only one available, the
+  residue-composition bound, prunes 0.1 % of pairs. The grouping is therefore
+  computed completely (all 47,586 pairs aligned, 29 minutes, 99 clusters) and
+  pinned at `configs/references/sdr_grouping/v1/` with a digest the benchmark
+  verifies on every run, refusing an absent, stale or screened pin. Every
+  number below is the corrected one; the previous numbers were 0.07 to 0.10
+  AUROC higher.
 - Recovering an annotated class from sequence, with test sequences held out by
-  cluster: macro AUROC **0.667** for the spectrum-kernel model against **0.710**
-  for nearest-neighbour. The model is better on 2 of 12 targets (the NAD/NADP
-  cofactor and one substrate cluster), worse on 1, and indistinguishable on 9.
-- Ungrouped folds inflate AUROC by about **0.26-0.28** (0.71 to 0.97). That gap
+  cluster: macro AUROC **0.599** for the spectrum-kernel model against **0.615**
+  for the k-mer nearest neighbour. The model is better on 1 of 12 targets
+  (sterol), worse on 2, and indistinguishable on 9.
+- Replacing that baseline's k-mer cosine with a **real profile search** (HMMER3
+  through `pyhmmer`, the `search` extra) raises the baseline to **0.694**: the
+  model beats it on **none** of the 12 and loses on 4. The apparent edge above
+  was measured against the weaker of two baselines.
+- Refitting the same head on that profile similarity raises it to **0.653** --
+  better than the k-mer head on 3 targets and worse on none, and the only
+  change tried so far that has helped the head rather than the baseline. It is
+  still below the 0.694 of homology transfer over the same similarity, so the
+  head is not justified as an improvement on "find the nearest characterised
+  homologue". The symmetrised Gram matrix turned out to be positive definite
+  without a ridge; nothing was repaired to make the fit go through.
+- The better ranker is the **worse** naive probability: macro ECE of the
+  uncalibrated `(s+1)/2` reading doubles on the profile kernel, 0.071 to 0.141.
+  Ranking skill is not calibration. (On the leaky grouping the calibration
+  *gate* also admitted fewer targets on the profile kernel; on corrected folds
+  it admits more, 2 against 1, so that half of the finding did not survive and
+  is recorded as not surviving.)
+- Ungrouped folds inflate AUROC by about **0.28-0.35** (0.62 to 0.97). That gap
   is the reason grouping is mandatory, and it is the size of the error a
-  benchmark makes when it does not group.
+  benchmark makes when it does not group. The leaky grouping reported it as
+  0.26-0.28, understating the price of not grouping by about a third.
 - A probability is reported only where an out-of-fold calibration shows skill:
-  **3 of 12** targets earned one. The others rank but state no probability.
+  **1 of 12** targets earned one on the k-mer kernel and 2 of 12 on the profile
+  kernel. The others rank but state no probability.
 - Feeding measured labels back into selection: on the full pool the model beats
-  random by a wide margin and feedback adds 2-6 hits over a frozen model on
-  most classes; on a one-per-cluster pool most of that advantage disappears
-  (phenol: no difference from random). A similarity-guided method looks good
-  largely because the pool is redundant.
+  random by a wide margin and feedback adds 2-6 hits over a frozen model on 9
+  of 11 classes; on a one-per-cluster pool most of that advantage disappears
+  and **feedback helps on only 1 of 6** classes, with the model no better than
+  random on phenol or substrate cluster 4. The de-redundified pool is 99
+  sequences rather than 123 now that it is built from the complete grouping,
+  which is to say it is genuinely less redundant than this bullet used to
+  describe. A similarity-guided method looks good largely because the pool is
+  redundant.
 
 **Not established**
 
@@ -449,8 +527,12 @@ and a reference set, and nothing here substitutes for either.
   not a KRED panel.
 - Nothing about the agent's gates or ranking: they cannot be scored against
   annotation labels.
-- That any adapter works against its real binary (gnina, Boltz, MMseqs2) or that
-  `AnthropicMessagesClient` works against the live API.
+- That the gnina, Boltz or MMseqs2 adapters work against their real binaries,
+  or that `AnthropicMessagesClient` works against the live API. The
+  `hmmsearch` adapter is the one exception and it is now established: it has
+  been run against real HMMER3 through `PyhmmerRunner`, parsing HMMER's own
+  `--domtblout`. There is still no CLI entry point for mining and no database
+  to mine, so the *step* remains undemonstrated even where the adapter is not.
 - That a language model is useful in the loop. The planner is built so that it
   can do little harm; whether it does any good has not been measured.
 - A calibrated window. The mechanism exists and a reference set now exists
@@ -503,7 +585,7 @@ sources print.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 2919 个测试 + 696 个子测试）。**已对 4 个公共数据库做过真实调用**
+框架已完成并通过测试（写作时 3515 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
 （UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；但**没有跑过
 任何真实的结构预测器、对接程序、反向折叠模型或搜索二进制，也没有读过任何真实的实验板**。里程碑 1
 是"已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。
@@ -595,7 +677,8 @@ Boltz 的适配器已写好，但只用"按文档格式写输出的假程序"测
 
 - **基础与数据模型、确定性科学内核（全部纯 Python）、六层数据层、harness、评估包、交付包、
   CLI**：已实现。
-- **接缝**：`mine_sequences`（blastp / mmseqs2 / hmmsearch）、`prepare_structures`
+- **接缝**：`mine_sequences`（blastp / mmseqs2 缺席；HMMER3 已可用，见
+  `docs/EVALUATION.md` §9.1，缺的是可搜索的序列数据库）、`prepare_structures`
   （结构预测器）、`model_complexes`（对接器与联合复合物预测器）、`propose_mutations`
   （LigandMPNN）、`retrieve_evidence` 与整个连接器层（缓存优先，无具体资源客户端）、
   `eval/baselines` 里的两个比较器。

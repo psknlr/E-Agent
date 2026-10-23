@@ -247,13 +247,26 @@ registry's own honesty flag: 23 of the registered sources record their lineage
 as **admittedly incomplete**, so a clean re-curation audit today is a statement
 about what the registry knows.
 
+An audit that found nothing also says so differently from an audit that had
+nothing to look at: when no row on either side records a publication or an
+upstream source, every independence detector returns empty, and that is routed
+to `unchecked` — so `proven_clean` is false — rather than read as two
+independent sides.
+
 Scaffold keys carry the basis they were computed from (`ScaffoldBasis`), because
-an rdkit Murcko scaffold and this module's pure-Python ring-and-linker skeleton
+an rdkit Murcko framework and this module's pure-Python ring-and-linker skeleton
 agree about which molecules share a core far more often than they agree about
 the *string* that names it — and comparing a key from one with a key from the
 other reads as "different scaffold" for the same molecule, which is the
-direction that leaks. rdkit is absent here, so keys fall back to the
-ring-and-linker skeleton or to an InChIKey constitution block, and
+direction that leaks. The default is always the ring-and-linker skeleton, in
+every install: it keeps a ring-attached carbonyl, which the Bemis–Murcko
+framework discards along with every other exocyclic substituent, so on that
+basis acetophenone, its chloro analogue, phenol, aniline and plain benzene are
+one scaffold and the substrate axis of a carbonyl-reduction split stops
+discriminating. The framework is available on request (`prefer_rdkit=True`) and
+is the stronger key on exactly one axis — it perceives aromaticity, so it
+separates benzene from cyclohexane where the pure-Python reader cannot. Keys
+fall back to an InChIKey constitution block when no SMILES was recorded, and
 `UNRESOLVED` is a real outcome rather than a silent default.
 
 ---
@@ -360,9 +373,15 @@ evidence. Every report opens with that sentence, and the code carries it as a
 constant (`CLAIM`) so it cannot be dropped from a rendering.
 
 ```
-eagent benchmark sdr      --data tests/fixtures/sdr --out docs/results/sdr_label_recovery.json
+eagent benchmark sdr      --data tests/fixtures/sdr --alignment-head --out docs/results/sdr_label_recovery.json
 eagent benchmark feedback --data tests/fixtures/sdr --out docs/results/feedback_simulation.json
 ```
+
+`--alignment` adds the profile-search baseline of §9.1 and `--alignment-head`
+also refits the head on that similarity (it implies `--alignment`); both need
+the `search` extra (`pip install 'eagent[search]'`). The same command without
+them reproduces every other column, and the report records which comparators
+ran.
 
 The recorded outputs are `docs/results/sdr_label_recovery.{txt,json}` and
 `docs/results/feedback_simulation.{txt,json}`; each JSON carries a digest over
@@ -374,30 +393,379 @@ its contents.
 test sequences are held out by sequence cluster?
 
 *Controls.* Identical folds for every comparator; folds grouped by sequence
-cluster (identity 0.4, greedy pure-Python clustering -- its grain is coarser than
-MMseqs2's, and the **measured** similarity of each test sequence to its training
-folds is reported beside it); hyperparameters fixed before the run, with a ridge
-sweep reported *as a sweep*; cluster-bootstrap intervals; a second run with
-ungrouped folds to price leakage.
+cluster at identity 0.4, from a **complete** single-linkage grouping -- all
+47,586 pairs aligned, checked in with a digest over the pool it was computed
+from and verified on every run, so that every pair in two different clusters is
+below the threshold with nothing qualifying it; hyperparameters fixed before the
+run, with a ridge sweep reported *as a sweep*; cluster-bootstrap intervals; a
+second run with ungrouped folds to price leakage; and an audit of the grouping
+itself, with the clustering's own aligner rather than the k-mer proxy. The
+grouping and the audit are new, and the subsection below says what the previous
+grouping was costing.
+
+#### The grouping did not hold, and every number in this section moved
+
+This benchmark's first version grouped its folds with the greedy
+representative clustering of `tools/mine_sequences.cluster_sequences`, and
+checked the grouping with `similarity_to_training`: the maximum **k-mer cosine**
+of each test sequence to its training folds. That check was circular. The
+diagnostic two subsections below measures that same cosine at 1.07× its own
+composition background on this pool, so a reassuring median says something
+about amino-acid composition and nothing about identity.
+
+`eval/grouping_audit.py` checks it with the function the clustering compares
+against its own threshold — `pairwise_identity`, a global Needleman–Wunsch
+identity scaled by the coverage of the shorter sequence, which works out to
+`matches / max(len_a, len_b)`. Run over the greedy grouping at the clustering's
+own k-mer screen, it found **60 cross-fold pairs at or above 0.4 identity,
+spanning 49 of 309 sequences, the closest at 0.816**.
+
+**The clustering was at fault, not the screen.** Every one of those 60 pairs
+cleared the screen. The greedy clustering compares each sequence only against
+the *representatives* created so far and stops at the first one it clears the
+threshold against, so of the 60 breaching pairs, 32 were member-to-member pairs
+it never compares at all and 28 were member-to-representative pairs it stopped
+short of. **None had both members as representatives.** That is not a bug in
+the function — it is what a representative-based clustering does, and it is the
+right trade for the bookkeeping grain it was written for. It is simply not the
+pairwise property a grouped split needs.
+
+`single_linkage_clusters` closes the relation instead: every admitted pair
+aligned, each link at or above the threshold merging two components. What that
+buys is exactly the promise — **every pair in two different clusters is below
+the threshold** — at the cost of chaining, which for a leakage control is the
+safe direction because a larger group splits less.
+
+**The screen was not good enough either.** Re-running the audit at half the
+screen found **120 breaching pairs over 92 of 309 sequences**, so half the leaks
+sat among pairs the k-mer screen had dropped. That rules out building the
+grouping behind a screen, and it is worth being precise about why no cheaper one
+will do:
+
+* A k-mer screen **cannot** be sound. An alignment whose identity columns are
+  all isolated — every match flanked by mismatches — shares no k-mer at all
+  with its partner while reaching whatever identity you like, so no count of
+  shared k-mers bounds identity from above. The screen is a correlation, and
+  `cluster_sequences` has always said so in its own docstring.
+* There is exactly one cheap bound that *is* sound, and it does not help. Each
+  identity column consumes one copy of its residue from each sequence, so
+  `matches ≤ Σ_r min(count_a(r), count_b(r))` and therefore
+  `pairwise_identity ≤ composition_overlap / max(len_a, len_b)`. On this pool it
+  prunes **0.1 %** of pairs — median bound 0.77 against a threshold of 0.4 —
+  because amino-acid composition is near-universal across proteins.
+
+So the grouping is computed **completely**: all 47,586 pairs aligned, about half
+an hour of pure Python, run once by `scripts/pin_sdr_grouping.py` and checked in
+at `configs/references/sdr_grouping/v1/grouping.json` with a digest over the
+sequences, their ids and the threshold. `run_sdr_suite` verifies that digest on
+every run and refuses an absent, stale or screened pin rather than quietly
+substituting a screened recomputation — the substitution would report the leak's
+optimism as a result. `--grouping single_linkage` and `--grouping greedy` remain
+reachable, and the report says which ran and whether it was complete.
+
+What the two defects were worth, same dataset, same fold count, same seed:
+
+| macro AUROC | greedy grouping | single linkage, screened | **complete** |
+| --- | --- | --- | --- |
+| clusters the folds group by | 123 | 110 | **99** |
+| breaching cross-fold pairs (audited at 0.05) | 120 | 21 | **0** |
+| nearest neighbour (k-mer cosine) | 0.710 | 0.639 | **0.615** |
+| spectrum-kernel model | 0.667 | 0.628 | **0.599** |
+| cofactor determinant | 0.583 | 0.583 | **0.583** |
+| targets earning a probability | 3 of 12 | 1 of 12 | **1 of 12** |
+
+Read the middle column as the split between the two causes: single linkage
+removed 99 of the 120 breaches, and the 21 that survived it are the k-mer
+screen's, which is what the complete computation closes.
+
+The cofactor-determinant row is the control working. That comparator has no
+parameters and never sees a training fold, so no grouping can flatter or punish
+it -- and it reads **0.583 to three decimal places under all three**, while both
+fitted comparators fall by 0.07 to 0.10 AUROC. An error that moves the fitted
+numbers and leaves the unfitted one untouched is leakage and not, say, a
+different pool.
+
+Two consequences for what this benchmark says, both of them against the model:
+
+* The model's **two** wins over the k-mer baseline become **one**, and its
+  losses go from one to two. The sentence "beats a k-mer nearest-neighbour
+  baseline on two of twelve classes" was a statement about the broken grouping.
+* Calibration gets harder, as it should: **1 of 12** targets now earns a
+  probability where 3 did, because the gate wants the out-of-fold AUROC's
+  cluster-bootstrap interval to exclude 0.5 and a properly held-out fold is a
+  harder test.
 
 *Result (5 folds, seed 0, 12 targets with at least 10 of each class):*
 
 | Comparator | macro AUROC | note |
 | --- | --- | --- |
 | prevalence | 0.500 | constant score, by construction |
-| nearest neighbour (k-mer cosine) | **0.710** | homology transfer |
-| spectrum-kernel model | 0.667 | better on 2 targets (NADP cofactor, one substrate cluster), worse on 1, indistinguishable on 9 (paired cluster-bootstrap interval) |
+| nearest neighbour (k-mer cosine) | 0.615 | homology transfer, pure Python |
+| nearest neighbour (profile search) | **0.694** | the same rule with a real alignment: HMMER3 through `pyhmmer`, the `search` extra. Better than the k-mer baseline on 3 targets and worse on none |
+| spectrum-kernel model | 0.599 | better than the *k-mer* baseline on 1 target (sterol), worse on 2, indistinguishable on 9; against the *profile* baseline, better on **none** and worse on **4** (paired cluster-bootstrap intervals) |
+| the same head on the profile kernel | 0.653 | the representation change, and the only change in this section that helped the head: better than the k-mer head on 3 targets and worse on none. Against the profile baseline it is now a draw -- better on 1, worse on 1, indistinguishable on 10 |
+| cofactor determinant | 0.583 | one target only (NADP cofactor), and it loses there: see below |
 
-* Ungrouped folds: nearest neighbour 0.967 and the model 0.948 -- **an
-  optimism of about 0.26-0.28 AUROC** from near-duplicates straddling the split.
-  Median max-similarity of a test sequence to its training set: 0.41 grouped,
-  0.70 ungrouped.
-* Calibration: only **3 of 12** targets earned a probability, because the gate
-  requires the out-of-fold AUROC's cluster-bootstrap interval to exclude 0.5. On
-  those three the Brier score beats the prevalence baseline; the macro Brier and
-  ECE are over 3 targets and say so.
-* The model does **not** beat nearest-neighbour overall. That is reported as
-  found; no hyperparameter was tuned to change it.
+**The cofactor determinant, scored and found wanting.** The motif-anchored
+determinant of `science/cofactor_determinant.py` — a basic residue in the three
+positions after the glycine-rich loop, as `fam.sdr.v1` describes it — is the one
+comparator here that is **not fitted**: no parameters, no training fold, and an
+AUROC that is identical under grouped and ungrouped folds, so leakage cannot
+flatter it. (It is identical under all three groupings too, to three decimal
+places, which is how the grouping defect above was told apart from a change of
+pool.) On the NADP cofactor target it reaches **0.58 [0.46, 0.72]**, an
+interval containing 0.5, against **0.75** for the k-mer nearest neighbour on
+the same rows; the paired interval on the difference, −0.170 [−0.276, −0.056],
+excludes zero. (The profile-search baseline reaches 0.87 on that target, so the
+rule loses by more against the stronger comparator; it is scored against the
+k-mer baseline because that comparison is the one the pure-Python install can
+reproduce.) It reads 80 % of the pool (36 sequences carry no GxxxGxG at all, 21 carry
+several and it refuses to choose between them), and an unread sequence takes
+the neutral score rather than a guess.
+
+So the rule locates a candidate 2′-phosphate contact and **may not be read as a
+cofactor call**: nothing in the pipeline sets `cofactor_preference` from it, and
+`FamilyAnnotation.cofactor_determinants` is a separate field for that reason.
+The window is the textbook one and has never been fitted to an alignment — which
+is exactly what the template's `curator_must_supply` asks for, and the point at
+which this should be measured again.
+
+* Ungrouped folds: k-mer nearest neighbour 0.967, profile nearest neighbour
+  0.978, the model 0.948 and the model on the profile kernel 0.965 -- **an
+  optimism of 0.28 to 0.35 AUROC** from near-duplicates straddling the split,
+  smallest for the alignment baseline. Those four ungrouped numbers are
+  unchanged by the grouping fix, which is what ungrouped means; the whole
+  movement is in the grouped column, so the gap the leaky grouping reported
+  (0.19 to 0.28) understated the price of not grouping by about a third.
+* The audit of the grouping itself aligned 10,982 of the 38,192 cross-fold
+  pairs and found **none** at or above 0.4 identity; the highest it measured
+  was **0.392**, and 124 pairs came within 0.05 of the threshold. A complete
+  grouping cannot be breached, so that result checks the clustering code
+  rather than the design, and the report says so in those words instead of
+  presenting a tautology as reassurance.
+* Calibration: only **1 of 12** targets earned a probability on the k-mer
+  kernel and **2 of 12** on the profile kernel, because the gate requires the
+  out-of-fold AUROC's cluster-bootstrap interval to exclude 0.5. Three earned
+  one under the leaky grouping; a properly held-out fold is a harder test, and
+  the macro Brier and ECE say how many targets they are over.
+* The model does **not** beat nearest-neighbour overall, by either baseline.
+  That is reported as found; no hyperparameter was tuned to change it.
+
+#### Why it does not, measured rather than guessed
+
+`science/enzyme_substrate.composition_contrast` answers a question about the
+instrument without reading a single label: shuffle each sequence — same length,
+same composition exactly, no order left — and compare the median cosine between
+real pairs with the median between pairs of shuffles. The shuffled median is
+the kernel's composition background.
+
+On this pool the shipped 2-mer/3-mer kernel scores **1.07× that background**.
+Nearly everything it measures is amino-acid composition; the local pattern is a
+few per cent on top. Every run now prints this line, so no report quotes an
+AUROC without saying what its similarity measure was looking at.
+
+That explains the result above better than any hyperparameter does. A kernel
+method and a nearest-neighbour rule over *the same* similarity see nearly the
+same thing, and on 309 sequences the local rule exploits it better.
+
+**One representation change was pre-registered on that label-free number and
+run once.** Dropping the 2-mer block raises the ratio to **1.30×**, so
+`ks = (3, 4)` was the criterion's pick; the decision rule, fixed before the
+run, was to ship it unless the benchmark showed it worse. The benchmark:
+
+| macro AUROC | ks = (2, 3) | ks = (3, 4) |
+| --- | --- | --- |
+| nearest neighbour | 0.615 | **0.636** |
+| spectrum-kernel model | 0.599 | 0.595 |
+| model better than NN on | 1 target | **0 targets** |
+| model worse than NN on | 2 targets | 1 target |
+| targets earning a probability | 1 of 12 | 1 of 12 |
+| macro ECE | 0.079 | 0.087 |
+
+So the better representation helped the **baseline** and did nothing for the
+model, while raising macro ECE. The default stays at `(2, 3)` under the
+pre-registered rule, and the run is recorded here rather than discarded.
+
+Both columns were re-measured on the corrected grouping, and the conclusion
+came back stronger rather than weaker: with `ks = (3, 4)` the model now beats
+the baseline on **no** target at all. (Under the old grouping the same
+comparison read 0.710 against 0.722 for the baseline and 0.667 against 0.668
+for the model -- the same shape, 0.09 higher, which is what the leak was
+adding to both.)
+
+The finding is the useful part: **the gap is not the k-mer window.** Both
+representations leave the model below homology transfer, and the diagnostic
+says why — a k-mer cosine is a composition comparison with a little order
+information on top, whichever window it uses. What would move this is a
+similarity that actually aligns.
+
+#### The alignment baseline, run
+
+That used to end "and no search binary is installed here". It is installed now,
+and how it got here is worth one sentence, because it was never a licensing or
+hardware problem: `pyhmmer` ships HMMER3 on PyPI **as a library**, so a real
+profile search needs no binary on the path, no root and no network.
+`pip install 'eagent[search]'` and `eagent benchmark sdr --alignment` put it in
+the baseline's slot over the identical folds, rows and budget
+(`science/alignment_similarity.py`).
+
+How it is used, so that the number can be read:
+
+* **The held-out sequence is the query**, its training fold the targets, which
+  is the direction a homology search is actually run in. Profile bit scores are
+  not symmetric, and this module does not symmetrise them behind the caller's
+  back.
+* **Each score is divided by the query profile's score against the query
+  itself.** A raw bit score grows with the length and information content of
+  the query, so a metric pooled across rows would be reading query length as
+  similarity. This is a choice, not a law: it is recorded in every report, and
+  `normalise=False` reproduces the raw bit scores.
+* **A pair HMMER does not report is 0.0, and is counted.** The reporting
+  threshold is opened (`E<=1e9`) and the acceleration filters turned off,
+  because skipping a target cheaply is exactly what must not happen when the
+  skip would enter the benchmark as a measurement. The report prints how many
+  pairs were read and how many had no reported hit (0.5 % of them on this
+  pool), so the zeros are not mistaken for measured dissimilarity.
+
+| | k-mer cosine | profile search |
+| --- | --- | --- |
+| macro AUROC | 0.615 | **0.694** |
+| beats the other, paired interval excluding zero | 0 of 12 targets | **3 of 12** |
+| the model beats this baseline on | 1 target | **0 targets** |
+| the model loses to this baseline on | 2 targets | **4 targets** |
+| optimism added by ungrouped folds | 0.353 | **0.284** |
+
+The three targets that move, all upwards: NADP cofactor +0.117
+[+0.027, +0.210], substrate cluster 0 (+0.318 [+0.129, +0.588]) and substrate
+cluster 4 (+0.361 [+0.169, +0.504]). None moves down by an interval that
+excludes zero. Under the leaky grouping six targets moved up rather than three,
+which is the kind of thing a leak does: a near-duplicate across the split gives
+*both* nearest-neighbour rules an easier target and manufactures separation
+between them.
+
+**The model's own result has to be restated, and that is the point of having run
+this.** Its advantage was measured against the weaker of two baselines. Put the
+stronger one on the same rows and the model is better on nothing and worse on
+four: substrate cluster 0 −0.366, cluster 3 −0.284, cluster 4 −0.311 and
+cluster 7 −0.151. The one target where it looked convincingly better than
+homology transfer — the NADP cofactor label, 0.83 against the k-mer baseline's
+0.75 — is **−0.037 [−0.136, +0.066]** against the profile search. Whatever it
+had learned about that label, aligning finds too.
+
+The leakage control says something the AUROC alone does not. Ungrouped folds
+flatter the alignment baseline by **0.284** AUROC, against 0.353 for the k-mer
+baseline and 0.349 for the model, so the stronger baseline is also the one that
+depends *least* on near-duplicates straddling the split. A baseline that is
+both better and less leakage-sensitive is not one a model gets excused from.
+
+What this does and does not license:
+
+* It does **not** make the profile search a model. It has no probability, so
+  nothing in the pipeline may quote it as a confidence, and it is ranking-only
+  in the report for that reason.
+* It does **not** say the head is worthless. It says the head's *similarity* is
+  the wrong one — which is what `composition_contrast` predicted from a
+  label-free number before any of this was scored.
+* The next step was therefore a measurement, not a rewrite: feed the profile
+  similarity to the head in place of the k-mer cosine, which needs the two
+  directions symmetrised and the eigenvalues checked. That run is below, and it
+  was pre-registered before it happened.
+* `mine_sequences` is still a seam, for a different reason: it has nothing to
+  search *against*. No local sequence database is present and the public hosts
+  are unreachable from this environment, so what is missing there is data and
+  reachability, not a program.
+
+#### Giving the head that similarity
+
+The decision rule for this run was written and committed **before** it, in
+`docs/results/profile_kernel_preregistration.md`, so that the commit order
+shows the rule was not chosen after the numbers. In short: the profile kernel
+is added as its own comparator rather than as a replacement, the default stays
+the k-mer kernel whatever happens because a default must not require an
+optional extra, positive definiteness is checked at the fixed ridge and the
+ridge is never raised to rescue a failure, and one run is reported whichever
+way it goes.
+
+Two things had to hold before the head could read this similarity at all, and
+only one of them is imposed:
+
+* **Symmetry** is imposed, as the mean of the two directions
+  (`ProfileKernel`). That averages away the asymmetry `PhmmerSimilarity` keeps
+  on purpose, and it is a modelling choice with a cost, not a free conversion.
+* **Positive definiteness is not imposed.** A bit score is not an inner
+  product, so the Gram matrix had no right to be definite. It is:
+  `definiteness_report` factorises it at the protocol's ridge, and
+  `min_eigenvalue` puts its smallest eigenvalue **without** any ridge at
+  +0.045 (an estimate; the Cholesky's success is the operative fact). So
+  nothing needed repairing and nothing was repaired. Had it failed, the run
+  would have reported a refusal — the code path and its test exist.
+
+*Result, same folds, same rows, same budget, nothing tuned:*
+
+| macro, over 12 targets | k-mer kernel | profile kernel |
+| --- | --- | --- |
+| AUROC | 0.599 | **0.653** |
+| Brier, on targets that earned a probability | 0.158 (1 of 12) | **0.110** (2 of 12) |
+| ECE of the naive `(s+1)/2` reading | **0.071** | 0.141 |
+| better than the other head, paired interval excluding zero | 0 targets | **3 targets** |
+
+**The representation change is the first thing in this whole chain that helped
+the head.** Not the ridge (a flat sweep), not the k-mer window (`ks = (3, 4)`
+helped only the baseline), not a better rule (the cofactor determinant lost).
+Changing what "similar" means moved the head +0.054 macro AUROC, better on
+three targets with intervals excluding zero — NADP cofactor +0.097
+[+0.016, +0.171], substrate cluster 0 +0.271 [+0.062, +0.514], cluster 4
++0.229 [+0.004, +0.381] — and worse on none. The label-free diagnostic picked
+that representation before any of this was scored, which is the second time it
+has been right about where to look. It is the one result in §9.1 that the
+grouping fix left standing in the same shape, which is a point in its favour:
+the three targets that move are the same three, with wider gaps.
+
+**And the head still does not beat homology transfer.** Against the profile
+nearest neighbour on the *same* similarity — the pairing that isolates what
+the head adds — it is better on one target (NADP cofactor +0.060
+[+0.010, +0.113]), worse on one (CoA substructure −0.088 [−0.192, −0.013]) and
+indistinguishable on ten; macro 0.653 against 0.694. Under the leaky grouping
+that read 1 better and 2 worse, so the honest summary is a draw on targets and
+a loss of 0.041 on the macro: the head's problem was *substantially* its
+similarity, as the composition diagnostic said, and **not only** its
+similarity.
+
+The leakage control agrees with the ordering. Ungrouped folds flatter the
+profile-kernel head by **0.312** AUROC against 0.349 for the k-mer head, and
+the profile baseline by 0.284 against the k-mer baseline's 0.353: along this
+whole sequence, the better a measure of similarity is, the less it leans on
+near-duplicates straddling the split. That is what one would hope, and it is
+not something the grouped AUROC alone would have shown.
+
+One result cuts against the headline and is worth more than it: the better
+ranker is the **worse** naive probability. Macro ECE on the uncalibrated
+`(s + 1) / 2` reading doubles, 0.071 to 0.141. A kernel that ranks better
+produced scores whose naive reading is further from a probability, and the only
+reason that is a footnote rather than a defect shipped to a caller is that the
+gate refuses to hand out a probability it has not earned. Ranking skill is not
+calibration, and this run is a clean example of the two moving in opposite
+directions.
+
+The calibration *gate* is the one place the grouping fix reversed a finding
+rather than shrinking it. Under the leaky grouping the profile kernel earned a
+probability on fewer targets than the k-mer kernel, 2 against 3, and that was
+reported here as the better ranker also being the harder thing to calibrate.
+On properly held-out folds it earns one on **more**: 2 against 1. The ECE
+result above is unchanged and the gate result is not, so the sentence that
+survives is the narrow one — ranking skill and calibration are different
+things — and not the stronger claim that they trade off.
+
+What follows for the code, under the pre-registered rule: the profile kernel is
+reachable (`ProfileKernel`, `eagent benchmark sdr --alignment-head`) and the
+default stays the k-mer cosine, because a default that needs an optional extra
+is not one. What follows for a reader who wants a ranking over candidate
+sequences on this kind of label: **use the profile nearest neighbour**, which
+needs no training, no calibration and no ridge. And what follows for the head
+is not another kernel — the remaining 0.041 AUROC is the head's own, and
+closing it is a question of more data or a different hypothesis class, neither
+of which this repository can answer by tuning. All of it remains about
+annotation-derived labels and is no evidence about ketoreductase activity.
 
 ### 9.2 The feedback loop (`eval/feedback_simulation.py`)
 
@@ -420,17 +788,24 @@ model plus novelty exploration; exploration only.
   11 (about zero on the other two). Against the nearest-neighbour baseline the
   model is never significantly better and is significantly worse on three
   (phenol, and substrate clusters 0 and 3).
-* **Non-redundant pool (one sequence per cluster; 7 classes still have enough
-  of each).** Most of that advantage disappears. The model beats random by
-  +2.2 to +4.2 hits on five of the seven, by +9.0 on the NAD/NADP cofactor
-  class, and **not at all on phenol** (-0.1, interval spans zero). Feedback
-  helps significantly on 4 of 7, by 0.9 to 2.8 hits. Against nearest neighbour
-  the model is better on the cofactor class and worse on sterol. The
+* **Non-redundant pool (one sequence per cluster; 99 sequences, 6 classes
+  still have enough of each).** Most of that advantage disappears, and this is
+  the column the grouping fix moved: one-per-cluster over the complete
+  grouping leaves 99 sequences where the greedy clustering left 123, so the
+  pool is genuinely less redundant than it used to be and one class no longer
+  has enough of each label. The model beats random on 4 of the 6, by **+0.8 to
+  +2.0** hits of 40 except on the NAD/NADP cofactor class (+8.2), and **not at
+  all on phenol** (-0.3) or substrate cluster 4 (-0.4), both intervals
+  spanning zero. **Feedback helps significantly on 1 of 6** -- sterol, +1.3
+  hits -- where on the more redundant pool it helped on 4 of 7. Against
+  nearest neighbour the model is better on two classes and worse on one. The
   simulation is reported on both pools because the gap between them is how much
   of a similarity-guided method's advantage is the pool's redundancy -- which is
   also what a campaign built from a homology search has.
-* On the non-redundant pool the 40 selections are about a third of the pool, so
-  differences are compressed by the ceiling.
+* On the non-redundant pool the 40 selections are about 40 % of the pool, so
+  differences are compressed by the ceiling. That compression got worse when
+  the pool shrank, and it is a reason the 1-of-6 figure is a floor on what
+  feedback might be worth rather than a measurement of its value.
 
 ### 9.3 What these two do not establish
 

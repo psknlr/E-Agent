@@ -257,3 +257,54 @@ class TestCli(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCompositionContrast(unittest.TestCase):
+    """The label-free criterion a representation may be chosen on."""
+
+    def test_a_kernel_that_sees_only_composition_has_a_ratio_of_about_one(self
+                                                                         ) -> None:
+        """Shuffles of one sequence differ in order and not in composition."""
+        from eagent.science.enzyme_substrate import composition_contrast
+
+        rng = random.Random(3)
+        base = "".join(rng.choice(STANDARD_AA) for _ in range(300))
+        pool = ["".join(rng.sample(base, len(base))) for _ in range(30)]
+        # k=1 is composition and nothing else, so the real pairs and the
+        # shuffled pairs are the same population.
+        self.assertAlmostEqual(
+            composition_contrast(pool, (1,), n_pairs=120)["ratio"], 1.0,
+            delta=0.01)
+
+    def test_real_homologues_score_above_their_own_composition(self) -> None:
+        dataset = load_sdr(FIXTURES)
+        from eagent.science.enzyme_substrate import composition_contrast
+
+        result = composition_contrast(list(dataset.sequences.values()), (3, 4))
+        self.assertGreater(result["ratio"], 1.0)
+        self.assertEqual(result["n_sequences"], len(dataset.sequences))
+        self.assertIn("no label is read", result["measure"])
+
+    def test_dropping_the_2mer_block_raises_the_ratio(self) -> None:
+        """Why the protocol's ks moved: the 2-mer block is composition.
+
+        This is the comparison the representation was chosen on, and it reads
+        no cofactor or substrate label -- so choosing on it is not tuning on
+        the thing the benchmark scores.
+        """
+        from eagent.science.enzyme_substrate import composition_contrast
+
+        sequences = list(load_sdr(FIXTURES).sequences.values())
+        with_2mers = composition_contrast(sequences, (2, 3))["ratio"]
+        without = composition_contrast(sequences, (3, 4))["ratio"]
+        self.assertGreater(without, with_2mers)
+        self.assertLess(with_2mers, 1.1, "the shipped (2,3) kernel was almost "
+                                         "all composition")
+
+    def test_it_refuses_a_pool_it_cannot_form_a_pair_from(self) -> None:
+        from eagent.science.enzyme_substrate import composition_contrast
+
+        from eagent.science.enzyme_substrate import EnzymeSubstrateError
+
+        with self.assertRaises(EnzymeSubstrateError):
+            composition_contrast(["MKAIVTG"], (2, 3))

@@ -119,14 +119,22 @@ def cluster_lookup(records) -> dict[str, str]:
 
 
 # --------------------------------------------------------------------------
-# scaffolds without rdkit
+# substrate scaffolds
 # --------------------------------------------------------------------------
 
 class TestScaffoldKey(unittest.TestCase):
     """The pure-Python key must not split one molecule across the boundary."""
 
-    def test_this_environment_has_no_rdkit_and_the_import_is_guarded(self) -> None:
-        self.assertFalse(rdkit_available())
+    def test_the_key_does_not_depend_on_an_optional_extra(self) -> None:
+        """One dataset, one key space, whether or not rdkit is installed.
+
+        The import is guarded, so this passes in both installs; what it pins
+        is that the *default* basis is the same in both. It was not: with the
+        ``chem`` extra present the default took rdkit's Murcko framework, so
+        the same dataset keyed differently on two machines and neither output
+        said which.
+        """
+        self.assertIsInstance(rdkit_available(), bool)
         key = scaffold_key(ACETOPHENONE)
         self.assertEqual(key.basis, ScaffoldBasis.RING_AND_LINKER_SKELETON)
         self.assertIn(SCAFFOLD_KEY_ALGORITHM, key.key or "")
@@ -184,6 +192,45 @@ class TestScaffoldKey(unittest.TestCase):
     def test_a_record_can_be_passed_directly(self) -> None:
         rec = record("r1", smiles=ACETOPHENONE)
         self.assertEqual(scaffold_key(rec).key, scaffold_key(ACETOPHENONE).key)
+
+
+class TestMurckoFrameworkOnRequest(unittest.TestCase):
+    """rdkit's framework is reachable, weaker here, and labelled as such."""
+
+    def test_asking_for_it_falls_through_when_rdkit_is_absent(self) -> None:
+        basis = scaffold_key(ACETOPHENONE, prefer_rdkit=True).basis
+        self.assertEqual(basis,
+                         ScaffoldBasis.RDKIT_MURCKO if rdkit_available()
+                         else ScaffoldBasis.RING_AND_LINKER_SKELETON)
+
+    @unittest.skipUnless(rdkit_available(), "needs the chem extra")
+    def test_it_discards_the_reacting_group_which_is_why_it_is_not_default(self
+                                                                          ) -> None:
+        ketone = scaffold_key(ACETOPHENONE, prefer_rdkit=True)
+        ring = scaffold_key("c1ccccc1", prefer_rdkit=True)
+        self.assertEqual(ketone.basis, ScaffoldBasis.RDKIT_MURCKO)
+        self.assertEqual(ketone.key, ring.key)
+        self.assertTrue(any("exocyclic" in lim for lim in ketone.limitations),
+                        ketone.limitations)
+        # And the default basis keeps them apart, on the same two molecules.
+        self.assertNotEqual(scaffold_key(ACETOPHENONE).key,
+                            scaffold_key("c1ccccc1").key)
+
+    @unittest.skipUnless(rdkit_available(), "needs the chem extra")
+    def test_it_perceives_aromaticity_where_this_module_cannot(self) -> None:
+        """The one axis on which the framework is the stronger key."""
+        self.assertNotEqual(scaffold_key("c1ccccc1", prefer_rdkit=True).key,
+                            scaffold_key("C1CCCCC1", prefer_rdkit=True).key)
+        self.assertEqual(scaffold_key("c1ccccc1").key,
+                         scaffold_key("C1CCCCC1").key)
+
+    @unittest.skipUnless(rdkit_available(), "needs the chem extra")
+    def test_an_acyclic_molecule_is_not_fused_with_every_other_one(self) -> None:
+        """An empty framework would make one group of every acyclic substrate."""
+        key = scaffold_key(HEXANONE, prefer_rdkit=True)
+        self.assertTrue((key.key or "").startswith("acyclic:"))
+        self.assertNotEqual(key.key,
+                            scaffold_key("CCC(=O)CC", prefer_rdkit=True).key)
 
 
 # --------------------------------------------------------------------------

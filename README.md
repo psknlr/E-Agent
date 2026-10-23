@@ -127,16 +127,27 @@ PYTHONPATH=src python3 -m eagent.cli --help
 are not installed here. Every numerical routine in `src/eagent/science/` is pure
 Python: the mmCIF/PDB reader, the Gotoh affine-gap aligner, the distance, angle
 and dihedral maths, the Wilson interval and the submodular batch selection. The
-`chem`, `bio` and `numeric` extras in `pyproject.toml` are optional and change
-behaviour in exactly one documented way — when `rdkit` is present,
+`chem`, `bio`, `numeric` and `search` extras in `pyproject.toml` are optional and
+change behaviour in exactly one documented way — when `rdkit` is present,
 `normalize_reaction` offers a stereocentre perception as a *proposal requiring
-confirmation*, never as a resolved value.
+confirmation*, never as a resolved value. Nothing else reads an extra without
+being asked: substrate scaffold keys, in particular, are computed by the same
+pure-Python route in every install, so one dataset has one key space whichever
+machine it was keyed on, and the `search` extra's profile-search baseline is
+added to the benchmark only by `--alignment` and never substitutes for the
+pure-Python similarity when it is absent.
 
 Tests:
 
 ```bash
 PYTHONPATH=src python3 -m pytest tests -q
 ```
+
+`.github/workflows/ci.yml` runs that whole suite on every pull request, on
+three installs (the floor of `requires-python`, the current version, and the
+current version with the optional extras), alongside the browser runtime
+checks and the shipped-configuration validators. `.github/workflows/pages.yml`
+additionally builds and checks the WebAssembly engine when main is deployed.
 
 ---
 
@@ -192,7 +203,7 @@ A value that is not known prints as `unknown`, never as `0` or an empty cell.
 | `eagent bundle-verify <bundle>` | Re-check a package anywhere: every declared file present, every hash as recorded, every unrecorded file reported. |
 | `eagent templates list \| show <id> \| lint` | Read the template library — every threshold a run uses comes from there. `lint` reports uncalibrated windows and library integrity gaps. |
 | `eagent sources list \| show <id> \| independence \| coverage \| verify` | Read the data-source registry: what each resource may be used to claim, what it may not, and which sources re-integrate which others. `verify --allow-network --write` calls the shipped probes and records what answered. |
-| `eagent benchmark sdr \| feedback --data D` | Retrospective benchmarks on the SDR deposit: label recovery with grouped folds and the leakage priced, and the feedback-loop simulation. Both open with the statement that the labels are annotation-derived. |
+| `eagent benchmark sdr \| feedback --data D` | Retrospective benchmarks on the SDR deposit: label recovery with grouped folds and the leakage priced, and the feedback-loop simulation. Both open with the statement that the labels are annotation-derived. `sdr` takes `--alignment` and `--alignment-head` (the `search` extra), `--grouping` (`pinned`/`single_linkage`/`greedy`) and `--audit`/`--audit-screen`, which checks the folds actually hold at the identity threshold they promise and refuses a screen that would make the check tautological. |
 | `eagent reference verify \| manifest \| fetch-coordinates \| bindings \| audit \| verify-sources \| import-workbook` | The KRED calibration reference set (19 experimental entries, 28 kinetic records): verify its files, numbers and cross-references offline; fetch its coordinates through the probed route and pin them by hash; derive what is measured on each entry; audit which entries could be references for which template and run the project's calibration machinery on them *in memory*; compare its kinetic numbers with their sources. Nothing here edits a template or writes a calibration record. |
 
 Exit codes, so a wrapper script can tell the outcomes apart without parsing
@@ -228,7 +239,7 @@ missing measurement becomes a fabricated one.
 
 | Seam | Interface | Absent here |
 | --- | --- | --- |
-| Sequence search | `mine_sequences` | `blastp`, `mmseqs2`, `hmmsearch` binaries |
+| Sequence search | `mine_sequences` | `blastp`, `mmseqs2` binaries, and **any sequence database to search**. `hmmsearch` is no longer a seam: the `search` extra (`pyhmmer`) ships HMMER3 as a library, `PyhmmerRunner` drives the shipped adapter through it, and the adapter's parser has been run against HMMER's own `--domtblout`. What is missing for mining is the target database — no local file, and the public hosts are unreachable from this environment |
 | Structure prediction | `prepare_structures` | any `StructurePredictor` (`UnavailablePredictor` is the default) |
 | Docking | `model_complexes` | any `DockingRunner` (`UnavailableDockingRunner` is the default) |
 | Joint complex prediction | `model_complexes` | any `ComplexPredictor` (`UnavailableComplexPredictor` is the default) |
@@ -336,19 +347,39 @@ establish a live model completion.
 What has been run against the outside world: four public databases (UniProtKB,
 RCSB PDB, Rhea, Zenodo) were called live and have clients checked against
 recorded responses, and one real dataset (the SDR substrate-class deposit) was
-downloaded through a checksum-verified route and benchmarked. What has **not**:
-no structure predictor, docking program, search binary or inverse-folding model
-has ever been run (the gnina, Boltz and MMseqs2 adapters were tested against
-fakes that write output in the documented shape). The included experimental
+downloaded through a checksum-verified route and benchmarked, and HMMER3 has
+been run locally through the `search` extra, both as a similarity between
+sequences already in the repository and as a real profile search driving the
+shipped `hmmsearch` adapter. What has **not**: no structure predictor, docking
+program or inverse-folding model has ever been run (the gnina, Boltz and
+MMseqs2 adapters were tested against fakes that write output in the documented
+shape), and no search has been run against a sequence *database*, because none
+is present and the public hosts are unreachable here. The included experimental
 reference data comes from published sources; this project has not performed a
 new wet-lab experiment. Live model calls require a valid key and reachable API.
 
-What the repository can claim is narrow. It has a sound *machinery of claiming*;
-a simple sequence-to-annotated-class model that beats a nearest-neighbour
-baseline on a few classes and not on most, on **annotation-derived** labels,
-with test sequences held out by cluster; and a simulation showing that feeding
-labels back into selection helps on that same annotation-derived data, much less
-so once the pool's redundancy is removed. It does **not** support the statement
+What the repository can claim is narrow, and it got narrower twice while being
+measured properly. It has a sound *machinery of claiming*; a simple
+sequence-to-annotated-class model that, with test sequences held out by
+cluster, is **not better than homology transfer** on **annotation-derived**
+classes: it beats a **k-mer** nearest-neighbour baseline on one of twelve and
+loses on two, and against a profile-search nearest-neighbour baseline it beats
+it on none and loses on four. Refitting the same head on that profile
+similarity is the one change that has helped it (macro AUROC 0.599 to 0.653,
+better on three targets and worse on none) and still leaves it below the
+baseline's 0.694 (`docs/EVALUATION.md` §9.1). Those numbers are about 0.07 to
+0.10 AUROC lower than the ones this file carried before, because an audit of
+the benchmark's own fold grouping found that **49 of 309 sequences had a
+training-fold neighbour above the identity threshold the folds promised** —
+greedy clustering compares each sequence only against cluster representatives
+and stops at the first match. The grouping is now computed completely, every
+pair aligned, and pinned with a digest the benchmark verifies on every run; the
+one comparator that is not fitted reads the same to three decimal places under
+the old grouping and the new, which is how a leak was told apart from a change
+of pool. There is also a
+simulation showing that feeding
+labels back into selection helps on that same annotation-derived data and helps
+on **one of six** classes once the pool's redundancy is properly removed. It does **not** support the statement
 that the agent has learned from experiments or validated new-enzyme discovery:
 no experiment has been run. `docs/EVALUATION.md` §9 and `docs/ROADMAP.md` §7 give
 the numbers and what each does not establish.
@@ -449,8 +480,13 @@ PYTHONPATH=src python3 -m eagent.cli bundle runs/001 --out packages/001
 
 ### 诚实说明：哪些是"接缝"
 
-搜索二进制（blastp / mmseqs2 / hmmsearch）、结构预测器、对接程序、联合复合物预测器、
-LigandMPNN，在本环境里**全部不存在**。它们的契约、校验、溯源、产物布局和拒绝路径都已实现
+搜索二进制（blastp / mmseqs2）、结构预测器、对接程序、联合复合物预测器、
+LigandMPNN，在本环境里**全部不存在**。HMMER3 是例外：`search` 额外依赖（`pyhmmer`）以
+库的形式提供它，基准测试已在仓库内的 SDR 序列上跑过一次 profile 搜索（见
+`docs/EVALUATION.md` §9.1）；`PyhmmerRunner` 还把仓库自带的 `hmmsearch` 适配器接到真实
+HMMER 上跑过，解析器第一次面对的是 HMMER 自己写出的 `--domtblout` 而不是测试假数据。
+但 `mine_sequences` 仍是接缝，因为没有可供搜索的序列数据库——本地没有文件，公共主机在
+本环境也不可达。它们的契约、校验、溯源、产物布局和拒绝路径都已实现
 并有测试，但真程序缺席时步骤只会报 `tool_unavailable` 并且什么都不产出。控制器既不重试，
 也不换一个工具顶上——换模型顶替正是"缺失的测量变成捏造的测量"的那条路。
 
@@ -460,11 +496,14 @@ LigandMPNN，在本环境里**全部不存在**。它们的契约、校验、溯
 
 ### 现状
 
-整个测试套件通过（写作时为 2919 个测试 + 696 个子测试；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
+整个测试套件通过（写作时为 3515 个测试 + 874 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
 **对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
-一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；另有一份 KRED 实验复合物参考集
+一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；HMMER3 已通过 `search` 可选依赖在
+本地真实运行过——既作为仓库内序列之间的相似度，也作为驱动随仓发布的 `hmmsearch` 适配器的真实 profile 搜索；
+另有一份 KRED 实验复合物参考集
 （19 个条目、28 条动力学记录）被保存、哈希固定、重算并与原始表格比对——但它按现有模板只有 1 个条目合格，
-**不能标定任何窗口**。**没有**跑过真实的结构预测器、对接程序、搜索二进制或反向折叠模型（适配器只用"按文档格式写
-输出的假程序"测过），没有调用过语言模型，没有读过任何实验板。文档里写"系统会拒绝 X"，意思是**存在一条会抛错或返回带类型
+**不能标定任何窗口**。**没有**跑过真实的结构预测器、对接程序或反向折叠模型（gnina、Boltz、MMseqs2 适配器只用
+"按文档格式写输出的假程序"测过），也**没有**对任何序列*数据库*做过搜索——本环境里既没有本地数据库文件，公共主机
+也不可达，所以缺的是数据与可达性，不是程序。没有调用过语言模型，没有读过任何实验板。文档里写"系统会拒绝 X"，意思是**存在一条会抛错或返回带类型
 失败的代码路径**；拒绝在真实数据上被触发过的地方，文档会明说。逐组件的状态表在
 `docs/ROADMAP.md`。

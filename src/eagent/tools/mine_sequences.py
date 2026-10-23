@@ -101,9 +101,12 @@ __all__ = [
     "LengthExpectation",
     "SequenceCluster",
     "cluster_sequences",
+    "single_linkage_clusters",
     "ClusterAdapter",
     "MMseqs2ClusterAdapter",
     "IDENTITY_DEFINITIONS",
+    "PAIRWISE_IDENTITY_DEFINITION",
+    "pairwise_identity",
     "guard_external_submission",
     "RetrievalRow",
     "MineSequences",
@@ -416,8 +419,26 @@ class SequenceDatabase(BaseModel):
         return str(v).strip()
 
     def target(self) -> str:
-        """What the search binary is pointed at: an index alias, or the FASTA."""
-        return self.search_target or self.fasta_path
+        """What the search binary is pointed at: an index alias, or the FASTA.
+
+        A **relative** ``fasta_path`` is refused here, and the refusal is the
+        point. :meth:`resolve_fasta` reads a relative path against the
+        connector cache, while a search runs with its working directory set to
+        a scratch folder, where the same string names a different file -- one
+        that will not exist, so the step fails, or in the worst case one that
+        does. Two meanings for one field is not something to resolve by
+        guessing which was meant. ``search_target`` is left alone: an index
+        alias is not a path and this module does not interpret it.
+        """
+        if self.search_target:
+            return self.search_target
+        if not Path(self.fasta_path).is_absolute():
+            raise SearchExecutionError(
+                f"fasta_path {self.fasta_path!r} is relative, and a search "
+                f"runs in a scratch working directory where that names a "
+                f"different file than resolve_fasta() would read. Pass an "
+                f"absolute path, or a search_target naming the index")
+        return self.fasta_path
 
     def resolve_fasta(self, cache_dir: Path | None = None) -> Path:
         """Absolute path to the local FASTA, relative paths taken from the cache."""
@@ -1115,10 +1136,21 @@ class LengthExpectation(BaseModel):
 #: Carried with every :class:`ClusteringReport` because the thresholds are not
 #: interchangeable: 0.7 under one definition is not 0.7 under another, and a
 #: pool clustered half by one backend and half by another has no single grain.
+#: What :func:`pairwise_identity` measures. Named once, because both
+#: pure-Python clusterings compare this same number against their thresholds --
+#: they differ in *which pairs* they compute it for, not in what it means --
+#: and because anything auditing a clustering has to be able to check that it
+#: measured identity the same way.
+PAIRWISE_IDENTITY_DEFINITION: str = (
+    "global Needleman-Wunsch identity multiplied by the alignment coverage of "
+    "the shorter sequence")
+
+#: The pairwise measure each clustering method compares against its threshold.
+#: Two backends agreeing on 0.4 are not agreeing on a grain unless they also
+#: agree on this.
 IDENTITY_DEFINITIONS: dict[str, str] = {
-    "greedy_pure_python": (
-        "global Needleman-Wunsch identity multiplied by the alignment coverage "
-        "of the shorter sequence"),
+    "greedy_pure_python": PAIRWISE_IDENTITY_DEFINITION,
+    "single_linkage_pure_python": PAIRWISE_IDENTITY_DEFINITION,
     "mmseqs2_easy_cluster": (
         "mmseqs2 --min-seq-id over the aligned region, with coverage enforced "
         "separately by -c under the given --cov-mode"),
@@ -1406,7 +1438,13 @@ def cluster_sequences(
        first, so the representative set depends on the length distribution, not
        on a global optimum;
     2. a member joins the *first* representative it passes, so a sequence near
-       two cluster boundaries lands in whichever was created earlier;
+       two cluster boundaries lands in whichever was created earlier -- and,
+       more consequentially, two *members* are never compared with each other
+       at all. So the clusters do **not** have the property that every pair in
+       two different clusters is below the threshold, and anything using them
+       to keep homologues out of a held-out fold is not getting what it thinks.
+       :func:`single_linkage_clusters` is the function for that, and its
+       docstring records what this one cost when it was used for it;
     3. the k-mer screen that keeps it affordable is a heuristic, not a bound, so
        a true cluster-mate just under the screen can be missed. The number of
        pairs it skipped is returned rather than hidden.
@@ -1468,7 +1506,7 @@ def cluster_sequences(
                 exhausted = True
                 break
             n_align += 1
-            if _pairwise_identity(seq, rep_seq) >= identity_threshold:
+            if pairwise_identity(seq, rep_seq) >= identity_threshold:
                 cid = assignment[rep_key]
                 assignment[key] = cid
                 next(c for c in clusters if c.cluster_id == cid).members.append(key)
@@ -1488,11 +1526,165 @@ def cluster_sequences(
     )
 
 
-def _pairwise_identity(seq_a: str, seq_b: str) -> float:
-    """Global identity scaled by coverage of the shorter sequence, in [0, 1]."""
+def pairwise_identity(seq_a: str, seq_b: str) -> float:
+    """Global identity scaled by coverage of the shorter sequence, in [0, 1].
+
+    This is the ``greedy_pure_python`` entry of :data:`IDENTITY_DEFINITIONS`,
+    and it is the number :func:`cluster_sequences` compares against its
+    threshold. It is exported because anything that wants to *audit* a
+    clustering -- to ask whether two sequences the clustering put in different
+    clusters are in fact more similar than the threshold allows -- has to
+    measure identity the same way the clustering did, or the audit is just a
+    second opinion from a different definition.
+
+    Cost: one full Needleman-Wunsch alignment, around 40 ms for a pair of
+    250-residue sequences in pure Python. A caller comparing many pairs needs
+    a shortlist, not a loop over the whole pool.
+    """
     aln = needleman_wunsch(seq_a, seq_b)
     coverage = min(aln.coverage_a(), aln.coverage_b())
     return aln.identity * coverage
+
+
+def single_linkage_clusters(
+    items: Sequence[tuple[str, str]],
+    identity_threshold: float = DEFAULT_CLUSTER_IDENTITY,
+    *,
+    kmer_prefilter: float | None = DEFAULT_KMER_PREFILTER_SIMILARITY,
+    kmer_size: int = 3,
+    max_alignments: int = DEFAULT_MAX_CLUSTER_ALIGNMENTS,
+) -> ClusteringReport:
+    """Connected components of the "identity >= threshold" relation.
+
+    WHY THIS EXISTS ALONGSIDE :func:`cluster_sequences`
+    ---------------------------------------------------
+    The two functions answer different questions and only one of them can be
+    used to keep homologues out of a held-out fold.
+
+    :func:`cluster_sequences` is greedy: it compares each sequence against the
+    *representatives* created so far and stops at the first one it clears the
+    threshold against. That is the right trade for a bookkeeping grain -- it
+    costs O(n x reps) alignments instead of O(n^2) -- but it does not give the
+    *pairwise* property that a leakage control needs, and the gap is not
+    hypothetical. On the 309-sequence SDR pool, grouping 5 folds by its
+    clusters left 49 sequences with a cross-fold neighbour at or above 0.4
+    identity, in 60 pairs, the closest at 0.816. None of those 60 pairs had
+    both members as representatives: 32 were member-to-member, which the greedy
+    loop never compares at all, and 28 were member-to-representative pairs the
+    loop stopped short of because the member had already joined an earlier
+    cluster. The k-mer screen was not at fault -- every one of the 60 cleared
+    it.
+
+    This function closes the relation instead. Every pair the screen admits is
+    aligned, each link at or above the threshold merges two components, and the
+    components are the clusters. What that buys is exact and worth stating
+    precisely: **every pair in two different components is below the threshold,
+    among the pairs the screen admitted.** That is the property a grouped split
+    needs, so these components are what a fold assignment should group by.
+
+    THE PRICE, AND THE TRAP
+    -----------------------
+    * **Chaining.** A -- B -- C with each link over the threshold puts all
+      three in one component even when A and C are unrelated. For a leakage
+      control that is the safe direction (a bigger group splits less), but it
+      makes the components a poor description of family structure, which is why
+      :func:`cluster_sequences` is not being replaced.
+    * **Cost.** The screen is evaluated on every one of the n(n-1)/2 pairs --
+      cheap, a set intersection each -- and one alignment runs per admitted
+      pair. On the SDR pool that is 47,586 screens and about 180 alignments,
+      roughly ten seconds.
+    * **The screen is still a heuristic, not a bound.** A pair under the screen
+      is never aligned, so a link below it is never found and the components
+      can be too small. ``n_prefiltered_pairs`` counts exactly how many pairs
+      that was.
+    * **The self-confirmation trap.** Auditing a grouping built at screen *S*
+      by looking for breaches at that same screen *S* is tautological: the
+      construction already ruled them out. An informative audit must run at a
+      looser screen than the grouping did. See
+      :mod:`eagent.eval.grouping_audit`.
+
+    ``max_alignments`` bounds the work. Exhausting it is far more serious here
+    than in the greedy function: an unfound link leaves two components that
+    should be one, which is leakage rather than a coarser grain, so
+    ``budget_exhausted`` must be read as "the pairwise property above is not
+    established" and not as a performance note.
+    """
+    if not 0.0 < identity_threshold <= 1.0:
+        raise ValueError(
+            f"identity_threshold is a fraction in (0, 1], got {identity_threshold}"
+        )
+    # One key naming two *different* sequences would make the returned
+    # assignment a map from a key to a cluster computed for the other
+    # sequence: a silent corruption rather than a coarser grain. The same
+    # (key, sequence) twice is harmless and is simply collapsed.
+    seqs: dict[str, str] = {}
+    conflicting: set[str] = set()
+    for key, seq in items:
+        if seqs.setdefault(key, seq) != seq:
+            conflicting.add(key)
+    if conflicting:
+        raise ValueError(
+            f"{len(conflicting)} key(s) name more than one sequence "
+            f"({sorted(conflicting)[:3]}); a clustering keyed by id cannot be "
+            f"formed from them")
+    keys = sorted(seqs)
+    ordered = [(key, seqs[key]) for key in keys]
+    kmers = {key: kmer_set(seq, kmer_size) for key, seq in ordered}
+
+    parent = {key: key for key in keys}
+
+    def find(key: str) -> str:
+        root = key
+        while parent[root] != root:
+            root = parent[root]
+        while parent[key] != root:          # path compression
+            parent[key], key = root, parent[key]
+        return root
+
+    n_align = 0
+    n_prefiltered = 0
+    exhausted = False
+    for a_idx, a in enumerate(keys):
+        if exhausted:
+            break
+        for b in keys[a_idx + 1:]:
+            if find(a) == find(b):
+                # Already linked through a chain; aligning would not move them.
+                continue
+            if kmer_prefilter is not None:
+                dist = jaccard_distance(kmers[a], kmers[b])
+                if dist is not None and (1.0 - dist) < kmer_prefilter:
+                    n_prefiltered += 1
+                    continue
+            if n_align >= max_alignments:
+                exhausted = True
+                break
+            n_align += 1
+            if pairwise_identity(seqs[a], seqs[b]) >= identity_threshold:
+                parent[find(a)] = find(b)
+
+    components: dict[str, list[str]] = {}
+    for key in keys:
+        components.setdefault(find(key), []).append(key)
+    clusters: list[SequenceCluster] = []
+    assignment: dict[str, str] = {}
+    for n, root in enumerate(sorted(components), start=1):
+        cid = f"clu_{n:05d}"
+        members = components[root]
+        clusters.append(SequenceCluster(cid, members[0], list(members)))
+        for key in members:
+            assignment[key] = cid
+
+    return ClusteringReport(
+        clusters=clusters, assignment=assignment,
+        identity_threshold=identity_threshold, n_alignments=n_align,
+        n_prefiltered_pairs=n_prefiltered, budget_exhausted=exhausted,
+        method="single_linkage_pure_python",
+        fallback_reason=(
+            "the alignment budget ran out before the relation was closed, so "
+            "two sequences over the threshold may sit in different components "
+            "and a split grouped by them can leak" if exhausted else ""),
+    )
 
 
 # ==========================================================================

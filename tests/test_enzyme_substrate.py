@@ -20,8 +20,9 @@ from eagent.science.enzyme_substrate import (
     EnzymeSubstrateError, EnzymeSubstrateModel, Example, KernelCache,
     PlattCalibrator, STANDARD_AA, _cholesky, _solve, auroc, average_precision,
     brier, candidate_scorer, cluster_bootstrap_ci, cosine, examples_from_records,
-    expected_calibration_error, grouped_folds, log_loss, reliability_table,
-    spectrum_vector, training_digest,
+    composition_contrast, definiteness_report,
+    expected_calibration_error, grouped_folds, log_loss, min_eigenvalue,
+    reliability_table, similarity_contrast, spectrum_vector, training_digest,
 )
 
 MOTIF = "GGGAVGG"
@@ -478,6 +479,147 @@ class TestComparatorSeam(unittest.TestCase):
         with self.assertRaises(ValueError):
             candidate_scorer(EnzymeSubstrateModel(motif_examples(10)), "t",
                              ranking="vibes")
+
+
+class ConstantKernel:
+    """Every distinct pair scores the same. Indefinite for a negative value."""
+
+    self_similarity = 1.0
+
+    def __init__(self, value: float, name: str = "constant") -> None:
+        self.value = value
+        self.kernel_id = f"{name}:{value}"
+
+    def similarity(self, a: str, b: str) -> float:
+        return self.self_similarity if a == b else self.value
+
+
+class TestMinEigenvalue(unittest.TestCase):
+
+    def test_a_known_spectrum_is_recovered(self) -> None:
+        out = min_eigenvalue([[2.0, 1.0], [1.0, 2.0]], iterations=300)
+        self.assertAlmostEqual(out["largest_estimate"], 3.0, places=3)
+        self.assertAlmostEqual(out["smallest_estimate"], 1.0, places=3)
+
+    def test_an_indefinite_matrix_reports_a_negative_smallest(self) -> None:
+        out = min_eigenvalue([[0.0, 1.0], [1.0, 0.0]], iterations=300)
+        self.assertLess(out["smallest_estimate"], 0.0)
+
+    def test_the_iteration_count_is_recorded_because_it_is_an_estimate(self) -> None:
+        self.assertEqual(min_eigenvalue([[1.0, 0.0], [0.0, 1.0]],
+                                        iterations=17)["iterations"], 17)
+
+    def test_a_non_square_matrix_is_refused(self) -> None:
+        with self.assertRaises(EnzymeSubstrateError):
+            min_eigenvalue([[1.0, 0.0]])
+
+
+class TestDefinitenessReport(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        rng = random.Random(3)
+        cls.seqs = [random_sequence(rng) for _ in range(12)]
+
+    def test_the_kmer_cosine_gram_matrix_factorises(self) -> None:
+        out = definiteness_report(self.seqs, KernelCache((2, 3)), ridge=0.1,
+                                  iterations=60)
+        self.assertTrue(out["factorises"])
+        self.assertIsNone(out["refusal"])
+        self.assertEqual(out["kernel_id"], "kmer_cosine:2,3")
+
+    def test_an_indefinite_kernel_is_reported_refused_not_repaired(self) -> None:
+        out = definiteness_report(self.seqs, ConstantKernel(-0.9), ridge=0.1,
+                                  iterations=60)
+        self.assertFalse(out["factorises"])
+        self.assertIn("positive definite", out["refusal"])
+        self.assertLess(out["spectrum_with_ridge"]["smallest_estimate"], 0.0)
+
+    def test_the_ridge_is_reported_not_searched_for(self) -> None:
+        out = definiteness_report(self.seqs, ConstantKernel(-0.9), ridge=0.25,
+                                  iterations=40)
+        self.assertEqual(out["ridge"], 0.25)
+        self.assertAlmostEqual(
+            out["smallest_eigenvalue_without_ridge_estimate"],
+            out["spectrum_with_ridge"]["smallest_estimate"] - 0.25, places=5)
+
+
+class TestSimilarityContrast(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        rng = random.Random(5)
+        cls.seqs = [random_sequence(rng) for _ in range(20)]
+
+    def test_the_kmer_wrapper_matches_the_generic_function(self) -> None:
+        """composition_contrast delegates; the recorded numbers must not move."""
+        vectors: dict[str, object] = {}
+
+        def sim(a: str, b: str) -> float:
+            for s in (a, b):
+                vectors.setdefault(s, spectrum_vector(s, (2, 3)))
+            return cosine(vectors[a], vectors[b])
+
+        generic = similarity_contrast(self.seqs, sim, measure="x", seed=0)
+        kmer = composition_contrast(self.seqs, (2, 3), seed=0)
+        for key in ("median_real_pair", "median_composition_matched_pair",
+                    "ratio", "n_sequences", "n_pairs"):
+            self.assertEqual(generic[key], kmer[key], key)
+        self.assertEqual(kmer["ks"], [2, 3])
+
+    def test_a_non_positive_background_reports_no_ratio(self) -> None:
+        """A measure with no composition floor has no ratio, not a huge one."""
+        out = similarity_contrast(
+            self.seqs, lambda a, b: -0.5 if a != b else 1.0,
+            measure="x", seed=0)
+        self.assertIsNone(out["ratio"])
+        self.assertFalse(out["background_is_positive"])
+        self.assertLess(out["median_composition_matched_pair"], 0.0)
+
+    def test_the_prepare_hook_sees_both_pools_before_any_pair(self) -> None:
+        seen: list[int] = []
+
+        def prepare(real, shuffled) -> None:
+            seen.append(len(real) + len(shuffled))
+
+        similarity_contrast(self.seqs, lambda a, b: 1.0, measure="x",
+                            prepare=prepare, n_pairs=5)
+        self.assertEqual(seen, [2 * len(self.seqs)])
+
+    def test_two_distinct_sequences_are_required(self) -> None:
+        with self.assertRaises(EnzymeSubstrateError):
+            similarity_contrast(["MKV"], lambda a, b: 1.0, measure="x")
+
+
+class TestTheFactorCacheIsKeyedByKernel(unittest.TestCase):
+    """A Cholesky factor is a function of the kernel, not only the sequences."""
+
+    def test_two_kernels_sharing_a_cache_do_not_share_a_factor(self) -> None:
+        examples = motif_examples(24)
+        shared: dict = {}
+        a = EnzymeSubstrateModel(examples, kernel=KernelCache((2, 3)),
+                                 ks=(2, 3), factor_cache=shared,
+                                 require_skill=False)
+        b = EnzymeSubstrateModel(examples, kernel=ConstantKernel(0.4),
+                                 ks=(2, 3), factor_cache=shared,
+                                 require_skill=False)
+        keys = {k[0] for k in shared}
+        self.assertIn("kmer_cosine:2,3", keys)
+        self.assertIn("constant:0.4", keys)
+        seq = examples[0].sequence
+        self.assertNotEqual(a.predict(seq, "t").score,
+                            b.predict(seq, "t").score)
+
+    def test_a_kmer_cache_built_for_other_ks_is_still_refused(self) -> None:
+        with self.assertRaises(ValueError):
+            EnzymeSubstrateModel(motif_examples(12), ks=(2, 3),
+                                 kernel=KernelCache((4,)))
+
+    def test_a_kernel_declaring_no_ks_is_accepted(self) -> None:
+        model = EnzymeSubstrateModel(motif_examples(12), ks=(2, 3),
+                                     kernel=ConstantKernel(0.3),
+                                     require_skill=False)
+        self.assertIsNotNone(model.predict(motif_examples(12)[0].sequence, "t"))
 
 
 def model_digest_prefix(model) -> str:

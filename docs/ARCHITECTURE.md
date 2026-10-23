@@ -553,7 +553,12 @@ it cannot show. No real reference set exists here, so all 17 shipped windows
 remain uncalibrated.
 
 **A model's probability.** `science/enzyme_substrate.py` fits one kernel-ridge
-head per target over a normalised k-mer spectrum kernel, in pure Python. A head
+head per target over a normalised k-mer spectrum kernel, in pure Python. The
+kernel is a constructor argument, so the same head also fits on the symmetrised
+profile-search kernel of `science/alignment_similarity.py` where the `search`
+extra is installed; the k-mer cosine stays the default because a default must
+not need an extra, and §9.1 of `docs/EVALUATION.md` reports what each measures.
+A head
 reports `probability = None` unless a Platt map fitted on **grouped
 out-of-fold** scores exists *and* the out-of-fold AUROC's cluster-bootstrap
 interval excludes 0.5 -- because cross-validating a score with no signal gives a

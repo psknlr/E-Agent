@@ -87,6 +87,28 @@
             0.7890823713558991
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.7435113241858159,
+          "average_precision": 0.3265722427145924,
+          "prevalence": 0.1488673139158576,
+          "auroc_ci": [
+            0.5916866028708134,
+            0.8813502673796791
+          ],
+          "brier": 0.12052276402414078,
+          "log_loss": 0.3865006187364762,
+          "ece": 0.07183823514428424
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.7435113241858159,
+          "average_precision": 0.3265722427145924,
+          "prevalence": 0.1488673139158576,
+          "auroc_ci": [
+            0.5916866028708134,
+            0.8813502673796791
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -113,6 +135,22 @@
           -0.042857142857142816
         ],
         "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.11811869730533964,
+        "ci95": [
+          -0.19754292894038805,
+          -0.02585034013605436
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.06653992395437269,
+        "ci95": [
+          -0.10221941537351131,
+          0.2593984962406014
+        ],
+        "interval_excludes_zero": false
       }
     },
     {
@@ -174,6 +212,30 @@
           "log_loss": 0.4793180692965295,
           "ece": 0.07458206249631578
         },
+        "profile_krr": {
+          "auroc": 0.9133110509841371,
+          "average_precision": 0.9625070001100979,
+          "prevalence": 0.6398601398601399,
+          "auroc_ci": [
+            0.7522522522522522,
+            0.9904092784654845
+          ],
+          "brier": 0.12937296172931004,
+          "log_loss": 0.42862698317741427,
+          "ece": 0.22864884202030264
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.9133110509841371,
+          "average_precision": 0.9625070001100979,
+          "prevalence": 0.6398601398601399,
+          "auroc_ci": [
+            0.7522522522522522,
+            0.9904092784654845
+          ],
+          "brier": 0.1048965964232119,
+          "log_loss": 0.49052742562911156,
+          "ece": 0.09757523705533613
+        },
         "cofactor_determinant": {
           "auroc": 0.5832139636054963,
           "average_precision": 0.696783396921943,
@@ -215,6 +277,22 @@
           0.07559465623981754
         ],
         "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": 0.06997718711868006,
+        "ci95": [
+          0.011346726190476164,
+          0.13591836734693885
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.06477797230622317,
+        "ci95": [
+          0.0007409759712077024,
+          0.12793163672654695
+        ],
+        "interval_excludes_zero": true
       }
     },
     {
@@ -273,6 +351,28 @@
             0.6427754915409236
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.44468599033816425,
+          "average_precision": 0.21316122668665458,
+          "prevalence": 0.22330097087378642,
+          "auroc_ci": [
+            0.31745689655172415,
+            0.5805050008198065
+          ],
+          "brier": 0.20635850782897142,
+          "log_loss": 0.7822923520945324,
+          "ece": 0.16713496100340144
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.44468599033816425,
+          "average_precision": 0.21316122668665458,
+          "prevalence": 0.22330097087378642,
+          "auroc_ci": [
+            0.31745689655172415,
+            0.5805050008198065
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -297,6 +397,22 @@
         "ci95": [
           -0.13419653575716006,
           0.10599338549649112
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.09969806763285027,
+        "ci95": [
+          -0.21566406102488572,
+          0.02827594452415111
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": -0.0768719806763285,
+        "ci95": [
+          -0.19255315131603795,
+          0.05815412186379931
         ],
         "interval_excludes_zero": false
       }
@@ -357,6 +473,28 @@
             0.7972630912830249
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.6827171999585793,
+          "average_precision": 0.4988371249772019,
+          "prevalence": 0.2815533980582524,
+          "auroc_ci": [
+            0.4948210922787194,
+            0.8323179438362684
+          ],
+          "brier": 0.1885773911850043,
+          "log_loss": 0.7482842023081374,
+          "ece": 0.13833534411515602
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.6827171999585793,
+          "average_precision": 0.4988371249772019,
+          "prevalence": 0.2815533980582524,
+          "auroc_ci": [
+            0.4948210922787194,
+            0.8323179438362684
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -381,6 +519,22 @@
         "ci95": [
           -0.14469967990962151,
           0.08272323744739718
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.04706430568499531,
+        "ci95": [
+          -0.12849102686630565,
+          0.0349317899958661
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": -0.0003624313969141646,
+        "ci95": [
+          -0.12766439909297056,
+          0.11720475339152381
         ],
         "interval_excludes_zero": false
       }
@@ -441,6 +595,28 @@
             0.6685971685971686
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.8416058394160584,
+          "average_precision": 0.4164821564132424,
+          "prevalence": 0.11326860841423948,
+          "auroc_ci": [
+            0.7037037037037037,
+            0.9525121899512402
+          ],
+          "brier": 0.0881070300283812,
+          "log_loss": 0.2959745949892582,
+          "ece": 0.10527245572786599
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.8416058394160584,
+          "average_precision": 0.4164821564132424,
+          "prevalence": 0.11326860841423948,
+          "auroc_ci": [
+            0.7037037037037037,
+            0.9525121899512402
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -465,6 +641,22 @@
         "ci95": [
           -0.6685121107266436,
           -0.1143774703557312
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.006569343065693456,
+        "ci95": [
+          -0.17542662116040963,
+          0.13538159371492708
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.40020855057351407,
+        "ci95": [
+          0.1935211564841195,
+          0.5914915966386554
         ],
         "interval_excludes_zero": true
       }
@@ -527,6 +719,28 @@
           "brier": 0.12662545279292775,
           "log_loss": 0.4085143426712095,
           "ece": 0.04029165685010462
+        },
+        "profile_krr": {
+          "auroc": 0.8226578868602215,
+          "average_precision": 0.48053429080689497,
+          "prevalence": 0.16828478964401294,
+          "auroc_ci": [
+            0.6763870320855615,
+            0.9323722910216719
+          ],
+          "brier": 0.11482958380734,
+          "log_loss": 0.3703575160318041,
+          "ece": 0.07343763369799879
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.8226578868602215,
+          "average_precision": 0.48053429080689497,
+          "prevalence": 0.16828478964401294,
+          "auroc_ci": [
+            0.6763870320855615,
+            0.9323722910216719
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -553,6 +767,22 @@
           -0.0011004732034775033
         ],
         "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.059787488775815634,
+        "ci95": [
+          -0.1246390028879768,
+          0.008637873754152814
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.06158335827596528,
+        "ci95": [
+          -0.06642156862745097,
+          0.2014227925791603
+        ],
+        "interval_excludes_zero": false
       }
     },
     {
@@ -611,6 +841,28 @@
             0.763704128440367
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.6349237579931136,
+          "average_precision": 0.47324516888824153,
+          "prevalence": 0.3074433656957929,
+          "auroc_ci": [
+            0.48493955787083415,
+            0.774845041322314
+          ],
+          "brier": 0.20729859784679128,
+          "log_loss": 0.6260004906918565,
+          "ece": 0.09919006475673779
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.6349237579931136,
+          "average_precision": 0.47324516888824153,
+          "prevalence": 0.3074433656957929,
+          "auroc_ci": [
+            0.48493955787083415,
+            0.774845041322314
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -635,6 +887,22 @@
         "ci95": [
           -0.16056397306397308,
           0.09744318181818185
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.06222331529758973,
+        "ci95": [
+          -0.13651422107304456,
+          0.012643678160919491
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": -0.015297589768814568,
+        "ci95": [
+          -0.13966918979534626,
+          0.10553211439287391
         ],
         "interval_excludes_zero": false
       }
@@ -695,6 +963,28 @@
             0.9670418006430869
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.9358187134502924,
+          "average_precision": 0.7351912792845595,
+          "prevalence": 0.07766990291262135,
+          "auroc_ci": [
+            0.8544372294372294,
+            0.9861739567621921
+          ],
+          "brier": 0.06392811718415892,
+          "log_loss": 0.2500682279673916,
+          "ece": 0.1579688796342579
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.9358187134502924,
+          "average_precision": 0.7351912792845595,
+          "prevalence": 0.07766990291262135,
+          "auroc_ci": [
+            0.8544372294372294,
+            0.9861739567621921
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -721,6 +1011,22 @@
           -0.006103286384976592
         ],
         "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.030701754385964897,
+        "ci95": [
+          -0.10489766081871355,
+          0.025200458190148933
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.05540935672514624,
+        "ci95": [
+          -0.05228758169934644,
+          0.21006178287731692
+        ],
+        "interval_excludes_zero": false
       }
     },
     {
@@ -779,6 +1085,30 @@
             0.7594206974128234
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.8171526586620926,
+          "average_precision": 0.6109751838498014,
+          "prevalence": 0.1423948220064725,
+          "auroc_ci": [
+            0.7025534851621809,
+            0.9012304622547389
+          ],
+          "brier": 0.1019670641562266,
+          "log_loss": 0.3512229728222833,
+          "ece": 0.10891160987015397
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.8171526586620926,
+          "average_precision": 0.6109751838498014,
+          "prevalence": 0.1423948220064725,
+          "auroc_ci": [
+            0.7025534851621809,
+            0.9012304622547389
+          ],
+          "brier": 0.0885933646325726,
+          "log_loss": 0.309747769124415,
+          "ece": 0.03250616230744751
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -803,6 +1133,22 @@
         "ci95": [
           -0.33525712809027475,
           -0.1271974136189129
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.06972555746140652,
+        "ci95": [
+          -0.17045639109956146,
+          -0.0023472400999469123
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.15831903945111492,
+        "ci95": [
+          0.008558262014483287,
+          0.2810810810810811
         ],
         "interval_excludes_zero": true
       }
@@ -865,6 +1211,28 @@
           "brier": 0.11887750157725037,
           "log_loss": 0.368322346224121,
           "ece": 0.07393968872455944
+        },
+        "profile_krr": {
+          "auroc": 0.7395622895622895,
+          "average_precision": 0.46204322655054025,
+          "prevalence": 0.14563106796116504,
+          "auroc_ci": [
+            0.5518129770992366,
+            0.9217363751584284
+          ],
+          "brier": 0.11852159881850824,
+          "log_loss": 0.37051563135971843,
+          "ece": 0.0904518630979904
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.7395622895622895,
+          "average_precision": 0.46204322655054025,
+          "prevalence": 0.14563106796116504,
+          "auroc_ci": [
+            0.5518129770992366,
+            0.9217363751584284
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -889,6 +1257,22 @@
         "ci95": [
           -0.05016666666666669,
           0.3837740384615385
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": 0.0885521885521885,
+        "ci95": [
+          -0.06916453779922416,
+          0.22427224272242724
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": -0.06835016835016838,
+        "ci95": [
+          -0.2062758213653355,
+          0.035648148148148096
         ],
         "interval_excludes_zero": false
       }
@@ -949,6 +1333,28 @@
             0.7033657148464332
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.6116490610328639,
+          "average_precision": 0.498576873870406,
+          "prevalence": 0.3106796116504854,
+          "auroc_ci": [
+            0.4834010152284264,
+            0.7453850210970464
+          ],
+          "brier": 0.210791628764352,
+          "log_loss": 0.6112191682503478,
+          "ece": 0.11805184341276145
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.6116490610328639,
+          "average_precision": 0.498576873870406,
+          "prevalence": 0.3106796116504854,
+          "auroc_ci": [
+            0.4834010152284264,
+            0.7453850210970464
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -975,6 +1381,22 @@
           -0.02339593114241001
         ],
         "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.0871967918622848,
+        "ci95": [
+          -0.19066278549037174,
+          0.013075930186879137
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.05888106416275429,
+        "ci95": [
+          -0.05196687370600417,
+          0.17332484481935384
+        ],
+        "interval_excludes_zero": false
       }
     },
     {
@@ -1033,6 +1455,28 @@
             0.8004613610149942
           ],
           "note": "no probability in at least one fold; ranking metrics only"
+        },
+        "profile_krr": {
+          "auroc": 0.7220338983050848,
+          "average_precision": 0.20701420772730786,
+          "prevalence": 0.045307443365695796,
+          "auroc_ci": [
+            0.48484848484848486,
+            0.8986928104575164
+          ],
+          "brier": 0.06319422752663004,
+          "log_loss": 0.403107779230947,
+          "ece": 0.12023521684313021
+        },
+        "profile_krr_calibrated": {
+          "auroc": 0.7220338983050848,
+          "average_precision": 0.20701420772730786,
+          "prevalence": 0.045307443365695796,
+          "auroc_ci": [
+            0.48484848484848486,
+            0.8986928104575164
+          ],
+          "note": "no probability in at least one fold; ranking metrics only"
         }
       },
       "delta_auroc_vs_nearest_neighbour": {
@@ -1059,6 +1503,22 @@
           -0.08890845070422537
         ],
         "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_krr_vs_profile_nn": {
+        "delta": -0.1084745762711864,
+        "ci95": [
+          -0.4657980456026059,
+          0.036132315521628544
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_profile_krr_vs_spectrum_krr": {
+        "delta": 0.20266343825665867,
+        "ci95": [
+          -0.20508842693143037,
+          0.4792857142857143
+        ],
+        "interval_excludes_zero": false
       }
     }
   ],
@@ -1105,6 +1565,22 @@
       "ece": 0.06293780269032662,
       "n_targets_auroc": 12.0,
       "n_targets_probability": 3.0
+    },
+    "profile_krr": {
+      "auroc": 0.7424691392290595,
+      "average_precision": 0.4904283318232951,
+      "brier": 0.1344557894083179,
+      "ece": 0.12328974577700341,
+      "n_targets_auroc": 12.0,
+      "n_targets_probability": 12.0
+    },
+    "profile_krr_calibrated": {
+      "auroc": 0.7424691392290595,
+      "average_precision": 0.4904283318232951,
+      "brier": 0.09674498052789225,
+      "ece": 0.06504069968139183,
+      "n_targets_auroc": 12.0,
+      "n_targets_probability": 2.0
     },
     "cofactor_determinant": {
       "auroc": 0.5832139636054963,
@@ -1270,14 +1746,24 @@
   },
   "uncalibrated_targets": [
     "sdr:CoA_substructure",
+    "sdr:CoA_substructure (profile kernel)",
     "sdr:phenol_substructure",
+    "sdr:phenol_substructure (profile kernel)",
     "sdr:sterol_substructure",
+    "sdr:sterol_substructure (profile kernel)",
     "sdr:substrate_cluster_0",
+    "sdr:substrate_cluster_0 (profile kernel)",
+    "sdr:substrate_cluster_1 (profile kernel)",
     "sdr:substrate_cluster_2",
+    "sdr:substrate_cluster_2 (profile kernel)",
     "sdr:substrate_cluster_3",
+    "sdr:substrate_cluster_3 (profile kernel)",
     "sdr:substrate_cluster_4",
+    "sdr:substrate_cluster_5 (profile kernel)",
     "sdr:substrate_cluster_7",
-    "sdr:substrate_cluster_8"
+    "sdr:substrate_cluster_7 (profile kernel)",
+    "sdr:substrate_cluster_8",
+    "sdr:substrate_cluster_8 (profile kernel)"
   ],
   "kernel_character": {
     "ks": [
@@ -1290,6 +1776,15 @@
     "median_real_pair": 0.3173,
     "median_composition_matched_pair": 0.2971,
     "ratio": 1.068,
+    "background_is_positive": true,
+    "nonzero_real_pairs": [
+      397,
+      397
+    ],
+    "nonzero_composition_matched_pairs": [
+      399,
+      399
+    ],
     "measure": "median k-mer cosine between pool pairs, over the median between pairs of composition-preserving shuffles of the same sequences; no label is read"
   },
   "alignment_similarity": {
@@ -1298,8 +1793,8 @@
     "normalisation": "bit score divided by the query profile's score against the query itself",
     "pool_size": 309,
     "queries_run": 309,
-    "pairs_requested": 905590,
-    "pairs_without_hit": 4592,
+    "pairs_requested": 1000762,
+    "pairs_without_hit": 5132,
     "search_settings": {
       "E": 1000000000.0,
       "acceleration_filters": false,
@@ -1311,6 +1806,28 @@
       "gap_open": 0.02,
       "gap_extend": 0.4,
       "seed": 42
+    }
+  },
+  "alignment_kernel": {
+    "kernel_id": "phmmer_symmetrised",
+    "ridge": 0.1,
+    "cholesky_refusal": null,
+    "scored": true,
+    "definiteness": {
+      "kernel_id": "phmmer_symmetrised",
+      "n_sequences": 309,
+      "ridge": 0.1,
+      "diagonal": 1.0,
+      "factorises": true,
+      "refusal": null,
+      "spectrum_with_ridge": {
+        "largest_estimate": 25.799618,
+        "smallest_estimate": 0.145141,
+        "iterations": 200,
+        "n": 309,
+        "note": "power-iteration estimates, not an exact spectrum; negative smallest means the matrix is not positive semi-definite and a ridge above its magnitude is what a Cholesky would need"
+      },
+      "smallest_eigenvalue_without_ridge_estimate": 0.045141
     }
   },
   "determinant_rules": [
@@ -1338,5 +1855,5 @@
       "present": 130
     }
   },
-  "digest": "7c5b86021b71a0edd92155f00cdb9e646ba8d203da7f68a71d281ebae441afcb"
+  "digest": "ade952c396d82fafb5740d35ff77e896d34df24a18406b748eda77a05dc2aa97"
 }

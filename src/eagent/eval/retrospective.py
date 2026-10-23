@@ -75,6 +75,20 @@ THE COMPARATORS
     the same rows, and read the paired difference. Present only when the
     caller supplies a similarity provider -- it needs the ``search`` extra --
     and the report records the provider and its settings.
+``profile_krr`` / ``profile_krr_calibrated``
+    the same head as ``spectrum_krr``, fitted on the **symmetrised profile
+    kernel** instead of the k-mer cosine, so that the one question the
+    baselines leave open can be asked as a paired comparison: does the head add
+    anything over homology transfer once both read the same similarity? The
+    kernel is a modelling choice with a cost, recorded in
+    :class:`eagent.science.alignment_similarity.ProfileKernel`: a bit score is
+    not symmetric and not an inner product, so symmetry is imposed by averaging
+    the two directions and positive definiteness is **not** imposed at all. A
+    Gram matrix the Cholesky refuses is reported as a refusal, with an estimate
+    of how far from definite it was; nothing clips an eigenvalue and the ridge
+    is never raised to force a factorisation. Present only when the caller
+    supplies the kernel, and the decision rule for this comparator was
+    pre-registered in ``docs/results/profile_kernel_preregistration.md``.
 """
 
 from __future__ import annotations
@@ -94,7 +108,8 @@ from ..science.cofactor_determinant import (
     AnchoredDeterminantRule, DeterminantOutcome, read_determinant,
 )
 from ..science.enzyme_substrate import (
-    EnzymeSubstrateModel, Example, KernelCache, auroc, average_precision,
+    EnzymeSubstrateError, EnzymeSubstrateModel, Example, KernelCache, auroc,
+    average_precision,
     composition_contrast,
     brier, cluster_bootstrap_ci, expected_calibration_error, grouped_folds,
     log_loss, reliability_table,
@@ -132,8 +147,16 @@ COMPARATORS: tuple[str, ...] = (
     "profile_nearest_neighbour",
     "spectrum_krr",
     "spectrum_krr_calibrated",
+    "profile_krr",
+    "profile_krr_calibrated",
     "cofactor_determinant",
 )
+
+#: Comparators whose probability exists only where the calibration gate was
+#: met. A pooled metric over a mix of calibrated and absent probabilities would
+#: describe neither, so these report ranking metrics with a note instead.
+_CALIBRATED: frozenset[str] = frozenset(
+    {"spectrum_krr_calibrated", "profile_krr_calibrated"})
 
 #: Which target the determinant comparator answers, and the cofactor a
 #: positive label on that target means. Scoring a 2'-phosphate determinant
@@ -312,6 +335,11 @@ class TargetResult:
     #: beats the k-mer baseline and loses to the alignment one has not been
     #: shown to add anything, and one number cannot say that.
     delta_auroc_vs_profile: dict[str, Any] | None = None
+    #: the head on the profile kernel against homology transfer over the
+    #: *same* similarity: the only pairing that isolates what the head adds.
+    delta_auroc_profile_krr_vs_profile_nn: dict[str, Any] | None = None
+    #: the same head on two kernels, which is the representation change alone.
+    delta_auroc_profile_krr_vs_spectrum_krr: dict[str, Any] | None = None
 
 
 @dataclass
@@ -330,6 +358,7 @@ class BenchmarkReport:
     uncalibrated_targets: list[str]
     kernel_character: dict[str, Any] = field(default_factory=dict)
     alignment_similarity: dict[str, Any] = field(default_factory=dict)
+    alignment_kernel: dict[str, Any] = field(default_factory=dict)
     determinant_rules: list[dict[str, Any]] = field(default_factory=list)
     determinant_outcomes: dict[str, dict[str, int]] = field(default_factory=dict)
     digest: str = ""
@@ -347,6 +376,7 @@ class BenchmarkReport:
             "uncalibrated_targets": self.uncalibrated_targets,
             "kernel_character": self.kernel_character,
             "alignment_similarity": self.alignment_similarity,
+            "alignment_kernel": self.alignment_kernel,
             "determinant_rules": self.determinant_rules,
             "determinant_outcomes": self.determinant_outcomes,
             "digest": self.digest,
@@ -376,6 +406,9 @@ class BenchmarkReport:
         if any("profile_nearest_neighbour" in t.comparators
                for t in self.targets):
             names.insert(2, "profile_nearest_neighbour")
+        if any("profile_krr_calibrated" in t.comparators
+               for t in self.targets):
+            names.append("profile_krr_calibrated")
         if any("cofactor_determinant" in t.comparators for t in self.targets):
             names.append("cofactor_determinant")
         lines.append(f"{'target':<30}{'n':>5}{'pos':>5}  "
@@ -459,12 +492,17 @@ class BenchmarkReport:
             + (f" ({missing / requested:.1%}, scored 0.0)" if requested
                else "")
             + ". A pair with no hit is not a measured dissimilarity.")
+        out += self._alignment_kernel_lines()
         for t in self.targets:
             for label, d in (
                     ("profile_nearest_neighbour vs nearest_neighbour",
                      t.delta_auroc_profile_vs_nearest_neighbour),
                     ("spectrum_krr vs profile_nearest_neighbour",
-                     t.delta_auroc_vs_profile)):
+                     t.delta_auroc_vs_profile),
+                    ("profile_krr vs profile_nearest_neighbour",
+                     t.delta_auroc_profile_krr_vs_profile_nn),
+                    ("profile_krr vs spectrum_krr",
+                     t.delta_auroc_profile_krr_vs_spectrum_krr)):
                 if not d:
                     continue
                 ci = d.get("ci95")
@@ -477,6 +515,36 @@ class BenchmarkReport:
                        if d["interval_excludes_zero"]
                        else "the interval includes zero, so this pool does "
                             "not separate them"))
+        return out
+
+    def _alignment_kernel_lines(self) -> list[str]:
+        """The head on the profile kernel: whether it could be fitted at all.
+
+        A refusal is printed as prominently as a result. Kernel ridge needs a
+        positive-definite Gram matrix, a symmetrised bit-score matrix need not
+        give one, and the pre-registered rule was to report that rather than
+        raise the ridge until the factorisation went through.
+        """
+        k = self.alignment_kernel
+        if not k:
+            return []
+        out = [f"  head refitted on kernel {k.get('kernel_id')} at ridge "
+               f"{k.get('ridge')}: "
+               + ("fitted on every fold; its column is in the table above"
+                  if k.get("scored")
+                  else "NOT SCORED -- the Cholesky refused the Gram matrix")]
+        if k.get("cholesky_refusal"):
+            out.append(f"    refusal: {k['cholesky_refusal']}")
+            out.append("    the ridge was NOT raised to force it through; a "
+                       "kernel the factorisation refuses is reported refused")
+        if k.get("definiteness"):
+            d = k["definiteness"]
+            spectrum = d.get("spectrum_with_ridge") or {}
+            out.append(
+                f"    whole-pool check: factorises={d.get('factorises')}, "
+                f"smallest eigenvalue with the ridge "
+                f"{spectrum.get('smallest_estimate')} (estimate), without it "
+                f"{d.get('smallest_eigenvalue_without_ridge_estimate')}")
         return out
 
     def _determinant_lines(self) -> list[str]:
@@ -635,7 +703,8 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                   clustering_note: Mapping[str, Any] | None = None,
                   kernel: KernelCache | None = None,
                   determinant_rules: Sequence[AnchoredDeterminantRule] = (),
-                  alignment: PairwiseSimilarity | None = None
+                  alignment: PairwiseSimilarity | None = None,
+                  alignment_kernel: Any | None = None
                   ) -> BenchmarkReport:
     """Run every comparator over identical folds and report out-of-fold results.
 
@@ -658,6 +727,13 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
     decide whether an optional extra is installed, and so that one provider
     (and therefore one profile search per sequence) is shared by the grouped,
     ungrouped and sweep runs.
+
+    ``alignment_kernel`` is a kernel for the *head* -- in practice
+    :class:`eagent.science.alignment_similarity.ProfileKernel`. Supplied, the
+    same head is fitted a second time on it over the identical folds, adding
+    the ``profile_krr`` columns. A fold whose Gram matrix the Cholesky refuses
+    leaves those columns absent for the whole run with the refusal recorded,
+    rather than contributing some folds and not others.
     """
     protocol = protocol or BenchmarkProtocol()
     if not examples:
@@ -703,6 +779,7 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
     determinant = _DeterminantScorer(determinant_rules)
     max_sims: list[float] = []
     uncalibrated: set[str] = set()
+    kernel_refusal: str | None = None
     factor_cache: dict = {}
     for k in range(protocol.n_folds):
         train = [e for e in grouped_examples if fold_of[e.example_id] != k]
@@ -714,6 +791,26 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
             calibration_folds=protocol.calibration_folds,
             min_calibration_per_class=protocol.min_calibration_per_class,
             seed=protocol.seed, kernel=kernel, factor_cache=factor_cache)
+        profile_model = None
+        if alignment_kernel is not None and kernel_refusal is None:
+            try:
+                profile_model = EnzymeSubstrateModel(
+                    train, ridge=protocol.ridge, ks=protocol.ks,
+                    calibration_folds=protocol.calibration_folds,
+                    min_calibration_per_class=protocol.min_calibration_per_class,
+                    seed=protocol.seed, kernel=alignment_kernel,
+                    factor_cache=factor_cache)
+            except EnzymeSubstrateError as exc:
+                # One fold's refusal disqualifies the column for the run: a
+                # macro average over the folds whose matrix happened to
+                # factorise is a number about which folds those were, so
+                # whatever earlier folds contributed is discarded here.
+                kernel_refusal = str(exc)
+                profile_model = None
+                for slots in pooled.values():
+                    for name in ("profile_krr", "profile_krr_calibrated"):
+                        for column in slots[name].values():
+                            column.clear()
         train_by_target: dict[str, list[Example]] = {}
         for e in train:
             train_by_target.setdefault(e.target, []).append(e)
@@ -756,6 +853,16 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                             for r in neg)
                 columns.append(
                     ("profile_nearest_neighbour", a_pos - a_neg, None))
+            if profile_model is not None:
+                p_pred = profile_model.predict(e.sequence, e.target)
+                p_raw = p_pred.score if p_pred.score is not None else 0.0
+                columns += [
+                    ("profile_krr", p_raw,
+                     min(max((p_raw + 1.0) / 2.0, 0.0), 1.0)),
+                    ("profile_krr_calibrated", p_raw, p_pred.probability),
+                ]
+                if not p_pred.calibrated:
+                    uncalibrated.add(f"{e.target} (profile kernel)")
             det = determinant.score(e.sequence, e.target)
             if det is not None:
                 columns.append(("cofactor_determinant", det, None))
@@ -782,7 +889,7 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                 # this target rather than present with a placeholder: an empty
                 # cell reads as "not applicable", a zero reads as "measured".
                 continue
-            if name == "spectrum_krr_calibrated":
+            if name in _CALIBRATED:
                 if any(p is None for p in probs):
                     # a calibrated number only where every fold produced one
                     # -- a pooled metric over a mix of calibrated and absent
@@ -807,6 +914,12 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
             tr.delta_auroc_vs_profile = _paired_delta(
                 slot["spectrum_krr"], slot["profile_nearest_neighbour"],
                 protocol)
+            if slot["profile_krr"]["score"]:
+                tr.delta_auroc_profile_krr_vs_profile_nn = _paired_delta(
+                    slot["profile_krr"], slot["profile_nearest_neighbour"],
+                    protocol)
+                tr.delta_auroc_profile_krr_vs_spectrum_krr = _paired_delta(
+                    slot["profile_krr"], slot["spectrum_krr"], protocol)
         if slot["cofactor_determinant"]["score"]:
             tr.delta_auroc_determinant_vs_nearest_neighbour = _paired_delta(
                 slot["cofactor_determinant"], slot["nearest_neighbour"],
@@ -860,6 +973,13 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
             [sequences[i] for i in ids], protocol.ks, seed=protocol.seed),
         alignment_similarity=(_alignment_record(alignment)
                               if alignment is not None else {}),
+        alignment_kernel=(
+            {"kernel_id": getattr(alignment_kernel, "kernel_id",
+                                  type(alignment_kernel).__name__),
+             "ridge": protocol.ridge,
+             "cholesky_refusal": kernel_refusal,
+             "scored": kernel_refusal is None}
+            if alignment_kernel is not None else {}),
         determinant_rules=determinant.rule_records(),
         determinant_outcomes={t: dict(sorted(c.items()))
                               for t, c in sorted(determinant.outcomes.items())})
@@ -883,8 +1003,11 @@ class SdrSuite:
         if "profile_nearest_neighbour" in self.grouped.macro:
             # The stronger a homology baseline is, the more a near-duplicate
             # straddling the split should flatter it. Leaving the alignment
-            # column out of the leakage control would hide exactly that.
+            # column out of the leakage control would hide exactly that, and
+            # the same question is worth asking of the head on that kernel.
             names.insert(1, "profile_nearest_neighbour")
+        if "profile_krr_calibrated" in self.grouped.macro:
+            names.append("profile_krr_calibrated")
         for name in names:
             g = self.grouped.macro[name]["auroc"]
             u = self.ungrouped.macro[name]["auroc"]
@@ -939,12 +1062,16 @@ def sdr_alignment_similarity(examples: Sequence[Example], **kwargs: Any
 def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = None,
                   *, sweep: Sequence[float] = (0.03, 0.1, 0.3, 1.0),
                   determinant_rules: Sequence[AnchoredDeterminantRule] | None = None,
-                  alignment: PairwiseSimilarity | None = None
+                  alignment: PairwiseSimilarity | None = None,
+                  alignment_kernel: Any | None = None
                   ) -> SdrSuite:
     """Load the SDR dataset, cluster it, and run the grouped, ungrouped and sweep runs.
 
     One ``alignment`` provider serves every run, so each sequence's profile is
-    searched once for the whole suite rather than once per run.
+    searched once for the whole suite rather than once per run, and
+    ``alignment_kernel`` (built over the same provider) adds the head refitted
+    on it. The whole-pool definiteness check runs once and is recorded on the
+    grouped report.
     """
     from ..tools.mine_sequences import cluster_sequences
     protocol = protocol or BenchmarkProtocol()
@@ -965,11 +1092,19 @@ def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = Non
         report = run_benchmark(examples, proto,
                                cluster_assignment=dict(clustering.assignment),
                                clustering_note=note, kernel=kernel,
-                               determinant_rules=rules, alignment=alignment)
+                               determinant_rules=rules, alignment=alignment,
+                               alignment_kernel=alignment_kernel)
         report.dataset_md5 = dict(dataset.file_md5)
         return report
 
     grouped = run(protocol)
+    if alignment_kernel is not None:
+        from ..science.enzyme_substrate import definiteness_report
+        grouped.alignment_kernel["definiteness"] = definiteness_report(
+            [e.sequence for e in examples], alignment_kernel,
+            ridge=protocol.ridge, seed=protocol.seed)
+        grouped.digest = sha256_obj({k: v for k, v in grouped.to_dict().items()
+                                     if k != "digest"})
     ungrouped = run(BenchmarkProtocol(**{**protocol.__dict__, "grouped": False}))
     sweep_out: dict[float, dict[str, float | None]] = {}
     for ridge in sweep:

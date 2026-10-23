@@ -5,7 +5,7 @@ can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
 **Where the project is today.** The harness is complete and tested: the whole suite
-passes (3385 tests plus 874 subtests with the optional extras installed;
+passes (3414 tests plus 874 subtests with the optional extras installed;
 without them the extra-dependent tests skip rather than fail). **Four public
 databases have been called live** (UniProtKB, RCSB PDB, Rhea, Zenodo) and one
 real dataset has been downloaded through a checksum-verified route; a first
@@ -26,8 +26,11 @@ table, and §7 says what the latest round of work did and did not establish.
 claiming, a sequence-to-annotated-class model that is **not better than
 homology transfer** -- it beats a *k-mer* nearest-neighbour baseline on two of
 twelve classes, and once that baseline is replaced by a real profile search it
-loses on six and wins on none (§9.1 of `docs/EVALUATION.md`) -- and a
-simulation showing that feeding labels back helps *on annotation-derived data*.
+loses on six and wins on none; refitting the head on that profile similarity
+raises it from 0.667 to 0.742 macro AUROC, the one change that has helped it,
+and still leaves it under the baseline's 0.787 (§9.1 of
+`docs/EVALUATION.md`) -- and a simulation showing that feeding labels back
+helps *on annotation-derived data*.
 It does **not** support the sentence "the agent has learned from experiments and
 validated new-enzyme discovery": no experiment has been run.
 
@@ -456,8 +459,24 @@ and a reference set, and nothing here substitutes for either.
 
 - Recovering an annotated class from sequence, with test sequences held out by
   cluster: macro AUROC **0.667** for the spectrum-kernel model against **0.710**
-  for nearest-neighbour. The model is better on 2 of 12 targets (the NAD/NADP
-  cofactor and one substrate cluster), worse on 1, and indistinguishable on 9.
+  for the k-mer nearest neighbour. The model is better on 2 of 12 targets (the
+  NAD/NADP cofactor and one substrate cluster), worse on 1, and
+  indistinguishable on 9.
+- Replacing that baseline's k-mer cosine with a **real profile search** (HMMER3
+  through `pyhmmer`, the `search` extra) raises the baseline to **0.787** and
+  flips the comparison: the model beats it on **none** of the 12 and loses on
+  6. The apparent edge above was measured against the weaker of two baselines.
+- Refitting the same head on that profile similarity raises it to **0.742** --
+  better than the k-mer head on 3 targets and worse on none, and the only
+  change tried so far that has helped the head rather than the baseline. It is
+  still below the 0.787 of homology transfer over the same similarity, so the
+  head is not justified as an improvement on "find the nearest characterised
+  homologue". The symmetrised Gram matrix turned out to be positive definite
+  without a ridge; nothing was repaired to make the fit go through.
+- The better ranker is the **worse** naive probability: macro ECE of the
+  uncalibrated `(s+1)/2` reading doubles on the profile kernel, 0.061 to 0.123,
+  and the calibration gate admits 2 targets instead of 3. Ranking skill is not
+  calibration.
 - Ungrouped folds inflate AUROC by about **0.26-0.28** (0.71 to 0.97). That gap
   is the reason grouping is mandatory, and it is the size of the error a
   benchmark makes when it does not group.
@@ -530,7 +549,7 @@ sources print.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 3385 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
+框架已完成并通过测试（写作时 3414 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
 （UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；但**没有跑过
 任何真实的结构预测器、对接程序、反向折叠模型或搜索二进制，也没有读过任何真实的实验板**。里程碑 1
 是"已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。

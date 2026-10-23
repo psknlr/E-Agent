@@ -26,7 +26,7 @@ from eagent.eval.retrospective import (
 )
 from eagent.science import alignment_similarity as A
 from eagent.science.alignment_similarity import (
-    AlignmentReport, AlignmentSimilarityError, PhmmerSimilarity,
+    AlignmentReport, AlignmentSimilarityError, PhmmerSimilarity, ProfileKernel,
     pool_from_examples, pyhmmer_available,
 )
 from eagent.science.enzyme_substrate import Example
@@ -209,6 +209,151 @@ class BenchmarkColumnTests(unittest.TestCase):
         self.assertNotEqual(self.with_alignment.digest, self.without.digest)
 
 
+class StubKernel:
+    """A constant off-diagonal. Positive definite above ~0, indefinite below."""
+
+    self_similarity = 1.0
+
+    def __init__(self, value: float, poison: str | None = None) -> None:
+        self.value = value
+        self.poison = poison
+        self.kernel_id = f"stub:{value}:{bool(poison)}"
+
+    def similarity(self, a: str, b: str) -> float:
+        if a == b:
+            return self.self_similarity
+        if self.poison is not None and self.poison not in (a, b):
+            return 0.3
+        return self.value
+
+
+class ProfileHeadColumnTests(unittest.TestCase):
+    """The head refitted on an alignment kernel, checked without pyhmmer."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.examples, cls.clusters = small_examples()
+        cls.protocol = BenchmarkProtocol(n_folds=3, n_boot=30, min_per_class=5)
+
+    def run_with(self, kernel: object):
+        return run_benchmark(self.examples, self.protocol,
+                             cluster_assignment=self.clusters,
+                             alignment=Stub(), alignment_kernel=kernel)
+
+    def test_a_definite_kernel_fills_the_columns_and_both_pairings(self) -> None:
+        report = self.run_with(StubKernel(0.3))
+        self.assertTrue(report.alignment_kernel["scored"])
+        self.assertIsNone(report.alignment_kernel["cholesky_refusal"])
+        for t in report.targets:
+            self.assertIsNotNone(t.comparators["profile_krr"]["auroc"])
+            self.assertIsNotNone(t.delta_auroc_profile_krr_vs_profile_nn)
+            self.assertIsNotNone(t.delta_auroc_profile_krr_vs_spectrum_krr)
+        self.assertIn("profile_krr", report.macro)
+        self.assertIn("its column is in the table above", report.render())
+
+    def test_an_indefinite_kernel_leaves_no_partial_column(self) -> None:
+        """A refusal on any fold disqualifies the column for the whole run."""
+        report = self.run_with(StubKernel(-0.9))
+        self.assertFalse(report.alignment_kernel["scored"])
+        self.assertIn("positive definite",
+                      report.alignment_kernel["cholesky_refusal"])
+        for t in report.targets:
+            self.assertNotIn("profile_krr", t.comparators)
+            self.assertNotIn("profile_krr_calibrated", t.comparators)
+            self.assertIsNone(t.delta_auroc_profile_krr_vs_profile_nn)
+        self.assertNotIn("profile_krr", report.macro)
+        self.assertIn("NOT SCORED", report.render())
+
+    def test_a_kernel_that_only_one_fold_refuses_leaves_no_partial_column(self) -> None:
+        """The same invariant when the refusal comes after a fold has scored."""
+        poison = self.examples[0].sequence
+        report = self.run_with(StubKernel(-0.95, poison=poison))
+        if report.alignment_kernel["scored"]:
+            self.skipTest("this kernel factorised on every fold")
+        for t in report.targets:
+            self.assertNotIn("profile_krr", t.comparators)
+        self.assertNotIn("profile_krr", report.macro)
+
+    def test_the_ridge_is_never_raised_to_force_a_factorisation(self) -> None:
+        report = self.run_with(StubKernel(-0.9))
+        self.assertEqual(report.alignment_kernel["ridge"],
+                         self.protocol.ridge)
+        self.assertIn("was NOT raised", report.render())
+
+    def test_the_other_columns_are_untouched_by_adding_this_one(self) -> None:
+        with_head = self.run_with(StubKernel(0.3))
+        without = run_benchmark(self.examples, self.protocol,
+                                cluster_assignment=self.clusters,
+                                alignment=Stub())
+        for a, b in zip(with_head.targets, without.targets):
+            for name in ("nearest_neighbour", "spectrum_krr",
+                         "profile_nearest_neighbour"):
+                self.assertEqual(a.comparators[name]["auroc"],
+                                 b.comparators[name]["auroc"], name)
+
+
+@needs_pyhmmer
+class ProfileKernelTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.seqs = sdr_sequences(8)
+        cls.provider = PhmmerSimilarity(cls.seqs, cpus=1)
+        cls.kernel = ProfileKernel(cls.provider)
+
+    def test_it_is_symmetric_where_the_provider_is_not(self) -> None:
+        a, b = self.seqs[0], self.seqs[1]
+        self.assertEqual(self.kernel.similarity(a, b),
+                         self.kernel.similarity(b, a))
+
+    def test_it_is_the_mean_of_the_two_directions(self) -> None:
+        a, b = self.seqs[2], self.seqs[3]
+        expected = (self.provider.similarity(a, b)
+                    + self.provider.similarity(b, a)) / 2.0
+        self.assertAlmostEqual(self.kernel.similarity(a, b), expected,
+                               places=9)
+
+    def test_a_sequence_scores_one_against_itself(self) -> None:
+        self.assertEqual(self.kernel.self_similarity, 1.0)
+        self.assertAlmostEqual(
+            self.kernel.similarity(self.seqs[0], self.seqs[0]), 1.0, places=6)
+
+    def test_it_names_itself_so_a_factor_cache_cannot_cross_kernels(self) -> None:
+        self.assertEqual(self.kernel.kernel_id, "phmmer_symmetrised")
+
+    def test_it_declares_no_ks_because_it_is_not_a_kmer_kernel(self) -> None:
+        self.assertFalse(hasattr(self.kernel, "ks"))
+
+    def test_a_pair_is_scored_once_however_often_it_is_asked(self) -> None:
+        kernel = ProfileKernel(PhmmerSimilarity(self.seqs[:4], cpus=1))
+        for _ in range(3):
+            kernel.similarity(self.seqs[0], self.seqs[1])
+        self.assertEqual(kernel.report().pairs_requested, 2)
+
+    def test_the_report_comes_from_the_provider(self) -> None:
+        self.assertEqual(self.kernel.report().backend, "phmmer")
+
+
+@needs_pyhmmer
+class ProfileContrastTests(unittest.TestCase):
+
+    def test_the_label_free_contrast_runs_on_the_profile_search(self) -> None:
+        from eagent.science.alignment_similarity import profile_contrast
+
+        out = profile_contrast(sdr_sequences(12), n_pairs=12, seed=0, cpus=1)
+        self.assertEqual(out["n_sequences"], 12)
+        self.assertIsNotNone(out["median_real_pair"])
+        self.assertEqual(out["provider"]["pool_size"], 24)
+        self.assertIn("profile bit score", out["measure"])
+
+    def test_the_provider_pool_covers_the_shuffles_too(self) -> None:
+        """A target outside the pool is refused, so prepare must include them."""
+        from eagent.science.alignment_similarity import profile_contrast
+
+        out = profile_contrast(sdr_sequences(6), n_pairs=20, seed=1, cpus=1)
+        self.assertEqual(out["provider"]["pool_size"], 12)
+
+
 class CommandLineTests(unittest.TestCase):
     """The flag's two outcomes, independent of what is installed here."""
 
@@ -223,6 +368,19 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(result.exit_code, 2, result.output)
         self.assertIn("eagent[search]", result.output)
         self.assertIn("drop --alignment", result.output)
+
+    def test_asking_for_the_head_without_the_extra_refuses_too(self) -> None:
+        """--alignment-head implies --alignment, so it meets the same refusal."""
+        original = A.pyhmmer_available
+        A.pyhmmer_available = lambda: False
+        try:
+            result = CliRunner().invoke(main, [
+                "benchmark", "sdr", "--data", str(FIXTURES),
+                "--alignment-head"])
+        finally:
+            A.pyhmmer_available = original
+        self.assertEqual(result.exit_code, 2, result.output)
+        self.assertIn("eagent[search]", result.output)
 
     def test_the_flag_is_off_by_default(self) -> None:
         """A plain install must measure the same benchmark it always did."""

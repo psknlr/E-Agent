@@ -373,13 +373,15 @@ evidence. Every report opens with that sentence, and the code carries it as a
 constant (`CLAIM`) so it cannot be dropped from a rendering.
 
 ```
-eagent benchmark sdr      --data tests/fixtures/sdr --alignment --out docs/results/sdr_label_recovery.json
+eagent benchmark sdr      --data tests/fixtures/sdr --alignment-head --out docs/results/sdr_label_recovery.json
 eagent benchmark feedback --data tests/fixtures/sdr --out docs/results/feedback_simulation.json
 ```
 
-`--alignment` adds the profile-search baseline of §9.1 and needs the `search`
-extra (`pip install 'eagent[search]'`); the same command without it reproduces
-every other column, and the report records which comparators ran.
+`--alignment` adds the profile-search baseline of §9.1 and `--alignment-head`
+also refits the head on that similarity (it implies `--alignment`); both need
+the `search` extra (`pip install 'eagent[search]'`). The same command without
+them reproduces every other column, and the report records which comparators
+ran.
 
 The recorded outputs are `docs/results/sdr_label_recovery.{txt,json}` and
 `docs/results/feedback_simulation.{txt,json}`; each JSON carries a digest over
@@ -405,6 +407,7 @@ ungrouped folds to price leakage.
 | nearest neighbour (k-mer cosine) | 0.710 | homology transfer, pure Python |
 | nearest neighbour (profile search) | **0.787** | the same rule with a real alignment: HMMER3 through `pyhmmer`, the `search` extra |
 | spectrum-kernel model | 0.667 | better than the *k-mer* baseline on 2 targets (NADP cofactor, one substrate cluster), worse on 1, indistinguishable on 9; against the *profile* baseline, better on **none** and worse on **6** (paired cluster-bootstrap intervals) |
+| the same head on the profile kernel | 0.742 | the representation change, and the only change in this section that helped the head; still below the profile baseline it is fitted on |
 | cofactor determinant | 0.583 | one target only (NADP cofactor), and it loses there: see below |
 
 **The cofactor determinant, scored and found wanting.** The motif-anchored
@@ -430,8 +433,9 @@ is exactly what the template's `curator_must_supply` asks for, and the point at
 which this should be measured again.
 
 * Ungrouped folds: k-mer nearest neighbour 0.967, profile nearest neighbour
-  0.978 and the model 0.948 -- **an optimism of 0.19 to 0.28 AUROC** from
-  near-duplicates straddling the split, smallest for the alignment baseline.
+  0.978, the model 0.948 and the model on the profile kernel 0.965 -- **an
+  optimism of 0.19 to 0.28 AUROC** from near-duplicates straddling the split,
+  smallest for the alignment baseline.
   Median max-similarity of a test sequence to its training set: 0.41 grouped,
   0.70 ungrouped.
 * Calibration: only **3 of 12** targets earned a probability, because the gate
@@ -547,15 +551,93 @@ What this does and does not license:
 * It does **not** say the head is worthless. It says the head's *similarity* is
   the wrong one — which is what `composition_contrast` predicted from a
   label-free number before any of this was scored.
-* The next step is therefore a measurement, not a rewrite: feed the profile
-  similarity to the head in place of the k-mer cosine. Kernel ridge needs a
-  symmetric positive-definite matrix and a bit-score matrix is neither, so that
-  means symmetrising the two directions, checking the eigenvalues, and
-  reporting what the check found — including if it fails.
+* The next step was therefore a measurement, not a rewrite: feed the profile
+  similarity to the head in place of the k-mer cosine, which needs the two
+  directions symmetrised and the eigenvalues checked. That run is below, and it
+  was pre-registered before it happened.
 * `mine_sequences` is still a seam, for a different reason: it has nothing to
   search *against*. No local sequence database is present and the public hosts
   are unreachable from this environment, so what is missing there is data and
   reachability, not a program.
+
+#### Giving the head that similarity
+
+The decision rule for this run was written and committed **before** it, in
+`docs/results/profile_kernel_preregistration.md`, so that the commit order
+shows the rule was not chosen after the numbers. In short: the profile kernel
+is added as its own comparator rather than as a replacement, the default stays
+the k-mer kernel whatever happens because a default must not require an
+optional extra, positive definiteness is checked at the fixed ridge and the
+ridge is never raised to rescue a failure, and one run is reported whichever
+way it goes.
+
+Two things had to hold before the head could read this similarity at all, and
+only one of them is imposed:
+
+* **Symmetry** is imposed, as the mean of the two directions
+  (`ProfileKernel`). That averages away the asymmetry `PhmmerSimilarity` keeps
+  on purpose, and it is a modelling choice with a cost, not a free conversion.
+* **Positive definiteness is not imposed.** A bit score is not an inner
+  product, so the Gram matrix had no right to be definite. It is:
+  `definiteness_report` factorises it at the protocol's ridge, and
+  `min_eigenvalue` puts its smallest eigenvalue **without** any ridge at about
+  +0.045 (an estimate; the Cholesky's success is the operative fact). So
+  nothing needed repairing and nothing was repaired. Had it failed, the run
+  would have reported a refusal — the code path and its test exist.
+
+*Result, same folds, same rows, same budget, nothing tuned:*
+
+| macro, over 12 targets | k-mer kernel | profile kernel |
+| --- | --- | --- |
+| AUROC | 0.667 | **0.742** |
+| Brier, on targets that earned a probability | 0.135 (3 of 12) | **0.097** (2 of 12) |
+| ECE of the naive `(s+1)/2` reading | **0.061** | 0.123 |
+| better than the other head, paired interval excluding zero | 0 targets | **3 targets** |
+
+**The representation change is the first thing in this whole chain that helped
+the head.** Not the ridge (a flat sweep), not the k-mer window (`ks = (3, 4)`
+helped only the baseline), not a better rule (the cofactor determinant lost).
+Changing what "similar" means moved the head +0.075 macro AUROC, better on
+three targets with intervals excluding zero — NADP cofactor +0.065
+[+0.001, +0.128], substrate cluster 0 +0.400 [+0.194, +0.591], cluster 4
++0.158 [+0.009, +0.281] — and worse on none. The label-free diagnostic picked
+that representation before any of this was scored, which is the second time it
+has been right about where to look.
+
+**And the head still does not beat homology transfer.** Against the profile
+nearest neighbour on the *same* similarity — the pairing that isolates what
+the head adds — it is better on one target (NADP cofactor +0.070
+[+0.011, +0.136]), worse on two (CoA substructure −0.118 [−0.198, −0.026],
+cluster 4 −0.070 [−0.170, −0.002]) and indistinguishable on nine; macro 0.742
+against 0.787. So the head's problem was *substantially* its similarity, as
+the composition diagnostic said, and **not only** its similarity.
+
+The leakage control agrees with the ordering. Ungrouped folds flatter the
+profile-kernel head by **0.223** AUROC against 0.281 for the k-mer head, and
+the profile baseline by 0.191 against the k-mer baseline's 0.257: along this
+whole sequence, the better a measure of similarity is, the less it leans on
+near-duplicates straddling the split. That is what one would hope, and it is
+not something the grouped AUROC alone would have shown.
+
+One result cuts against the headline and is worth more than it: the better
+ranker is the **worse** naive probability. Macro ECE on the uncalibrated
+`(s + 1) / 2` reading doubles, 0.061 to 0.123, and the calibration gate admits
+fewer targets, 2 against 3. A kernel that ranks better produced scores whose
+naive reading is further from a probability, and the only reason that is a
+footnote rather than a defect shipped to a caller is that the gate refuses to
+hand out a probability it has not earned. Ranking skill is not calibration, and
+this run is a clean example of the two moving in opposite directions.
+
+What follows for the code, under the pre-registered rule: the profile kernel is
+reachable (`ProfileKernel`, `eagent benchmark sdr --alignment-head`) and the
+default stays the k-mer cosine, because a default that needs an optional extra
+is not one. What follows for a reader who wants a ranking over candidate
+sequences on this kind of label: **use the profile nearest neighbour**, which
+needs no training, no calibration and no ridge. And what follows for the head
+is not another kernel — the remaining 0.045 AUROC is the head's own, and
+closing it is a question of more data or a different hypothesis class, neither
+of which this repository can answer by tuning. All of it remains about
+annotation-derived labels and is no evidence about ketoreductase activity.
 
 ### 9.2 The feedback loop (`eval/feedback_simulation.py`)
 

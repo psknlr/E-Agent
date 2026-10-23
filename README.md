@@ -363,8 +363,11 @@ sequence-to-annotated-class model that beats a **k-mer** nearest-neighbour
 baseline on two of twelve **annotation-derived** classes with test sequences
 held out by cluster — but that **loses to a profile-search nearest-neighbour
 baseline on six of them and beats it on none**, so it is not better than
-homology transfer and its apparent edge was a weak baseline (`docs/EVALUATION.md`
-§9.1); and a simulation showing that feeding
+homology transfer and its apparent edge was a weak baseline. Refitting the same
+head on that profile similarity is the one change that has helped it (macro
+AUROC 0.667 to 0.742, better on three targets and worse on none) and still
+leaves it below the baseline's 0.787 (`docs/EVALUATION.md` §9.1); and a
+simulation showing that feeding
 labels back into selection helps on that same annotation-derived data, much less
 so once the pool's redundancy is removed. It does **not** support the statement
 that the agent has learned from experiments or validated new-enzyme discovery:
@@ -481,7 +484,7 @@ LigandMPNN，在本环境里**全部不存在**。HMMER3 是例外：`search` �
 
 ### 现状
 
-整个测试套件通过（写作时为 3385 个测试 + 874 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
+整个测试套件通过（写作时为 3414 个测试 + 874 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
 **对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
 一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；另有一份 KRED 实验复合物参考集
 （19 个条目、28 条动力学记录）被保存、哈希固定、重算并与原始表格比对——但它按现有模板只有 1 个条目合格，

@@ -64,6 +64,8 @@ from ..errors import EAgentError, ToolUnavailableError
 
 __all__ = [
     "AlignmentSimilarityError",
+    "ProfileKernel",
+    "profile_contrast",
     "PairwiseSimilarity",
     "AlignmentReport",
     "pyhmmer_available",
@@ -315,6 +317,88 @@ class PhmmerSimilarity:
             for hit in hits:
                 return float(hit.score)
         return 0.0
+
+
+class ProfileKernel:
+    """A **symmetric** kernel built from the directional profile search.
+
+    Kernel ridge regression needs a symmetric matrix, and it needs the matrix
+    to be positive definite. A profile bit score is neither symmetric nor an
+    inner product, so this class does one of those two things and refuses to
+    pretend about the other:
+
+    * **Symmetry** is imposed explicitly, as the mean of the two directions.
+      That is a modelling choice with a cost -- it averages away the asymmetry
+      that :class:`PhmmerSimilarity` keeps on purpose -- and it is the cheapest
+      choice that lets the existing head read this similarity at all.
+    * **Positive definiteness is not imposed.** Nothing here clips an
+      eigenvalue or inflates the ridge to force a factorisation through. If the
+      Gram matrix is indefinite, :func:`eagent.science.enzyme_substrate._cholesky`
+      refuses it and the caller reports a refusal, with
+      :func:`eagent.science.enzyme_substrate.min_eigenvalue` to say how far off
+      it was. A model fitted on a silently repaired kernel is a model whose
+      regulariser was chosen by the failure it had to survive.
+
+    Symmetrising doubles the searches: every sequence becomes a query, not only
+    the held-out ones. The provider memoises per query, so the cost is one
+    profile search per distinct sequence in the pool, however many pairs are
+    read.
+    """
+
+    #: A sequence against itself: both directions are the normalised self
+    #: score, so exactly 1.0. The head reads this for the Gram diagonal.
+    self_similarity: float = 1.0
+
+    def __init__(self, provider: PhmmerSimilarity) -> None:
+        self._provider = provider
+        self._sim: dict[tuple[str, str], float] = {}
+
+    @property
+    def kernel_id(self) -> str:
+        return "phmmer_symmetrised"
+
+    def similarity(self, a: str, b: str) -> float:
+        key = (a, b) if a <= b else (b, a)
+        value = self._sim.get(key)
+        if value is None:
+            value = self._sim[key] = (self._provider.similarity(a, b)
+                                      + self._provider.similarity(b, a)) / 2.0
+        return value
+
+    def report(self) -> AlignmentReport:
+        return self._provider.report()
+
+
+def profile_contrast(sequences: Sequence[str], *, n_pairs: int = 400,
+                     seed: int = 0, **kwargs: Any) -> dict[str, Any]:
+    """The label-free order-versus-composition contrast, for the profile search.
+
+    The same diagnostic that measured the k-mer cosine at 1.07x its own
+    composition background, applied to this similarity on the same pool and the
+    same seeded pairs, so the two are comparable. The provider is built over
+    the real *and* the shuffled sequences, because it refuses a target it never
+    searched.
+
+    The report carries the provider's own coverage under ``provider``: on a
+    composition-matched shuffle the search is expected to report nothing at
+    all, and "nothing at all" is the finding rather than a failure.
+    """
+    from .enzyme_substrate import similarity_contrast
+
+    box: dict[str, PhmmerSimilarity] = {}
+
+    def prepare(real: Sequence[str], shuffled: Sequence[str]) -> None:
+        box["provider"] = PhmmerSimilarity(list(real) + list(shuffled),
+                                           **kwargs)
+
+    out = similarity_contrast(
+        sequences, lambda a, b: box["provider"].similarity(a, b),
+        measure="median normalised profile bit score between pool pairs, over "
+                "the median between pairs of composition-preserving shuffles "
+                "of the same sequences; no label is read",
+        n_pairs=n_pairs, seed=seed, prepare=prepare)
+    out["provider"] = box["provider"].report().to_dict()
+    return out
 
 
 def pool_from_examples(examples: Sequence[Any]) -> list[str]:

@@ -59,7 +59,8 @@ import math
 import random
 from dataclasses import dataclass, field
 from operator import mul
-from typing import Any, Iterable, Mapping, Sequence
+from operator import mul as mul_op
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from ..errors import EAgentError
 from ..provenance import sha256_obj, utc_now
@@ -72,6 +73,9 @@ __all__ = [
     "SpectrumVector",
     "spectrum_vector",
     "composition_contrast",
+    "similarity_contrast",
+    "min_eigenvalue",
+    "definiteness_report",
     "cosine",
     "PlattCalibrator",
     "HeadReport",
@@ -154,42 +158,103 @@ def cosine(a: SpectrumVector, b: SpectrumVector) -> float:
     return sum(v * large.get(k, 0.0) for k, v in small.items())
 
 
+def similarity_contrast(sequences: Sequence[str],
+                        similarity: Callable[[str, str], float],
+                        *, measure: str, n_pairs: int = 400, seed: int = 0,
+                        prepare: Callable[[Sequence[str], Sequence[str]],
+                                          None] | None = None
+                        ) -> dict[str, Any]:
+    """How much of *any* similarity is sequence order rather than composition.
+
+    Each sequence is shuffled -- same length, same composition exactly, no
+    order left -- and the median similarity between pairs of shuffles is that
+    similarity's composition background. ``ratio`` is the median between real
+    pairs divided by that background: 1.0 means the measure sees nothing but
+    composition, and larger means more of it is the local pattern.
+
+    **No label is read here**, which is the point: a representation can be
+    chosen on this number without touching what the benchmark measures.
+
+    ``similarity`` is called as ``similarity(a, b)`` and must not consume the
+    random stream, because the sampling is seeded so that two measures are
+    compared on the *same* pairs. It may be directional: the pairs are drawn
+    in one order and passed in that order.
+
+    ``prepare`` is called once with the real and the shuffled pool, before any
+    pair is drawn and without touching the random stream, for a similarity
+    that must know every sequence it may be asked about in advance -- a
+    profile search over a fixed pool is one.
+
+    A background that is not **positive** is reported as ``ratio = None``
+    rather than as a division. A measure whose composition-matched pairs sit at
+    or below its own null model has no composition floor at all, which is a
+    stronger statement than any ratio, and printing a negative or enormous
+    "ratio" for it would be worse than printing none: the fields that carry it
+    are ``median_composition_matched_pair`` and
+    ``nonzero_composition_matched_pairs``.
+
+    Known limits. The real pairs are drawn from one pool, so this says how much
+    order information the measure finds *among these sequences*, not in
+    general. Shuffling destroys low-complexity runs along with everything else,
+    so a pool full of them has a higher background than this estimate. And a
+    measure with more order information is not automatically a better one for a
+    model: a similarity that is nearly the identity matrix carries plenty of
+    order and nothing to generalise from. The number informs a choice; it does
+    not make it.
+    """
+    pool = [s for s in dict.fromkeys(sequences) if s]
+    if len(pool) < 2:
+        raise EnzymeSubstrateError(
+            "a similarity contrast needs at least two distinct sequences")
+    rng = random.Random(seed)
+    shuffled = ["".join(rng.sample(s, len(s))) for s in pool]
+    if prepare is not None:
+        prepare(pool, shuffled)
+
+    def medians(items: Sequence[str]) -> tuple[float | None, int, int]:
+        sims: list[float] = []
+        for _ in range(n_pairs):
+            a, b = rng.randrange(len(items)), rng.randrange(len(items))
+            if a == b:
+                continue
+            sims.append(similarity(items[a], items[b]))
+        if not sims:
+            return None, 0, 0
+        nonzero = sum(1 for v in sims if v != 0.0)
+        sims.sort()
+        return sims[len(sims) // 2], nonzero, len(sims)
+
+    real, real_nonzero, real_n = medians(pool)
+    background, bg_nonzero, bg_n = medians(shuffled)
+    positive_background = background is not None and background > 0.0
+    ratio = (round(real / background, 3)
+             if real is not None and positive_background else None)
+    return {
+        "n_sequences": len(pool),
+        "n_pairs": n_pairs,
+        "seed": seed,
+        "median_real_pair": None if real is None else round(real, 4),
+        "median_composition_matched_pair":
+            None if background is None else round(background, 4),
+        "ratio": ratio,
+        "background_is_positive": positive_background,
+        "nonzero_real_pairs": [real_nonzero, real_n],
+        "nonzero_composition_matched_pairs": [bg_nonzero, bg_n],
+        "measure": measure,
+    }
+
+
 def composition_contrast(sequences: Sequence[str], ks: Sequence[int] = (2, 3),
                          *, n_pairs: int = 400, seed: int = 0
                          ) -> dict[str, Any]:
-    """How much of this kernel's similarity is sequence *order* rather than composition.
+    """:func:`similarity_contrast` for this module's k-mer cosine.
 
     A spectrum kernel at small k is close to an amino-acid composition
     comparison: every protein is made of the same twenty residues in broadly
     similar proportions, so two unrelated sequences already score high and the
     homology signal rides on a large constant background. How large is
-    measurable without any label.
-
-    Each sequence is shuffled -- same length, same composition exactly, no
-    order left -- and the median cosine between pairs of shuffles is the
-    kernel's composition background. ``ratio`` is the median cosine between
-    real pairs divided by that background: 1.0 means the kernel sees nothing
-    but composition, and larger means more of its similarity is the local
-    pattern the window is supposed to be about.
-
-    **No label is read here**, which is the point: a representation can be
-    chosen on this number without touching what the benchmark measures.
-
-    Known limits. The real pairs are drawn from one pool, so this says how much
-    order information the kernel finds *among these sequences*, not in general.
-    Shuffling destroys low-complexity runs along with everything else, so a
-    pool full of them has a higher background than this estimate. And a kernel
-    with more order information is not automatically a better kernel: pushing k
-    up also empties the Gram matrix, and a model cannot generalise from a
-    similarity matrix that is nearly the identity. The number informs a choice;
-    it does not make it.
+    measurable without any label, and that is what this reports.
     """
-    pool = [s for s in dict.fromkeys(sequences) if s]
-    if len(pool) < 2:
-        raise EnzymeSubstrateError(
-            "composition_contrast needs at least two distinct sequences")
-    rng = random.Random(seed)
-    shuffled = ["".join(rng.sample(s, len(s))) for s in pool]
     vectors: dict[str, SpectrumVector] = {}
 
     def vector(s: str) -> SpectrumVector:
@@ -198,35 +263,17 @@ def composition_contrast(sequences: Sequence[str], ks: Sequence[int] = (2, 3),
             v = vectors[s] = spectrum_vector(s, ks)
         return v
 
-    def medians(items: Sequence[str]) -> float | None:
-        sims: list[float] = []
-        for _ in range(n_pairs):
-            a, b = rng.randrange(len(items)), rng.randrange(len(items))
-            if a == b:
-                continue
-            sims.append(cosine(vector(items[a]), vector(items[b])))
-        if not sims:
-            return None
-        sims.sort()
-        return sims[len(sims) // 2]
-
-    real = medians(pool)
-    background = medians(shuffled)
-    ratio = (None if real is None or not background
-             else round(real / background, 3))
-    return {
-        "ks": list(ks),
-        "n_sequences": len(pool),
-        "n_pairs": n_pairs,
-        "seed": seed,
-        "median_real_pair": None if real is None else round(real, 4),
-        "median_composition_matched_pair":
-            None if background is None else round(background, 4),
-        "ratio": ratio,
-        "measure": "median k-mer cosine between pool pairs, over the median "
-                   "between pairs of composition-preserving shuffles of the "
-                   "same sequences; no label is read",
-    }
+    out = similarity_contrast(
+        sequences, lambda a, b: cosine(vector(a), vector(b)),
+        measure="median k-mer cosine between pool pairs, over the median "
+                "between pairs of composition-preserving shuffles of the "
+                "same sequences; no label is read",
+        n_pairs=n_pairs, seed=seed)
+    # ``ks`` first, as the recorded reports have it. The pair sampling is
+    # shared with similarity_contrast and seeded identically, so the numbers
+    # in docs/results are reproduced exactly by this delegation -- a test
+    # pins that.
+    return {"ks": list(ks), **out}
 
 
 class KernelCache:
@@ -236,10 +283,22 @@ class KernelCache:
     sequences are compared once rather than once per fit.
     """
 
+    #: What a sequence scores against itself. The Gram matrix's diagonal is
+    #: this plus the ridge, so a similarity whose self-score is not 1.0 must
+    #: say so rather than have the model assume it.
+    self_similarity: float = 1.0
+
     def __init__(self, ks: Sequence[int] = (2, 3)) -> None:
         self.ks = tuple(ks)
         self._vec: dict[str, SpectrumVector] = {}
         self._sim: dict[tuple[str, str], float] = {}
+
+    @property
+    def kernel_id(self) -> str:
+        """Names this similarity, so a cached factorisation cannot be reused
+        for a different one. A Cholesky factor is a function of the kernel as
+        much as of the sequences and the ridge."""
+        return "kmer_cosine:" + ",".join(str(k) for k in self.ks)
 
     def vector(self, sequence: str) -> SpectrumVector:
         v = self._vec.get(sequence)
@@ -280,6 +339,119 @@ def _cholesky(a: list[list[float]]) -> list[list[float]]:
             else:
                 row_i[j] = (a[i][j] - s) / low[j][j]
     return low
+
+
+def min_eigenvalue(matrix: Sequence[Sequence[float]], *, iterations: int = 200,
+                   seed: int = 0) -> dict[str, Any]:
+    """An **estimate** of a symmetric matrix's extreme eigenvalues.
+
+    Kernel ridge needs a positive-definite Gram matrix, and a similarity that
+    is not an inner product -- a symmetrised alignment score, for instance --
+    need not give one. :func:`_cholesky` already refuses such a matrix, but a
+    refusal does not say *how far* from positive definite it was, and without
+    that the reader cannot tell a matrix a slightly larger ridge would fix from
+    one that is hopeless.
+
+    Power iteration, which needs only matrix-vector products and so stays pure
+    Python at this size. One subtlety decides whether the answer is right:
+    power iteration converges to the eigenvalue of largest **magnitude**, which
+    for an indefinite matrix can be the most negative one. Shifting by that
+    eigenvalue's *signed* value would then invert the two ends. So the
+    magnitude is taken first, and both ends are read off matrices that the
+    shift makes positive semi-definite, where largest-in-magnitude and
+    algebraically-largest are the same number.
+
+    Convergence is slow and is not checked, so every number here is labelled an
+    estimate and ``iterations`` is recorded. It is a diagnostic, never an input
+    to a fit.
+    """
+    n = len(matrix)
+    if n == 0 or any(len(row) != n for row in matrix):
+        raise EnzymeSubstrateError("min_eigenvalue needs a square matrix")
+    rng = random.Random(seed)
+
+    def dominant(apply: Any) -> float:
+        """The eigenvalue of largest magnitude, by its Rayleigh quotient."""
+        v = [rng.uniform(-1.0, 1.0) for _ in range(n)]
+        norm = math.sqrt(sum(x * x for x in v)) or 1.0
+        v = [x / norm for x in v]
+        value = 0.0
+        for _ in range(iterations):
+            w = apply(v)
+            norm = math.sqrt(sum(x * x for x in w))
+            if norm == 0.0:
+                return 0.0
+            v = [x / norm for x in w]
+            value = sum(a * b for a, b in zip(v, apply(v)))
+        return value
+
+    def mul(v: Sequence[float]) -> list[float]:
+        return [sum(map(mul_op, row, v)) for row in matrix]
+
+    # Every eigenvalue lies in [-bound, bound], so both shifted matrices below
+    # are positive semi-definite and power iteration reads their true maximum.
+    bound = abs(dominant(mul))
+    largest = dominant(lambda v: [y + bound * x
+                                  for x, y in zip(v, mul(v))]) - bound
+    smallest = bound - dominant(lambda v: [bound * x - y
+                                           for x, y in zip(v, mul(v))])
+    return {"largest_estimate": round(largest, 6),
+            "smallest_estimate": round(smallest, 6),
+            "iterations": iterations,
+            "n": n,
+            "note": "power-iteration estimates, not an exact spectrum; "
+                    "negative smallest means the matrix is not positive "
+                    "semi-definite and a ridge above its magnitude is what a "
+                    "Cholesky would need"}
+
+
+def definiteness_report(sequences: Sequence[str], kernel: Any, *,
+                        ridge: float = 0.1, iterations: int = 200,
+                        seed: int = 0) -> dict[str, Any]:
+    """Whether kernel ridge can factorise this kernel's Gram matrix, and how close it was.
+
+    Built exactly as the model builds it -- the kernel's ``self_similarity``
+    plus ``ridge`` on the diagonal -- and factorised with the same Cholesky, so
+    a pass here means the fit will not refuse for this reason on the whole
+    pool. A fold's submatrix is a principal submatrix of this one, so it
+    inherits positive definiteness; the reverse does not hold, which is why the
+    benchmark still catches a refusal per fold rather than trusting this.
+
+    ``ridge`` is **not** searched for. A single value is reported with the
+    smallest eigenvalue beside it, so a reader can see what ridge the matrix
+    would need without this function having chosen one.
+    """
+    pool = [s for s in dict.fromkeys(sequences) if s]
+    if len(pool) < 2:
+        raise EnzymeSubstrateError("definiteness needs at least two sequences")
+    diagonal = getattr(kernel, "self_similarity", 1.0)
+    n = len(pool)
+    gram = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        gram[i][i] = diagonal + ridge
+        for j in range(i):
+            v = kernel.similarity(pool[i], pool[j])
+            gram[i][j] = gram[j][i] = v
+    try:
+        _cholesky(gram)
+        factorises = True
+        refusal = None
+    except EnzymeSubstrateError as exc:
+        factorises = False
+        refusal = str(exc)
+    spectrum = min_eigenvalue(gram, iterations=iterations, seed=seed)
+    return {
+        "kernel_id": getattr(kernel, "kernel_id", type(kernel).__name__),
+        "n_sequences": n,
+        "ridge": ridge,
+        "diagonal": diagonal,
+        "factorises": factorises,
+        "refusal": refusal,
+        "spectrum_with_ridge": spectrum,
+        "smallest_eigenvalue_without_ridge_estimate":
+            None if spectrum["smallest_estimate"] is None
+            else round(spectrum["smallest_estimate"] - ridge, 6),
+    }
 
 
 def _solve(low: list[list[float]], b: Sequence[float]) -> list[float]:
@@ -636,12 +808,19 @@ class EnzymeSubstrateModel:
         self.seed = seed
         self.require_skill = require_skill
         self.kernel = kernel or KernelCache(self.ks)
-        if self.kernel.ks != self.ks:
+        # ``ks`` belongs to a k-mer kernel. A kernel that is not one (a profile
+        # search, say) declares no ``ks``, and reading the model's own as if it
+        # were the kernel's would be a check that checks nothing.
+        kernel_ks = getattr(self.kernel, "ks", None)
+        if kernel_ks is not None and tuple(kernel_ks) != self.ks:
             raise ValueError("the kernel cache was built for different k values")
         self.examples: tuple[Example, ...] = ()
         self._heads: dict[str, _Head] = {}
-        #: Cholesky factors by (training sequences, ridge): safe to share, since
-        #: the key is the whole input of the factorisation.
+        #: Cholesky factors by (kernel, training sequences, ridge): safe to
+        #: share, since the key is the whole input of the factorisation. The
+        #: kernel belongs in the key -- two kernels over the same sequences at
+        #: the same ridge have different factors, and a cache shared between
+        #: them without it would hand one model the other's.
         self._factor_cache: dict[tuple, list[list[float]]] = (
             factor_cache if factor_cache is not None else {})
         self.updates: list[UpdateRecord] = []
@@ -685,18 +864,22 @@ class EnzymeSubstrateModel:
             self._train_head(head)
             self._heads[target] = head
 
+    def _kernel_id(self) -> str:
+        return getattr(self.kernel, "kernel_id", type(self.kernel).__name__)
+
     def _gram(self, seqs: Sequence[str]) -> list[list[float]]:
         n = len(seqs)
+        diagonal = getattr(self.kernel, "self_similarity", 1.0)
         k = [[0.0] * n for _ in range(n)]
         for i in range(n):
-            k[i][i] = 1.0 + self.ridge
+            k[i][i] = diagonal + self.ridge
             for j in range(i):
                 s = self.kernel.similarity(seqs[i], seqs[j])
                 k[i][j] = k[j][i] = s
         return k
 
     def _factor(self, seqs: Sequence[str]) -> list[list[float]]:
-        key = (tuple(seqs), self.ridge)
+        key = (self._kernel_id(), tuple(seqs), self.ridge)
         low = self._factor_cache.get(key)
         if low is None:
             low = self._factor_cache[key] = _cholesky(self._gram(seqs))

@@ -4,6 +4,7 @@ This benchmark recovers ANNOTATION-DERIVED class labels (UniProtKB substrate/pro
 folds=5 grouped=True identity<=0.4 seed=0 ridge=0.1 ks=[2, 3]
 309 sequences in 123 cluster(s); clustering: greedy_pure_python
 median max-similarity of a test sequence to its training folds: 0.4117569334583815
+kernel: median pair similarity 0.3173 against 0.2971 for composition-matched shuffles of the same sequences, so 1.068x the composition background (1.0 would be a composition comparison and nothing more)
 
 target                            n  pos                  prevalence         nearest_neighbour   spectrum_krr_calibrated      cofactor_determinant      (AUROC [95% cluster-bootstrap CI])
 sdr:CoA_substructure            309   46            0.50 [0.50,0.50]          0.78 [0.68,0.85]          0.68 [0.55,0.79]                         -
@@ -46,4 +47,4 @@ RIDGE SENSITIVITY (a sweep, not a selection; the protocol's ridge was fixed in a
   ridge=0.3    macro AUROC=0.664 Brier=0.134 ECE=0.066
   ridge=1.0    macro AUROC=0.646 Brier=0.136 ECE=0.068
 
-grouped report written to docs/results/sdr_label_recovery.json (digest 091957a0929c3078)
+grouped report written to docs/results/sdr_label_recovery.json (digest 7eb46321a2390a24)

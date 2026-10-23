@@ -293,7 +293,7 @@ that reported a provenance-less split as clean.
 | --- | --- | --- |
 | `normalize_reaction` | implemented | runs fully offline; rdkit stereocentre perception would be a *proposal* only, and rdkit is absent |
 | `retrieve_evidence` | implemented, **data seam** | all connectors are cache-first; with an empty cache it reports 12 query gaps and 0 records |
-| `mine_sequences` | implemented, **tool seam** | `blastp`, `mmseqs2`, `hmmsearch` absent; adapters drive injectable runners |
+| `mine_sequences` | implemented, **tool seam** | `blastp`, `mmseqs2`, `hmmsearch` absent; adapters drive injectable runners. Installing one is now the **measured** next step rather than a preference: the k-mer cosine every sequence comparison here rests on scores 1.07x its own composition background on the SDR pool (`composition_contrast`), so it is a composition comparison with a few per cent of order information on top, and a better head on it does not fix that |
 | `annotate_family` | implemented | needs seed accessions and references the templates do not yet carry. Motif-anchored cofactor determinants are read and recorded (`science/cofactor_determinant.py`), and deliberately do not set `cofactor_preference`: the one shipped rule was scored on the SDR deposit at AUROC 0.58 [0.46, 0.69] against 0.74 for nearest-neighbour homology transfer, so it locates a residue and calls nothing |
 | `prepare_structures` | implemented, **tool seam** | `StructurePredictor` absent (`UnavailablePredictor`); needs a local structure index |
 | `model_complexes` | implemented, **tool seam** | `DockingRunner` and `ComplexPredictor` absent |

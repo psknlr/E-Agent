@@ -71,6 +71,7 @@ __all__ = [
     "KernelCache",
     "SpectrumVector",
     "spectrum_vector",
+    "composition_contrast",
     "cosine",
     "PlattCalibrator",
     "HeadReport",
@@ -151,6 +152,81 @@ def cosine(a: SpectrumVector, b: SpectrumVector) -> float:
     small, large = (a.entries, b.entries) if len(a.entries) <= len(b.entries) \
         else (b.entries, a.entries)
     return sum(v * large.get(k, 0.0) for k, v in small.items())
+
+
+def composition_contrast(sequences: Sequence[str], ks: Sequence[int] = (2, 3),
+                         *, n_pairs: int = 400, seed: int = 0
+                         ) -> dict[str, Any]:
+    """How much of this kernel's similarity is sequence *order* rather than composition.
+
+    A spectrum kernel at small k is close to an amino-acid composition
+    comparison: every protein is made of the same twenty residues in broadly
+    similar proportions, so two unrelated sequences already score high and the
+    homology signal rides on a large constant background. How large is
+    measurable without any label.
+
+    Each sequence is shuffled -- same length, same composition exactly, no
+    order left -- and the median cosine between pairs of shuffles is the
+    kernel's composition background. ``ratio`` is the median cosine between
+    real pairs divided by that background: 1.0 means the kernel sees nothing
+    but composition, and larger means more of its similarity is the local
+    pattern the window is supposed to be about.
+
+    **No label is read here**, which is the point: a representation can be
+    chosen on this number without touching what the benchmark measures.
+
+    Known limits. The real pairs are drawn from one pool, so this says how much
+    order information the kernel finds *among these sequences*, not in general.
+    Shuffling destroys low-complexity runs along with everything else, so a
+    pool full of them has a higher background than this estimate. And a kernel
+    with more order information is not automatically a better kernel: pushing k
+    up also empties the Gram matrix, and a model cannot generalise from a
+    similarity matrix that is nearly the identity. The number informs a choice;
+    it does not make it.
+    """
+    pool = [s for s in dict.fromkeys(sequences) if s]
+    if len(pool) < 2:
+        raise EnzymeSubstrateError(
+            "composition_contrast needs at least two distinct sequences")
+    rng = random.Random(seed)
+    shuffled = ["".join(rng.sample(s, len(s))) for s in pool]
+    vectors: dict[str, SpectrumVector] = {}
+
+    def vector(s: str) -> SpectrumVector:
+        v = vectors.get(s)
+        if v is None:
+            v = vectors[s] = spectrum_vector(s, ks)
+        return v
+
+    def medians(items: Sequence[str]) -> float | None:
+        sims: list[float] = []
+        for _ in range(n_pairs):
+            a, b = rng.randrange(len(items)), rng.randrange(len(items))
+            if a == b:
+                continue
+            sims.append(cosine(vector(items[a]), vector(items[b])))
+        if not sims:
+            return None
+        sims.sort()
+        return sims[len(sims) // 2]
+
+    real = medians(pool)
+    background = medians(shuffled)
+    ratio = (None if real is None or not background
+             else round(real / background, 3))
+    return {
+        "ks": list(ks),
+        "n_sequences": len(pool),
+        "n_pairs": n_pairs,
+        "seed": seed,
+        "median_real_pair": None if real is None else round(real, 4),
+        "median_composition_matched_pair":
+            None if background is None else round(background, 4),
+        "ratio": ratio,
+        "measure": "median k-mer cosine between pool pairs, over the median "
+                   "between pairs of composition-preserving shuffles of the "
+                   "same sequences; no label is read",
+    }
 
 
 class KernelCache:

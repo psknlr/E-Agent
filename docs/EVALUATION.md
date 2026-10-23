@@ -432,6 +432,50 @@ which this should be measured again.
 * The model does **not** beat nearest-neighbour overall. That is reported as
   found; no hyperparameter was tuned to change it.
 
+#### Why it does not, measured rather than guessed
+
+`science/enzyme_substrate.composition_contrast` answers a question about the
+instrument without reading a single label: shuffle each sequence — same length,
+same composition exactly, no order left — and compare the median cosine between
+real pairs with the median between pairs of shuffles. The shuffled median is
+the kernel's composition background.
+
+On this pool the shipped 2-mer/3-mer kernel scores **1.07× that background**.
+Nearly everything it measures is amino-acid composition; the local pattern is a
+few per cent on top. Every run now prints this line, so no report quotes an
+AUROC without saying what its similarity measure was looking at.
+
+That explains the result above better than any hyperparameter does. A kernel
+method and a nearest-neighbour rule over *the same* similarity see nearly the
+same thing, and on 309 sequences the local rule exploits it better.
+
+**One representation change was pre-registered on that label-free number and
+run once.** Dropping the 2-mer block raises the ratio to **1.30×**, so
+`ks = (3, 4)` was the criterion's pick; the decision rule, fixed before the
+run, was to ship it unless the benchmark showed it worse. The benchmark:
+
+| macro AUROC | ks = (2, 3) | ks = (3, 4) |
+| --- | --- | --- |
+| nearest neighbour | 0.710 | **0.722** |
+| spectrum-kernel model | 0.667 | 0.668 |
+| model better than NN on | 2 targets | 1 target |
+| model worse than NN on | 1 target | 3 targets |
+| targets earning a probability | 3 of 12 | 2 of 12 |
+
+So the better representation helped the **baseline** and did nothing for the
+model, while costing a calibrated target and raising macro ECE from 0.063 to
+0.082. The default stays at `(2, 3)` under the pre-registered rule, and the run
+is recorded here rather than discarded.
+
+The finding is the useful part: **the gap is not the k-mer window.** Both
+representations leave the model below homology transfer, and the diagnostic
+says why — a k-mer cosine is a composition comparison with a little order
+information on top, whichever window it uses. What would move this is a
+similarity that actually aligns: `mine_sequences` already has adapters for
+MMseqs2 and the roadmap lists `blastp` and `hmmsearch` as uninstalled seams.
+Until one of them runs, a better head on this kernel is polishing the wrong
+part.
+
 ### 9.2 The feedback loop (`eval/feedback_simulation.py`)
 
 *Question:* does feeding measured labels back into selection change what a round

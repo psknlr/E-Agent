@@ -82,6 +82,7 @@ from ..science.cofactor_determinant import (
 )
 from ..science.enzyme_substrate import (
     EnzymeSubstrateModel, Example, KernelCache, auroc, average_precision,
+    composition_contrast,
     brier, cluster_bootstrap_ci, expected_calibration_error, grouped_folds,
     log_loss, reliability_table,
 )
@@ -305,6 +306,7 @@ class BenchmarkReport:
     reliability: dict[str, list[dict[str, Any]]]
     similarity_to_training: dict[str, Any]
     uncalibrated_targets: list[str]
+    kernel_character: dict[str, Any] = field(default_factory=dict)
     determinant_rules: list[dict[str, Any]] = field(default_factory=list)
     determinant_outcomes: dict[str, dict[str, int]] = field(default_factory=dict)
     digest: str = ""
@@ -320,6 +322,7 @@ class BenchmarkReport:
             "reliability": self.reliability,
             "similarity_to_training": self.similarity_to_training,
             "uncalibrated_targets": self.uncalibrated_targets,
+            "kernel_character": self.kernel_character,
             "determinant_rules": self.determinant_rules,
             "determinant_outcomes": self.determinant_outcomes,
             "digest": self.digest,
@@ -335,7 +338,16 @@ class BenchmarkReport:
             f"{self.n_sequences} sequences in {self.n_clusters} cluster(s); "
             f"clustering: {self.clustering.get('method')}",
             f"median max-similarity of a test sequence to its training folds: "
-            f"{self.similarity_to_training.get('median')}", ""]
+            f"{self.similarity_to_training.get('median')}"]
+        character = self.kernel_character
+        if character.get("ratio") is not None:
+            lines.append(
+                f"kernel: median pair similarity {character['median_real_pair']} "
+                f"against {character['median_composition_matched_pair']} for "
+                f"composition-matched shuffles of the same sequences, so "
+                f"{character['ratio']}x the composition background (1.0 would "
+                f"be a composition comparison and nothing more)")
+        lines.append("")
         names = ["prevalence", "nearest_neighbour", "spectrum_krr_calibrated"]
         if any("cofactor_determinant" in t.comparators for t in self.targets):
             names.append("cofactor_determinant")
@@ -714,6 +726,8 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
         targets=results, skipped_targets=skipped, macro=macro,
         reliability=reliability, similarity_to_training=similarity,
         uncalibrated_targets=sorted(uncalibrated),
+        kernel_character=composition_contrast(
+            [sequences[i] for i in ids], protocol.ks, seed=protocol.seed),
         determinant_rules=determinant.rule_records(),
         determinant_outcomes={t: dict(sorted(c.items()))
                               for t, c in sorted(determinant.outcomes.items())})

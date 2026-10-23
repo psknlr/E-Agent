@@ -971,6 +971,19 @@
     "sdr:substrate_cluster_7",
     "sdr:substrate_cluster_8"
   ],
+  "kernel_character": {
+    "ks": [
+      2,
+      3
+    ],
+    "n_sequences": 309,
+    "n_pairs": 400,
+    "seed": 0,
+    "median_real_pair": 0.3173,
+    "median_composition_matched_pair": 0.2971,
+    "ratio": 1.068,
+    "measure": "median k-mer cosine between pool pairs, over the median between pairs of composition-preserving shuffles of the same sequences; no label is read"
+  },
   "determinant_rules": [
     {
       "cofactor": "NADPH",
@@ -996,5 +1009,5 @@
       "present": 130
     }
   },
-  "digest": "091957a0929c30780c92a87a8a2d884a163560f068d7d37788f6e638468efef1"
+  "digest": "7eb46321a2390a24d94b96392a980b1e5a10ccd9e28a953ea2a2ceb3bf5df30f"
 }

@@ -19,6 +19,9 @@ dependencies = [
 chem = ["rdkit>=2023.9"]
 bio = ["biopython>=1.81"]
 numeric = ["numpy>=1.24"]
+# pyhmmer ships HMMER3 as a library: no external binary, no network at
+# search time. See src/eagent/science/alignment_similarity.py.
+search = ["pyhmmer>=0.10"]
 dev = ["pytest>=7.4"]
 
 [project.scripts]

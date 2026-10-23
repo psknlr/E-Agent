@@ -127,13 +127,15 @@ PYTHONPATH=src python3 -m eagent.cli --help
 are not installed here. Every numerical routine in `src/eagent/science/` is pure
 Python: the mmCIF/PDB reader, the Gotoh affine-gap aligner, the distance, angle
 and dihedral maths, the Wilson interval and the submodular batch selection. The
-`chem`, `bio` and `numeric` extras in `pyproject.toml` are optional and change
-behaviour in exactly one documented way — when `rdkit` is present,
+`chem`, `bio`, `numeric` and `search` extras in `pyproject.toml` are optional and
+change behaviour in exactly one documented way — when `rdkit` is present,
 `normalize_reaction` offers a stereocentre perception as a *proposal requiring
 confirmation*, never as a resolved value. Nothing else reads an extra without
 being asked: substrate scaffold keys, in particular, are computed by the same
 pure-Python route in every install, so one dataset has one key space whichever
-machine it was keyed on.
+machine it was keyed on, and the `search` extra's profile-search baseline is
+added to the benchmark only by `--alignment` and never substitutes for the
+pure-Python similarity when it is absent.
 
 Tests:
 
@@ -237,7 +239,7 @@ missing measurement becomes a fabricated one.
 
 | Seam | Interface | Absent here |
 | --- | --- | --- |
-| Sequence search | `mine_sequences` | `blastp`, `mmseqs2`, `hmmsearch` binaries |
+| Sequence search | `mine_sequences` | `blastp`, `mmseqs2` binaries, and **any sequence database to search**. HMMER3 itself is no longer absent: the `search` extra (`pyhmmer`) ships it as a library and §9.1 of `docs/EVALUATION.md` reports a profile search run over the SDR pool. What is missing for mining is the target database — no local file, and the public hosts are unreachable from this environment |
 | Structure prediction | `prepare_structures` | any `StructurePredictor` (`UnavailablePredictor` is the default) |
 | Docking | `model_complexes` | any `DockingRunner` (`UnavailableDockingRunner` is the default) |
 | Joint complex prediction | `model_complexes` | any `ComplexPredictor` (`UnavailableComplexPredictor` is the default) |
@@ -345,17 +347,24 @@ establish a live model completion.
 What has been run against the outside world: four public databases (UniProtKB,
 RCSB PDB, Rhea, Zenodo) were called live and have clients checked against
 recorded responses, and one real dataset (the SDR substrate-class deposit) was
-downloaded through a checksum-verified route and benchmarked. What has **not**:
-no structure predictor, docking program, search binary or inverse-folding model
-has ever been run (the gnina, Boltz and MMseqs2 adapters were tested against
-fakes that write output in the documented shape). The included experimental
+downloaded through a checksum-verified route and benchmarked, and HMMER3 has
+been run locally through the `search` extra as a similarity between sequences
+already in the repository. What has **not**: no structure predictor, docking
+program or inverse-folding model has ever been run (the gnina, Boltz and
+MMseqs2 adapters were tested against fakes that write output in the documented
+shape), and no search has been run against a sequence *database*, because none
+is present and the public hosts are unreachable here. The included experimental
 reference data comes from published sources; this project has not performed a
 new wet-lab experiment. Live model calls require a valid key and reachable API.
 
-What the repository can claim is narrow. It has a sound *machinery of claiming*;
-a simple sequence-to-annotated-class model that beats a nearest-neighbour
-baseline on a few classes and not on most, on **annotation-derived** labels,
-with test sequences held out by cluster; and a simulation showing that feeding
+What the repository can claim is narrow, and one of the claims got narrower
+when it was measured properly. It has a sound *machinery of claiming*; a simple
+sequence-to-annotated-class model that beats a **k-mer** nearest-neighbour
+baseline on two of twelve **annotation-derived** classes with test sequences
+held out by cluster — but that **loses to a profile-search nearest-neighbour
+baseline on six of them and beats it on none**, so it is not better than
+homology transfer and its apparent edge was a weak baseline (`docs/EVALUATION.md`
+§9.1); and a simulation showing that feeding
 labels back into selection helps on that same annotation-derived data, much less
 so once the pool's redundancy is removed. It does **not** support the statement
 that the agent has learned from experiments or validated new-enzyme discovery:
@@ -458,8 +467,11 @@ PYTHONPATH=src python3 -m eagent.cli bundle runs/001 --out packages/001
 
 ### 诚实说明：哪些是"接缝"
 
-搜索二进制（blastp / mmseqs2 / hmmsearch）、结构预测器、对接程序、联合复合物预测器、
-LigandMPNN，在本环境里**全部不存在**。它们的契约、校验、溯源、产物布局和拒绝路径都已实现
+搜索二进制（blastp / mmseqs2）、结构预测器、对接程序、联合复合物预测器、
+LigandMPNN，在本环境里**全部不存在**。HMMER3 是例外：`search` 额外依赖（`pyhmmer`）以
+库的形式提供它，基准测试已在仓库内的 SDR 序列上跑过一次 profile 搜索（见
+`docs/EVALUATION.md` §9.1）；但 `mine_sequences` 仍是接缝，因为没有可供搜索的序列
+数据库——本地没有文件，公共主机在本环境也不可达。它们的契约、校验、溯源、产物布局和拒绝路径都已实现
 并有测试，但真程序缺席时步骤只会报 `tool_unavailable` 并且什么都不产出。控制器既不重试，
 也不换一个工具顶上——换模型顶替正是"缺失的测量变成捏造的测量"的那条路。
 
@@ -469,7 +481,7 @@ LigandMPNN，在本环境里**全部不存在**。它们的契约、校验、溯
 
 ### 现状
 
-整个测试套件通过（写作时为 2919 个测试 + 696 个子测试；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
+整个测试套件通过（写作时为 3385 个测试 + 874 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
 **对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
 一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；另有一份 KRED 实验复合物参考集
 （19 个条目、28 条动力学记录）被保存、哈希固定、重算并与原始表格比对——但它按现有模板只有 1 个条目合格，

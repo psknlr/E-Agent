@@ -63,6 +63,18 @@ THE COMPARATORS
     the anchor is absent or repeated: an abstention takes the neutral score and
     the coverage line reports how often it happened. Present only when the
     caller supplies the rules, which the report records verbatim.
+``profile_nearest_neighbour``
+    the same homology-transfer baseline as ``nearest_neighbour``, with the
+    k-mer cosine replaced by a HMMER profile bit score
+    (:mod:`eagent.science.alignment_similarity`): the only comparator here
+    that aligns, with a substitution matrix and position-specific gap costs.
+    It exists because ``kernel_character`` measured the k-mer cosine at 1.07x
+    its own composition background on this pool, which turns "the baseline is
+    very nearly a composition comparison" from an assertion into something
+    testable: put a real alignment in the same slot, over the same folds and
+    the same rows, and read the paired difference. Present only when the
+    caller supplies a similarity provider -- it needs the ``search`` extra --
+    and the report records the provider and its settings.
 """
 
 from __future__ import annotations
@@ -77,6 +89,7 @@ from typing import Any, Mapping, Sequence
 
 from ..errors import EAgentError
 from ..provenance import sha256_obj
+from ..science.alignment_similarity import PairwiseSimilarity
 from ..science.cofactor_determinant import (
     AnchoredDeterminantRule, DeterminantOutcome, read_determinant,
 )
@@ -107,6 +120,7 @@ __all__ = [
     "DETERMINANT_TARGETS",
     "SDR_FAMILY_TEMPLATE_ID",
     "sdr_determinant_rules",
+    "sdr_alignment_similarity",
 ]
 
 #: Every comparator, in report order. One tuple, so a comparator cannot be
@@ -115,6 +129,7 @@ __all__ = [
 COMPARATORS: tuple[str, ...] = (
     "prevalence",
     "nearest_neighbour",
+    "profile_nearest_neighbour",
     "spectrum_krr",
     "spectrum_krr_calibrated",
     "cofactor_determinant",
@@ -131,7 +146,7 @@ DETERMINANT_TARGETS: Mapping[str, str] = {"sdr:cofactor_NADP": "NADPH"}
 #: probability list of ``None``s to the metrics would be reported as a Brier
 #: score of nothing rather than as no Brier score.
 _RANKING_ONLY: frozenset[str] = frozenset(
-    {"nearest_neighbour", "cofactor_determinant"})
+    {"nearest_neighbour", "profile_nearest_neighbour", "cofactor_determinant"})
 
 #: What an outcome contributes as a ranking score. ``PRESENT`` ranks above
 #: ``ABSENT``; every refusal takes the neutral middle, so an abstention earns
@@ -290,6 +305,13 @@ class TargetResult:
     comparators: dict[str, dict[str, Any]] = field(default_factory=dict)
     delta_auroc_vs_nearest_neighbour: dict[str, Any] | None = None
     delta_auroc_determinant_vs_nearest_neighbour: dict[str, Any] | None = None
+    #: alignment baseline against k-mer baseline: does aligning help at the
+    #: same job, on the same rows?
+    delta_auroc_profile_vs_nearest_neighbour: dict[str, Any] | None = None
+    #: the model against whichever baseline is stronger here. A model that
+    #: beats the k-mer baseline and loses to the alignment one has not been
+    #: shown to add anything, and one number cannot say that.
+    delta_auroc_vs_profile: dict[str, Any] | None = None
 
 
 @dataclass
@@ -307,6 +329,7 @@ class BenchmarkReport:
     similarity_to_training: dict[str, Any]
     uncalibrated_targets: list[str]
     kernel_character: dict[str, Any] = field(default_factory=dict)
+    alignment_similarity: dict[str, Any] = field(default_factory=dict)
     determinant_rules: list[dict[str, Any]] = field(default_factory=list)
     determinant_outcomes: dict[str, dict[str, int]] = field(default_factory=dict)
     digest: str = ""
@@ -323,6 +346,7 @@ class BenchmarkReport:
             "similarity_to_training": self.similarity_to_training,
             "uncalibrated_targets": self.uncalibrated_targets,
             "kernel_character": self.kernel_character,
+            "alignment_similarity": self.alignment_similarity,
             "determinant_rules": self.determinant_rules,
             "determinant_outcomes": self.determinant_outcomes,
             "digest": self.digest,
@@ -349,6 +373,9 @@ class BenchmarkReport:
                 f"be a composition comparison and nothing more)")
         lines.append("")
         names = ["prevalence", "nearest_neighbour", "spectrum_krr_calibrated"]
+        if any("profile_nearest_neighbour" in t.comparators
+               for t in self.targets):
+            names.insert(2, "profile_nearest_neighbour")
         if any("cofactor_determinant" in t.comparators for t in self.targets):
             names.append("cofactor_determinant")
         lines.append(f"{'target':<30}{'n':>5}{'pos':>5}  "
@@ -394,10 +421,63 @@ class BenchmarkReport:
             f"{len(wins)} target(s) {wins}, worse on {len(losses)} {losses}, "
             f"indistinguishable on "
             f"{len(self.targets) - len(wins) - len(losses)}")
+        lines += self._alignment_lines()
         lines += self._determinant_lines()
         for t, why in sorted(self.skipped_targets.items()):
             lines.append(f"skipped {t}: {why}")
         return "\n".join(lines)
+
+    def _alignment_lines(self) -> list[str]:
+        """The alignment baseline: what produced it, and the two paired tests.
+
+        Two differences are printed because one would be misread. The first
+        asks whether aligning beats the k-mer cosine at the baseline's own job.
+        The second asks whether the model still beats the baseline once the
+        baseline aligns -- a model that only wins against the weaker of two
+        baselines has not been shown to add anything over homology transfer.
+        """
+        a = self.alignment_similarity
+        if not a:
+            return []
+        out = ["", "ALIGNMENT BASELINE (a real profile search, not a fit: no "
+                   "parameters, no training fold consulted):"]
+        b = a.get("builder_settings") or {}
+        search = a.get("search_settings") or {}
+        out.append(
+            f"  {a.get('backend')} via {a.get('backend_version')}; "
+            f"{b.get('score_matrix')}, gap open {b.get('gap_open')}, gap "
+            f"extend {b.get('gap_extend')}; reporting E<={search.get('E')}, "
+            f"acceleration filters "
+            + ("on" if search.get("acceleration_filters") else "off"))
+        out.append(f"  normalisation: {a.get('normalisation')}")
+        requested = a.get("pairs_requested") or 0
+        missing = a.get("pairs_without_hit") or 0
+        out.append(
+            f"  {a.get('queries_run')} profile(s) searched against a pool of "
+            f"{a.get('pool_size')}; {requested} pair(s) read, {missing} with "
+            f"no reported hit"
+            + (f" ({missing / requested:.1%}, scored 0.0)" if requested
+               else "")
+            + ". A pair with no hit is not a measured dissimilarity.")
+        for t in self.targets:
+            for label, d in (
+                    ("profile_nearest_neighbour vs nearest_neighbour",
+                     t.delta_auroc_profile_vs_nearest_neighbour),
+                    ("spectrum_krr vs profile_nearest_neighbour",
+                     t.delta_auroc_vs_profile)):
+                if not d:
+                    continue
+                ci = d.get("ci95")
+                out.append(
+                    f"  {t.target}: {label} {d['delta']:+.3f}"
+                    + (f" [{ci[0]:+.3f},{ci[1]:+.3f}]" if ci else
+                       " (no interval)")
+                    + " -- "
+                    + ("the interval excludes zero"
+                       if d["interval_excludes_zero"]
+                       else "the interval includes zero, so this pool does "
+                            "not separate them"))
+        return out
 
     def _determinant_lines(self) -> list[str]:
         """The determinant's rule, what it could not read, and the paired test.
@@ -476,6 +556,28 @@ def _metrics(scores: list[float], probs: list[float] | None, labels: list[bool],
     return out
 
 
+def _alignment_record(provider: Any) -> dict[str, Any]:
+    """What to record about a similarity provider, without requiring a type.
+
+    :class:`eagent.science.alignment_similarity.PhmmerSimilarity` reports its
+    backend, normalisation and coverage, and that is what lands in the report.
+    A provider that reports nothing is named rather than described: a column
+    whose origin the report cannot state is worse than one it admits it cannot
+    state.
+    """
+    report = getattr(provider, "report", None)
+    if callable(report):
+        value = report()
+        as_dict = getattr(value, "to_dict", None)
+        if callable(as_dict):
+            return dict(as_dict())
+        if isinstance(value, Mapping):
+            return dict(value)
+    return {"backend": type(provider).__name__,
+            "note": "this provider records no settings, so the report cannot "
+                    "say how the numbers in its column were produced"}
+
+
 class _DeterminantScorer:
     """Scores the determinant comparator, and counts what it could not read.
 
@@ -532,7 +634,8 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                   *, cluster_assignment: Mapping[str, str] | None = None,
                   clustering_note: Mapping[str, Any] | None = None,
                   kernel: KernelCache | None = None,
-                  determinant_rules: Sequence[AnchoredDeterminantRule] = ()
+                  determinant_rules: Sequence[AnchoredDeterminantRule] = (),
+                  alignment: PairwiseSimilarity | None = None
                   ) -> BenchmarkReport:
     """Run every comparator over identical folds and report out-of-fold results.
 
@@ -546,6 +649,15 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
     report records which rule produced the column, and so that this module
     stays free of template discovery. With none supplied the comparator is
     absent from the report rather than reported as zero.
+
+    ``alignment`` is any provider of a directional pairwise similarity -- in
+    practice :class:`eagent.science.alignment_similarity.PhmmerSimilarity`.
+    Supplied, it adds the ``profile_nearest_neighbour`` column over the
+    identical folds and rows; absent, that column is absent. It is a
+    constructor argument rather than an import so that this module does not
+    decide whether an optional extra is installed, and so that one provider
+    (and therefore one profile search per sequence) is shared by the grouped,
+    ungrouped and sweep runs.
     """
     protocol = protocol or BenchmarkProtocol()
     if not examples:
@@ -633,6 +745,17 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                 ("spectrum_krr", raw, min(max((raw + 1.0) / 2.0, 0.0), 1.0)),
                 ("spectrum_krr_calibrated", raw, pred.probability),
             ]
+            if alignment is not None:
+                # The direction a search would use: the held-out sequence is
+                # the query, the training sequences are the targets. Reversing
+                # it would score a profile of a known enzyme against the new
+                # one, which is a different question and a different number.
+                a_pos = max(alignment.similarity(e.sequence, r.sequence)
+                            for r in pos)
+                a_neg = max(alignment.similarity(e.sequence, r.sequence)
+                            for r in neg)
+                columns.append(
+                    ("profile_nearest_neighbour", a_pos - a_neg, None))
             det = determinant.score(e.sequence, e.target)
             if det is not None:
                 columns.append(("cofactor_determinant", det, None))
@@ -677,6 +800,13 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                 s["label"], s["cluster"], protocol, protocol.seed)
         tr.delta_auroc_vs_nearest_neighbour = _paired_delta(
             slot["spectrum_krr"], slot["nearest_neighbour"], protocol)
+        if slot["profile_nearest_neighbour"]["score"]:
+            tr.delta_auroc_profile_vs_nearest_neighbour = _paired_delta(
+                slot["profile_nearest_neighbour"], slot["nearest_neighbour"],
+                protocol)
+            tr.delta_auroc_vs_profile = _paired_delta(
+                slot["spectrum_krr"], slot["profile_nearest_neighbour"],
+                protocol)
         if slot["cofactor_determinant"]["score"]:
             tr.delta_auroc_determinant_vs_nearest_neighbour = _paired_delta(
                 slot["cofactor_determinant"], slot["nearest_neighbour"],
@@ -728,6 +858,8 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
         uncalibrated_targets=sorted(uncalibrated),
         kernel_character=composition_contrast(
             [sequences[i] for i in ids], protocol.ks, seed=protocol.seed),
+        alignment_similarity=(_alignment_record(alignment)
+                              if alignment is not None else {}),
         determinant_rules=determinant.rule_records(),
         determinant_outcomes={t: dict(sorted(c.items()))
                               for t, c in sorted(determinant.outcomes.items())})
@@ -747,7 +879,13 @@ class SdrSuite:
     def render(self) -> str:
         lines = [self.grouped.render(), "",
                  "SAME RUN WITH UNGROUPED FOLDS (leakage on purpose):"]
-        for name in ("nearest_neighbour", "spectrum_krr_calibrated"):
+        names = ["nearest_neighbour", "spectrum_krr_calibrated"]
+        if "profile_nearest_neighbour" in self.grouped.macro:
+            # The stronger a homology baseline is, the more a near-duplicate
+            # straddling the split should flatter it. Leaving the alignment
+            # column out of the leakage control would hide exactly that.
+            names.insert(1, "profile_nearest_neighbour")
+        for name in names:
             g = self.grouped.macro[name]["auroc"]
             u = self.ungrouped.macro[name]["auroc"]
             lines.append(f"  macro AUROC {name:<26} grouped={_f(g)} "
@@ -782,11 +920,32 @@ def sdr_determinant_rules(template_dir: str | Path | None = None
     return rules_from_template(template)
 
 
+def sdr_alignment_similarity(examples: Sequence[Example], **kwargs: Any
+                             ) -> PairwiseSimilarity:
+    """A profile-search similarity over every sequence in ``examples``.
+
+    The pool is the whole dataset, because a test sequence is a query and
+    every training sequence is a target, and a provider asked for a target it
+    never searched refuses rather than returning zero. Raises
+    :class:`~eagent.errors.ToolUnavailableError` when the ``search`` extra is
+    not installed -- the caller decides what to do about that, and the
+    benchmark runs without the column rather than with a substitute.
+    """
+    from ..science.alignment_similarity import PhmmerSimilarity, pool_from_examples
+
+    return PhmmerSimilarity(pool_from_examples(examples), **kwargs)
+
+
 def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = None,
                   *, sweep: Sequence[float] = (0.03, 0.1, 0.3, 1.0),
-                  determinant_rules: Sequence[AnchoredDeterminantRule] | None = None
+                  determinant_rules: Sequence[AnchoredDeterminantRule] | None = None,
+                  alignment: PairwiseSimilarity | None = None
                   ) -> SdrSuite:
-    """Load the SDR dataset, cluster it, and run the grouped, ungrouped and sweep runs."""
+    """Load the SDR dataset, cluster it, and run the grouped, ungrouped and sweep runs.
+
+    One ``alignment`` provider serves every run, so each sequence's profile is
+    searched once for the whole suite rather than once per run.
+    """
     from ..tools.mine_sequences import cluster_sequences
     protocol = protocol or BenchmarkProtocol()
     rules = (list(determinant_rules) if determinant_rules is not None
@@ -806,7 +965,7 @@ def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = Non
         report = run_benchmark(examples, proto,
                                cluster_assignment=dict(clustering.assignment),
                                clustering_note=note, kernel=kernel,
-                               determinant_rules=rules)
+                               determinant_rules=rules, alignment=alignment)
         report.dataset_md5 = dict(dataset.file_md5)
         return report
 

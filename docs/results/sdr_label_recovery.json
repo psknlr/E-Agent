@@ -57,6 +57,15 @@
             0.8472082494969819
           ]
         },
+        "profile_nearest_neighbour": {
+          "auroc": 0.8616300214911555,
+          "average_precision": 0.47514400454024147,
+          "prevalence": 0.1488673139158576,
+          "auroc_ci": [
+            0.7451115711985277,
+            0.9478382765235355
+          ]
+        },
         "spectrum_krr": {
           "auroc": 0.6769714002314432,
           "average_precision": 0.24336544305068752,
@@ -88,7 +97,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.08497272276409318,
+        "ci95": [
+          0.0010741138560687036,
+          0.20975609756097557
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.18465862125971233,
+        "ci95": [
+          -0.34330143540669855,
+          -0.042857142857142816
+        ],
+        "interval_excludes_zero": true
+      }
     },
     {
       "target": "sdr:cofactor_NADP",
@@ -114,6 +139,15 @@
           "auroc_ci": [
             0.6344563869367508,
             0.8426630840423944
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.8433338638654571,
+          "average_precision": 0.9016789746319581,
+          "prevalence": 0.6398601398601399,
+          "auroc_ci": [
+            0.709392137174635,
+            0.9275189167662286
           ]
         },
         "spectrum_krr": {
@@ -165,6 +199,22 @@
           -0.011852791878172564
         ],
         "interval_excludes_zero": true
+      },
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.10154384848002551,
+        "ci95": [
+          0.028242408646423023,
+          0.20117302052785924
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_vs_profile": {
+        "delta": 0.005199214812456887,
+        "ci95": [
+          -0.07017543859649122,
+          0.07559465623981754
+        ],
+        "interval_excludes_zero": false
       }
     },
     {
@@ -191,6 +241,15 @@
           "auroc_ci": [
             0.5350608494080635,
             0.7616652983032294
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.5443840579710145,
+          "average_precision": 0.2817151277035749,
+          "prevalence": 0.22330097087378642,
+          "auroc_ci": [
+            0.405078125,
+            0.6828981613634455
           ]
         },
         "spectrum_krr": {
@@ -224,7 +283,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": -0.10700483091787438,
+        "ci95": [
+          -0.22873107426099504,
+          0.008441489922971335
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.022826086956521774,
+        "ci95": [
+          -0.13419653575716006,
+          0.10599338549649112
+        ],
+        "interval_excludes_zero": false
+      }
     },
     {
       "target": "sdr:sterol_substructure",
@@ -250,6 +325,15 @@
           "auroc_ci": [
             0.5605276256844202,
             0.7852411234764176
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.7297815056435746,
+          "average_precision": 0.6276665263702093,
+          "prevalence": 0.2815533980582524,
+          "auroc_ci": [
+            0.581662114709325,
+            0.8559057575284755
           ]
         },
         "spectrum_krr": {
@@ -283,7 +367,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.04789272030651337,
+        "ci95": [
+          -0.08044238585877678,
+          0.16318214032600986
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.04670187428808115,
+        "ci95": [
+          -0.14469967990962151,
+          0.08272323744739718
+        ],
+        "interval_excludes_zero": false
+      }
     },
     {
       "target": "sdr:substrate_cluster_0",
@@ -309,6 +409,15 @@
           "auroc_ci": [
             0.3641129032258065,
             0.798361310951239
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.8481751824817518,
+          "average_precision": 0.4681204619505969,
+          "prevalence": 0.11326860841423948,
+          "auroc_ci": [
+            0.721136622699886,
+            0.9747967479674797
           ]
         },
         "spectrum_krr": {
@@ -342,7 +451,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.2691345151199166,
+        "ci95": [
+          0.05670891608391604,
+          0.5709254549011935
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.4067778936392075,
+        "ci95": [
+          -0.6685121107266436,
+          -0.1143774703557312
+        ],
+        "interval_excludes_zero": true
+      }
     },
     {
       "target": "sdr:substrate_cluster_1",
@@ -368,6 +493,15 @@
           "auroc_ci": [
             0.7154424148205726,
             0.8782006920415225
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.8824453756360371,
+          "average_precision": 0.5453072194282771,
+          "prevalence": 0.16828478964401294,
+          "auroc_ci": [
+            0.7753935253935254,
+            0.9514423076923076
           ]
         },
         "spectrum_krr": {
@@ -403,7 +537,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.08365758754863806,
+        "ci95": [
+          0.0005376344086022167,
+          0.16658805031446544
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.12137084705178092,
+        "ci95": [
+          -0.24749563459240875,
+          -0.0011004732034775033
+        ],
+        "interval_excludes_zero": true
+      }
     },
     {
       "target": "sdr:substrate_cluster_2",
@@ -429,6 +579,15 @@
           "auroc_ci": [
             0.5695166192763996,
             0.790927750410509
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.6971470732907034,
+          "average_precision": 0.5822623950871199,
+          "prevalence": 0.3074433656957929,
+          "auroc_ci": [
+            0.5668072505384063,
+            0.8269058797227812
           ]
         },
         "spectrum_krr": {
@@ -462,7 +621,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.0036891293654697233,
+        "ci95": [
+          -0.11805458687869064,
+          0.12379457277416461
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.046925725528775164,
+        "ci95": [
+          -0.16056397306397308,
+          0.09744318181818185
+        ],
+        "interval_excludes_zero": false
+      }
     },
     {
       "target": "sdr:substrate_cluster_3",
@@ -488,6 +663,15 @@
           "auroc_ci": [
             0.752046783625731,
             0.9796747967479674
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.9665204678362573,
+          "average_precision": 0.8852648435036453,
+          "prevalence": 0.07766990291262135,
+          "auroc_ci": [
+            0.8991935483870968,
+            0.9975032457804853
           ]
         },
         "spectrum_krr": {
@@ -521,7 +705,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.06564327485380117,
+        "ci95": [
+          -0.008100512481401867,
+          0.20672043010752694
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.08611111111111114,
+        "ci95": [
+          -0.21908602150537637,
+          -0.006103286384976592
+        ],
+        "interval_excludes_zero": true
+      }
     },
     {
       "target": "sdr:substrate_cluster_4",
@@ -547,6 +747,15 @@
           "auroc_ci": [
             0.5505644588300308,
             0.8158899923605806
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.8868782161234992,
+          "average_precision": 0.63714603235365,
+          "prevalence": 0.1423948220064725,
+          "auroc_ci": [
+            0.8195500152021891,
+            0.941742607401897
           ]
         },
         "spectrum_krr": {
@@ -580,7 +789,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.18027444253859348,
+        "ci95": [
+          0.06187087816730308,
+          0.3496584154023601
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.22804459691252144,
+        "ci95": [
+          -0.33525712809027475,
+          -0.1271974136189129
+        ],
+        "interval_excludes_zero": true
+      }
     },
     {
       "target": "sdr:substrate_cluster_5",
@@ -606,6 +831,15 @@
           "auroc_ci": [
             0.5492647848019749,
             0.745177817962628
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.651010101010101,
+          "average_precision": 0.28169628492902243,
+          "prevalence": 0.14563106796116504,
+          "auroc_ci": [
+            0.3650456572520705,
+            0.8903895087101193
           ]
         },
         "spectrum_krr": {
@@ -641,7 +875,23 @@
         ],
         "interval_excludes_zero": true
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.0015151515151515804,
+        "ci95": [
+          -0.22057051024507834,
+          0.22370211938557272
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_vs_profile": {
+        "delta": 0.15690235690235688,
+        "ci95": [
+          -0.05016666666666669,
+          0.3837740384615385
+        ],
+        "interval_excludes_zero": false
+      }
     },
     {
       "target": "sdr:substrate_cluster_7",
@@ -667,6 +917,15 @@
           "auroc_ci": [
             0.635186907197322,
             0.844212282164962
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.6988458528951487,
+          "average_precision": 0.5443351116566678,
+          "prevalence": 0.3106796116504854,
+          "auroc_ci": [
+            0.5494606080418437,
+            0.8272689768976897
           ]
         },
         "spectrum_krr": {
@@ -700,7 +959,23 @@
         ],
         "interval_excludes_zero": true
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": -0.048660015649452326,
+        "ci95": [
+          -0.14021186440677957,
+          0.04269791118132349
+        ],
+        "interval_excludes_zero": false
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.1460778560250391,
+        "ci95": [
+          -0.2394606588154976,
+          -0.02339593114241001
+        ],
+        "interval_excludes_zero": true
+      }
     },
     {
       "target": "sdr:substrate_cluster_8",
@@ -726,6 +1001,15 @@
           "auroc_ci": [
             0.39486754966887416,
             0.9155709342560554
+          ]
+        },
+        "profile_nearest_neighbour": {
+          "auroc": 0.8305084745762712,
+          "average_precision": 0.4109695760474693,
+          "prevalence": 0.045307443365695796,
+          "auroc_ci": [
+            0.7139797507788161,
+            0.987785016286645
           ]
         },
         "spectrum_krr": {
@@ -759,7 +1043,23 @@
         ],
         "interval_excludes_zero": false
       },
-      "delta_auroc_determinant_vs_nearest_neighbour": null
+      "delta_auroc_determinant_vs_nearest_neighbour": null,
+      "delta_auroc_profile_vs_nearest_neighbour": {
+        "delta": 0.23244552058111378,
+        "ci95": [
+          0.009316770186335366,
+          0.41368286445012786
+        ],
+        "interval_excludes_zero": true
+      },
+      "delta_auroc_vs_profile": {
+        "delta": -0.31113801452784506,
+        "ci95": [
+          -0.5544117647058824,
+          -0.08890845070422537
+        ],
+        "interval_excludes_zero": true
+      }
     }
   ],
   "skipped_targets": {
@@ -777,6 +1077,14 @@
     "nearest_neighbour": {
       "auroc": 0.7104630105262485,
       "average_precision": 0.44111951646104375,
+      "brier": null,
+      "ece": null,
+      "n_targets_auroc": 12.0,
+      "n_targets_probability": 0.0
+    },
+    "profile_nearest_neighbour": {
+      "auroc": 0.7867216827350809,
+      "average_precision": 0.553442213183536,
       "brier": null,
       "ece": null,
       "n_targets_auroc": 12.0,
@@ -984,6 +1292,27 @@
     "ratio": 1.068,
     "measure": "median k-mer cosine between pool pairs, over the median between pairs of composition-preserving shuffles of the same sequences; no label is read"
   },
+  "alignment_similarity": {
+    "backend": "phmmer",
+    "backend_version": "pyhmmer 0.12.3 (vendored HMMER3)",
+    "normalisation": "bit score divided by the query profile's score against the query itself",
+    "pool_size": 309,
+    "queries_run": 309,
+    "pairs_requested": 905590,
+    "pairs_without_hit": 4592,
+    "search_settings": {
+      "E": 1000000000.0,
+      "acceleration_filters": false,
+      "bias_filter": false,
+      "cpus": 0
+    },
+    "builder_settings": {
+      "score_matrix": "BLOSUM62",
+      "gap_open": 0.02,
+      "gap_extend": 0.4,
+      "seed": 42
+    }
+  },
   "determinant_rules": [
     {
       "cofactor": "NADPH",
@@ -1009,5 +1338,5 @@
       "present": 130
     }
   },
-  "digest": "7eb46321a2390a24d94b96392a980b1e5a10ccd9e28a953ea2a2ceb3bf5df30f"
+  "digest": "7c5b86021b71a0edd92155f00cdb9e646ba8d203da7f68a71d281ebae441afcb"
 }

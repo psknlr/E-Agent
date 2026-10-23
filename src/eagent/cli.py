@@ -2081,10 +2081,15 @@ def benchmark_feedback(data_dir: Path, replicates: int, rounds: int,
 @click.option("--seed", default=0, show_default=True, type=int)
 @click.option("--boot", default=300, show_default=True, type=int,
               help="Cluster-bootstrap resamples per interval.")
+@click.option("--alignment/--no-alignment", default=False, show_default=True,
+              help="Add the profile-search baseline (HMMER bit scores through "
+                   "pyhmmer, the 'search' extra). Off by default so a build "
+                   "without the extra runs the same benchmark; on, it adds a "
+                   "column and a few minutes.")
 @click.option("--out", "out_path", type=click.Path(path_type=Path), default=None,
               help="Write the grouped report as JSON.")
 def benchmark_sdr(data_dir: Path, folds: int, identity: float, seed: int,
-                  boot: int, out_path: Path | None) -> None:
+                  boot: int, alignment: bool, out_path: Path | None) -> None:
     """Recover annotated SDR classes from sequence, with leakage on and off.
 
     This measures a sequence model and its calibration against ANNOTATION-
@@ -2093,14 +2098,29 @@ def benchmark_sdr(data_dir: Path, folds: int, identity: float, seed: int,
     """
     import json
 
+    from .errors import ToolUnavailableError
     from .eval.retrospective import (
-        BenchmarkProtocol, RetrospectiveError, run_sdr_suite,
+        BenchmarkProtocol, RetrospectiveError, load_sdr, run_sdr_suite,
+        sdr_alignment_similarity, sdr_examples,
     )
 
     out = Out()
+    provider = None
+    if alignment:
+        # Built here, from a second read of the same checked files, so that
+        # this command says plainly what it added to the run rather than
+        # having the suite decide whether an optional extra is installed.
+        try:
+            provider = sdr_alignment_similarity(
+                sdr_examples(load_sdr(data_dir)))
+        except ToolUnavailableError as exc:
+            raise Refusal(str(exc), next_action="install the extra with "
+                          "pip install 'eagent[search]', or drop "
+                          "--alignment", exit_code=EXIT_USAGE)
     try:
         suite = run_sdr_suite(data_dir, BenchmarkProtocol(
-            n_folds=folds, identity_threshold=identity, seed=seed, n_boot=boot))
+            n_folds=folds, identity_threshold=identity, seed=seed, n_boot=boot),
+            alignment=provider)
     except RetrospectiveError as exc:
         raise Refusal(str(exc), next_action="re-download the file through the "
                       "verified Zenodo route", exit_code=EXIT_USAGE)

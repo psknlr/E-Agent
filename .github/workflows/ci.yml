@@ -40,13 +40,14 @@ jobs:
           - label: 3.12, required dependencies only
             python: '3.12'
             install: '.[dev]'
-          # rdkit, biopython and numpy are declared optional extras, which
-          # means the code behind them is reachable in a supported install and
-          # was never run by any check. The first run of this leg found two
-          # real defects.
+          # rdkit, biopython, numpy and pyhmmer are declared optional extras,
+          # which means the code behind them is reachable in a supported
+          # install and was never run by any check. The first run of this leg
+          # found two real defects. The other two legs are the absent-extra
+          # path: the profile-search provider must refuse there, not fall back.
           - label: 3.12, with the optional extras
             python: '3.12'
-            install: '.[dev,chem,bio,numeric]'
+            install: '.[dev,chem,bio,numeric,search]'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

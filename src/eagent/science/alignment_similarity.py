@@ -57,6 +57,7 @@ answers whether it is here.
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Protocol, Sequence
 
@@ -69,6 +70,7 @@ __all__ = [
     "PairwiseSimilarity",
     "AlignmentReport",
     "pyhmmer_available",
+    "hmmer_version",
     "PhmmerSimilarity",
 ]
 
@@ -132,6 +134,31 @@ def pyhmmer_available() -> bool:
     return True
 
 
+def hmmer_version() -> str:
+    """The HMMER version this build actually runs, read from HMMER's own output.
+
+    ``pyhmmer.__version__`` is pyhmmer's, not HMMER's, and the two move
+    independently. The format line HMMER writes at the top of every HMM file
+    (``HMMER3/f [3.4 | Aug 2023]``) is the version that produced it, so a
+    ten-residue profile is built and its header read. Cheap, and it cannot
+    drift from the library that is linked in.
+    """
+    if not pyhmmer_available():
+        raise ToolUnavailableError(
+            "HMMER (pyhmmer)",
+            hint="pip install 'eagent[search]'")
+    from pyhmmer.easel import Alphabet, TextSequence
+    from pyhmmer.plan7 import Background, Builder
+
+    alphabet = Alphabet.amino()
+    seq = TextSequence(name=b"probe", sequence="ACDEFGHIKL").digitize(alphabet)
+    hmm, _profile, _optimised = Builder(alphabet).build(seq, Background(alphabet))
+    buffer = io.BytesIO()
+    hmm.write(buffer)
+    first = buffer.getvalue().split(b"\n", 1)[0].decode("utf-8", "replace")
+    return first.strip()
+
+
 def _text(name: Any) -> str:
     """A hit name as text. pyhmmer has returned ``bytes`` and ``str`` by version."""
     return name.decode() if isinstance(name, (bytes, bytearray)) else str(name)
@@ -168,6 +195,9 @@ class PhmmerSimilarity:
 
         self._alphabet = Alphabet.amino()
         self._pyhmmer_version = str(pyhmmer.__version__)
+        # HMMER's own version, read from HMMER's own output. pyhmmer's version
+        # is not it, and the two move independently.
+        self._hmmer_version = hmmer_version()
         self.cpus = int(cpus)
         self.e_value_ceiling = float(e_value_ceiling)
         self.acceleration_filters = bool(acceleration_filters)
@@ -248,7 +278,8 @@ class PhmmerSimilarity:
         """What produced these numbers, for the benchmark report to record."""
         return AlignmentReport(
             backend="phmmer",
-            backend_version=f"pyhmmer {self._pyhmmer_version} (vendored HMMER3)",
+            backend_version=f"pyhmmer {self._pyhmmer_version}, "
+                            f"{self._hmmer_version}",
             normalisation=("bit score divided by the query profile's score "
                            "against the query itself"
                            if self.normalise else "none (raw bit score)"),

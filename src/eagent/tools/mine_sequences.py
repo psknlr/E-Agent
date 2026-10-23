@@ -416,8 +416,26 @@ class SequenceDatabase(BaseModel):
         return str(v).strip()
 
     def target(self) -> str:
-        """What the search binary is pointed at: an index alias, or the FASTA."""
-        return self.search_target or self.fasta_path
+        """What the search binary is pointed at: an index alias, or the FASTA.
+
+        A **relative** ``fasta_path`` is refused here, and the refusal is the
+        point. :meth:`resolve_fasta` reads a relative path against the
+        connector cache, while a search runs with its working directory set to
+        a scratch folder, where the same string names a different file -- one
+        that will not exist, so the step fails, or in the worst case one that
+        does. Two meanings for one field is not something to resolve by
+        guessing which was meant. ``search_target`` is left alone: an index
+        alias is not a path and this module does not interpret it.
+        """
+        if self.search_target:
+            return self.search_target
+        if not Path(self.fasta_path).is_absolute():
+            raise SearchExecutionError(
+                f"fasta_path {self.fasta_path!r} is relative, and a search "
+                f"runs in a scratch working directory where that names a "
+                f"different file than resolve_fasta() would read. Pass an "
+                f"absolute path, or a search_target naming the index")
+        return self.fasta_path
 
     def resolve_fasta(self, cache_dir: Path | None = None) -> Path:
         """Absolute path to the local FASTA, relative paths taken from the cache."""

@@ -1789,7 +1789,7 @@
   },
   "alignment_similarity": {
     "backend": "phmmer",
-    "backend_version": "pyhmmer 0.12.3 (vendored HMMER3)",
+    "backend_version": "pyhmmer 0.12.3, HMMER3/f [3.4 | Aug 2023]",
     "normalisation": "bit score divided by the query profile's score against the query itself",
     "pool_size": 309,
     "queries_run": 309,
@@ -1855,5 +1855,5 @@
       "present": 130
     }
   },
-  "digest": "ade952c396d82fafb5740d35ff77e896d34df24a18406b748eda77a05dc2aa97"
+  "digest": "d9c735ee72615e3f3a48121c4583d9d9dfb0046867f44c8eccfad417a740f9d6"
 }

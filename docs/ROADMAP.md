@@ -5,7 +5,7 @@ can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
 **Where the project is today.** The harness is complete and tested: the whole suite
-passes (3414 tests plus 874 subtests with the optional extras installed;
+passes (3443 tests plus 874 subtests with the optional extras installed;
 without them the extra-dependent tests skip rather than fail). **Four public
 databases have been called live** (UniProtKB, RCSB PDB, Rhea, Zenodo) and one
 real dataset has been downloaded through a checksum-verified route; a first
@@ -64,15 +64,21 @@ bundle.
   and refuses with `RequestShapeNotVerifiedError` rather than calling a URL
   nobody checked it against.
 - **No structure predictor, docking program or inverse-folding model is
-  installed, and of the search binaries only HMMER3 is reachable.** Adapters
-  now exist for MMseqs2 clustering, gnina and Boltz, and were tested against
-  fakes that write output in the documented shape. **They have never been run
-  against the real binaries.** HMMER3 is the exception and it is an instructive
-  one: `pyhmmer` ships it on PyPI as a library, so installing the `search`
-  extra makes a real profile search available with no binary and no network,
-  and `eagent benchmark sdr --alignment` runs one. It is used there for
-  *similarity between sequences the repository already has*, not for mining,
-  because mining needs a database this environment cannot reach.
+  installed, and of the search binaries only HMMER3 is reachable.** The MMseqs2
+  clustering, gnina and Boltz adapters were tested against fakes that write
+  output in the documented shape, and **have never been run against the real
+  binaries**. The `hmmsearch` adapter is no longer in that list: `pyhmmer`
+  ships HMMER3 on PyPI as a library, so installing the `search` extra makes a
+  real profile search available with no binary and no network.
+  `PyhmmerRunner` (`tools/pyhmmer_search.py`) sits behind the adapter's own
+  injectable-runner seam and hands it **HMMER's own `--domtblout`**, so the
+  shipped parser has now been held to real output rather than to a fixture
+  written from the same documentation as the parser. That found a defect a fake
+  could not: `SequenceDatabase.fasta_path` was read against the connector cache
+  by `resolve_fasta` and against the search's scratch working directory by
+  `target`, two meanings for one field, now refused with the fix named. What is
+  still missing for *mining* is a database to search, which is a reachability
+  and licensing question rather than a program.
 - **Licences: 4 of 56 facets were read, 4 are reported, 48 are unknown.** Read:
   Boltz code and weights (MIT, per the 2.2.1 release's LICENSE and README),
   AutoDock Vina code (Apache-2.0), the gnina licence statement (dual GPL /
@@ -310,7 +316,7 @@ that reported a provenance-less split as clean.
 | --- | --- | --- |
 | `normalize_reaction` | implemented | runs fully offline; rdkit stereocentre perception would be a *proposal* only, and rdkit is absent |
 | `retrieve_evidence` | implemented, **data seam** | all connectors are cache-first; with an empty cache it reports 12 query gaps and 0 records |
-| `mine_sequences` | implemented, **tool seam** | `blastp` and `mmseqs2` absent; adapters drive injectable runners. HMMER3 is **no longer absent** — `pyhmmer` (the `search` extra) ships it as a library, and the measured consequence is in §9.1 of `docs/EVALUATION.md`: the k-mer cosine every pure-Python sequence comparison rests on scores 1.07x its own composition background on the SDR pool (`composition_contrast`), and a real profile search was put in the same benchmark slot to find out what that costs. What remains missing for *mining* is the target database, not the program: `mine_sequences` has nothing local to search and the public hosts are unreachable here. The next step for this row is a pyhmmer-backed runner behind the existing `CommandRunner` seam plus one local database file with a recorded snapshot date |
+| `mine_sequences` | implemented; `hmmsearch` **runs for real**, `blastp` and `mmseqs2` still seams | HMMER3 is no longer absent — `pyhmmer` (the `search` extra) ships it as a library, `PyhmmerRunner` drives the shipped adapter through it, and the adapter's `--domtblout` parser has been run against HMMER's own output on the in-repo SDR FASTA (242 hits at E≤1e-5, coverage ≤1, no invented percent identity). The measured consequence of having a real alignment is in §9.1 of `docs/EVALUATION.md`. What remains missing for *mining* is a database to search, not the program: no local database file is present and the public hosts are unreachable here. `blastp` and `mmseqs2` have still never met their real binaries |
 | `annotate_family` | implemented | needs seed accessions and references the templates do not yet carry. Motif-anchored cofactor determinants are read and recorded (`science/cofactor_determinant.py`), and deliberately do not set `cofactor_preference`: the one shipped rule was scored on the SDR deposit at AUROC 0.58 [0.46, 0.69] against 0.74 for nearest-neighbour homology transfer, so it locates a residue and calls nothing |
 | `prepare_structures` | implemented, **tool seam** | `StructurePredictor` absent (`UnavailablePredictor`); needs a local structure index |
 | `model_complexes` | implemented, **tool seam** | `DockingRunner` and `ComplexPredictor` absent |
@@ -407,13 +413,14 @@ In the order that unblocks the most:
    lists in `evidence_gaps.tsv`, each through
    `OfflineConnector.store_import(...)`. This is a curation task, not a coding
    task.
-3. **Point `mine_sequences` at a real search.** Half of this is done: HMMER3 is
-   installable here as a library (`pip install 'eagent[search]'`) and already
-   runs in the benchmark. What is left is a runner behind the existing
-   `CommandRunner` seam that calls `pyhmmer` instead of an argv binary, and a
-   local sequence database file with a recorded snapshot date to search against
-   — the database is the blocker, and it is a network and licensing question
-   rather than a coding one.
+3. **Give `mine_sequences` a database.** The program half is done: HMMER3 runs
+   here as a library and `PyhmmerRunner` drives the shipped adapter through it,
+   so a profile search against any local FASTA works today
+   (`pip install 'eagent[search]'`). What is left is a sequence database file
+   with a recorded snapshot date — the blocker, and a network and licensing
+   question rather than a coding one. `blastp` and `mmseqs2` remain untested
+   against their real binaries, and the same trick does not apply: neither
+   ships as an importable library.
 4. **Deposit mmCIF structures** into a local structure index, or install a
    predictor and record its version and licence facets.
 5. **Calibrate one window.** Pick the SDR hydride-transfer distance, supply
@@ -495,8 +502,12 @@ and a reference set, and nothing here substitutes for either.
   not a KRED panel.
 - Nothing about the agent's gates or ranking: they cannot be scored against
   annotation labels.
-- That any adapter works against its real binary (gnina, Boltz, MMseqs2) or that
-  `AnthropicMessagesClient` works against the live API.
+- That the gnina, Boltz or MMseqs2 adapters work against their real binaries,
+  or that `AnthropicMessagesClient` works against the live API. The
+  `hmmsearch` adapter is the one exception and it is now established: it has
+  been run against real HMMER3 through `PyhmmerRunner`, parsing HMMER's own
+  `--domtblout`. There is still no CLI entry point for mining and no database
+  to mine, so the *step* remains undemonstrated even where the adapter is not.
 - That a language model is useful in the loop. The planner is built so that it
   can do little harm; whether it does any good has not been measured.
 - A calibrated window. The mechanism exists and a reference set now exists
@@ -549,7 +560,7 @@ sources print.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 3414 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
+框架已完成并通过测试（写作时 3443 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
 （UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；但**没有跑过
 任何真实的结构预测器、对接程序、反向折叠模型或搜索二进制，也没有读过任何真实的实验板**。里程碑 1
 是"已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。

@@ -239,7 +239,7 @@ missing measurement becomes a fabricated one.
 
 | Seam | Interface | Absent here |
 | --- | --- | --- |
-| Sequence search | `mine_sequences` | `blastp`, `mmseqs2` binaries, and **any sequence database to search**. HMMER3 itself is no longer absent: the `search` extra (`pyhmmer`) ships it as a library and §9.1 of `docs/EVALUATION.md` reports a profile search run over the SDR pool. What is missing for mining is the target database — no local file, and the public hosts are unreachable from this environment |
+| Sequence search | `mine_sequences` | `blastp`, `mmseqs2` binaries, and **any sequence database to search**. `hmmsearch` is no longer a seam: the `search` extra (`pyhmmer`) ships HMMER3 as a library, `PyhmmerRunner` drives the shipped adapter through it, and the adapter's parser has been run against HMMER's own `--domtblout`. What is missing for mining is the target database — no local file, and the public hosts are unreachable from this environment |
 | Structure prediction | `prepare_structures` | any `StructurePredictor` (`UnavailablePredictor` is the default) |
 | Docking | `model_complexes` | any `DockingRunner` (`UnavailableDockingRunner` is the default) |
 | Joint complex prediction | `model_complexes` | any `ComplexPredictor` (`UnavailableComplexPredictor` is the default) |
@@ -348,8 +348,9 @@ What has been run against the outside world: four public databases (UniProtKB,
 RCSB PDB, Rhea, Zenodo) were called live and have clients checked against
 recorded responses, and one real dataset (the SDR substrate-class deposit) was
 downloaded through a checksum-verified route and benchmarked, and HMMER3 has
-been run locally through the `search` extra as a similarity between sequences
-already in the repository. What has **not**: no structure predictor, docking
+been run locally through the `search` extra, both as a similarity between
+sequences already in the repository and as a real profile search driving the
+shipped `hmmsearch` adapter. What has **not**: no structure predictor, docking
 program or inverse-folding model has ever been run (the gnina, Boltz and
 MMseqs2 adapters were tested against fakes that write output in the documented
 shape), and no search has been run against a sequence *database*, because none
@@ -473,8 +474,10 @@ PYTHONPATH=src python3 -m eagent.cli bundle runs/001 --out packages/001
 搜索二进制（blastp / mmseqs2）、结构预测器、对接程序、联合复合物预测器、
 LigandMPNN，在本环境里**全部不存在**。HMMER3 是例外：`search` 额外依赖（`pyhmmer`）以
 库的形式提供它，基准测试已在仓库内的 SDR 序列上跑过一次 profile 搜索（见
-`docs/EVALUATION.md` §9.1）；但 `mine_sequences` 仍是接缝，因为没有可供搜索的序列
-数据库——本地没有文件，公共主机在本环境也不可达。它们的契约、校验、溯源、产物布局和拒绝路径都已实现
+`docs/EVALUATION.md` §9.1）；`PyhmmerRunner` 还把仓库自带的 `hmmsearch` 适配器接到真实
+HMMER 上跑过，解析器第一次面对的是 HMMER 自己写出的 `--domtblout` 而不是测试假数据。
+但 `mine_sequences` 仍是接缝，因为没有可供搜索的序列数据库——本地没有文件，公共主机在
+本环境也不可达。它们的契约、校验、溯源、产物布局和拒绝路径都已实现
 并有测试，但真程序缺席时步骤只会报 `tool_unavailable` 并且什么都不产出。控制器既不重试，
 也不换一个工具顶上——换模型顶替正是"缺失的测量变成捏造的测量"的那条路。
 
@@ -484,7 +487,7 @@ LigandMPNN，在本环境里**全部不存在**。HMMER3 是例外：`search` �
 
 ### 现状
 
-整个测试套件通过（写作时为 3414 个测试 + 874 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
+整个测试套件通过（写作时为 3443 个测试 + 874 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
 **对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
 一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；另有一份 KRED 实验复合物参考集
 （19 个条目、28 条动力学记录）被保存、哈希固定、重算并与原始表格比对——但它按现有模板只有 1 个条目合格，

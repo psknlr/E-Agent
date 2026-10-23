@@ -34,7 +34,7 @@ no probability reported for at least one fold (too few of one class among the ou
 spectrum_krr vs nearest_neighbour, paired cluster-bootstrap interval on the AUROC difference excludes zero: better on 2 target(s) ['sdr:cofactor_NADP', 'sdr:substrate_cluster_5'], worse on 1 ['sdr:substrate_cluster_7'], indistinguishable on 9
 
 ALIGNMENT BASELINE (a real profile search, not a fit: no parameters, no training fold consulted):
-  phmmer via pyhmmer 0.12.3 (vendored HMMER3); BLOSUM62, gap open 0.02, gap extend 0.4; reporting E<=1000000000.0, acceleration filters off
+  phmmer via pyhmmer 0.12.3, HMMER3/f [3.4 | Aug 2023]; BLOSUM62, gap open 0.02, gap extend 0.4; reporting E<=1000000000.0, acceleration filters off
   normalisation: bit score divided by the query profile's score against the query itself
   309 profile(s) searched against a pool of 309; 1000762 pair(s) read, 5132 with no reported hit (0.5%, scored 0.0). A pair with no hit is not a measured dissimilarity.
   head refitted on kernel phmmer_symmetrised at ridge 0.1: fitted on every fold; its column is in the table above
@@ -107,4 +107,4 @@ RIDGE SENSITIVITY (a sweep, not a selection; the protocol's ridge was fixed in a
   ridge=0.3    macro AUROC=0.664 Brier=0.134 ECE=0.066
   ridge=1.0    macro AUROC=0.646 Brier=0.136 ECE=0.068
 
-grouped report written to docs/results/sdr_label_recovery.json (digest ade952c396d82faf)
+grouped report written to docs/results/sdr_label_recovery.json (digest d9c735ee72615e3f)

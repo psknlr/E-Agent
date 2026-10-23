@@ -46,6 +46,30 @@ from eagent.harness.approval import APPROVAL_GATES
 from eagent.schemas import GATE_REQUIREMENTS, TaskSpec
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def declared_version() -> str:
+    """The version in ``pyproject.toml``, read without ``tomllib``.
+
+    ``tomllib`` arrived in Python 3.11 and this package declares
+    ``requires-python = ">=3.10"``, so a test that imports it does not run on
+    the floor of the supported range -- which is exactly where a packaging
+    mismatch goes unnoticed. One key is needed, so the ``[project]`` table is
+    scanned for it rather than a TOML parser being added as a test dependency;
+    ``test_the_hand_reader_agrees_with_a_real_toml_parser`` keeps this honest
+    wherever a parser exists.
+    """
+    section: str | None = None
+    for raw in (REPO_ROOT / "pyproject.toml").read_text(
+            encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1]
+            continue
+        key, sep, value = line.partition("=")
+        if section == "project" and sep and key.strip() == "version":
+            return value.strip().strip("\"'")
+    raise AssertionError("pyproject.toml declares no version under [project]")
 PILOT_TASK = REPO_ROOT / "configs" / "tasks" / "KRED_PILOT_001.yaml"
 SRC_ROOT = REPO_ROOT / "src"
 
@@ -902,14 +926,25 @@ class PackageSurfaceTests(unittest.TestCase):
         self.assertEqual(loaded, "False")
 
     def test_the_version_matches_the_declared_one(self) -> None:
-        import tomllib
-
         import eagent
-        declared = tomllib.loads(
-            (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-        )["project"]["version"]
+
         self.assertIsInstance(eagent.__version__, str)
-        self.assertEqual(eagent.__version__, declared)
+        self.assertEqual(eagent.__version__, declared_version())
+
+    def test_the_hand_reader_agrees_with_a_real_toml_parser(self) -> None:
+        """So the reader above cannot drift from what the file actually says."""
+        try:
+            import tomllib
+        except ModuleNotFoundError:                   # Python 3.10
+            self.skipTest("tomllib arrived in 3.11; the hand reader is the "
+                          "only route on the floor of requires-python")
+        parsed = tomllib.loads(
+            (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        )["project"]
+        self.assertEqual(declared_version(), parsed["version"])
+        self.assertEqual(parsed["requires-python"], ">=3.10",
+                         "the hand reader exists because 3.10 is supported; "
+                         "if that floor moves, read the file with tomllib")
 
     def test_public_names_resolve_lazily(self) -> None:
         import eagent

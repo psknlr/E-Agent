@@ -5,7 +5,7 @@ can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
 **Where the project is today.** The harness is complete and tested: the whole suite
-passes (3443 tests plus 874 subtests with the optional extras installed;
+passes (3515 tests plus 874 subtests with the optional extras installed;
 without them the extra-dependent tests skip rather than fail). **Four public
 databases have been called live** (UniProtKB, RCSB PDB, Rhea, Zenodo) and one
 real dataset has been downloaded through a checksum-verified route; a first
@@ -24,13 +24,15 @@ table, and §7 says what the latest round of work did and did not establish.
 
 **What the repository can claim, in one sentence:** it has a sound machinery of
 claiming, a sequence-to-annotated-class model that is **not better than
-homology transfer** -- it beats a *k-mer* nearest-neighbour baseline on two of
-twelve classes, and once that baseline is replaced by a real profile search it
-loses on six and wins on none; refitting the head on that profile similarity
-raises it from 0.667 to 0.742 macro AUROC, the one change that has helped it,
-and still leaves it under the baseline's 0.787 (§9.1 of
-`docs/EVALUATION.md`) -- and a simulation showing that feeding labels back
-helps *on annotation-derived data*.
+homology transfer** -- it beats a *k-mer* nearest-neighbour baseline on one of
+twelve classes and loses on two, and against a real profile search it loses on
+four and wins on none; refitting the head on that profile similarity raises it
+from 0.599 to 0.653 macro AUROC, the one change that has helped it, and still
+leaves it under the baseline's 0.694 (§9.1 of `docs/EVALUATION.md`) -- and a
+simulation showing that feeding labels back helps *on annotation-derived data*.
+Every one of those numbers fell by 0.07 to 0.10 when the benchmark's fold
+grouping was audited with the clustering's own aligner and found to be leaking;
+the grouping is now computed completely and pinned.
 It does **not** support the sentence "the agent has learned from experiments and
 validated new-enzyme discovery": no experiment has been run.
 
@@ -362,7 +364,8 @@ that reported a provenance-less split as clean.
 | `eval/splits.py` | implemented | three regimes, grouped splitting, six-category audit |
 | `eval/metrics.py` | implemented | pre-registration guard, both denominators, signed ee, round-two report |
 | `eval/baselines.py` | implemented, **1 seam** | `homology_multi_seed`, `docking_score_ranking`, `full_agent` run; `substrate_specificity_model` accepts `science/enzyme_substrate.candidate_scorer`; `family_function_prediction` reports unavailable by name |
-| `eval/retrospective.py` | implemented | label recovery on the SDR deposit, grouped folds, leakage priced; **annotation-derived labels** |
+| `eval/retrospective.py` | implemented | label recovery on the SDR deposit, leakage priced, folds grouped by a **complete** clustering that is pinned and digest-verified on every run; **annotation-derived labels** |
+| `eval/grouping_audit.py` | implemented | checks that a fold grouping holds, with the clustering's own aligner rather than the k-mer proxy. It found the benchmark's own grouping leaking (§7) and reports every result as a lower bound on breaches, naming the pairs no screen looked at |
 | `eval/feedback_simulation.py` | implemented | feedback on/off over identical replicates; **annotation-derived labels revealed as if assayed** |
 | `science/enzyme_substrate.py` | implemented | spectrum-kernel heads, probabilities only where a grouped out-of-fold calibration shows skill |
 | `science/calibration.py`, `tools/calibrate_windows.py` | implemented | Wilks tolerance-interval calibration records, verified by digest; run on a real reference set, which cannot calibrate any shipped window (§7) |
@@ -464,36 +467,58 @@ and a reference set, and nothing here substitutes for either.
 **Measured on the SDR deposit (annotation-derived labels), recorded in
 `docs/results/`**
 
+- **The fold grouping the whole file rests on was leaking, and it was found by
+  checking it rather than by reasoning about it.** The benchmark grouped folds
+  with a greedy clustering that compares each sequence only against cluster
+  representatives and stops at the first match; an audit with the clustering's
+  own aligner (`eval/grouping_audit.py`) found **60 cross-fold pairs at or
+  above the 0.4 identity threshold, over 49 of 309 sequences, the closest at
+  0.816**, and none of the 60 had both members as representatives. A second
+  pass at half the k-mer screen found 120, so the screen was not good enough
+  either, and no cheap *sound* screen exists -- the only one available, the
+  residue-composition bound, prunes 0.1 % of pairs. The grouping is therefore
+  computed completely (all 47,586 pairs aligned, 29 minutes, 99 clusters) and
+  pinned at `configs/references/sdr_grouping/v1/` with a digest the benchmark
+  verifies on every run, refusing an absent, stale or screened pin. Every
+  number below is the corrected one; the previous numbers were 0.07 to 0.10
+  AUROC higher.
 - Recovering an annotated class from sequence, with test sequences held out by
-  cluster: macro AUROC **0.667** for the spectrum-kernel model against **0.710**
-  for the k-mer nearest neighbour. The model is better on 2 of 12 targets (the
-  NAD/NADP cofactor and one substrate cluster), worse on 1, and
-  indistinguishable on 9.
+  cluster: macro AUROC **0.599** for the spectrum-kernel model against **0.615**
+  for the k-mer nearest neighbour. The model is better on 1 of 12 targets
+  (sterol), worse on 2, and indistinguishable on 9.
 - Replacing that baseline's k-mer cosine with a **real profile search** (HMMER3
-  through `pyhmmer`, the `search` extra) raises the baseline to **0.787** and
-  flips the comparison: the model beats it on **none** of the 12 and loses on
-  6. The apparent edge above was measured against the weaker of two baselines.
-- Refitting the same head on that profile similarity raises it to **0.742** --
+  through `pyhmmer`, the `search` extra) raises the baseline to **0.694**: the
+  model beats it on **none** of the 12 and loses on 4. The apparent edge above
+  was measured against the weaker of two baselines.
+- Refitting the same head on that profile similarity raises it to **0.653** --
   better than the k-mer head on 3 targets and worse on none, and the only
   change tried so far that has helped the head rather than the baseline. It is
-  still below the 0.787 of homology transfer over the same similarity, so the
+  still below the 0.694 of homology transfer over the same similarity, so the
   head is not justified as an improvement on "find the nearest characterised
   homologue". The symmetrised Gram matrix turned out to be positive definite
   without a ridge; nothing was repaired to make the fit go through.
 - The better ranker is the **worse** naive probability: macro ECE of the
-  uncalibrated `(s+1)/2` reading doubles on the profile kernel, 0.061 to 0.123,
-  and the calibration gate admits 2 targets instead of 3. Ranking skill is not
-  calibration.
-- Ungrouped folds inflate AUROC by about **0.26-0.28** (0.71 to 0.97). That gap
+  uncalibrated `(s+1)/2` reading doubles on the profile kernel, 0.071 to 0.141.
+  Ranking skill is not calibration. (On the leaky grouping the calibration
+  *gate* also admitted fewer targets on the profile kernel; on corrected folds
+  it admits more, 2 against 1, so that half of the finding did not survive and
+  is recorded as not surviving.)
+- Ungrouped folds inflate AUROC by about **0.28-0.35** (0.62 to 0.97). That gap
   is the reason grouping is mandatory, and it is the size of the error a
-  benchmark makes when it does not group.
+  benchmark makes when it does not group. The leaky grouping reported it as
+  0.26-0.28, understating the price of not grouping by about a third.
 - A probability is reported only where an out-of-fold calibration shows skill:
-  **3 of 12** targets earned one. The others rank but state no probability.
+  **1 of 12** targets earned one on the k-mer kernel and 2 of 12 on the profile
+  kernel. The others rank but state no probability.
 - Feeding measured labels back into selection: on the full pool the model beats
-  random by a wide margin and feedback adds 2-6 hits over a frozen model on
-  most classes; on a one-per-cluster pool most of that advantage disappears
-  (phenol: no difference from random). A similarity-guided method looks good
-  largely because the pool is redundant.
+  random by a wide margin and feedback adds 2-6 hits over a frozen model on 9
+  of 11 classes; on a one-per-cluster pool most of that advantage disappears
+  and **feedback helps on only 1 of 6** classes, with the model no better than
+  random on phenol or substrate cluster 4. The de-redundified pool is 99
+  sequences rather than 123 now that it is built from the complete grouping,
+  which is to say it is genuinely less redundant than this bullet used to
+  describe. A similarity-guided method looks good largely because the pool is
+  redundant.
 
 **Not established**
 
@@ -560,7 +585,7 @@ sources print.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 3443 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
+框架已完成并通过测试（写作时 3515 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
 （UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；但**没有跑过
 任何真实的结构预测器、对接程序、反向折叠模型或搜索二进制，也没有读过任何真实的实验板**。里程碑 1
 是"已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。

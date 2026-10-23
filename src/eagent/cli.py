@@ -2092,10 +2092,36 @@ def benchmark_feedback(data_dir: Path, replicates: int, rounds: int,
                    "(implies --alignment). Reports a refusal if the Gram "
                    "matrix is not positive definite; the ridge is never "
                    "raised to force it. Doubles the run.")
+@click.option("--grouping",
+              type=click.Choice(["pinned", "single_linkage", "greedy"]),
+              default="pinned", show_default=True,
+              help="Where the clusters the folds may not split come from. "
+                   "pinned is the checked-in complete single-linkage "
+                   "grouping, verified against a digest of this pool -- the "
+                   "only option that establishes every cross-cluster pair is "
+                   "below the threshold. single_linkage recomputes it behind "
+                   "a k-mer screen, which is affordable anywhere and still "
+                   "leaks. greedy is the representative-based clustering this "
+                   "benchmark first used, which left 49 of 309 sequences with "
+                   "a cross-fold neighbour over the threshold; kept so the "
+                   "difference can be measured rather than asserted.")
+@click.option("--audit/--no-audit", default=True, show_default=True,
+              help="Audit the grouped folds with the clustering's own "
+                   "alignment, at a k-mer screen looser than the grouping "
+                   "used. Adds a few minutes; it is the only check on the "
+                   "control every other number here rests on.")
+@click.option("--audit-screen", default=None, type=float,
+              help="k-mer Jaccard screen for the audit. Lower is more "
+                   "thorough and much slower; 0 aligns every cross-fold pair, "
+                   "which takes about half an hour and is the only setting "
+                   "that proves rather than bounds. Against a recomputed "
+                   "grouping it must be below that grouping's screen or the "
+                   "audit is tautological.  [default: 0.05]")
 @click.option("--out", "out_path", type=click.Path(path_type=Path), default=None,
               help="Write the grouped report as JSON.")
 def benchmark_sdr(data_dir: Path, folds: int, identity: float, seed: int,
                   boot: int, alignment: bool, alignment_head: bool,
+                  grouping: str, audit: bool, audit_screen: float | None,
                   out_path: Path | None) -> None:
     """Recover annotated SDR classes from sequence, with leakage on and off.
 
@@ -2107,8 +2133,9 @@ def benchmark_sdr(data_dir: Path, folds: int, identity: float, seed: int,
 
     from .errors import ToolUnavailableError
     from .eval.retrospective import (
-        BenchmarkProtocol, RetrospectiveError, load_sdr, run_sdr_suite,
-        sdr_alignment_similarity, sdr_examples,
+        AUDIT_SCREEN, GROUPING_SCREEN, BenchmarkProtocol, GroupingPinError,
+        RetrospectiveError, load_sdr, run_sdr_suite, sdr_alignment_similarity,
+        sdr_examples,
     )
 
     out = Out()
@@ -2130,10 +2157,31 @@ def benchmark_sdr(data_dir: Path, folds: int, identity: float, seed: int,
             raise Refusal(str(exc), next_action="install the extra with "
                           "pip install 'eagent[search]', or drop "
                           "--alignment", exit_code=EXIT_USAGE)
+    screen = AUDIT_SCREEN if audit_screen is None else audit_screen
+    # Only a *recomputed* grouping has a screen for the audit to be
+    # tautological against. The pinned grouping aligned every pair, so there
+    # is no set of pairs its construction ruled out by assumption and any
+    # audit screen is informative about it.
+    if audit and grouping != "pinned" and screen >= GROUPING_SCREEN:
+        raise Refusal(
+            f"--audit-screen {screen:g} is not below the screen the "
+            f"{grouping} grouping is built at ({GROUPING_SCREEN:g}), so the "
+            f"audit would only re-check pairs the construction already ruled "
+            f"out and would report a clean result whatever the truth is",
+            next_action=f"pass --audit-screen below {GROUPING_SCREEN:g}, or "
+                        f"--no-audit to skip the control", exit_code=EXIT_USAGE)
     try:
         suite = run_sdr_suite(data_dir, BenchmarkProtocol(
-            n_folds=folds, identity_threshold=identity, seed=seed, n_boot=boot),
-            alignment=provider, alignment_kernel=head_kernel)
+            n_folds=folds, identity_threshold=identity, seed=seed, n_boot=boot,
+            grouping=grouping),
+            alignment=provider, alignment_kernel=head_kernel,
+            audit_screen=screen if audit else None)
+    except GroupingPinError as exc:
+        raise Refusal(str(exc), next_action=(
+            f"re-pin it with python scripts/pin_sdr_grouping.py --data "
+            f"{data_dir}, or pass --grouping single_linkage to recompute it "
+            f"behind a screen and have the report say it was screened"),
+            exit_code=EXIT_USAGE)
     except RetrospectiveError as exc:
         raise Refusal(str(exc), next_action="re-download the file through the "
                       "verified Zenodo route", exit_code=EXIT_USAGE)

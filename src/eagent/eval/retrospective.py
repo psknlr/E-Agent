@@ -97,6 +97,7 @@ import csv
 import hashlib
 import math
 import random
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -104,6 +105,7 @@ from typing import Any, Mapping, Sequence
 from ..errors import EAgentError
 from ..provenance import sha256_obj
 from ..science.alignment_similarity import PairwiseSimilarity
+from .grouping_audit import GroupingAudit, audit_grouping, jaccard_screen
 from ..science.cofactor_determinant import (
     AnchoredDeterminantRule, DeterminantOutcome, read_determinant,
 )
@@ -118,6 +120,7 @@ from ..science.robustness import wilson_interval
 
 __all__ = [
     "RetrospectiveError",
+    "GroupingPinError",
     "SDR_VERSION_DOI",
     "SDR_FILE_MD5",
     "CLAIM",
@@ -135,6 +138,11 @@ __all__ = [
     "DETERMINANT_TARGETS",
     "SDR_FAMILY_TEMPLATE_ID",
     "sdr_determinant_rules",
+    "PINNED_GROUPING",
+    "GROUPING_SCREEN",
+    "AUDIT_SCREEN",
+    "grouping_input_digest",
+    "load_pinned_grouping",
     "sdr_alignment_similarity",
 ]
 
@@ -209,6 +217,16 @@ CLAIM = (
 
 class RetrospectiveError(EAgentError):
     """The benchmark's inputs are not what its numbers would claim they are."""
+
+
+class GroupingPinError(RetrospectiveError):
+    """The checked-in fold grouping is absent, stale, or not complete.
+
+    Its own class because the next step is to re-pin the grouping, which is
+    nothing like the next step for a dataset that failed its md5, and a
+    front-end that cannot tell the two apart sends people to re-download a
+    file that is fine.
+    """
 
 
 # ==========================================================================
@@ -308,6 +326,25 @@ class BenchmarkProtocol:
     n_folds: int = 5
     identity_threshold: float = 0.4
     grouped: bool = True
+    #: Where the clusters the folds may not split come from.
+    #:
+    #: ``"pinned"``
+    #:     the checked-in complete single-linkage grouping, verified against a
+    #:     digest of this pool and threshold. The default, because it is the
+    #:     only one of the three that establishes the property the folds
+    #:     promise: every pair in two different clusters is below the
+    #:     threshold, with no screen qualifying it.
+    #: ``"single_linkage"``
+    #:     recompute the same clustering behind :data:`GROUPING_SCREEN`.
+    #:     Affordable on any pool and it still leaks, because the screen is a
+    #:     heuristic; for a pool with no pin it is the honest option and the
+    #:     report says it was screened.
+    #: ``"greedy"``
+    #:     the representative-based clustering the first version of this
+    #:     benchmark used. Kept reachable because the difference between it
+    #:     and the others is the size of a leak, and that is worth being able
+    #:     to measure rather than assert.
+    grouping: str = "pinned"
     seed: int = 0
     ridge: float = 0.1
     ks: tuple[int, ...] = (2, 3)
@@ -354,9 +391,21 @@ class BenchmarkReport:
     skipped_targets: dict[str, str]
     macro: dict[str, dict[str, float | None]]
     reliability: dict[str, list[dict[str, Any]]]
+    #: Max k-mer cosine of each test sequence to its training folds. A
+    #: diagnostic of the *kernel*, not a leakage check -- that cosine is barely
+    #: above its own composition background, so a low median is a statement
+    #: about amino-acid composition. The leakage statement is
+    #: :attr:`grouping_audit`, which measures identity.
     similarity_to_training: dict[str, Any]
     uncalibrated_targets: list[str]
+    #: example id -> fold index. The run is not reproducible from the report
+    #: without it, and the grouping audit is a claim about exactly this map.
+    fold_assignment: dict[str, int] = field(default_factory=dict)
     kernel_character: dict[str, Any] = field(default_factory=dict)
+    #: Whether the grouping the folds promise actually held, measured with the
+    #: clustering's own identity function instead of the k-mer proxy. The
+    #: object, not its dict, so the rendering and the numbers cannot drift.
+    grouping_audit: "GroupingAudit | None" = None
     alignment_similarity: dict[str, Any] = field(default_factory=dict)
     alignment_kernel: dict[str, Any] = field(default_factory=dict)
     determinant_rules: list[dict[str, Any]] = field(default_factory=list)
@@ -374,7 +423,10 @@ class BenchmarkReport:
             "reliability": self.reliability,
             "similarity_to_training": self.similarity_to_training,
             "uncalibrated_targets": self.uncalibrated_targets,
+            "fold_assignment": self.fold_assignment,
             "kernel_character": self.kernel_character,
+            "grouping_audit": (self.grouping_audit.to_dict()
+                               if self.grouping_audit is not None else {}),
             "alignment_similarity": self.alignment_similarity,
             "alignment_kernel": self.alignment_kernel,
             "determinant_rules": self.determinant_rules,
@@ -390,9 +442,19 @@ class BenchmarkReport:
             f"folds={p.n_folds} grouped={p.grouped} identity<={p.identity_threshold} "
             f"seed={p.seed} ridge={p.ridge} ks={list(p.ks)}",
             f"{self.n_sequences} sequences in {self.n_clusters} cluster(s); "
-            f"clustering: {self.clustering.get('method')}",
-            f"median max-similarity of a test sequence to its training folds: "
-            f"{self.similarity_to_training.get('median')}"]
+            f"clustering: {self.clustering.get('method')}, "
+            + ("complete (every pair aligned, so every cross-cluster pair is "
+               "below the threshold unconditionally)"
+               if self.clustering.get("complete")
+               else f"behind a k-mer screen at "
+                    f"{self.clustering.get('screen')} -- a heuristic, so "
+                    f"a cross-cluster pair over the threshold is possible"),
+            f"median max k-mer-cosine similarity of a test sequence to its "
+            f"training folds: {self.similarity_to_training.get('median')} "
+            f"-- a kernel diagnostic, NOT the leakage check: this cosine is "
+            f"barely above its own composition background (next line), and "
+            f"what the folds promise is an *identity* bound. The grouping "
+            f"audit below is the statement about that"]
         character = self.kernel_character
         if character.get("ratio") is not None:
             lines.append(
@@ -456,9 +518,21 @@ class BenchmarkReport:
             f"{len(self.targets) - len(wins) - len(losses)}")
         lines += self._alignment_lines()
         lines += self._determinant_lines()
+        lines += self._grouping_audit_lines()
         for t, why in sorted(self.skipped_targets.items()):
             lines.append(f"skipped {t}: {why}")
         return "\n".join(lines)
+
+    def _grouping_audit_lines(self) -> list[str]:
+        """The grouping audit, rendered by the audit itself.
+
+        Formatting lives in :mod:`eagent.eval.grouping_audit` rather than here
+        so that the caveat and the breach lines cannot drift apart from the
+        numbers they qualify.
+        """
+        if self.grouping_audit is None:
+            return []
+        return self.grouping_audit.render()
 
     def _alignment_lines(self) -> list[str]:
         """The alignment baseline: what produced it, and the two paired tests.
@@ -960,6 +1034,10 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
         "p90": sims[min(len(sims) - 1, int(0.9 * len(sims)))] if sims else None,
         "measure": "max k-mer cosine of a test sequence to any training-fold "
                    "sequence",
+        "is_a_leakage_check": False,
+        "why_not": "a k-mer cosine sits barely above its own composition "
+                   "background on this pool, and the folds promise an "
+                   "identity bound. Read grouping_audit for that",
     }
     report = BenchmarkReport(
         protocol=protocol, claim=CLAIM, dataset_md5={},
@@ -968,6 +1046,7 @@ def run_benchmark(examples: Sequence[Example], protocol: BenchmarkProtocol | Non
                                                        "its own group)"}),
         targets=results, skipped_targets=skipped, macro=macro,
         reliability=reliability, similarity_to_training=similarity,
+        fold_assignment=dict(fold_of),
         uncalibrated_targets=sorted(uncalibrated),
         kernel_character=composition_contrast(
             [sequences[i] for i in ids], protocol.ks, seed=protocol.seed),
@@ -1014,7 +1093,10 @@ class SdrSuite:
             lines.append(f"  macro AUROC {name:<26} grouped={_f(g)} "
                          f"ungrouped={_f(u)} "
                          f"optimism={_f(None if g is None or u is None else u - g)}")
-        lines.append(f"  median max-similarity to training: "
+        # Used here as a *relative* measure only: the same proxy on both sides
+        # shows the split moved something, which is all this line claims. The
+        # absolute leakage statement is the grouping audit, over identity.
+        lines.append(f"  median max k-mer-cosine similarity to training: "
                      f"grouped={_f(self.grouped.similarity_to_training['median'])} "
                      f"ungrouped={_f(self.ungrouped.similarity_to_training['median'])}")
         lines += ["", "RIDGE SENSITIVITY (a sweep, not a selection; "
@@ -1059,11 +1141,92 @@ def sdr_alignment_similarity(examples: Sequence[Example], **kwargs: Any
     return PhmmerSimilarity(pool_from_examples(examples), **kwargs)
 
 
+#: The checked-in, complete fold grouping. Written by
+#: ``scripts/pin_sdr_grouping.py`` and verified on every run against a digest
+#: of the sequences it was computed from.
+PINNED_GROUPING: Path = (Path(__file__).resolve().parents[3] / "configs"
+                         / "references" / "sdr_grouping" / "v1"
+                         / "grouping.json")
+
+#: k-mer Jaccard screen a *recomputed* grouping uses. Only reached with
+#: ``grouping="greedy"`` or an explicit recompute, because the shipped grouping
+#: is complete and screened grouping demonstrably leaks: on this pool a
+#: grouping built behind this screen still left 120 cross-fold pairs over the
+#: threshold once the audit looked below it.
+GROUPING_SCREEN: float = 0.10
+
+#: k-mer Jaccard screen the *audit* uses. Deliberately looser than
+#: :data:`GROUPING_SCREEN`, because an audit at the screen the grouping was
+#: built at is tautological -- the construction already ruled those breaches
+#: out -- so only a looser screen can find anything. It costs one alignment per
+#: admitted pair, which is why it is a constant a caller can lower rather than
+#: a value chosen to be cheap.
+AUDIT_SCREEN: float = 0.05
+
+
+def grouping_input_digest(items: Sequence[tuple[str, str]],
+                          threshold: float) -> str:
+    """Digest of exactly what a grouping is a function of.
+
+    The sequences, their ids and the threshold -- nothing else. A pin whose
+    digest matches describes *this* pool at *this* threshold, so the benchmark
+    can use it without recomputing and without having to trust that nobody
+    edited the dataset underneath it.
+    """
+    return sha256_obj({"items": [[k, v] for k, v in sorted(items)],
+                       "identity_threshold": threshold})
+
+
+def load_pinned_grouping(items: Sequence[tuple[str, str]], threshold: float,
+                         path: Path | None = None) -> Mapping[str, Any]:
+    """Load the checked-in complete grouping, or refuse.
+
+    Raises :class:`RetrospectiveError` when the file is absent, when its digest
+    does not match the pool and threshold in hand, or when it does not describe
+    a complete computation. Every one of those is a refusal rather than a
+    fallback to a screened recomputation, because a screened grouping leaks and
+    a benchmark that silently substitutes one would report the leak's optimism
+    as a result.
+    """
+    path = path or PINNED_GROUPING
+    if not path.exists():
+        raise GroupingPinError(
+            f"no pinned grouping at {path}. The benchmark's folds rest on a "
+            f"complete single-linkage grouping; compute it with "
+            f"scripts/pin_sdr_grouping.py (about half an hour) rather than "
+            f"running against a screened one")
+    try:
+        pinned = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise GroupingPinError(f"pinned grouping at {path} is unreadable: "
+                                 f"{exc}") from exc
+    expected = grouping_input_digest(items, threshold)
+    if pinned.get("input_digest") != expected:
+        raise GroupingPinError(
+            f"the pinned grouping at {path} was computed from different "
+            f"input: it records digest {str(pinned.get('input_digest'))[:16]} "
+            f"and this pool at threshold {threshold} digests to "
+            f"{expected[:16]}. Re-pin it with scripts/pin_sdr_grouping.py")
+    if not pinned.get("complete") or pinned.get("screen") is not None:
+        raise GroupingPinError(
+            f"the pinned grouping at {path} was computed behind a screen, so "
+            f"it does not establish that every cross-cluster pair is below "
+            f"the threshold. Re-pin it without one")
+    assignment = pinned.get("assignment") or {}
+    ids = {k for k, _ in items}
+    if set(assignment) != ids:
+        raise GroupingPinError(
+            f"the pinned grouping at {path} assigns "
+            f"{len(set(assignment) & ids)} of {len(ids)} sequences")
+    return pinned
+
+
 def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = None,
                   *, sweep: Sequence[float] = (0.03, 0.1, 0.3, 1.0),
                   determinant_rules: Sequence[AnchoredDeterminantRule] | None = None,
                   alignment: PairwiseSimilarity | None = None,
-                  alignment_kernel: Any | None = None
+                  alignment_kernel: Any | None = None,
+                  audit_screen: float | None = AUDIT_SCREEN
                   ) -> SdrSuite:
     """Load the SDR dataset, cluster it, and run the grouped, ungrouped and sweep runs.
 
@@ -1072,25 +1235,80 @@ def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = Non
     ``alignment_kernel`` (built over the same provider) adds the head refitted
     on it. The whole-pool definiteness check runs once and is recorded on the
     grouped report.
+
+    THE GROUPING, AND WHY IT IS NOT THE ONE THIS BENCHMARK STARTED WITH
+    -------------------------------------------------------------------
+    ``protocol.grouping`` selects how the clusters the folds may not split are
+    built. ``"single_linkage"``, the default, closes the identity relation
+    transitively
+    (:func:`~eagent.tools.mine_sequences.single_linkage_clusters`), which is
+    what gives the pairwise property a grouped split actually needs.
+    ``"greedy"`` is :func:`~eagent.tools.mine_sequences.cluster_sequences`, the
+    representative-based clustering this benchmark first used; it is kept
+    reachable because running both is the only way to *measure* what the
+    weaker grouping was worth rather than assert it.
+
+    ``audit_screen`` runs :func:`~eagent.eval.grouping_audit.audit_grouping`
+    over the grouped folds at a k-mer Jaccard screen looser than the one the
+    grouping was built at, which is the only setting where the audit can find
+    anything (see :data:`AUDIT_SCREEN`). ``None`` skips it: it costs one full
+    alignment per admitted pair, around eight minutes on this pool at the
+    default screen, and a caller who only wants the comparator table should
+    not have to pay for a control they are not reading. It runs on the grouped
+    folds only -- the ungrouped run is leaky on purpose, so auditing it would
+    be measuring a thing that is already declared.
     """
-    from ..tools.mine_sequences import cluster_sequences
+    from ..tools.mine_sequences import (
+        PAIRWISE_IDENTITY_DEFINITION, cluster_sequences, pairwise_identity,
+        single_linkage_clusters,
+    )
     protocol = protocol or BenchmarkProtocol()
     rules = (list(determinant_rules) if determinant_rules is not None
              else sdr_determinant_rules())
     dataset = load_sdr(data_dir)
     examples = sdr_examples(dataset)
     items = sorted({(e.example_id, e.sequence) for e in examples})
-    clustering = cluster_sequences(items, protocol.identity_threshold)
-    note = {"method": clustering.method,
-            "identity_threshold": clustering.identity_threshold,
-            "identity_definition": clustering.identity_definition,
-            "fallback_reason": clustering.fallback_reason,
-            "n_alignments": clustering.n_alignments}
+    if protocol.grouping == "pinned":
+        pinned = load_pinned_grouping(items, protocol.identity_threshold)
+        assignment = dict(pinned["assignment"])
+        note = {"method": pinned["method"],
+                "identity_threshold": pinned["identity_threshold"],
+                "identity_definition": pinned["identity_definition"],
+                "n_alignments": pinned["n_alignments"],
+                "n_prefiltered_pairs": pinned["n_prefiltered_pairs"],
+                "screen": None, "complete": True,
+                "input_digest": pinned["input_digest"],
+                "source": str(PINNED_GROUPING.name),
+                "fallback_reason": ""}
+        clustering_identity = pinned["identity_definition"]
+    else:
+        if protocol.grouping == "single_linkage":
+            clustering = single_linkage_clusters(
+                items, protocol.identity_threshold,
+                kmer_prefilter=GROUPING_SCREEN)
+        elif protocol.grouping == "greedy":
+            clustering = cluster_sequences(
+                items, protocol.identity_threshold,
+                kmer_prefilter=GROUPING_SCREEN)
+        else:
+            raise RetrospectiveError(
+                f"unknown grouping {protocol.grouping!r}; expected 'pinned', "
+                f"'single_linkage' or 'greedy'")
+        assignment = dict(clustering.assignment)
+        note = {"method": clustering.method,
+                "identity_threshold": clustering.identity_threshold,
+                "identity_definition": clustering.identity_definition,
+                "fallback_reason": clustering.fallback_reason,
+                "n_alignments": clustering.n_alignments,
+                "n_prefiltered_pairs": clustering.n_prefiltered_pairs,
+                "budget_exhausted": clustering.budget_exhausted,
+                "screen": GROUPING_SCREEN, "complete": False}
+        clustering_identity = clustering.identity_definition
     kernel = KernelCache(protocol.ks)
 
     def run(proto: BenchmarkProtocol) -> BenchmarkReport:
         report = run_benchmark(examples, proto,
-                               cluster_assignment=dict(clustering.assignment),
+                               cluster_assignment=dict(assignment),
                                clustering_note=note, kernel=kernel,
                                determinant_rules=rules, alignment=alignment,
                                alignment_kernel=alignment_kernel)
@@ -1098,13 +1316,22 @@ def run_sdr_suite(data_dir: str | Path, protocol: BenchmarkProtocol | None = Non
         return report
 
     grouped = run(protocol)
+    if audit_screen is not None:
+        grouped.grouping_audit = audit_grouping(
+            {e.example_id: e.sequence for e in examples},
+            grouped.fold_assignment, identity=pairwise_identity,
+            threshold=protocol.identity_threshold,
+            screens=[jaccard_screen(audit_screen)],
+            identity_name=PAIRWISE_IDENTITY_DEFINITION,
+            clustering_identity_name=clustering_identity,
+            grouping_was_complete=bool(note.get("complete")))
     if alignment_kernel is not None:
         from ..science.enzyme_substrate import definiteness_report
         grouped.alignment_kernel["definiteness"] = definiteness_report(
             [e.sequence for e in examples], alignment_kernel,
             ridge=protocol.ridge, seed=protocol.seed)
-        grouped.digest = sha256_obj({k: v for k, v in grouped.to_dict().items()
-                                     if k != "digest"})
+    grouped.digest = sha256_obj({k: v for k, v in grouped.to_dict().items()
+                                 if k != "digest"})
     ungrouped = run(BenchmarkProtocol(**{**protocol.__dict__, "grouped": False}))
     sweep_out: dict[float, dict[str, float | None]] = {}
     for ridge in sweep:

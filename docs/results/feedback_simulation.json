@@ -1078,678 +1078,586 @@
     "claim": "This simulation reveals ANNOTATION-DERIVED labels as if they were assay results. It shows how selection strategies compare at recovering an annotated class; it is not evidence about a real assay, the agent's gates, or ketoreductase activity.",
     "pool_kind": "non-redundant",
     "skipped": {
-      "sdr:CoA_substructure": "14 positive / 109 negative; 15 of each are required",
-      "sdr:substrate_cluster_0": "10 positive / 113 negative; 15 of each are required",
-      "sdr:substrate_cluster_3": "10 positive / 113 negative; 15 of each are required",
-      "sdr:substrate_cluster_5": "7 positive / 116 negative; 15 of each are required",
-      "sdr:substrate_cluster_6": "0 positive / 123 negative; 15 of each are required",
-      "sdr:substrate_cluster_8": "8 positive / 115 negative; 15 of each are required"
+      "sdr:CoA_substructure": "10 positive / 89 negative; 15 of each are required",
+      "sdr:substrate_cluster_0": "10 positive / 89 negative; 15 of each are required",
+      "sdr:substrate_cluster_1": "13 positive / 86 negative; 15 of each are required",
+      "sdr:substrate_cluster_3": "7 positive / 92 negative; 15 of each are required",
+      "sdr:substrate_cluster_5": "5 positive / 94 negative; 15 of each are required",
+      "sdr:substrate_cluster_6": "0 positive / 99 negative; 15 of each are required",
+      "sdr:substrate_cluster_8": "7 positive / 92 negative; 15 of each are required"
     },
     "targets": [
       {
         "target": "sdr:cofactor_NADP",
-        "pool_size": 112,
-        "prevalence": 0.5982142857142857,
+        "pool_size": 89,
+        "prevalence": 0.5955056179775281,
         "n_replicates": 20,
         "summary": {
           "random": {
-            "mean_hits": 24.35,
-            "ci_low": 23.35,
-            "ci_high": 25.4,
+            "mean_hits": 23.55,
+            "ci_low": 22.75,
+            "ci_high": 24.35,
             "enrichment_vs_random": 1.0
           },
           "nearest_neighbour[feedback]": {
-            "mean_hits": 31.25,
-            "ci_low": 30.5,
-            "ci_high": 31.9,
-            "enrichment_vs_random": 1.2833675564681724
+            "mean_hits": 29.85,
+            "ci_low": 29.2,
+            "ci_high": 30.55,
+            "enrichment_vs_random": 1.267515923566879
           },
           "nearest_neighbour[frozen]": {
-            "mean_hits": 30.1,
-            "ci_low": 29.15,
-            "ci_high": 31.05,
-            "enrichment_vs_random": 1.2361396303901437
+            "mean_hits": 29.15,
+            "ci_low": 28.1,
+            "ci_high": 30.05,
+            "enrichment_vs_random": 1.237791932059448
           },
           "model[feedback]": {
-            "mean_hits": 33.35,
-            "ci_low": 32.85,
-            "ci_high": 34.0,
-            "enrichment_vs_random": 1.3696098562628336
+            "mean_hits": 31.7,
+            "ci_low": 31.3,
+            "ci_high": 32.2,
+            "enrichment_vs_random": 1.346072186836518
           },
           "model[frozen]": {
-            "mean_hits": 31.45,
-            "ci_low": 30.85,
-            "ci_high": 32.0,
-            "enrichment_vs_random": 1.2915811088295688
+            "mean_hits": 31.6,
+            "ci_low": 31.05,
+            "ci_high": 32.1,
+            "enrichment_vs_random": 1.3418259023354564
           },
           "model+explore[feedback]": {
-            "mean_hits": 32.95,
-            "ci_low": 32.2,
-            "ci_high": 33.7,
-            "enrichment_vs_random": 1.3531827515400412
+            "mean_hits": 31.25,
+            "ci_low": 30.8,
+            "ci_high": 31.75,
+            "enrichment_vs_random": 1.326963906581741
           },
           "explore_only": {
-            "mean_hits": 29.55,
-            "ci_low": 28.95,
-            "ci_high": 30.15,
-            "enrichment_vs_random": 1.213552361396304
+            "mean_hits": 29.8,
+            "ci_low": 29.35,
+            "ci_high": 30.35,
+            "enrichment_vs_random": 1.2653927813163481
           }
         },
         "paired": {
           "model[feedback] - random": {
-            "mean_difference": 9.0,
-            "ci_low": 8.0,
-            "ci_high": 10.05,
+            "mean_difference": 8.15,
+            "ci_low": 7.3,
+            "ci_high": 9.05,
             "interval_excludes_zero": true
           },
           "nearest_neighbour[feedback] - random": {
-            "mean_difference": 6.9,
-            "ci_low": 5.65,
-            "ci_high": 8.2,
+            "mean_difference": 6.3,
+            "ci_low": 5.15,
+            "ci_high": 7.3,
             "interval_excludes_zero": true
           },
           "model[feedback] - model[frozen]": {
-            "mean_difference": 1.9,
-            "ci_low": 1.1,
-            "ci_high": 2.85,
-            "interval_excludes_zero": true
+            "mean_difference": 0.1,
+            "ci_low": -0.3,
+            "ci_high": 0.45,
+            "interval_excludes_zero": false
           },
           "nearest_neighbour[feedback] - nearest_neighbour[frozen]": {
-            "mean_difference": 1.15,
-            "ci_low": 0.55,
-            "ci_high": 1.85,
-            "interval_excludes_zero": true
+            "mean_difference": 0.7,
+            "ci_low": -0.2,
+            "ci_high": 1.5,
+            "interval_excludes_zero": false
           },
           "model[feedback] - nearest_neighbour[feedback]": {
-            "mean_difference": 2.1,
-            "ci_low": 1.0,
-            "ci_high": 3.2,
+            "mean_difference": 1.85,
+            "ci_low": 1.15,
+            "ci_high": 2.65,
             "interval_excludes_zero": true
           },
           "model+explore[feedback] - model[feedback]": {
-            "mean_difference": -0.4,
-            "ci_low": -1.15,
-            "ci_high": 0.35,
+            "mean_difference": -0.45,
+            "ci_low": -0.85,
+            "ci_high": 0.05,
             "interval_excludes_zero": false
           },
           "model+explore[feedback] - explore_only": {
-            "mean_difference": 3.4,
-            "ci_low": 2.55,
-            "ci_high": 4.35,
+            "mean_difference": 1.45,
+            "ci_low": 0.95,
+            "ci_high": 1.9,
             "interval_excludes_zero": true
           }
         }
       },
       {
         "target": "sdr:phenol_substructure",
-        "pool_size": 123,
-        "prevalence": 0.17886178861788618,
+        "pool_size": 99,
+        "prevalence": 0.16161616161616163,
         "n_replicates": 20,
         "summary": {
           "random": {
-            "mean_hits": 7.5,
-            "ci_low": 6.55,
-            "ci_high": 8.35,
+            "mean_hits": 6.55,
+            "ci_low": 5.95,
+            "ci_high": 7.15,
             "enrichment_vs_random": 1.0
           },
           "nearest_neighbour[feedback]": {
-            "mean_hits": 7.6,
-            "ci_low": 6.65,
-            "ci_high": 8.45,
-            "enrichment_vs_random": 1.0133333333333332
+            "mean_hits": 5.35,
+            "ci_low": 4.85,
+            "ci_high": 5.85,
+            "enrichment_vs_random": 0.8167938931297709
           },
           "nearest_neighbour[frozen]": {
-            "mean_hits": 7.9,
-            "ci_low": 7.0,
-            "ci_high": 8.9,
-            "enrichment_vs_random": 1.0533333333333335
+            "mean_hits": 6.8,
+            "ci_low": 6.0,
+            "ci_high": 7.6,
+            "enrichment_vs_random": 1.0381679389312977
           },
           "model[feedback]": {
-            "mean_hits": 7.45,
-            "ci_low": 7.0,
-            "ci_high": 7.9,
-            "enrichment_vs_random": 0.9933333333333334
+            "mean_hits": 6.25,
+            "ci_low": 5.8,
+            "ci_high": 6.75,
+            "enrichment_vs_random": 0.9541984732824428
           },
           "model[frozen]": {
-            "mean_hits": 7.55,
-            "ci_low": 6.9,
-            "ci_high": 8.3,
-            "enrichment_vs_random": 1.0066666666666666
+            "mean_hits": 6.3,
+            "ci_low": 5.8,
+            "ci_high": 6.8,
+            "enrichment_vs_random": 0.9618320610687023
           },
           "model+explore[feedback]": {
-            "mean_hits": 6.85,
-            "ci_low": 6.25,
-            "ci_high": 7.45,
-            "enrichment_vs_random": 0.9133333333333333
+            "mean_hits": 6.25,
+            "ci_low": 5.7,
+            "ci_high": 6.9,
+            "enrichment_vs_random": 0.9541984732824428
           },
           "explore_only": {
-            "mean_hits": 7.95,
-            "ci_low": 7.35,
-            "ci_high": 8.5,
-            "enrichment_vs_random": 1.06
+            "mean_hits": 7.55,
+            "ci_low": 7.2,
+            "ci_high": 8.0,
+            "enrichment_vs_random": 1.1526717557251909
           }
         },
         "paired": {
           "model[feedback] - random": {
-            "mean_difference": -0.05,
-            "ci_low": -1.15,
-            "ci_high": 0.95,
+            "mean_difference": -0.3,
+            "ci_low": -1.1,
+            "ci_high": 0.5,
             "interval_excludes_zero": false
           },
           "nearest_neighbour[feedback] - random": {
-            "mean_difference": 0.1,
-            "ci_low": -1.3,
-            "ci_high": 1.4,
-            "interval_excludes_zero": false
+            "mean_difference": -1.2,
+            "ci_low": -1.95,
+            "ci_high": -0.55,
+            "interval_excludes_zero": true
           },
           "model[feedback] - model[frozen]": {
-            "mean_difference": -0.1,
-            "ci_low": -1.0,
-            "ci_high": 0.85,
+            "mean_difference": -0.05,
+            "ci_low": -0.55,
+            "ci_high": 0.45,
             "interval_excludes_zero": false
           },
           "nearest_neighbour[feedback] - nearest_neighbour[frozen]": {
-            "mean_difference": -0.3,
-            "ci_low": -1.1,
-            "ci_high": 0.4,
-            "interval_excludes_zero": false
+            "mean_difference": -1.45,
+            "ci_low": -2.4,
+            "ci_high": -0.6,
+            "interval_excludes_zero": true
           },
           "model[feedback] - nearest_neighbour[feedback]": {
-            "mean_difference": -0.15,
-            "ci_low": -0.95,
+            "mean_difference": 0.9,
+            "ci_low": 0.1,
+            "ci_high": 1.65,
+            "interval_excludes_zero": true
+          },
+          "model+explore[feedback] - model[feedback]": {
+            "mean_difference": 0.0,
+            "ci_low": -0.7,
             "ci_high": 0.75,
             "interval_excludes_zero": false
           },
-          "model+explore[feedback] - model[feedback]": {
-            "mean_difference": -0.6,
-            "ci_low": -1.05,
-            "ci_high": 0.0,
-            "interval_excludes_zero": false
-          },
           "model+explore[feedback] - explore_only": {
-            "mean_difference": -1.1,
-            "ci_low": -1.75,
-            "ci_high": -0.45,
+            "mean_difference": -1.3,
+            "ci_low": -1.95,
+            "ci_high": -0.5,
             "interval_excludes_zero": true
           }
         }
       },
       {
         "target": "sdr:sterol_substructure",
-        "pool_size": 123,
-        "prevalence": 0.21138211382113822,
+        "pool_size": 99,
+        "prevalence": 0.1717171717171717,
         "n_replicates": 20,
         "summary": {
           "random": {
-            "mean_hits": 8.8,
-            "ci_low": 7.9,
-            "ci_high": 9.95,
+            "mean_hits": 6.2,
+            "ci_low": 5.5,
+            "ci_high": 6.85,
             "enrichment_vs_random": 1.0
           },
           "nearest_neighbour[feedback]": {
-            "mean_hits": 13.1,
-            "ci_low": 12.3,
-            "ci_high": 13.95,
-            "enrichment_vs_random": 1.4886363636363635
+            "mean_hits": 8.25,
+            "ci_low": 7.7,
+            "ci_high": 8.85,
+            "enrichment_vs_random": 1.3306451612903225
           },
           "nearest_neighbour[frozen]": {
-            "mean_hits": 10.5,
-            "ci_low": 9.45,
-            "ci_high": 11.6,
-            "enrichment_vs_random": 1.1931818181818181
+            "mean_hits": 7.15,
+            "ci_low": 6.35,
+            "ci_high": 7.8,
+            "enrichment_vs_random": 1.153225806451613
           },
           "model[feedback]": {
-            "mean_hits": 12.2,
-            "ci_low": 11.55,
-            "ci_high": 12.85,
-            "enrichment_vs_random": 1.3863636363636362
-          },
-          "model[frozen]": {
-            "mean_hits": 11.3,
-            "ci_low": 10.2,
-            "ci_high": 12.25,
-            "enrichment_vs_random": 1.2840909090909092
-          },
-          "model+explore[feedback]": {
-            "mean_hits": 11.75,
-            "ci_low": 11.2,
-            "ci_high": 12.3,
-            "enrichment_vs_random": 1.3352272727272727
-          },
-          "explore_only": {
             "mean_hits": 8.2,
-            "ci_low": 7.45,
-            "ci_high": 8.95,
-            "enrichment_vs_random": 0.9318181818181817
-          }
-        },
-        "paired": {
-          "model[feedback] - random": {
-            "mean_difference": 3.4,
-            "ci_low": 2.25,
-            "ci_high": 4.6,
-            "interval_excludes_zero": true
-          },
-          "nearest_neighbour[feedback] - random": {
-            "mean_difference": 4.3,
-            "ci_low": 3.05,
-            "ci_high": 5.6,
-            "interval_excludes_zero": true
-          },
-          "model[feedback] - model[frozen]": {
-            "mean_difference": 0.9,
-            "ci_low": 0.15,
-            "ci_high": 1.65,
-            "interval_excludes_zero": true
-          },
-          "nearest_neighbour[feedback] - nearest_neighbour[frozen]": {
-            "mean_difference": 2.6,
-            "ci_low": 1.5,
-            "ci_high": 3.6,
-            "interval_excludes_zero": true
-          },
-          "model[feedback] - nearest_neighbour[feedback]": {
-            "mean_difference": -0.9,
-            "ci_low": -1.85,
-            "ci_high": -0.1,
-            "interval_excludes_zero": true
-          },
-          "model+explore[feedback] - model[feedback]": {
-            "mean_difference": -0.45,
-            "ci_low": -1.05,
-            "ci_high": 0.25,
-            "interval_excludes_zero": false
-          },
-          "model+explore[feedback] - explore_only": {
-            "mean_difference": 3.55,
-            "ci_low": 2.7,
-            "ci_high": 4.5,
-            "interval_excludes_zero": true
-          }
-        }
-      },
-      {
-        "target": "sdr:substrate_cluster_1",
-        "pool_size": 123,
-        "prevalence": 0.13821138211382114,
-        "n_replicates": 20,
-        "summary": {
-          "random": {
-            "mean_hits": 5.4,
-            "ci_low": 4.7,
-            "ci_high": 6.2,
-            "enrichment_vs_random": 1.0
-          },
-          "nearest_neighbour[feedback]": {
-            "mean_hits": 9.0,
-            "ci_low": 8.45,
-            "ci_high": 9.55,
-            "enrichment_vs_random": 1.6666666666666665
-          },
-          "nearest_neighbour[frozen]": {
-            "mean_hits": 7.2,
-            "ci_low": 6.6,
-            "ci_high": 7.85,
-            "enrichment_vs_random": 1.3333333333333333
-          },
-          "model[feedback]": {
-            "mean_hits": 9.6,
-            "ci_low": 9.15,
-            "ci_high": 10.0,
-            "enrichment_vs_random": 1.7777777777777777
+            "ci_low": 7.65,
+            "ci_high": 8.8,
+            "enrichment_vs_random": 1.3225806451612903
           },
           "model[frozen]": {
-            "mean_hits": 6.85,
-            "ci_low": 6.1,
-            "ci_high": 7.7,
-            "enrichment_vs_random": 1.2685185185185184
+            "mean_hits": 6.9,
+            "ci_low": 6.4,
+            "ci_high": 7.45,
+            "enrichment_vs_random": 1.1129032258064517
           },
           "model+explore[feedback]": {
-            "mean_hits": 8.0,
-            "ci_low": 7.45,
-            "ci_high": 8.55,
-            "enrichment_vs_random": 1.4814814814814814
+            "mean_hits": 8.15,
+            "ci_low": 7.7,
+            "ci_high": 8.6,
+            "enrichment_vs_random": 1.314516129032258
           },
           "explore_only": {
-            "mean_hits": 3.25,
-            "ci_low": 2.7,
-            "ci_high": 3.85,
-            "enrichment_vs_random": 0.6018518518518519
+            "mean_hits": 6.95,
+            "ci_low": 6.5,
+            "ci_high": 7.4,
+            "enrichment_vs_random": 1.1209677419354838
           }
         },
         "paired": {
           "model[feedback] - random": {
-            "mean_difference": 4.2,
-            "ci_low": 3.35,
-            "ci_high": 5.0,
+            "mean_difference": 2.0,
+            "ci_low": 1.2,
+            "ci_high": 2.8,
             "interval_excludes_zero": true
           },
           "nearest_neighbour[feedback] - random": {
-            "mean_difference": 3.6,
-            "ci_low": 2.6,
-            "ci_high": 4.6,
+            "mean_difference": 2.05,
+            "ci_low": 1.3,
+            "ci_high": 2.85,
             "interval_excludes_zero": true
           },
           "model[feedback] - model[frozen]": {
-            "mean_difference": 2.75,
-            "ci_low": 1.8,
-            "ci_high": 3.7,
+            "mean_difference": 1.3,
+            "ci_low": 0.5,
+            "ci_high": 2.15,
             "interval_excludes_zero": true
           },
           "nearest_neighbour[feedback] - nearest_neighbour[frozen]": {
-            "mean_difference": 1.8,
-            "ci_low": 1.15,
-            "ci_high": 2.45,
+            "mean_difference": 1.1,
+            "ci_low": 0.25,
+            "ci_high": 2.15,
             "interval_excludes_zero": true
           },
           "model[feedback] - nearest_neighbour[feedback]": {
-            "mean_difference": 0.6,
-            "ci_low": -0.2,
-            "ci_high": 1.35,
+            "mean_difference": -0.05,
+            "ci_low": -0.9,
+            "ci_high": 0.65,
             "interval_excludes_zero": false
           },
           "model+explore[feedback] - model[feedback]": {
-            "mean_difference": -1.6,
-            "ci_low": -2.3,
-            "ci_high": -0.85,
-            "interval_excludes_zero": true
+            "mean_difference": -0.05,
+            "ci_low": -0.75,
+            "ci_high": 0.65,
+            "interval_excludes_zero": false
           },
           "model+explore[feedback] - explore_only": {
-            "mean_difference": 4.75,
-            "ci_low": 4.15,
-            "ci_high": 5.3,
+            "mean_difference": 1.2,
+            "ci_low": 0.65,
+            "ci_high": 1.65,
             "interval_excludes_zero": true
           }
         }
       },
       {
         "target": "sdr:substrate_cluster_2",
-        "pool_size": 123,
-        "prevalence": 0.21951219512195122,
+        "pool_size": 99,
+        "prevalence": 0.1717171717171717,
         "n_replicates": 20,
         "summary": {
           "random": {
-            "mean_hits": 8.8,
-            "ci_low": 7.9,
-            "ci_high": 9.7,
+            "mean_hits": 7.1,
+            "ci_low": 6.5,
+            "ci_high": 7.7,
             "enrichment_vs_random": 1.0
           },
           "nearest_neighbour[feedback]": {
-            "mean_hits": 11.9,
-            "ci_low": 11.0,
-            "ci_high": 12.8,
-            "enrichment_vs_random": 1.3522727272727273
+            "mean_hits": 9.0,
+            "ci_low": 8.35,
+            "ci_high": 9.55,
+            "enrichment_vs_random": 1.267605633802817
           },
           "nearest_neighbour[frozen]": {
-            "mean_hits": 10.2,
-            "ci_low": 9.45,
-            "ci_high": 10.9,
-            "enrichment_vs_random": 1.159090909090909
+            "mean_hits": 7.95,
+            "ci_low": 7.2,
+            "ci_high": 8.65,
+            "enrichment_vs_random": 1.119718309859155
           },
           "model[feedback]": {
-            "mean_hits": 12.45,
-            "ci_low": 12.0,
-            "ci_high": 12.9,
-            "enrichment_vs_random": 1.414772727272727
+            "mean_hits": 8.1,
+            "ci_low": 7.6,
+            "ci_high": 8.6,
+            "enrichment_vs_random": 1.1408450704225352
           },
           "model[frozen]": {
-            "mean_hits": 11.5,
-            "ci_low": 10.7,
-            "ci_high": 12.2,
-            "enrichment_vs_random": 1.3068181818181817
+            "mean_hits": 7.45,
+            "ci_low": 6.7,
+            "ci_high": 8.2,
+            "enrichment_vs_random": 1.0492957746478875
           },
           "model+explore[feedback]": {
-            "mean_hits": 11.5,
-            "ci_low": 10.95,
-            "ci_high": 12.15,
-            "enrichment_vs_random": 1.3068181818181817
+            "mean_hits": 7.85,
+            "ci_low": 7.2,
+            "ci_high": 8.4,
+            "enrichment_vs_random": 1.1056338028169015
           },
           "explore_only": {
-            "mean_hits": 8.75,
-            "ci_low": 8.1,
-            "ci_high": 9.4,
-            "enrichment_vs_random": 0.9943181818181818
+            "mean_hits": 6.7,
+            "ci_low": 6.35,
+            "ci_high": 7.05,
+            "enrichment_vs_random": 0.943661971830986
           }
         },
         "paired": {
           "model[feedback] - random": {
-            "mean_difference": 3.65,
-            "ci_low": 2.6,
-            "ci_high": 4.65,
-            "interval_excludes_zero": true
-          },
-          "nearest_neighbour[feedback] - random": {
-            "mean_difference": 3.1,
-            "ci_low": 2.05,
-            "ci_high": 4.3,
-            "interval_excludes_zero": true
-          },
-          "model[feedback] - model[frozen]": {
-            "mean_difference": 0.95,
-            "ci_low": 0.2,
+            "mean_difference": 1.0,
+            "ci_low": 0.3,
             "ci_high": 1.75,
             "interval_excludes_zero": true
           },
+          "nearest_neighbour[feedback] - random": {
+            "mean_difference": 1.9,
+            "ci_low": 1.05,
+            "ci_high": 2.75,
+            "interval_excludes_zero": true
+          },
+          "model[feedback] - model[frozen]": {
+            "mean_difference": 0.65,
+            "ci_low": -0.05,
+            "ci_high": 1.3,
+            "interval_excludes_zero": false
+          },
           "nearest_neighbour[feedback] - nearest_neighbour[frozen]": {
-            "mean_difference": 1.7,
-            "ci_low": 0.5,
-            "ci_high": 2.85,
+            "mean_difference": 1.05,
+            "ci_low": 0.25,
+            "ci_high": 1.9,
             "interval_excludes_zero": true
           },
           "model[feedback] - nearest_neighbour[feedback]": {
-            "mean_difference": 0.55,
-            "ci_low": -0.2,
-            "ci_high": 1.4,
-            "interval_excludes_zero": false
-          },
-          "model+explore[feedback] - model[feedback]": {
-            "mean_difference": -0.95,
-            "ci_low": -1.75,
+            "mean_difference": -0.9,
+            "ci_low": -1.65,
             "ci_high": -0.15,
             "interval_excludes_zero": true
           },
+          "model+explore[feedback] - model[feedback]": {
+            "mean_difference": -0.25,
+            "ci_low": -0.95,
+            "ci_high": 0.45,
+            "interval_excludes_zero": false
+          },
           "model+explore[feedback] - explore_only": {
-            "mean_difference": 2.75,
-            "ci_low": 1.9,
-            "ci_high": 3.55,
+            "mean_difference": 1.15,
+            "ci_low": 0.65,
+            "ci_high": 1.6,
             "interval_excludes_zero": true
           }
         }
       },
       {
         "target": "sdr:substrate_cluster_4",
-        "pool_size": 123,
-        "prevalence": 0.21951219512195122,
+        "pool_size": 99,
+        "prevalence": 0.25252525252525254,
         "n_replicates": 20,
         "summary": {
           "random": {
-            "mean_hits": 8.65,
-            "ci_low": 7.8,
-            "ci_high": 9.5,
+            "mean_hits": 10.95,
+            "ci_low": 9.9,
+            "ci_high": 12.0,
             "enrichment_vs_random": 1.0
           },
           "nearest_neighbour[feedback]": {
-            "mean_hits": 10.65,
-            "ci_low": 9.8,
-            "ci_high": 11.4,
-            "enrichment_vs_random": 1.2312138728323698
+            "mean_hits": 10.05,
+            "ci_low": 9.5,
+            "ci_high": 10.6,
+            "enrichment_vs_random": 0.9178082191780823
           },
           "nearest_neighbour[frozen]": {
-            "mean_hits": 10.0,
-            "ci_low": 9.2,
-            "ci_high": 10.7,
-            "enrichment_vs_random": 1.1560693641618496
+            "mean_hits": 10.95,
+            "ci_low": 10.4,
+            "ci_high": 11.5,
+            "enrichment_vs_random": 1.0
           },
           "model[feedback]": {
-            "mean_hits": 10.9,
-            "ci_low": 10.4,
-            "ci_high": 11.45,
-            "enrichment_vs_random": 1.260115606936416
+            "mean_hits": 10.55,
+            "ci_low": 9.95,
+            "ci_high": 11.15,
+            "enrichment_vs_random": 0.9634703196347033
           },
           "model[frozen]": {
-            "mean_hits": 10.65,
-            "ci_low": 9.7,
-            "ci_high": 11.55,
-            "enrichment_vs_random": 1.2312138728323698
+            "mean_hits": 11.2,
+            "ci_low": 10.55,
+            "ci_high": 11.9,
+            "enrichment_vs_random": 1.0228310502283104
           },
           "model+explore[feedback]": {
-            "mean_hits": 11.35,
-            "ci_low": 10.75,
-            "ci_high": 11.9,
-            "enrichment_vs_random": 1.3121387283236994
+            "mean_hits": 11.85,
+            "ci_low": 11.4,
+            "ci_high": 12.35,
+            "enrichment_vs_random": 1.082191780821918
           },
           "explore_only": {
-            "mean_hits": 11.7,
-            "ci_low": 10.8,
-            "ci_high": 12.5,
-            "enrichment_vs_random": 1.352601156069364
+            "mean_hits": 12.05,
+            "ci_low": 11.4,
+            "ci_high": 12.75,
+            "enrichment_vs_random": 1.1004566210045663
           }
         },
         "paired": {
           "model[feedback] - random": {
-            "mean_difference": 2.25,
-            "ci_low": 1.2,
-            "ci_high": 3.3,
-            "interval_excludes_zero": true
+            "mean_difference": -0.4,
+            "ci_low": -1.5,
+            "ci_high": 0.7,
+            "interval_excludes_zero": false
           },
           "nearest_neighbour[feedback] - random": {
-            "mean_difference": 2.0,
-            "ci_low": 0.55,
-            "ci_high": 3.3,
-            "interval_excludes_zero": true
+            "mean_difference": -0.9,
+            "ci_low": -2.0,
+            "ci_high": 0.15,
+            "interval_excludes_zero": false
           },
           "model[feedback] - model[frozen]": {
-            "mean_difference": 0.25,
-            "ci_low": -0.6,
-            "ci_high": 1.2,
+            "mean_difference": -0.65,
+            "ci_low": -1.4,
+            "ci_high": 0.15,
             "interval_excludes_zero": false
           },
           "nearest_neighbour[feedback] - nearest_neighbour[frozen]": {
-            "mean_difference": 0.65,
-            "ci_low": 0.2,
-            "ci_high": 1.15,
+            "mean_difference": -0.9,
+            "ci_low": -1.5,
+            "ci_high": -0.35,
             "interval_excludes_zero": true
           },
           "model[feedback] - nearest_neighbour[feedback]": {
-            "mean_difference": 0.25,
-            "ci_low": -0.55,
-            "ci_high": 1.05,
-            "interval_excludes_zero": false
-          },
-          "model+explore[feedback] - model[feedback]": {
-            "mean_difference": 0.45,
-            "ci_low": -0.3,
+            "mean_difference": 0.5,
+            "ci_low": -0.25,
             "ci_high": 1.1,
             "interval_excludes_zero": false
           },
+          "model+explore[feedback] - model[feedback]": {
+            "mean_difference": 1.3,
+            "ci_low": 0.65,
+            "ci_high": 1.95,
+            "interval_excludes_zero": true
+          },
           "model+explore[feedback] - explore_only": {
-            "mean_difference": -0.35,
-            "ci_low": -1.05,
-            "ci_high": 0.4,
+            "mean_difference": -0.2,
+            "ci_low": -0.8,
+            "ci_high": 0.5,
             "interval_excludes_zero": false
           }
         }
       },
       {
         "target": "sdr:substrate_cluster_7",
-        "pool_size": 123,
-        "prevalence": 0.34146341463414637,
+        "pool_size": 99,
+        "prevalence": 0.35353535353535354,
         "n_replicates": 20,
         "summary": {
           "random": {
-            "mean_hits": 13.5,
-            "ci_low": 12.6,
-            "ci_high": 14.6,
+            "mean_hits": 14.1,
+            "ci_low": 13.35,
+            "ci_high": 14.8,
             "enrichment_vs_random": 1.0
           },
           "nearest_neighbour[feedback]": {
-            "mean_hits": 15.15,
-            "ci_low": 14.55,
-            "ci_high": 15.75,
-            "enrichment_vs_random": 1.1222222222222222
+            "mean_hits": 14.05,
+            "ci_low": 13.1,
+            "ci_high": 14.95,
+            "enrichment_vs_random": 0.9964539007092199
           },
           "nearest_neighbour[frozen]": {
-            "mean_hits": 14.25,
-            "ci_low": 13.3,
-            "ci_high": 15.25,
-            "enrichment_vs_random": 1.0555555555555556
+            "mean_hits": 14.15,
+            "ci_low": 13.15,
+            "ci_high": 15.15,
+            "enrichment_vs_random": 1.00354609929078
           },
           "model[feedback]": {
-            "mean_hits": 15.85,
-            "ci_low": 15.35,
-            "ci_high": 16.4,
-            "enrichment_vs_random": 1.174074074074074
+            "mean_hits": 14.85,
+            "ci_low": 14.4,
+            "ci_high": 15.35,
+            "enrichment_vs_random": 1.053191489361702
           },
           "model[frozen]": {
-            "mean_hits": 15.2,
-            "ci_low": 14.35,
-            "ci_high": 15.95,
-            "enrichment_vs_random": 1.1259259259259258
+            "mean_hits": 14.9,
+            "ci_low": 14.05,
+            "ci_high": 15.85,
+            "enrichment_vs_random": 1.0567375886524824
           },
           "model+explore[feedback]": {
-            "mean_hits": 15.0,
-            "ci_low": 14.45,
-            "ci_high": 15.6,
-            "enrichment_vs_random": 1.1111111111111112
+            "mean_hits": 14.15,
+            "ci_low": 13.55,
+            "ci_high": 14.85,
+            "enrichment_vs_random": 1.00354609929078
           },
           "explore_only": {
-            "mean_hits": 14.4,
-            "ci_low": 13.7,
-            "ci_high": 15.05,
-            "enrichment_vs_random": 1.0666666666666667
+            "mean_hits": 14.9,
+            "ci_low": 14.2,
+            "ci_high": 15.65,
+            "enrichment_vs_random": 1.0567375886524824
           }
         },
         "paired": {
           "model[feedback] - random": {
-            "mean_difference": 2.35,
-            "ci_low": 1.35,
-            "ci_high": 3.4,
+            "mean_difference": 0.75,
+            "ci_low": 0.05,
+            "ci_high": 1.4,
             "interval_excludes_zero": true
           },
           "nearest_neighbour[feedback] - random": {
-            "mean_difference": 1.65,
-            "ci_low": 0.45,
-            "ci_high": 2.75,
-            "interval_excludes_zero": true
+            "mean_difference": -0.05,
+            "ci_low": -1.35,
+            "ci_high": 1.1,
+            "interval_excludes_zero": false
           },
           "model[feedback] - model[frozen]": {
-            "mean_difference": 0.65,
-            "ci_low": -0.15,
-            "ci_high": 1.5,
+            "mean_difference": -0.05,
+            "ci_low": -1.05,
+            "ci_high": 1.2,
             "interval_excludes_zero": false
           },
           "nearest_neighbour[feedback] - nearest_neighbour[frozen]": {
-            "mean_difference": 0.9,
-            "ci_low": -0.2,
-            "ci_high": 1.8,
+            "mean_difference": -0.1,
+            "ci_low": -1.15,
+            "ci_high": 0.8,
             "interval_excludes_zero": false
           },
           "model[feedback] - nearest_neighbour[feedback]": {
-            "mean_difference": 0.7,
-            "ci_low": -0.1,
-            "ci_high": 1.4,
+            "mean_difference": 0.8,
+            "ci_low": -0.15,
+            "ci_high": 1.9,
             "interval_excludes_zero": false
           },
           "model+explore[feedback] - model[feedback]": {
-            "mean_difference": -0.85,
-            "ci_low": -1.7,
+            "mean_difference": -0.7,
+            "ci_low": -1.35,
             "ci_high": -0.15,
             "interval_excludes_zero": true
           },
           "model+explore[feedback] - explore_only": {
-            "mean_difference": 0.6,
-            "ci_low": -0.25,
-            "ci_high": 1.4,
+            "mean_difference": -0.75,
+            "ci_low": -1.6,
+            "ci_high": 0.15,
             "interval_excludes_zero": false
           }
         }
       }
     ],
-    "digest": "c8bac84309fe5dbd03645eee8d1d6b3a42b49483023cd4214d7c9f538696bf08"
+    "digest": "5e716034ad3ce77b552a6be60ecfc23584365faaf1bb1bd807c765d100542bcf"
   },
   "clustering": {
-    "method": "greedy_pure_python",
+    "method": "single_linkage_pure_python",
     "identity_threshold": 0.4,
+    "complete": true,
     "fallback_reason": ""
   }
 }

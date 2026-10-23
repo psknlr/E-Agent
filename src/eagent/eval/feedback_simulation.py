@@ -471,20 +471,43 @@ def run_sdr_feedback(data_dir, protocol: SimulationProtocol | None = None,
                      targets: Sequence[str] | None = None) -> FeedbackSuite:
     """Load the SDR deposit and run the simulation on the full and non-redundant pools."""
     from ..tools.mine_sequences import cluster_sequences
-    from .retrospective import load_sdr, sdr_examples
+    from .retrospective import (
+        GroupingPinError, load_pinned_grouping, load_sdr, sdr_examples,
+    )
 
     protocol = protocol or SimulationProtocol()
     examples = sdr_examples(load_sdr(data_dir))
     if targets is not None:
         examples = [e for e in examples if e.target in set(targets)]
     items = sorted({(e.example_id, e.sequence) for e in examples})
-    clustering = cluster_sequences(items, identity_threshold)
-    note = {"method": clustering.method,
-            "identity_threshold": clustering.identity_threshold,
-            "fallback_reason": clustering.fallback_reason}
+    # The checked-in complete grouping when it is for this pool and threshold,
+    # because it finds strictly more cluster-mates than the greedy clustering
+    # does and one-per-cluster over a coarser grain leaves redundancy behind.
+    # Unlike the label-recovery benchmark this is not a leakage control -- a
+    # coarser grain here understates how much of the advantage is redundancy,
+    # which is the conservative direction -- so a missing or stale pin falls
+    # back rather than refusing, and the note says which ran.
+    try:
+        pinned = load_pinned_grouping(items, identity_threshold)
+        assignment = dict(pinned["assignment"])
+        note = {"method": pinned["method"],
+                "identity_threshold": pinned["identity_threshold"],
+                "complete": True, "fallback_reason": ""}
+    except GroupingPinError as exc:
+        clustering = cluster_sequences(items, identity_threshold)
+        assignment = dict(clustering.assignment)
+        note = {"method": clustering.method,
+                "identity_threshold": clustering.identity_threshold,
+                "complete": False,
+                "fallback_reason": (
+                    f"{clustering.fallback_reason or 'no pinned grouping'}; "
+                    f"one-per-cluster over a greedy grain removes less "
+                    f"redundancy than the complete grouping would, so the gap "
+                    f"below is a lower bound on how much of the advantage is "
+                    f"the pool's redundancy ({exc})")}
     kernel = KernelCache(protocol.ks)
     full = run_simulation(examples, protocol, pool_kind="full", kernel=kernel)
     reduced = run_simulation(
-        non_redundant(examples, dict(clustering.assignment)), protocol,
+        non_redundant(examples, assignment), protocol,
         pool_kind="non-redundant", kernel=kernel)
     return FeedbackSuite(full, reduced, note)

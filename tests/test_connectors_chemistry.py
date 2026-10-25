@@ -47,6 +47,7 @@ from eagent.connectors.chemistry import (
     PubChemConnector,
     ReactionLevelOnlyError,
     RegistryBackedConnector,
+    RequestShapeNotVerifiedError,
     RheaConnector,
     RheaDirection,
     datasource_registry,
@@ -143,18 +144,32 @@ class TestEndpointRefusal(ConnectorTestCase):
                 self.assertTrue(source.verified_capabilities, source_id)
 
     def test_the_rest_still_record_no_endpoint(self) -> None:
-        for source_id in ("pubchem", "chebi", "metanetx", "enzymemap"):
+        for source_id in ("chebi", "metanetx", "enzymemap"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
     def test_require_endpoint_raises_a_typed_refusal(self) -> None:
-        connector = PubChemConnector(cache=self.cache)
+        connector = ChEBIConnector(cache=self.cache)
         with self.assertRaises(EndpointNotEstablishedError) as ctx:
             connector.require_endpoint()
-        self.assertEqual(ctx.exception.source_id, "pubchem")
+        self.assertEqual(ctx.exception.source_id, "chebi")
         self.assertTrue(ctx.exception.curation_notes)
-        self.assertIn("pubchem", str(ctx.exception))
+        self.assertIn("chebi", str(ctx.exception))
         self.assertIn("curation note", str(ctx.exception).lower())
+
+    def test_a_verified_base_url_is_not_a_verified_request(self) -> None:
+        """PubChem's route answered a sweep, so its base URL is recorded. Its
+        client was never checked against that probe, so it still may not call,
+        and it now refuses on the request shape rather than on the endpoint."""
+        connector = PubChemConnector(cache=self.cache)
+        self.assertEqual(connector.source.endpoint,
+                         "https://pubchem.ncbi.nlm.nih.gov")
+        self.assertIsNone(connector.verified_route_capability)
+        with self.assertRaises(RequestShapeNotVerifiedError) as ctx:
+            connector.require_endpoint()
+        self.assertEqual(ctx.exception.source_id, "pubchem")
+        self.assertEqual(ctx.exception.verified_capabilities,
+                         ("chemical_structure_query",))
 
     def test_endpoint_status_is_actionable(self) -> None:
         status = ChEBIConnector(cache=self.cache).endpoint_status()
@@ -184,13 +199,20 @@ class TestEndpointRefusal(ConnectorTestCase):
         self.assertIn("only an EC search", str(ctx.exception))
 
     def test_a_source_with_no_endpoint_still_refuses_on_the_endpoint(self) -> None:
+        connector = ChEBIConnector(cache=self.cache,
+                                   access=AccessPolicy(allow_network=True))
+        with self.assertRaises(EndpointNotEstablishedError):
+            connector._fetch_remote("CHEBI:15377")
+
+    def test_an_unchecked_client_refuses_before_building_a_request(self) -> None:
         connector = PubChemConnector(cache=self.cache,
                                      access=AccessPolicy(allow_network=True))
-        with self.assertRaises(EndpointNotEstablishedError):
+        with self.assertRaises(RequestShapeNotVerifiedError):
             connector._fetch_remote("2244")
 
     def test_a_network_enabled_run_still_reports_a_miss_not_a_crash(self) -> None:
-        """PubChem has no route at all, so a networked run refuses cleanly."""
+        """PubChem's route is verified and its client is not, so a networked
+        run refuses cleanly instead of improvising a request."""
         connector = PubChemConnector(cache=self.cache,
                                      access=AccessPolicy(allow_network=True))
         response = connector.fetch("2244")

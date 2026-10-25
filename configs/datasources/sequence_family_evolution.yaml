@@ -74,10 +74,10 @@ sources:
       - "The REST base URL was once only a starting hint here -- recalled, never
          called. It has since been established: `eagent sources verify` fetched
          one entry by accession and one search response from
-         https://rest.uniprot.org and opened the provider's API help page, and
-         the record of those calls is in connectivity.observed.yaml. The hint is
-         kept so a reader can see which it was. STILL OPEN: the SPARQL endpoint,
-         which is a separate service and has not been called."
+         https://rest.uniprot.org and read the service's OpenAPI document there,
+         and the record of those calls is in connectivity.observed.yaml. The
+         hint is kept so a reader can see which it was. STILL OPEN: the SPARQL
+         endpoint, which is a separate service and has not been called."
       - "Confirm the licence and whether derived records may be redistributed."
       - "Record the release identifier used in each run so accessions resolve to
          the same entries later."
@@ -130,7 +130,12 @@ sources:
       - "derived_from is empty but marked incomplete on purpose -- UniParc
          aggregates sequences from many source databases, and a curator must
          record which of them matter for this project's independence accounting."
-      - "No endpoint recorded. Confirm the access route before use."
+      - "The search route is established: `eagent sources verify` searched
+         UniParc by a UniProtKB accession at https://rest.uniprot.org on
+         2026-10-25 and read the service's OpenAPI document, which lists that
+         search; the record is in connectivity.observed.yaml. STILL OPEN:
+         fetching an entry by UPI (/uniparc/{upi}), which is documented but has
+         not been called."
       - "Confirm licence and redistribution terms."
     notes: >-
       Registered separately from UniRef because sequence identity and history is
@@ -176,7 +181,12 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint recorded; confirm the access route before use."
+      - "The record route is established: `eagent sources verify` fetched one
+         cluster by id (UniRef100_P05067, the provider's own example) from
+         https://rest.uniprot.org on 2026-10-25 and read the service's OpenAPI
+         document; the record is in connectivity.observed.yaml. STILL OPEN:
+         search, cluster members and bulk download, none of which has been
+         called."
       - "Record the release used, because cluster composition changes between
          releases and a diversity selection is not reproducible without it."
       - "Confirm licence and redistribution terms."
@@ -230,7 +240,13 @@ sources:
       - "derived_from lists Pfam only and is marked incomplete -- InterPro
          integrates several member databases, and a curator must list the ones
          this project also queries so they are not counted as independent."
-      - "No endpoint recorded. Confirm the API base URL before use."
+      - "The entry route is established: `eagent sources verify` fetched
+         IPR002347 (Short-chain dehydrogenase/reductase SDR) from
+         https://www.ebi.ac.uk/interpro/api/ on 2026-10-25 and read InterPro's
+         API documentation; the record is in connectivity.observed.yaml. The
+         recorded endpoint is the EBI host, which serves many unrelated
+         services, so it says nothing about any path but that one. STILL OPEN:
+         search and bulk download, which have not been called."
       - "Scanning a new sequence against the signatures is done with separate
          software rather than by the database; sequence_query is therefore
          unknown here and the scanner must be registered as a tool, not as a
@@ -279,8 +295,13 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint recorded; confirm how Pfam models and alignments are
-         currently distributed and accessed."
+      - "Pfam is served through InterPro's API, and that route is established:
+         `eagent sources verify` fetched the PF00106 entry (short chain
+         dehydrogenase) from https://www.ebi.ac.uk/interpro/api/ on 2026-10-25
+         and read InterPro's API documentation; the record is in
+         connectivity.observed.yaml. The recorded endpoint is the EBI host,
+         shared with InterPro and others. STILL OPEN: how Pfam HMMs and
+         alignments are distributed for download, which has not been checked."
       - "Confirm licence and redistribution terms, and record the release used."
       - "Confirm the relationship between the Pfam release and the integrated
          resource release so the two are not mixed in one run."
@@ -332,15 +353,17 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint is recorded, because none has been established here. As a
-         starting hint for a curator and nothing more: this project's general
-         knowledge suggests retrieval through the same E-utilities service as
-         the literature layer records, under a base of the form
-         https://eutils.ncbi.nlm.nih.gov/entrez/eutils/ and documented in NCBI
-         Bookshelf entry NBK25501. Neither string was called or opened from this
-         environment. Confirm the real base URL, the API-key policy and the
-         request-rate policy, record the documentation as a citation, and only
-         then set endpoint."
+      - "Retrieval through E-utilities was once only a starting hint here --
+         recalled, never called: a base of the form
+         https://eutils.ncbi.nlm.nih.gov/entrez/eutils/, documented in NCBI
+         Bookshelf entry NBK25501. It has since been established for one
+         request: `eagent sources verify` ran efetch for P07846 as a GenPept
+         record there on 2026-10-25, and the record is in
+         connectivity.observed.yaml. The hint is kept so a reader can see which
+         it was. The documentation was NOT read: NBK25501 answered this
+         container with a reCAPTCHA page, so the check took it on its status
+         alone. STILL OPEN: reading that documentation, and the API-key and
+         request-rate policies."
       - "Sequence similarity search is a separate service from record retrieval;
          sequence_query is left unknown rather than assumed, and a similarity hit
          is in any case never a join."

@@ -1901,13 +1901,29 @@ def sources_verify(directory: Path | None, allow_network: bool, write: bool,
         out.line("These probes would run. Nothing was called, so nothing is "
                  "claimed.")
         for probe in probes:
+            prov = probe.provenance
+            flag = "called before" if prov.ever_called else "NEVER CALLED"
             out.bullet(f"{probe.source_id} / {probe.capability}: {probe.url}")
             out.line(f"    expects: {', '.join(repr(m) for m in probe.markers)}")
+            out.line(f"    route   [{flag}] {prov.grade}, recorded "
+                     f"{prov.recorded_at}")
+            out.line(f"    docs    {probe.documentation}")
+        never = [p for p in probes if not p.provenance.ever_called]
+        if never:
+            out.line("")
+            out.line(f"{len(never)} of these {len(probes)} route(s) have "
+                     f"never been called from anywhere in this project. They "
+                     f"were assembled from documentation, so a failure may "
+                     f"mean the candidate route is wrong rather than that the "
+                     f"resource is down -- the failure text says which.")
         return
 
     who = checked_by or f"{getpass.getuser()} via eagent sources verify"
     results = run_probes(probes, checked_by=who)
-    passed = failed = 0
+    # By URL rather than by (source, capability): a source can have several
+    # probes for one capability, and the check records the URL it called.
+    by_url = {p.url: p for p in probes}
+    passed = failed = candidate_failures = 0
     out.heading("probe results")
     for source_id in sorted(results):
         for check in results[source_id]:
@@ -1922,6 +1938,21 @@ def sources_verify(directory: Path | None, allow_network: bool, write: bool,
             else:
                 failed += 1
                 out.line(f"    {check.failure}")
+                probe = by_url.get(check.url)
+                if probe is not None and not probe.provenance.ever_called:
+                    candidate_failures += 1
+                    out.line(f"    this route had never been called: "
+                             f"{probe.provenance.grade}, recorded "
+                             f"{probe.provenance.recorded_at}. "
+                             f"{probe.provenance.detail}")
+
+    if candidate_failures:
+        out.heading("candidate routes that did not answer")
+        out.line(f"{candidate_failures} of the {failed} failure(s) are routes "
+                 f"nobody had called before this run. A failure there is as "
+                 f"likely to be a wrong URL in src/eagent/datalayer/probe.py "
+                 f"as a resource being unavailable, and fixing the URL is the "
+                 f"next step rather than retiring the source.")
 
     out.heading("what this does and does not establish")
     out.line("A pass says this capability, at this URL, answered correctly at "
@@ -1949,6 +1980,65 @@ def sources_verify(directory: Path | None, allow_network: bool, write: bool,
                         "from this environment in its curation notes",
             exit_code=EXIT_FAILED)
     out.line(f"{passed} check(s) recorded.")
+
+
+@sources_group.command("hosts")
+@click.option("--source", "source_ids", multiple=True,
+              help="Limit to these source ids.")
+@click.option("--plain/--explain", default=False,
+              help="Print only the host names, one per line, for pasting into "
+                   "a network policy.")
+def sources_hosts(source_ids: tuple[str, ...], plain: bool) -> None:
+    """Every host `sources verify` would contact, and what needs it.
+
+    A verification sweep is worth nothing from a container that cannot reach
+    the resources, and the list of what it needs reached is derivable rather
+    than remembered -- so it is derived here, from the shipped probes, instead
+    of being written down somewhere that can drift from them.
+
+    Documentation hosts are included and are not optional. A probe fails when
+    its documentation is unreachable as well as when its route is, because the
+    registry refuses an endpoint that cannot be traced to a page a person can
+    read. An allow-list built from route URLs alone makes every probe fail on
+    its documentation, which reads like the resources being down.
+    """
+    from .datalayer.probe import PROBES, probe_hosts
+
+    out = Out()
+    probes = [p for p in PROBES
+              if not source_ids or p.source_id in set(source_ids)]
+    if not probes:
+        raise Refusal(
+            "no shipped probe matches that selection",
+            next_action=("probes exist for: "
+                         + ", ".join(sorted({p.source_id for p in PROBES}))),
+            exit_code=EXIT_USAGE)
+    hosts = probe_hosts(probes)
+    if plain:
+        for host in hosts:
+            click.echo(host)
+        return
+    out.heading(f"{len(hosts)} host(s) for {len(probes)} probe(s) "
+                f"over {len({p.source_id for p in probes})} source(s)")
+    for host, why in hosts.items():
+        out.bullet(host)
+        for reason in why:
+            out.line(f"    {reason}")
+    # Counted, not written down: a number in prose here would drift from the
+    # probe table the moment somebody adds a probe.
+    registry = _load_sources(None)
+    probed = {p.source_id for p in PROBES}
+    unrouted = sorted(src.id for src in registry.without_endpoint()
+                      if src.id not in probed)
+    out.heading("what this list is")
+    out.line(f"The hosts the shipped probes name, nothing more. It is not the "
+             f"set of hosts the whole registry would need: {len(unrouted)} "
+             f"sources declare a network route, record no endpoint, and have "
+             f"no probe either, so nothing here names a host for them.")
+    for source_id in unrouted:
+        out.bullet(source_id)
+    out.line("")
+    out.line("Use --plain to get the bare names.")
 
 
 @sources_group.command("independence")
@@ -2016,6 +2106,20 @@ def sources_coverage(directory: Path | None) -> None:
              f"have never been called from this build, so a client for them "
              f"means code exists to read the resource once a route is "
              f"established -- not that the route works.")
+
+    # Candidates are counted separately and never added to the line above. A
+    # route to try is not a route that works, and a reader who saw one number
+    # would have to guess which it was.
+    from .datalayer.probe import never_called_probes
+    candidates = sorted({p_.source_id for p_ in never_called_probes()})
+    if candidates:
+        out.line("")
+        out.line(f"{len(candidates)} further source(s) carry a candidate "
+                 f"route -- a probe assembled from documentation that nobody "
+                 f"has called ({', '.join(candidates)}). That is a URL to "
+                 f"try, not a route that works: run `sources verify "
+                 f"--allow-network` to find out, and `sources hosts` for the "
+                 f"hosts it needs reached.")
 
 
 @main.group("benchmark")

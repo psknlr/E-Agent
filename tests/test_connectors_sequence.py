@@ -216,16 +216,23 @@ class TestOfflineAndEndpoints(SequenceTestCase):
                 self.assertTrue(source.connectivity_verified, source_id)
                 self.assertTrue(source.verified_capabilities, source_id)
 
-    def test_most_of_them_still_have_no_route_at_all(self) -> None:
+    def test_mgnify_still_has_no_route_at_all(self) -> None:
+        self.assertIsNone(self.registry.get("mgnify_proteins").endpoint)
+
+    def test_the_others_record_a_route_only_because_a_call_reached_it(self) -> None:
         for source_id in ("uniref", "uniparc", "interpro", "pfam",
-                          "ncbi_protein", "mgnify_proteins"):
+                          "ncbi_protein"):
             with self.subTest(source=source_id):
-                self.assertIsNone(self.registry.get(source_id).endpoint)
+                source = self.registry.get(source_id)
+                self.assertIsNotNone(source.endpoint)
+                self.assertTrue(source.connectivity_verified)
+                self.assertIn("exact_record_fetch",
+                              source.verified_capabilities)
 
     def test_require_endpoint_is_a_typed_refusal(self) -> None:
         with self.assertRaises(EndpointNotEstablishedError) as ctx:
-            UniRefConnector(cache=self.cache).require_endpoint()
-        self.assertEqual(ctx.exception.source_id, "uniref")
+            MGnifyProteinsConnector(cache=self.cache).require_endpoint()
+        self.assertEqual(ctx.exception.source_id, "mgnify_proteins")
         self.assertTrue(ctx.exception.curation_notes)
 
     def test_uniprot_has_both_a_verified_route_and_a_checked_client(self) -> None:
@@ -237,13 +244,17 @@ class TestOfflineAndEndpoints(SequenceTestCase):
                          "https://rest.uniprot.org")
 
     def test_a_verified_base_url_does_not_license_a_call(self) -> None:
-        """UniParc has no route at all; UniRef's client was checked against
-        nothing. Neither may call, and they refuse for different reasons."""
+        """MGnify has no route at all; UniRef's route answered a sweep, but its
+        client was checked against nothing. Neither may call, and they refuse
+        for different reasons."""
         from eagent.connectors.chemistry import RequestShapeNotVerifiedError
         self.assertIsNone(UniRefConnector.verified_route_capability)
-        self.assertIsNone(self.registry.get("uniref").endpoint)
-        with self.assertRaises(EndpointNotEstablishedError):
+        self.assertEqual(self.registry.get("uniref").endpoint,
+                         "https://rest.uniprot.org")
+        with self.assertRaises(RequestShapeNotVerifiedError):
             UniRefConnector(cache=self.cache).require_endpoint()
+        with self.assertRaises(EndpointNotEstablishedError):
+            MGnifyProteinsConnector(cache=self.cache).require_endpoint()
 
 
 # ---------------------------------------------------------------------------

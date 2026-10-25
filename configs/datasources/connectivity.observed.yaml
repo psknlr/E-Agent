@@ -23,52 +23,299 @@
 # and not a statement about any other capability.
 
 observed_connectivity:
+- id: alphafold_db
+  endpoint: https://alphafold.ebi.ac.uk
+  citations:
+  - https://alphafold.ebi.ac.uk/api/openapi.json (fetched HTTP 200 on 2026-10-25T16:25:03+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://alphafold.ebi.ac.uk/api/prediction/P07846
+    checked_at: '2026-10-25T16:25:03+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - P07846
+    - cifUrl
+    response_sha256: sha256:fea0d232c69c64da21eb5d4353fc96432dfb4bd931a7b39a24b134445a75b9af
+    response_bytes: 2158
+    elapsed_ms: 232
+    documentation_url: https://alphafold.ebi.ac.uk/api/openapi.json
+    documentation_status: 200
+    documentation_markers:
+    - /prediction/{qualifier}
+    failure: ''
+    note: 'P07846 again, so the id is not what fails. The documentation is the OpenAPI document
+      rather than alphafold.ebi.ac.uk/api-docs, the interactive page that renders it: that
+      page builds its text in the browser, so the HTML it serves names no route at all'
+- id: europe_pmc
+  endpoint: https://www.ebi.ac.uk
+  citations:
+  - https://www.ebi.ac.uk/europepmc/webservices/rest/v3/api-docs (fetched HTTP 200 on 2026-10-25T16:25:02+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: keyword_query
+    url: https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=ketoreductase&format=json&pageSize=1
+    checked_at: '2026-10-25T16:25:02+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - hitCount
+    - resultList
+    response_sha256: sha256:b82bcc8c24d77dbfad295007057366cb83a1976d46e0079534765c5c0d091534
+    response_bytes: 1132
+    elapsed_ms: 689
+    documentation_url: https://www.ebi.ac.uk/europepmc/webservices/rest/v3/api-docs
+    documentation_status: 200
+    documentation_markers:
+    - webservices/rest/search
+    failure: ''
+    note: this entry is one of the five whose remembered endpoint was nulled; the hint in
+      its curation notes is where this URL came from. The documentation is the service's OpenAPI
+      definition rather than europepmc.org/RestfulWebService, the page a person reads, because
+      that host answered this client's user agent with a Cloudflare challenge (HTTP 403) on
+      2026-10-25, and a challenge is not documentation anybody opened. The definition is what
+      the API's own Swagger UI renders
+- id: interpro
+  endpoint: https://www.ebi.ac.uk
+  citations:
+  - https://interpro-documentation.readthedocs.io/en/latest/api.html (fetched HTTP 200 on
+    2026-10-25T16:25:00+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://www.ebi.ac.uk/interpro/api/entry/interpro/IPR002347/
+    checked_at: '2026-10-25T16:25:00+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - IPR002347
+    - metadata
+    response_sha256: sha256:8719e4dee0cd1302acc88e65a346a6fff37771f9670d32165f613d46124ca595
+    response_bytes: 12191
+    elapsed_ms: 464
+    documentation_url: https://interpro-documentation.readthedocs.io/en/latest/api.html
+    documentation_status: 200
+    documentation_markers:
+    - /interpro/api/
+    - entry/interpro
+    failure: ''
+    note: 'IPR002347 is meant to be the SDR family entry. If it is the wrong accession the
+      probe 404s, and that is the informative failure: the route is fine and this file is
+      wrong'
+- id: kegg
+  endpoint: https://rest.kegg.jp
+  citations:
+  - https://www.kegg.jp/kegg/rest/keggapi.html (fetched HTTP 200 on 2026-10-25T16:25:10+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://rest.kegg.jp/get/ec:1.1.1.1
+    checked_at: '2026-10-25T16:25:10+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 1.1.1.1
+    - ENTRY
+    response_sha256: sha256:c3a98d134f146bd422a3268a560a4bd77a2d74ace544c4baa28ce7b7557c5e4c
+    response_bytes: 478333
+    elapsed_ms: 3320
+    documentation_url: https://www.kegg.jp/kegg/rest/keggapi.html
+    documentation_status: 200
+    documentation_markers:
+    - rest.kegg.jp/get
+    failure: ''
+    note: 'reachability is not permission here more than anywhere: KEGG''s terms restrict
+      bulk and commercial use, and the registry''s needs_legal_review for this entry stays
+      true whatever this probe does'
+- id: mcsa
+  endpoint: https://www.ebi.ac.uk
+  citations:
+  - https://www.ebi.ac.uk/thornton-srv/m-csa/download/ (fetched HTTP 200 on 2026-10-25T16:25:01+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: keyword_query
+    url: https://www.ebi.ac.uk/thornton-srv/m-csa/api/entries/?format=json&entries.reactions.ecs.codes=1.1.1.1
+    checked_at: '2026-10-25T16:25:01+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - 1.1.1.1
+    - results
+    response_sha256: sha256:dae6bff9f75625b4847ee14f9a9ee2738ad218a08dfc67380dd78192b67bf451
+    response_bytes: 41557
+    elapsed_ms: 640
+    documentation_url: https://www.ebi.ac.uk/thornton-srv/m-csa/download/
+    documentation_status: 200
+    documentation_markers:
+    - /api/entries/
+    failure: ''
+    note: EC 1.1.1.1 is alcohol dehydrogenase, this project's neighbourhood. A third-party
+      wrapper reports that the list endpoint ignores server-side filters and returns large
+      records; if that is so the response is big but the markers still decide, which is the
+      point of having markers
+- id: ncbi_protein
+  endpoint: https://eutils.ncbi.nlm.nih.gov
+  citations:
+  - https://www.ncbi.nlm.nih.gov/books/NBK25501/ (fetched HTTP 200 on 2026-10-25T16:25:04+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=protein&id=P07846&rettype=gp&retmode=text
+    checked_at: '2026-10-25T16:25:04+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - P07846
+    - LOCUS
+    response_sha256: sha256:4a54c5df7f8311e570e6dbfc465b2e6655286c864c2ee2ceabb2cb6724e705cd
+    response_bytes: 15969
+    elapsed_ms: 230
+    documentation_url: https://www.ncbi.nlm.nih.gov/books/NBK25501/
+    documentation_status: 200
+    documentation_markers: []
+    failure: ''
+    note: P07846 is a UniProtKB accession; NCBI indexes the same entry, so if the route works
+      and the id does not resolve the failure will name the id. LOCUS is the first line of
+      a GenPept file and is not on NCBI's error page
+- id: pfam
+  endpoint: https://www.ebi.ac.uk
+  citations:
+  - https://interpro-documentation.readthedocs.io/en/latest/api.html (fetched HTTP 200 on
+    2026-10-25T16:24:59+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://www.ebi.ac.uk/interpro/api/entry/pfam/PF00106/
+    checked_at: '2026-10-25T16:24:59+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - PF00106
+    - metadata
+    - source_database
+    response_sha256: sha256:23073ba8d3bb2ab5d0a3e76234ed9bba75777e6d2cb19b2e6215b008f28db984
+    response_bytes: 3000
+    elapsed_ms: 456
+    documentation_url: https://interpro-documentation.readthedocs.io/en/latest/api.html
+    documentation_status: 200
+    documentation_markers:
+    - /interpro/api/
+    - entry/pfam
+    failure: ''
+    note: 'PF00106 is the short-chain dehydrogenase/reductase family this project''s pilot
+      task is about, so a pass exercises the record the agent would actually read. Pfam is
+      served by InterPro: there is no pfam.xfam.org route to probe any more'
+- id: pubchem
+  endpoint: https://pubchem.ncbi.nlm.nih.gov
+  citations:
+  - https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest (fetched HTTP 200 on 2026-10-25T16:25:03+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: chemical_structure_query
+    url: https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON
+    checked_at: '2026-10-25T16:25:03+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - C9H8O4
+    - MolecularFormula
+    response_sha256: sha256:11581258d350dd50c4a3ef6a46e0d0ddd9df977daefbbc87bca93f41ba5ba400
+    response_bytes: 129
+    elapsed_ms: 233
+    documentation_url: https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest
+    documentation_status: 200
+    documentation_markers: []
+    failure: ''
+    note: CID 2244 is aspirin, not a cofactor this project reads. It is used anyway because
+      it is the one example whose answer the documentation writes down, and a probe whose
+      expected response is documented is worth more than one in the right chemical neighbourhood
+      whose answer nobody has published
+- id: pubmed
+  endpoint: https://eutils.ncbi.nlm.nih.gov
+  citations:
+  - https://www.ncbi.nlm.nih.gov/books/NBK25501/ (fetched HTTP 200 on 2026-10-25T16:25:04+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: keyword_query
+    url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=ketoreductase&retmax=1&retmode=json
+    checked_at: '2026-10-25T16:25:04+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - esearchresult
+    - idlist
+    response_sha256: sha256:23ca104c5e885c74fdc05af3a09560a1da7299955dd6e13eae411e4456ffe8da
+    response_bytes: 328
+    elapsed_ms: 199
+    documentation_url: https://www.ncbi.nlm.nih.gov/books/NBK25501/
+    documentation_status: 200
+    documentation_markers: []
+    failure: ''
+    note: 'no api_key, so NCBI''s unauthenticated rate limit applies: three requests a second
+      across this host, which the two NCBI probes here stay inside only because the sweep
+      is serial'
 - id: rcsb_pdb
   endpoint: https://data.rcsb.org
   citations:
   - https://www.rcsb.org/docs/programmatic-access/file-download-services (fetched HTTP 200
-    on 2026-10-08T03:47:02+00:00)
-  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-08T03:47:00+00:00)
-  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-08T03:47:01+00:00)
+    on 2026-10-25T16:24:54+00:00)
+  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-25T16:24:52+00:00)
+  - https://www.rcsb.org/docs/programmatic-access/web-apis-overview (fetched HTTP 200 on 2026-10-25T16:24:53+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: exact_record_fetch
     url: https://data.rcsb.org/rest/v1/core/entry/1CDO
-    checked_at: '2026-10-08T03:47:00+00:00'
+    checked_at: '2026-10-25T16:24:52+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
     markers:
     - 1CDO
     - rcsb_entry_info
-    response_sha256: sha256:ed89f2e3d6810f0eb1aee3b0038d156b8454be8d4941fe1e406407ec207eeafc
+    response_sha256: sha256:126fa2e104e83c033bda7a5d3abcdba22056e0322d66ef1103ae97fd87a2eab5
     response_bytes: 15160
-    elapsed_ms: 212
+    elapsed_ms: 135
     documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
     documentation_status: 200
+    documentation_markers:
+    - Data API
+    - data.rcsb.org/redoc
     failure: ''
     note: '1CDO is a horse liver alcohol dehydrogenase structure: an NAD-dependent oxidoreductase,
       so the record exercises the fields this project reads'
   - capability: exact_record_fetch
     url: https://data.rcsb.org/rest/v1/core/polymer_entity/1CDO/1
-    checked_at: '2026-10-08T03:47:00+00:00'
+    checked_at: '2026-10-25T16:24:53+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
     markers:
     - 1CDO_1
     - entity_poly
-    response_sha256: sha256:cffea05b4a17a446b03fc22d3072a093153c7f52cffac05e1774ff0cd5c27a76
+    response_sha256: sha256:323e8a1dc3c7c86babaa1567e1e0959773697a7e784ffe3bdd98e4303c89a6fd
     response_bytes: 21954
-    elapsed_ms: 224
+    elapsed_ms: 135
     documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
     documentation_status: 200
+    documentation_markers:
+    - Data API
+    - data.rcsb.org/redoc
     failure: ''
     note: a client that makes this request is verified only if this request itself was probed,
       not merely the entry one
   - capability: exact_record_fetch
     url: https://data.rcsb.org/rest/v1/core/nonpolymer_entity/1CDO/3
-    checked_at: '2026-10-08T03:47:01+00:00'
+    checked_at: '2026-10-25T16:24:53+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -77,14 +324,17 @@ observed_connectivity:
     - pdbx_entity_nonpoly
     response_sha256: sha256:0a705893dcede9cfef94a054ddd288f30b7bc5d97837de6dc897f0b370332780
     response_bytes: 453
-    elapsed_ms: 226
+    elapsed_ms: 133
     documentation_url: https://www.rcsb.org/docs/programmatic-access/web-apis-overview
     documentation_status: 200
+    documentation_markers:
+    - Data API
+    - data.rcsb.org/redoc
     failure: ''
     note: 1CDO entity 3 is NAD, the cofactor of this alcohol dehydrogenase
   - capability: exact_record_fetch
     url: https://files.rcsb.org/download/1IPF.cif
-    checked_at: '2026-10-08T03:47:02+00:00'
+    checked_at: '2026-10-25T16:24:54+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -94,22 +344,23 @@ observed_connectivity:
     - _atom_site.Cartn_x
     response_sha256: sha256:8891976c267b9ea8b6d7e3752f5d3ae6f5df81ba9b37ab376de2e8740e398efa
     response_bytes: 455755
-    elapsed_ms: 355
+    elapsed_ms: 154
     documentation_url: https://www.rcsb.org/docs/programmatic-access/file-download-services
     documentation_status: 200
+    documentation_markers:
+    - files.rcsb.org/download
     failure: ''
     note: 1IPF is tropinone reductase II with NADPH and tropinone, the one pre-reaction ternary
       SDR complex in the KRED calibration reference set; a 450 KB file, so the probe is cheap
 - id: rhea
   endpoint: https://www.rhea-db.org
   citations:
-  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-08T03:47:05+00:00)
-  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-08T03:47:06+00:00)
+  - https://www.rhea-db.org/help/rest-api (fetched HTTP 200 on 2026-10-25T16:24:56+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: keyword_query
     url: https://www.rhea-db.org/rhea?query=ec:1.1.1.1&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100
-    checked_at: '2026-10-08T03:47:05+00:00'
+    checked_at: '2026-10-25T16:24:56+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -118,15 +369,18 @@ observed_connectivity:
     - EC:1.1.1.1
     response_sha256: sha256:2ce0354bd4ad387a4d3bda01d372fae4c6ca9dc5ed006f663714d2dbf32074c5
     response_bytes: 469
-    elapsed_ms: 562
+    elapsed_ms: 295
     documentation_url: https://www.rhea-db.org/help/rest-api
     documentation_status: 200
+    documentation_markers:
+    - format=tsv
+    - columns=
     failure: ''
     note: EC 1.1.1.1 is alcohol dehydrogenase, the mechanistic neighbourhood of this project's
       pilot task
   - capability: keyword_query
     url: https://www.rhea-db.org/rhea?query=RHEA:10740&columns=rhea-id,equation,ec,chebi-id&format=tsv&limit=100
-    checked_at: '2026-10-08T03:47:06+00:00'
+    checked_at: '2026-10-25T16:24:56+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -135,22 +389,80 @@ observed_connectivity:
     - secondary alcohol
     response_sha256: sha256:0e0b91307ca9dad096bcdcd92a7e4c336bfa0bcc7110f9ebefb573f7a6647823
     response_bytes: 192
-    elapsed_ms: 610
+    elapsed_ms: 235
     documentation_url: https://www.rhea-db.org/help/rest-api
     documentation_status: 200
+    documentation_markers:
+    - format=tsv
+    - columns=
     failure: ''
     note: 'a secondary alcohol to a ketone with NAD(+): the reaction class of the pilot task,
       read in the oxidation direction'
+- id: sabio_rk
+  endpoint: https://sabiork.h-its.org
+  citations:
+  - https://sabiork.h-its.org/openapi/export-api.json (fetched HTTP 200 on 2026-10-25T16:25:06+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: keyword_query
+    url: https://sabiork.h-its.org/export-api/sabio/kinlaw-entry/sbml?q=ECNumber:1.1.1.1&pageSize=1
+    checked_at: '2026-10-25T16:25:06+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - <sbml
+    - kineticLaw
+    - ec-code/1.1.1.1
+    response_sha256: sha256:f5ff47846069ff3d6b14b790817213af85fa4370ea14c8b549b649b98f96991d
+    response_bytes: 15252
+    elapsed_ms: 526
+    documentation_url: https://sabiork.h-its.org/openapi/export-api.json
+    documentation_status: 200
+    documentation_markers:
+    - /export-api/sabio/kinlaw-entry/sbml
+    failure: ''
+    note: 'this host is the reason markers exist in this module: its legacy REST path answered
+      302 and then 200, on the provider''s own 404 page. The documentation is the OpenAPI
+      document rather than the Export API page because every /ui/ path, including the 404
+      page, answers 200 with the same application shell: a status check on one would pass
+      on a page that does not exist, while an unknown OpenAPI name is a real 404. The export
+      API is rate-limited to 60 requests a minute per IP'
+- id: uniparc
+  endpoint: https://rest.uniprot.org
+  citations:
+  - https://rest.uniprot.org/uniparc/api/docs (fetched HTTP 200 on 2026-10-25T16:24:58+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://rest.uniprot.org/uniparc/search?query=P07846&size=1
+    checked_at: '2026-10-25T16:24:58+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - uniParcId
+    - UPI
+    response_sha256: sha256:9a8d9d394f1c8315cfe1993cbe37518f9cb7920f2c6a6dc69fe2f161c1c33f55
+    response_bytes: 2286
+    elapsed_ms: 428
+    documentation_url: https://rest.uniprot.org/uniparc/api/docs
+    documentation_status: 200
+    documentation_markers:
+    - /uniparc/search
+    failure: ''
+    note: P07846 is the accession the uniprotkb probe already has a pass on, so a failure
+      here is about UniParc and not about the id
 - id: uniprotkb
   endpoint: https://rest.uniprot.org
   citations:
-  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-08T03:46:57+00:00)
-  - https://www.uniprot.org/help/api (fetched HTTP 200 on 2026-10-08T03:46:59+00:00)
+  - https://rest.uniprot.org/uniprotkb/api/docs (fetched HTTP 200 on 2026-10-25T16:24:51+00:00)
+  - https://rest.uniprot.org/uniprotkb/api/docs (fetched HTTP 200 on 2026-10-25T16:24:52+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: exact_record_fetch
     url: https://rest.uniprot.org/uniprotkb/P07846.json?fields=accession,id,protein_name,organism_name,reviewed,ec,cc_catalytic_activity,cc_cofactor,sequence,xref_pdb
-    checked_at: '2026-10-08T03:46:57+00:00'
+    checked_at: '2026-10-25T16:24:51+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -160,15 +472,17 @@ observed_connectivity:
     - uniProtkbId
     response_sha256: sha256:c80d19c10283d5596d244e5a775b775b18f1e6dd4d9e21177d81ac3eaa68b45b
     response_bytes: 3901
-    elapsed_ms: 827
-    documentation_url: https://www.uniprot.org/help/api
+    elapsed_ms: 754
+    documentation_url: https://rest.uniprot.org/uniprotkb/api/docs
     documentation_status: 200
+    documentation_markers:
+    - /uniprotkb/{accession}
     failure: ''
     note: P07846 is an alcohol dehydrogenase, chosen because it is a reviewed entry in the
       mechanistic neighbourhood of this project's pilot task
   - capability: version_information
     url: https://rest.uniprot.org/uniprotkb/search?query=accession:P07846&size=1
-    checked_at: '2026-10-08T03:46:59+00:00'
+    checked_at: '2026-10-25T16:24:52+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -177,21 +491,50 @@ observed_connectivity:
     - results
     response_sha256: sha256:03a7c3309efbb0d752fa7d5c1e515840e4cb63a1e20797b4adb7ceb7b37fa453
     response_bytes: 29225
-    elapsed_ms: 1381
-    documentation_url: https://www.uniprot.org/help/api
+    elapsed_ms: 531
+    documentation_url: https://rest.uniprot.org/uniprotkb/api/docs
     documentation_status: 200
+    documentation_markers:
+    - /uniprotkb/search
     failure: ''
     note: ''
+- id: uniref
+  endpoint: https://rest.uniprot.org
+  citations:
+  - https://rest.uniprot.org/uniref/api/docs (fetched HTTP 200 on 2026-10-25T16:24:57+00:00)
+  connectivity_verified: true
+  connectivity_checks:
+  - capability: exact_record_fetch
+    url: https://rest.uniprot.org/uniref/UniRef100_P05067.json
+    checked_at: '2026-10-25T16:24:57+00:00'
+    checked_by: claude-code cloud session (eagent sources verify)
+    ok: true
+    status_code: 200
+    markers:
+    - UniRef100_P05067
+    - representativeMember
+    response_sha256: sha256:70aca7a7b37e08420a8532a41a80061f267bcfe08f2e9c366a344fd558b67b2d
+    response_bytes: 2417
+    elapsed_ms: 432
+    documentation_url: https://rest.uniprot.org/uniref/api/docs
+    documentation_status: 200
+    documentation_markers:
+    - /uniref/{id}
+    failure: ''
+    note: the provider's own example id rather than one from this project's enzyme neighbourhood.
+      A UniRef id has the representative's accession in it, so UniRef100_P07846 is a guess
+      about which member UniProt picked -- and a probe that 404s on a guessed id teaches nothing
+      about the route
 - id: zenodo
   endpoint: https://zenodo.org
   citations:
-  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-08T03:47:02+00:00)
-  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-08T03:47:03+00:00)
+  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-25T16:24:54+00:00)
+  - https://developers.zenodo.org/ (fetched HTTP 200 on 2026-10-25T16:24:55+00:00)
   connectivity_verified: true
   connectivity_checks:
   - capability: exact_record_fetch
     url: https://zenodo.org/api/records/7141435
-    checked_at: '2026-10-08T03:47:02+00:00'
+    checked_at: '2026-10-25T16:24:54+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -199,18 +542,20 @@ observed_connectivity:
     - 10.5281/zenodo.7141435
     - SDR_sequences.fasta
     - cc-by-4.0
-    response_sha256: sha256:e667b9cce2002400606945e45bd6556e65f022866e7b2550d9c6c6f91fc2965f
-    response_bytes: 10277
-    elapsed_ms: 571
+    response_sha256: sha256:6aa6941a57d960d57c8242ca969fa2ff3c5c3a7b4655fcc79e066b82dad901b0
+    response_bytes: 10131
+    elapsed_ms: 506
     documentation_url: https://developers.zenodo.org/
     documentation_status: 200
+    documentation_markers:
+    - /api/records
     failure: ''
     note: record 7141435 is the SDR substrate-classification dataset (Jinich and Rappoport,
       2022), the first dataset this project ingests; chosen because it is small, openly licensed
       and about the enzyme family of the pilot task
   - capability: exact_record_fetch
     url: https://zenodo.org/api/records/7141435/files/README.txt/content
-    checked_at: '2026-10-08T03:47:03+00:00'
+    checked_at: '2026-10-25T16:24:55+00:00'
     checked_by: claude-code cloud session (eagent sources verify)
     ok: true
     status_code: 200
@@ -219,8 +564,10 @@ observed_connectivity:
     - Jinich
     response_sha256: sha256:ecd383a09cda1400a98553a3f17d2b76d4fb1f408e525336e6a5b841c31f3813
     response_bytes: 4420
-    elapsed_ms: 667
+    elapsed_ms: 446
     documentation_url: https://developers.zenodo.org/
     documentation_status: 200
+    documentation_markers:
+    - /api/records
     failure: ''
     note: a 4 KB README, so the probe itself costs nothing to run

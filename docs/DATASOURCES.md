@@ -7,11 +7,14 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 
 ## Read this first
 
-> **Four entries of 49 have been connectivity-tested; the rest have not.**
+> **Sixteen entries of 49 have been connectivity-tested; the rest have not.**
 > UniProtKB, RCSB PDB, Rhea and Zenodo were called by `eagent sources verify`
-> and carry the record of those calls — URL, timestamp, status, response digest, and the
-> strings that had to appear in the body. Every other `DataSource` carries
-> `connectivity_verified: false`.
+> on 2026-10-08. Twelve more — UniRef, UniParc, Pfam, InterPro, M-CSA, Europe
+> PMC, AlphaFold DB, PubChem, PubMed, NCBI Protein, SABIO-RK and KEGG — were
+> called by a sweep on 2026-10-25 that re-confirmed the first four. Each
+> carries the record of those calls — URL, timestamp, status, response digest,
+> and the strings that had to appear in the body. Every other `DataSource`
+> carries `connectivity_verified: false`.
 >
 > `true` is admissible only alongside such a record. A bare boolean asserting
 > "this works" is worth nothing, which is why the model used to refuse `true`
@@ -33,18 +36,34 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 > **An endpoint is recorded only where a call reached it.** Five entries once
 > carried a base URL recalled from general knowledge rather than read from
 > documentation; all five were nulled and the recalled URL kept in that
-> entry's `curation_notes` as a starting hint that had never been called. Three
-> endpoints are recorded now, and each was dialled: the hint for `uniprotkb`
-> stays beside the verified route so a reader can see which it was.
+> entry's `curation_notes` as a starting hint that had never been called.
+> Sixteen endpoints are recorded now, and each was dialled. All five of those
+> entries are among them, and each hint stays beside the verified route so a
+> reader can see which URL was remembered and which one answered.
 >
 > A registry that admits uncertainty is useful. One with a plausible remembered
 > endpoint is dangerous, because code will call it.
+>
+> **A probe may carry a route nobody has called; an endpoint may not.** That is
+> the one place a never-dialled URL is allowed to live in the code, because a
+> probe is a hypothesis and the sweep is the experiment: a wrong URL is a
+> printed failure and nothing written. Twelve of the 22 shipped probes began as
+> such candidates, assembled on 2026-10-25 from documentation read through a
+> search engine, from a container whose network policy denied every one of
+> their hosts. Each carries a `RouteProvenance` saying which page was read and
+> what the author filled in themselves — so a failed sweep can be read, which
+> is the whole point: *the resource was unreachable today* and *this candidate
+> route was never right* look identical without it. The same day, a sweep from
+> a container that could reach every host called all twelve. Two failed first,
+> and both failures were the route rather than the resource. Each of the twelve
+> is now `called_from_here` and keeps the record of where its URL came from, so
+> no shipped probe is a candidate today.
 
 ### What the registry does and does not assert
 
 | Field | What a value means | What `null` / `unknown` means |
 | --- | --- | --- |
-| `endpoint` | A URL read from the provider's documentation and recorded with a citation. No entry in this registry has one today. | Nobody established the route — the current state of **every** entry. A URL somebody remembers is not an endpoint; it belongs in `curation_notes` as a hint. The model also refuses an endpoint without a citation, and refuses one on a source with no network access mode. |
+| `endpoint` | The service a recorded call reached — scheme and host only — written by `eagent sources verify` with a citation of the documentation page fetched in the same sweep. Sixteen entries have one. It is not a request a connector may build on. | Nobody established the route — the state of the other 33. A URL somebody remembers is not an endpoint; it belongs in `curation_notes` as a hint. The model also refuses an endpoint without a citation, and refuses one on a source with no network access mode. |
 | `version` | A release string somebody recorded. | No release was recorded. Never "latest", never today's date. |
 | `approximate_record_count` | A number somebody counted. | Nobody counted. Never estimated from memory. |
 | `license` | A statement, with `license_source` naming who made it. | The licence has not been read. `needs_legal_review` cannot be false while `license` is null. |
@@ -52,28 +71,38 @@ offer, what it must never be used to claim, and what nobody has checked yet.
 | capability `unknown` | — | Nobody checked. It is **not** `not_supported`; a planner can prefer a verified route and schedule the unknown one for curation. |
 | `connectivity_verified` | `true` only with a recorded `ConnectivityCheck`. | A pass is about one capability at one URL at one time, from one environment. It is not a licence, not permission to redistribute, and says nothing about the other capabilities. |
 
-**Three entries record an endpoint; 46 do not.** Five once did —
-`europe_pmc`, `ncbi_protein`, `pubchem`, `pubmed`, `uniprotkb` — but those URLs
-were recalled from general knowledge, not read from the providers'
+**Sixteen entries record an endpoint; 33 do not.** Five once did, before any
+call — `europe_pmc`, `ncbi_protein`, `pubchem`, `pubmed`, `uniprotkb` — but
+those URLs were recalled from general knowledge, not read from the providers'
 documentation, and the citations backing them were bare URLs recalled the same
 way and never opened from here. A registry consumed by code must not carry a
 URL nobody has called, so all five were nulled and each recalled URL survives
 in that entry's `curation_notes` as a starting hint, stated as never having
-been called.
+been called. All five have since been dialled, and the hints stay beside the
+routes that answered.
 
-`uniprotkb` has since been dialled, along with `rcsb_pdb` and `rhea`.
-`eagent sources verify` asked each for one known record, checked that the
-response contained what only that record carries, fetched the provider's own
-documentation page in the same sweep, and wrote the result to
-`connectivity.observed.yaml` — machine-written, merged at load, and separate
-from these curated files because a reachable URL goes stale on its own while a
-curated judgement does not. The citation records when the documentation was
-opened, so it is an observation rather than an assertion that documentation
-exists.
+`uniprotkb`, `rcsb_pdb`, `rhea` and `zenodo` were dialled on 2026-10-08 and
+twelve more sources on 2026-10-25. For each, `eagent sources verify` asked for
+one known record or one query, checked that the response contained what only
+that answer carries, fetched the provider's own documentation page in the same
+sweep, and wrote the result to `connectivity.observed.yaml` — machine-written,
+merged at load, and separate from these curated files because a reachable URL
+goes stale on its own while a curated judgement does not. The citation records
+when the documentation was opened, so it is an observation rather than an
+assertion that documentation exists.
 
-Twenty-three entries still declare a network access mode and record **no**
-endpoint; they are exactly what `SourceRegistry.without_endpoint()` returns, and
-every one must be resolved by a curator before any connector dials anything.
+The endpoint written is the scheme and host of the URL that answered: the
+service, not the record. Where one host serves many services that is coarse.
+`pfam`, `interpro`, `mcsa` and `europe_pmc` all record `https://www.ebi.ac.uk`,
+and `pubmed` and `ncbi_protein` share `https://eutils.ncbi.nlm.nih.gov`, so the
+route a client may use is the probe's, never one built on the endpoint alone.
+
+Ten entries still declare a network access mode and record **no** endpoint;
+they are exactly what `SourceRegistry.without_endpoint()` returns, every one
+must be resolved by a curator before any connector dials anything, and none of
+them has a probe, not even a candidate: `alphafill`, `bacdive`, `brenda`,
+`cath_funfam`, `chebi`, `fireprotdb`, `mavedb`, `metacyc_biocyc`,
+`mgnify_proteins`, `sifts`.
 
 **A verified base URL still licenses nothing.** The probe shows that one
 request, spelled one way, returned the record it asked for. It says nothing
@@ -81,7 +110,10 @@ about the URL a connector would build: the generic `<base>/<key>` shape is not
 Rhea's query-parameter API, and calling it would produce a 404 that the
 resolver reports as a miss — a route silently not working, which is worse than
 a refusal. So a connector declares the probed capability its client was
-written against, and `uniprotkb` is the only one that does.
+written against. Four do — `uniprotkb`, `rcsb_pdb`, `rhea` and `zenodo` — and
+the twelve sources reached on 2026-10-25 do not yet: their connectors refuse
+with `RequestShapeNotVerifiedError` until a client is checked against the
+probe that answered.
 
 Exactly **one** licence string is recorded anywhere in the registry: `brenda`
 carries `CC BY 4.0`, and its `license_source` says:
@@ -101,11 +133,15 @@ curation note demanding the terms be established before use.
 | Measure | Value |
 | --- | --- |
 | Registered sources | 49 (defined once each; `enzengdb` declares two layers) |
-| Entries with `connectivity_verified: true` | **4** (uniprotkb, rcsb_pdb, rhea, zenodo), each with the call recorded |
+| Entries with `connectivity_verified: true` | **16**, each with the call recorded (`eagent sources coverage` names them) |
 | Entries with `needs_curation: true` | 49 |
-| Entries with a recorded endpoint | **4**, each reached by a recorded call |
-| Connectors whose client was checked against a probe and a recorded live response | **4** (uniprotkb, rcsb_pdb, rhea, zenodo) |
-| Documented as programmatically reachable, with no recorded endpoint | 27 (with no endpoint they behave as cache-only) |
+| Entries with a recorded endpoint | **16**, each reached by a recorded call |
+| Connectors whose client was checked against a probe and a recorded live response | **4** (uniprotkb, rcsb_pdb, rhea, zenodo); the other 12 verified sources' connectors still refuse |
+| Shipped probes | 22, over 16 of the 49 sources |
+| Probes whose route a sweep here has reached | **22**, all of them |
+| Candidate probes, never called | **0**; the 12 shipped as candidates were reached on 2026-10-25 and keep where their URLs came from |
+| Hosts a full sweep would contact | 16, routes *and* documentation (`eagent sources hosts`) |
+| Documented as programmatically reachable, with no recorded endpoint | 15 (with no endpoint they behave as cache-only) |
 | Entries with a recorded licence | 1 (`brenda`, unverified) |
 | Entries with `needs_legal_review: true` | 49 |
 | Entries requiring human review **per record** | 9 |
@@ -118,8 +154,9 @@ curation note demanding the terms be established before use.
 
 ## What has actually been called, and what that found
 
-Everything below happened from one cloud container on 2026-10-07 and 2026-10-08. None
-of it is a statement about another network or another day.
+The table below happened from one cloud container on 2026-10-07 and
+2026-10-08, and the sweep after it from another on 2026-10-25. None of it is a
+statement about another network or another day.
 
 | Source | What was done | What it found |
 | --- | --- | --- |
@@ -127,7 +164,7 @@ of it is a statement about another network or another day.
 | RCSB PDB | three data-API probes (entry, entities, a second entry), a client, and (2026-10-08) a fourth probe for the **file host** and `download_structure` | the client builds the same URL the probe checked; an entry and its entities are fetched together. The file host is a different service from the data API, so the download client reads the host off a recorded *passing probe of its own shape* (the connectors package holds no URL literal) and refuses without one; a body is checked to be this entry's mmCIF before it is named. 19 entries were fetched and hash-pinned for the KRED reference set |
 | Rhea | two probes and a client | the Rhea CDN answered **403** to the default `urllib` user agent while the probe passed -- the probe and the client had used different headers. They now share one `USER_AGENT`, and a probe and its client must share URL shape, field list and header |
 | Zenodo | record probe, file probe, `download_file` | a download is read under a hard byte cap, hashed, compared with the checksum the record itself states, and only then written -- to a temporary name, renamed on success. A second file in one session hit an SSL EOF, which is why transient failures are retried |
-| SABIO-RK | paths its documentation names were called | **unreachable**: every path answered 302 and then 200 on the provider's own 404 page. Recorded in the entry's curation note as an *observation*, not a conclusion -- it may be a moved service, a changed path or a network policy, and the three were not told apart. The endpoint stays `null` |
+| SABIO-RK | paths its documentation names were called | **unreachable**: every path answered 302 and then 200 on the provider's own 404 page. Recorded in the entry's curation note as an *observation*, not a conclusion -- it may be a moved service, a changed path or a network policy, and the three were not told apart. On 2026-10-25 it turned out to be a moved service: see below |
 | BRENDA | not called as a source route | needs an account; unchanged. Two **literature pages** (654707, 675348) were opened by hand on 2026-10-08 to check three kinetic records of the KRED reference set; each page states its licence (CC BY 4.0, Release 2026.1). That is a read of two pages, not a connector |
 | wwPDB policy page | opened 2026-10-08 | states that PDB archive data files are CC0 1.0. **Not recorded in the registry** (`rcsb_pdb.license` is still null and `needs_legal_review` true): a curator should record it with this source |
 
@@ -146,6 +183,112 @@ evidence** and the registry's ceiling for Zenodo already says so. Copies of the
 four files the benchmark reads are in `tests/fixtures/sdr` with their md5s,
 which the loader re-checks on every use; see `NOTICE.md` there and
 `docs/EVALUATION.md` for what they can and cannot support.
+
+### The open-network sweep of 2026-10-25
+
+A container whose network policy allowed every host `eagent sources hosts`
+names ran `eagent sources verify --allow-network`, first as a dry run and then
+with `--write`.
+
+- **First pass: 20 of 22.** Both failures were routes this project had never
+  called, and both were the URL rather than the resource. SABIO-RK's legacy
+  REST path and the manual describing it now redirect to the new interface's
+  404 page; the provider's Export API documents the replacement, and the probe
+  uses it. Europe PMC's route answered as written, but its documentation page
+  on europepmc.org answered 403 behind a Cloudflare challenge; the
+  documentation is now the service's own OpenAPI document on www.ebi.ac.uk.
+- **The documentation check was found passing on pages that are not
+  documentation** — reCAPTCHA interstitials from NCBI and PubChem, and a
+  single-page-app shell from UniProt — and now reads a marker off every page
+  that could be read. See the list below.
+- **Second pass: 22 of 22**, written to `connectivity.observed.yaml`. The ten
+  checks recorded on 2026-10-08 all passed again with every marker present.
+  Three of their responses hash differently from then — two RCSB entries at
+  the same byte count, and Zenodo's record 146 bytes shorter. The old bodies
+  were not kept, so what changed is not known.
+- **What the sweep did not change.** It writes `connectivity.observed.yaml` and
+  nothing else: no licence, no `needs_legal_review`, no evidence ceiling. All
+  49 entries still need legal review and only `brenda` records a licence. The
+  curation notes of the twelve were then edited by hand, in the same change,
+  so that no note says "no endpoint" beside a recorded one.
+- **KEGG.** Its curation note says licence and access conditions must be
+  established *before any automated use*. The probe made one automated request
+  all the same; the note now records that, and says it is not permission.
+  Whether the probe stays in the sweep before those conditions are established
+  is a call for whoever owns the licence question.
+
+### Former candidate routes, reached on 2026-10-25
+
+Twelve probes were shipped naming a route that no sweep in this project had
+reached. They exist because the registry's own worklist asked for them and
+because a probe is the only artefact here that can be **wrong without lying**.
+All twelve have now been reached, ten as written and two after their URLs were
+corrected. Each is `called_from_here`, and its detail keeps the grade and the
+reasoning it shipped with, because where a URL came from is the first thing to
+check when it stops working. The next route added from documentation goes in
+`src/eagent/datalayer/probe.py` the same way they did, as a candidate, until a
+sweep records a pass at it.
+
+| Source | Capability | Where the route came from | What the sweep found |
+| --- | --- | --- | --- |
+| `uniref` | exact record | UniProt's own OpenAPI page, with its example cluster id | answered as written |
+| `uniparc` | exact record | the same page's documented `/uniparc/{upi}`; the search form keyed by accession is the author's, because this project has no verified UPI | answered as written |
+| `pfam` | exact record | live responses from this exact route shape came back in the search; `PF00106` is the author's choice of accession | answered as written |
+| `interpro` | exact record | same route shape, `sourcedb` changed; `IPR002347` is the author's | answered as written |
+| `mcsa` | keyword query | M-CSA's own download page names the API and its EC filter; the filter spelling is the author's reading | answered as written: the filter spelling was right |
+| `europe_pmc` | keyword query | an archived page and a third-party client's default base URL; the provider's REST documentation page never came back, so the documentation URL was unconfirmed too | the route answered; the **documentation URL failed** (403, Cloudflare challenge) and is now the service's OpenAPI document |
+| `alphafold_db` | exact record | a mirrored API reference and community wrappers; two searches failed to find EBI's own API page, so the documentation URL was a guess | answered; the guessed `api-docs` page builds its text in the browser, so the documentation is now `api/openapi.json` |
+| `pubchem` | chemical structure | PubChem's programmatic-access page, and a tutorial that states the expected answer — the only candidate whose *expected response* was documented | answered as written; documentation checked on status alone (reCAPTCHA) |
+| `pubmed` | keyword query | the documented E-utilities base and `esearch.fcgi` | answered as written; documentation checked on status alone (reCAPTCHA) |
+| `ncbi_protein` | exact record | **weakest of the twelve**: the search said in as many words that no result named the `efetch` endpoint, so it was inferred from the base | answered as written: the inference was right; documentation checked on status alone (reCAPTCHA) |
+| `sabio_rk` | keyword query | SABIO-RK's own RESTful manual; the query spelling was the author's. This host is why markers exist in this module — it answered 302 then 200 on its own 404 page | the **route failed**: the legacy path and the manual both redirect to the new interface's 404 page. Moved to the Export API, which passed |
+| `kegg` | exact record | a client library's source and a Bioconductor vignette; KEGG's own API page never came back, and its terms still restrict bulk use | answered as written, with a 478 KB entry for one EC number |
+
+Five things follow, and each is a rule rather than a hope.
+
+- **A failure here is not a verdict on the resource.** `sources verify` prints,
+  for every failing candidate, that the route had never been called and what its
+  provenance says, and the summary counts those separately: fixing the URL in
+  `src/eagent/datalayer/probe.py` is the next step, not retiring the source.
+  Both failures on 2026-10-25 were exactly that.
+- **The grade is the weakest link, not the best one, and a pass does not erase
+  it.** `ncbi_protein` shipped as `search_summary` although it shares a
+  documented base with `pubmed`, because the part that matters — the endpoint —
+  was inferred. A pass makes it `called_from_here`; the detail still says it
+  was inferred.
+- **A documentation URL can be the thing that fails.** `run_probe` fetches it in
+  the same sweep and refuses to record a route whose documentation did not
+  answer, and the failure text says so in those words. Europe PMC's did.
+- **And a 200 from a documentation URL is not a documentation page.** The
+  documentation fetch was status-only, which is the same mistake one level up
+  from the one this module refuses a markerless probe for. A sweep on an open
+  network on 2026-10-25 found it passing on three pages that are not
+  documentation: NCBI Bookshelf `NBK25501` and PubChem's `docs/pug-rest` each
+  answered 200 with a "Checking your browser" reCAPTCHA interstitial, and
+  `www.uniprot.org/help/api` answered 200 with a single-page-app shell
+  byte-identical to the shell served for a help page that does not exist.
+  `CapabilityProbe.documentation_markers` now applies the route's own rule to
+  the documentation, and `ConnectivityCheck` records which markers were
+  required — an empty list means *status alone*, and is part of the record
+  rather than an absent detail. Choosing a marker means knowing what the real
+  page says, so the shipped markers were read off the pages that answered a
+  sweep on 2026-10-25 from a container that could reach them; each names the
+  route or operation its page documents. Where the page a person reads builds
+  its text in the browser — UniProt's help, AlphaFold DB's `api-docs` — the
+  documentation is now the provider's OpenAPI document for the same API, which
+  is served whole. `pubchem`, `pubmed` and `ncbi_protein` stay *status alone*
+  by necessity: their pages answered with the reCAPTCHA, so there was nothing
+  to read a marker from, and a guessed one would fail wherever the page is
+  served properly.
+- **Reachability is still not permission.** Nothing a sweep writes touches a
+  licence, a legal-review flag or an evidence ceiling. All 49 entries keep
+  `needs_legal_review: true`.
+
+`eagent sources hosts` prints the 16 hosts a full sweep contacts and what needs
+each one, derived from the probe table rather than written down beside it.
+Documentation hosts are in that list and are not optional: an allow-list built
+from route URLs alone makes every probe fail on its documentation, which reads
+like the resources being down.
 
 ### Capability flag legend
 
@@ -569,10 +712,18 @@ state of a fresh checkout.
 
 ### 最重要的一句话
 
-**49 条里只有 3 条做过连通性测试。** UniProtKB、RCSB PDB、Rhea 由
-`eagent sources verify` 在本容器里真实调用过，并把调用记录（URL、时间、状态码、
-响应摘要，以及响应体中必须出现的字符串）写进了注册表；其余每一条仍带
-`connectivity_verified: false`。
+**49 条里有 16 条做过连通性测试，其余没有。** UniProtKB、RCSB PDB、Rhea、Zenodo
+于 2026-10-08 由 `eagent sources verify` 真实调用过；2026-10-25 一次能访问全部主机的
+巡检又调用了另外 12 条（UniRef、UniParc、Pfam、InterPro、M-CSA、Europe PMC、
+AlphaFold DB、PubChem、PubMed、NCBI Protein、SABIO-RK、KEGG），并重新确认了前 4 条。
+每一条都带着调用记录（URL、时间、状态码、响应摘要，以及响应体中必须出现的字符串）；
+其余每一条仍带 `connectivity_verified: false`。
+
+这 12 条原本是"候选路线"：根据搜索引擎读到的文档拼出来、从未被调用过的探针。第一次巡检
+通过了 20/22，失败的两条都是 URL 的问题而不是资源的问题：SABIO-RK 的旧 REST 路径已改为
+Export API；Europe PMC 的文档页被 Cloudflare 拦截，文档改指向服务自己的 OpenAPI 文件。
+修正后第二次巡检 22/22 全部通过。巡检只写 `connectivity.observed.yaml`，没有动任何
+许可证、`needs_legal_review` 或证据上限。
 
 `true` 只有在带着这样一条记录时才被接受。一个光秃秃的布尔值说"这条路能走"毫无价值——
 这正是模式层原先直接拒绝 `true` 的原因；一次通过只说明**这个能力、这个 URL、在这个时刻、
@@ -583,7 +734,9 @@ state of a fresh checkout.
 **而且"基址已验证"并不等于"请求已验证"。** 探针证明的是某一条写法的请求拿回了它要的那条
 记录；连接器自己拼出来的 `<base>/<key>` 并不是 Rhea 的查询式 API，调用它会得到一个 404，
 而解析层会把它报告成一次 miss——一条悄无声息失效的路线，比直接拒绝更糟。所以连接器必须
-声明自己的客户端是照着哪一条探过的请求写的，目前只有 UniProtKB 声明了。
+声明自己的客户端是照着哪一条探过的请求写的。目前声明了的只有 UniProtKB、RCSB PDB、
+Rhea、Zenodo 四个；2026-10-25 新验证的 12 个来源，在客户端对照探针核查之前，连接器
+仍以 `RequestShapeNotVerifiedError` 拒绝调用。
 
 一个承认自己不确定的注册表是有用的；一个编造了看起来合理的 endpoint 的注册表是危险的，
 因为代码真的会去调用它。
@@ -591,12 +744,14 @@ state of a fresh checkout.
 ### 现状数字
 
 共注册 49 个来源（`enzengdb` 跨两层，定义一次）。其中：
-记录了 endpoint 的有 **0 个**。曾经有 5 个（`europe_pmc`、`ncbi_protein`、
-`pubchem`、`pubmed`、`uniprotkb`），但那些 URL 来自一般知识回忆，并非读自官方文档，
+记录了 endpoint 的有 **16 个**，每一个都是一次有记录的调用到达过的服务（只记协议与
+主机名）。在任何调用之前曾经有 5 个（`europe_pmc`、`ncbi_protein`、`pubchem`、
+`pubmed`、`uniprotkb`）写了 endpoint，但那些 URL 来自一般知识回忆，并非读自官方文档，
 其引用也是同样未曾打开过的裸 URL；代码会真的去调用 endpoint，因此这 5 个 endpoint
 与这 5 条引用都已清空，回忆到的 URL 改写进各自的 `curation_notes`，明确标注为"仅供
-策展人起步参考、从未在本环境调用过"。声明了网络访问方式却**没有** endpoint 的有
-26 个；记录了许可证的只有 1 个（`brenda` 的 `CC BY 4.0`，来源是项目方的陈述，
+策展人起步参考、从未在本环境调用过"。这 5 个此后都已被真实调用，提示仍保留在已验证的
+路线旁边。声明了网络访问方式却**没有** endpoint 的有 10 个，而且都没有探针；记录了
+许可证的只有 1 个（`brenda` 的 `CC BY 4.0`，来源是项目方的陈述，
 **未经独立核实**）；需要法务审查的 49 个；需要逐条人工复核的 9 个；只能靠人工导入的
 6 个；完全无法程序化访问的 18 个。343 个能力标志槽位中，220 个是"未知"，72 个是
 "不支持"，只有 51 个是"支持（有文档）"。

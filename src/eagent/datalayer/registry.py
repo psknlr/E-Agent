@@ -294,6 +294,13 @@ class ConnectivityCheck(BaseModel):
                     "in the same sweep. A documentation URL nobody opened is "
                     "an assertion; one that answered is an observation.")
     documentation_status: int | None = None
+    documentation_markers: list[str] = Field(
+        default_factory=list,
+        description="Strings that had to appear in the documentation page. "
+                    "Empty means the documentation was checked by status "
+                    "alone, which a reCAPTCHA interstitial and a "
+                    "single-page-app shell both pass -- so an empty list is "
+                    "part of the record, not an absent detail.")
     failure: str = Field(
         "", description="Why it did not pass. Required when ok is false.")
     note: str = ""

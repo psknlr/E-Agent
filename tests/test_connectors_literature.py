@@ -22,8 +22,8 @@ from pathlib import Path
 from eagent.connectors.base import AccessPolicy, FileCache, ResponseStatus
 from eagent.connectors.chemistry import (
     UNVERIFIED_CAPABILITY,
-    EndpointNotEstablishedError,
     LayerSemanticsError,
+    RequestShapeNotVerifiedError,
     datasource_registry,
 )
 from eagent.connectors.literature import (
@@ -79,10 +79,17 @@ class TestOfflineAndRefusals(LiteratureTestCase):
         self.assertEqual(citations[0].year, 2021)
         self.assertEqual(citations[0].doi, "10.1000/abc")
 
-    def test_every_literature_source_still_records_a_null_endpoint(self) -> None:
-        for source_id in ("pubmed", "europe_pmc", "enzchemred"):
+    def test_enzchemred_still_records_a_null_endpoint(self) -> None:
+        self.assertIsNone(self.registry.get("enzchemred").endpoint)
+
+    def test_pubmed_and_europe_pmc_record_an_endpoint_only_because_a_call_reached_it(self) -> None:
+        for source_id, endpoint in (("pubmed", "https://eutils.ncbi.nlm.nih.gov"),
+                                    ("europe_pmc", "https://www.ebi.ac.uk")):
             with self.subTest(source=source_id):
-                self.assertIsNone(self.registry.get(source_id).endpoint)
+                source = self.registry.get(source_id)
+                self.assertEqual(source.endpoint, endpoint)
+                self.assertTrue(source.connectivity_verified)
+                self.assertIn("keyword_query", source.verified_capabilities)
 
     def test_zenodo_records_an_endpoint_only_because_a_call_reached_it(self) -> None:
         source = self.registry.get("zenodo")
@@ -90,21 +97,28 @@ class TestOfflineAndRefusals(LiteratureTestCase):
         self.assertTrue(source.connectivity_verified)
         self.assertIn("exact_record_fetch", source.verified_capabilities)
 
-    def test_require_endpoint_is_a_typed_refusal(self) -> None:
+    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
+        """Both routes answered a sweep, and neither client was checked against
+        the probe that answered, so both still refuse -- on the request shape
+        now, not on the endpoint."""
         for connector in (PubMedConnector(cache=self.cache),
                           EuropePMCConnector(cache=self.cache)):
             with self.subTest(source=connector.source_id):
-                with self.assertRaises(EndpointNotEstablishedError) as ctx:
+                self.assertIsNone(connector.verified_route_capability)
+                with self.assertRaises(RequestShapeNotVerifiedError) as ctx:
                     connector.require_endpoint()
                 self.assertEqual(ctx.exception.source_id, connector.source_id)
-                self.assertTrue(ctx.exception.curation_notes)
+                self.assertEqual(ctx.exception.verified_capabilities,
+                                 ("keyword_query",))
 
-    def test_the_europe_pmc_curation_note_is_a_hint_not_a_configured_url(self) -> None:
-        """The registry's note mentions a candidate base; the code must not."""
+    def test_the_europe_pmc_hint_survives_beside_the_verified_route(self) -> None:
+        """The registry's note keeps the base it once only recalled, as
+        history; the code holds no URL either way."""
         source = self.registry.get("europe_pmc")
-        self.assertIsNone(source.endpoint)
-        self.assertTrue(any("Confirm the real base URL" in note
-                            for note in source.curation_notes))
+        self.assertEqual(source.endpoint, "https://www.ebi.ac.uk")
+        notes = " ".join(source.curation_notes)
+        self.assertIn("starting hint", notes)
+        self.assertIn("recalled, never called", notes)
 
     def test_enzchemred_refuses_a_keyword_query(self) -> None:
         connector = EnzChemREDConnector(cache=self.cache)

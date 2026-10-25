@@ -694,8 +694,10 @@ that before predictions share a bag with measurements.
 
 ## 9. What this layer does not do
 
-* Nothing here has been connectivity-tested. Every registry entry carries
-  `connectivity_verified=false`; see `docs/DATASOURCES.md`.
+* Little here has been connectivity-tested. Sixteen of the 49 registry entries
+  carry a recorded pass — one capability, at one URL, at one time, from one
+  environment — and the other 33 carry `connectivity_verified=false`. A pass is
+  not a licence and not a checked client; see `docs/DATASOURCES.md`.
 * No chemistry is computed. Structure comparison is textual, charge is read from
   bracket atoms, stereo markers are counted from the string. There is no RDKit in
   this environment, and the module reports "this changed, a curator must say why"

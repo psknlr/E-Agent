@@ -680,21 +680,30 @@ PROBES: tuple[CapabilityProbe, ...] = (
         markers=("hitCount", "resultList"),
         description="a literature search returning one hit and the total count",
         provenance=RouteProvenance(
-            grade="third_party_client",
+            grade="provider_documentation",
             detail=("the path /europepmc/webservices/rest/search under an EBI "
-                    "host appears in an archived Europe PMC page and as the "
-                    "default base URL of a third-party client. Europe PMC's "
-                    "own REST documentation page did not come back in the "
-                    "search, so the documentation URL below is unconfirmed "
-                    "too and may be what fails"),
+                    "host first came from an archived Europe PMC page and a "
+                    "third-party client's default base URL. On 2026-10-25 the "
+                    "service's own OpenAPI definition, served from the API "
+                    "host at /europepmc/webservices/rest/v3/api-docs, was "
+                    "read from this container: it documents GET /search with "
+                    "query, format and pageSize, and spells this base out in "
+                    "full. The search term and pageSize=1 are the author's"),
             recorded_at="2026-10-25",
             query=("Europe PMC RESTful web service base URL documentation "
                    "search endpoint"),
         ),
-        documentation="https://europepmc.org/RestfulWebService",
+        documentation=("https://www.ebi.ac.uk/europepmc/webservices/rest/"
+                       "v3/api-docs"),
         note=("this entry is one of the five whose remembered endpoint was "
               "nulled; the hint in its curation notes is where this URL "
-              "came from, and it still has not been called"),
+              "came from. The documentation is the service's OpenAPI "
+              "definition rather than europepmc.org/RestfulWebService, the "
+              "page a person reads, because that host answered this "
+              "client's user agent with a Cloudflare challenge (HTTP 403) "
+              "on 2026-10-25, and a challenge is not documentation anybody "
+              "opened. The definition is what the API's own Swagger UI "
+              "renders"),
     ),
     CapabilityProbe(
         source_id="alphafold_db",
@@ -793,26 +802,37 @@ PROBES: tuple[CapabilityProbe, ...] = (
     CapabilityProbe(
         source_id="sabio_rk",
         capability="keyword_query",
-        url=("https://sabiork.h-its.org/sabioRestWebServices/searchKineticLaws/"
-             "sbml?q=ECNumber:1.1.1.1"),
-        markers=("<sbml", "kineticLaw"),
+        url=("https://sabiork.h-its.org/export-api/sabio/kinlaw-entry/sbml"
+             "?q=ECNumber:1.1.1.1&pageSize=1"),
+        markers=("<sbml", "kineticLaw", "ec-code/1.1.1.1"),
         description=("kinetic laws for one EC number as SBML: the one "
                      "registered source that can supply a measurement"),
         provenance=RouteProvenance(
             grade="provider_documentation",
-            detail=("SABIO-RK's own RESTful manual, which the search "
-                    "returned, documents the base /sabioRestWebServices/ and "
-                    "the paths kineticLaws/{id} and searchKineticLaws/sbml. "
-                    "The q=ECNumber:... spelling is the author's reading of "
-                    "the manual's query syntax and was not quoted"),
+            detail=("SABIO-RK has replaced the web services its old RESTful "
+                    "manual described. On 2026-10-25 the legacy "
+                    "/sabioRestWebServices/searchKineticLaws/sbml path and "
+                    "the manual itself both redirected, from this container, "
+                    "to the new interface's 404 page. The provider's Export "
+                    "API page (sabiork.h-its.org/ui/export-api) maps the "
+                    "legacy /searchKineticLaws/sbml?q=... to "
+                    "/kinlaw-entry/sbml?q=... and quotes ECNumber:1.1.1.1 "
+                    "among its query examples, and its OpenAPI document lists "
+                    "GET /export-api/sabio/kinlaw-entry/sbml with q, page and "
+                    "pageSize. pageSize=1 is the author's, to keep the probe "
+                    "to one entry"),
             recorded_at="2026-10-25",
             query="SABIO-RK REST API documentation base URL webServices",
         ),
-        documentation="https://sabiork.h-its.org/layouts/content/docuRESTfulWeb/manual.gsp",
-        note=("this host is the reason markers exist in this module: from a "
-              "container in this project its documented REST path answered "
-              "302 and then 200, on the provider's own 404 page. The markers "
-              "here are SBML structure, which that page does not carry"),
+        documentation="https://sabiork.h-its.org/openapi/export-api.json",
+        note=("this host is the reason markers exist in this module: its "
+              "legacy REST path answered 302 and then 200, on the provider's "
+              "own 404 page. The documentation is the OpenAPI document "
+              "rather than the Export API page because every /ui/ path, "
+              "including the 404 page, answers 200 with the same application "
+              "shell: a status check on one would pass on a page that does "
+              "not exist, while an unknown OpenAPI name is a real 404. The "
+              "export API is rate-limited to 60 requests a minute per IP"),
     ),
     CapabilityProbe(
         source_id="kegg",

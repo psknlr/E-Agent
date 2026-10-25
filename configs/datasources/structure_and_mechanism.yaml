@@ -123,8 +123,12 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint recorded. Confirm the API base URL and the accession form it
-         expects before the first call."
+      - "The prediction route is established: `eagent sources verify` fetched
+         the prediction metadata for P07846 from
+         https://alphafold.ebi.ac.uk/api/prediction/ on 2026-10-25 and read the
+         API's OpenAPI document; the record is in connectivity.observed.yaml. It
+         takes a UniProtKB accession. STILL OPEN: the model files that response
+         points to, which have not been downloaded."
       - "Confirm the database version and the model version it was produced with,
          and record both; a model is not reproducible without them."
       - "Confirm licence and redistribution terms for the models."
@@ -276,8 +280,14 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint recorded. Confirm which programmatic and download routes are
-         current before any automated use."
+      - "The entries API is established: `eagent sources verify` queried
+         https://www.ebi.ac.uk/thornton-srv/m-csa/api/entries/ for EC 1.1.1.1 on
+         2026-10-25 and read M-CSA's download page, which names that API; the
+         record is in connectivity.observed.yaml. The query returned five
+         entries, all alcohol dehydrogenases, so the EC filter is applied by the
+         server. The recorded endpoint is the EBI host, shared with many
+         unrelated services. STILL OPEN: the residues API and the download
+         routes."
       - "derived_from is marked incomplete -- entries reference structures and
          sequence entries registered separately here, and a curator must decide
          whether those make M-CSA dependent on them for independence accounting."

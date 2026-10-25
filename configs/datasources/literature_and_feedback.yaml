@@ -65,15 +65,16 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint is recorded, because none has been established here. As a
-         starting hint for a curator and nothing more: this project's general
-         knowledge suggests the E-utilities live under a base of the form
-         https://eutils.ncbi.nlm.nih.gov/entrez/eutils/ and are documented in
-         NCBI Bookshelf entry NBK25501. Neither string was called or opened from
-         this environment, so both may be stale or simply wrong. Establish the
-         real base URL, the API-key policy and the request-rate policy from the
-         provider, record the documentation as a citation, and only then set
-         endpoint."
+      - "The E-utilities base was once only a starting hint here -- recalled,
+         never called: a base of the form
+         https://eutils.ncbi.nlm.nih.gov/entrez/eutils/, documented in NCBI
+         Bookshelf entry NBK25501. It has since been established: `eagent
+         sources verify` ran one esearch there on 2026-10-25, and the record is
+         in connectivity.observed.yaml. The hint is kept so a reader can see
+         which it was. The documentation was NOT read: NBK25501 answered this
+         container with a reCAPTCHA page, so the check took it on its status
+         alone. STILL OPEN: reading that documentation, and the API-key and
+         request-rate policies."
       - "Confirm the terms of use for storing retrieved records."
       - "Decide how retraction and correction notices are checked, since the
          search result does not surface them reliably."
@@ -125,14 +126,16 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint is recorded, because none has been established here. As a
-         starting hint for a curator and nothing more: this project's general
-         knowledge suggests a REST service under a base of the form
+      - "The REST base URL was once only a starting hint here -- recalled, never
+         called: a service under
          https://www.ebi.ac.uk/europepmc/webservices/rest, described on a
-         RESTful-web-service page of the provider's own site. Neither string was
-         called or opened from this environment. Confirm the real base URL and
-         the rate policy with the provider, record the documentation as a
-         citation, and only then set endpoint."
+         RESTful-web-service page of the provider's own site. It has since been
+         established: `eagent sources verify` ran one search there on 2026-10-25
+         and read the service's own OpenAPI definition on the same host; the
+         record is in connectivity.observed.yaml. The provider's human-readable
+         page, europepmc.org/RestfulWebService, answered this container with a
+         Cloudflare challenge and was not read. The hint is kept so a reader can
+         see which it was. STILL OPEN: the rate policy, which has not been read."
       - "Confirm per-article licence handling, and implement the refusal path for
          non-open full text before any extraction runs."
       - "derived_from is marked incomplete -- it aggregates several literature
@@ -449,8 +452,12 @@ sources:
     needs_curation: true
     curation_notes:
       - "Licence and access conditions must be established BEFORE any automated
-         use. Nothing is asserted here about what the current terms permit, and
-         no endpoint is recorded."
+         use. Nothing is asserted here about what the current terms permit. One
+         automated request has been made all the same, by a connectivity probe:
+         `eagent sources verify` fetched the EC 1.1.1.1 entry from
+         https://rest.kegg.jp on 2026-10-25 and read KEGG's API manual, and the
+         record is in connectivity.observed.yaml. That shows the route answers.
+         It is not permission, and the first sentence still stands."
       - "Confirm whether this project's use is academic or commercial, because
          the answer changes what is permitted."
       - "If use is permitted, record the release used for provenance."

@@ -185,14 +185,16 @@ sources:
     requires_human_review_per_record: false
     needs_curation: true
     curation_notes:
-      - "No endpoint is recorded, because none has been established here. As a
-         starting hint for a curator and nothing more: this project's general
-         knowledge suggests a PUG REST service under a base of the form
-         https://pubchem.ncbi.nlm.nih.gov/rest/pug, with a PUG REST page in the
-         provider's own documentation. Neither string was called or opened from
-         this environment. Confirm the real base URL and the current
-         request-rate policy, record the documentation as a citation, and only
-         then set endpoint."
+      - "The PUG REST base was once only a starting hint here -- recalled, never
+         called: a service under https://pubchem.ncbi.nlm.nih.gov/rest/pug, with
+         a PUG REST page in the provider's documentation. It has since been
+         established: `eagent sources verify` fetched one compound property by
+         CID there on 2026-10-25, and the record is in
+         connectivity.observed.yaml. The hint is kept so a reader can see which
+         it was. The documentation was NOT read:
+         https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest answered this container
+         with a reCAPTCHA page, so the check took it on its status alone. STILL
+         OPEN: reading that documentation, and the current request-rate policy."
       - "Confirm whether a stable release or snapshot identifier can be recorded
          for provenance; version_information is marked unknown because this
          project has not established one."

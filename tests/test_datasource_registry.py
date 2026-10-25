@@ -236,17 +236,21 @@ class TestHonestyInvariants(unittest.TestCase):
     def test_the_recalled_urls_survive_as_curator_hints(self) -> None:
         """Nulling the endpoint must not throw the starting point away.
 
-        The URL is still the most useful thing a curator can be handed; it is
-        kept as prose that says it was never called, where no consumer can read
-        it as an established route.
+        The URL was the most useful thing a curator could be handed, so it was
+        kept as prose that said it had never been called, where no consumer
+        could read it as an established route. All five have since been
+        called, and each hint stays as the record that its URL was once only
+        recalled -- so a reader can tell a route somebody established from one
+        somebody remembered, as the uniprotkb test below says.
         """
-        for sid in ("pubmed", "europe_pmc", "pubchem", "ncbi_protein"):
+        for sid in ("pubmed", "europe_pmc", "pubchem", "ncbi_protein",
+                    "uniprotkb"):
             src = REGISTRY.get(sid)
             notes = " ".join(src.curation_notes)
-            self.assertIsNone(src.endpoint, sid)
             self.assertTrue(src.needs_curation, sid)
             self.assertIn("starting hint", notes, sid)
-            self.assertIn("from this environment", notes, sid)
+            self.assertIn("recalled, never called", notes, sid)
+            self.assertTrue(src.connectivity_verified, sid)
 
     def test_a_hint_that_has_since_been_called_keeps_its_history(self) -> None:
         """uniprotkb was a hint and is now a verified route.

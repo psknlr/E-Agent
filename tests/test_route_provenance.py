@@ -9,9 +9,11 @@ only while a reader can tell the two kinds of failure apart:
 
 Twelve of the shipped probes were assembled from documentation read through a
 search engine, from a container whose network policy denied every one of their
-hosts. Not one has been called. That is a legitimate thing to ship -- a wrong
-URL is a printed failure and nothing written -- but only if it says so, which
-is what :class:`RouteProvenance` is for.
+hosts, and shipped before anybody had called them. That is a legitimate thing
+to ship -- a wrong URL is a printed failure and nothing written -- but only if
+it says so, which is what :class:`RouteProvenance` is for. The sweep of
+2026-10-25 reached all twelve (two after their URLs were corrected), and each
+now says so while keeping where it came from.
 
 No test here reaches the network: every one supplies its own fetcher.
 """
@@ -21,16 +23,18 @@ from __future__ import annotations
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
 from click.testing import CliRunner
 
 from eagent.cli import EXIT_USAGE, main
+from eagent.datalayer import probe as probe_module
 from eagent.datalayer.probe import (
     PROBES, ROUTE_PROVENANCE_GRADES, CapabilityProbe, ProbeError, Response,
     RouteProvenance, load_observed, never_called_probes, probe_hosts,
     run_probe, run_probes, write_checks,
 )
-from eagent.datalayer.registry import default_datasource_dir
+from eagent.datalayer.registry import SourceRegistry, default_datasource_dir
 
 
 def provenance(**kw) -> RouteProvenance:
@@ -117,6 +121,31 @@ class WhatEverCalledMeans(unittest.TestCase):
     def test_an_absent_query_is_left_out_of_the_record(self) -> None:
         self.assertNotIn("query", provenance().to_dict())
 
+    def test_a_reached_route_counts_as_called(self) -> None:
+        reached = provenance().reached("2026-10-26")
+        self.assertTrue(reached.ever_called)
+        self.assertEqual(reached.grade, "called_from_here")
+        self.assertEqual(reached.recorded_at, "2026-10-26")
+
+    def test_reaching_a_route_keeps_where_it_came_from(self) -> None:
+        """Where a URL came from is the first thing to check when it stops
+        working, so a pass adds to the pedigree instead of replacing it."""
+        before = provenance(grade="search_summary", query="the search behind it")
+        after = before.reached("2026-10-26")
+        self.assertIn(before.detail, after.detail)
+        self.assertIn("search_summary", after.detail)
+        self.assertEqual(after.query, "the search behind it")
+
+    def test_reaching_a_route_already_called_changes_nothing(self) -> None:
+        called = provenance().reached("2026-10-26")
+        self.assertIs(called.reached("2026-10-27"), called)
+
+
+def candidates_now_or_before() -> list[CapabilityProbe]:
+    """Shipped probes that are candidates, or were until a sweep reached them."""
+    return [p for p in PROBES if not p.provenance.ever_called
+            or "Before that it was a candidate" in p.provenance.detail]
+
 
 class TheShippedTable(unittest.TestCase):
     def test_every_shipped_probe_declares_its_provenance(self) -> None:
@@ -147,22 +176,35 @@ class TheShippedTable(unittest.TestCase):
             with self.subTest(source=p.source_id):
                 self.assertFalse(p.provenance.ever_called)
 
+    def test_a_probe_with_a_recorded_pass_says_it_was_called(self) -> None:
+        """The other direction. A sweep that records a pass at a candidate's
+        URL makes "never called" false, and a dry run printing NEVER CALLED
+        beside a recorded pass would be the table contradicting the file."""
+        observed = load_observed(default_datasource_dir())
+        for p in PROBES:
+            checks = observed.get(p.source_id, {}).get("connectivity_checks", ())
+            if p.url not in {c["url"] for c in checks if c.get("ok")}:
+                continue
+            with self.subTest(source=p.source_id):
+                self.assertTrue(p.provenance.ever_called)
+
     def test_the_candidates_are_the_ones_never_called(self) -> None:
         never = never_called_probes()
         self.assertEqual(set(never),
                          {p for p in PROBES if not p.provenance.ever_called})
-        self.assertTrue(never, "the candidate probes have gone missing")
 
     def test_a_candidate_names_what_the_author_supplied(self) -> None:
         """Every candidate's detail has to say more than which page was read,
         because the common failure is a good route with an id this project
-        chose itself."""
-        for p in never_called_probes():
+        chose itself. A route a sweep has since reached keeps that detail."""
+        candidates = candidates_now_or_before()
+        self.assertTrue(candidates, "the candidate probes have gone missing")
+        for p in candidates:
             with self.subTest(source=p.source_id):
                 self.assertGreater(len(p.provenance.detail), 80)
 
     def test_every_candidate_carries_the_search_behind_it(self) -> None:
-        for p in never_called_probes():
+        for p in candidates_now_or_before():
             with self.subTest(source=p.source_id):
                 self.assertTrue(p.provenance.query.strip())
 
@@ -348,9 +390,24 @@ class TheCommands(unittest.TestCase):
             main, ["sources", "hosts", "--source", "not_a_source"])
         self.assertEqual(result.exit_code, EXIT_USAGE, result.output)
 
+    def with_a_candidate(self):
+        """The shipped table plus one route nobody has called.
+
+        Every shipped candidate has been reached by now, so the commands'
+        handling of a candidate is tested on one made for the purpose -- the
+        next route added from documentation will need it, and these tests
+        should not wait for one to ship.
+        """
+        candidate = probe(
+            source_id="chebi", url="https://example.org/chebi/CHEBI:15377",
+            markers=("CHEBI:15377",),
+            provenance=provenance(grade="third_party_client"))
+        return mock.patch.object(probe_module, "PROBES", PROBES + (candidate,))
+
     def test_the_dry_run_marks_the_routes_nobody_has_called(self) -> None:
-        result = self.runner.invoke(
-            main, ["sources", "verify", "--no-network", "--source", "kegg"])
+        with self.with_a_candidate():
+            result = self.runner.invoke(
+                main, ["sources", "verify", "--no-network", "--source", "chebi"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("NEVER CALLED", result.output)
         self.assertIn("third_party_client", result.output)
@@ -360,19 +417,36 @@ class TheCommands(unittest.TestCase):
         """Two numbers, never one. A route to try and a route that works are
         different facts, and a reader given one number would have to guess
         which of the two it was."""
-        result = self.runner.invoke(main, ["sources", "coverage"])
+        with self.with_a_candidate():
+            result = self.runner.invoke(main, ["sources", "coverage"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("carry a recorded connectivity check", result.output)
-        self.assertIn("further source(s) carry a candidate route",
+        self.assertIn("1 further source(s) carry a candidate route",
                       result.output)
+        self.assertIn("(chebi)", result.output)
         self.assertIn("not a route that works", result.output)
 
     def test_coverage_does_not_fold_candidates_into_the_verified_count(self) -> None:
-        result = self.runner.invoke(main, ["sources", "coverage"])
+        registry = SourceRegistry.from_directory()
+        sources = list(registry)
+        verified_ids = [s_.id for s_ in sources if s_.verified_capabilities]
+        with self.with_a_candidate():
+            result = self.runner.invoke(main, ["sources", "coverage"])
         verified = [s_ for s_ in result.output.splitlines()
                     if "carry a recorded connectivity check" in s_]
         self.assertEqual(len(verified), 1, result.output)
-        self.assertIn("4 of 49", verified[0])
+        self.assertIn(f"{len(verified_ids)} of {len(sources)}", verified[0])
+        self.assertNotIn("chebi", verified_ids)
+        self.assertNotIn("chebi", verified[0])
+
+    def test_coverage_names_no_candidate_when_every_route_was_reached(self) -> None:
+        """An empty list is not printed as "0 further source(s)": with every
+        shipped route reached, the line would be a count of nothing."""
+        with mock.patch.object(probe_module, "PROBES", tuple(
+                p for p in PROBES if p.provenance.ever_called)):
+            result = self.runner.invoke(main, ["sources", "coverage"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertNotIn("carry a candidate route", result.output)
 
     def test_the_dry_run_does_not_mark_a_route_with_a_recorded_pass(self) -> None:
         result = self.runner.invoke(

@@ -221,6 +221,27 @@ class RouteProvenance:
         """
         return self.grade == "called_from_here"
 
+    def reached(self, on: str) -> "RouteProvenance":
+        """This route, once a sweep in this repo has recorded a pass at it.
+
+        The candidate's pedigree goes into the new detail rather than being
+        dropped. Which page the URL was read off, and which part of it the
+        author filled in, is still worth knowing once the route works: it is
+        the first thing to check when the route stops working.
+        """
+        if self.ever_called:
+            return self
+        return RouteProvenance(
+            grade="called_from_here",
+            detail=(f"a sweep from a container in this project reached this "
+                    f"route and its documentation on {on}, and the pass is "
+                    f"recorded in configs/datasources/connectivity.observed."
+                    f"yaml. Before that it was a candidate ({self.grade}, "
+                    f"recorded {self.recorded_at}): {self.detail}"),
+            recorded_at=on,
+            query=self.query,
+        )
+
     def to_dict(self) -> dict[str, Any]:
         """The record, for printing or for a report."""
         out: dict[str, Any] = {"grade": self.grade, "detail": self.detail,
@@ -250,6 +271,10 @@ _CALLED = RouteProvenance(
 #: necessity rather than choice -- and recorded as such, because a check
 #: carrying an empty list says its documentation was taken on status.
 _STATUS_ALONE: tuple[str, ...] = ()
+
+#: The day a sweep from a container that could reach every probe host first
+#: recorded passes for the twelve former candidates further down.
+_OPEN_NETWORK_SWEEP = "2026-10-25"
 
 
 @dataclass(frozen=True)
@@ -565,19 +590,26 @@ PROBES: tuple[CapabilityProbe, ...] = (
     ),
 
     # ----------------------------------------------------------------------
-    # Candidates: routes assembled from documentation, never dialled
+    # Former candidates: routes assembled from documentation, then dialled
     # ----------------------------------------------------------------------
     #
-    # Everything below has provenance that is not ``called_from_here``. Each
-    # was written because the registry's own worklist asks for it -- 31
-    # network-capable sources record no route at all -- and because a probe is
-    # the only artefact in this repo that can be *wrong without lying*: it
-    # fails, the failure is printed, nothing is written, and the failure text
-    # says whether the route, the markers or the documentation was the problem.
+    # Each of these was written because the registry's own worklist asks for
+    # it, and because a probe is the only artefact in this repo that can be
+    # *wrong without lying*: it fails, the failure is printed, nothing is
+    # written, and the failure text says whether the route, the markers or the
+    # documentation was the problem.
     #
     # They were assembled on 2026-10-25 from a container whose network policy
-    # denied every one of these hosts, so not one of them has been called.
-    # ``eagent sources hosts`` prints the hosts a sweep would need.
+    # denied every one of these hosts. A sweep the same day, from a container
+    # that could reach all of them, passed ten as written and failed two, both
+    # on this file rather than on the resource: SABIO-RK had moved its API, and
+    # Europe PMC's documentation page answered with a bot challenge. Both were
+    # corrected and passed, and all twelve passes are recorded. Each keeps its
+    # candidate pedigree inside ``reached``, because where a URL came from is
+    # the first thing to check when it stops working.
+    #
+    # A new candidate goes here without ``.reached(...)``, and the dry run and
+    # ``sources coverage`` report it as never called until a sweep records it.
 
     CapabilityProbe(
         source_id="uniref",
@@ -596,7 +628,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "probe above already had a pass on, from the same service"),
             recorded_at="2026-10-25",
             query="UniProt REST API uniparc uniref endpoint documentation",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://rest.uniprot.org/uniref/api/docs",
         documentation_markers=("/uniref/{id}",),
         note=("the provider's own example id rather than one from this "
@@ -622,7 +654,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "and the fix is this URL, not the host"),
             recorded_at="2026-10-25",
             query="UniProt REST API uniparc uniref endpoint documentation",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://rest.uniprot.org/uniparc/api/docs",
         documentation_markers=("/uniparc/search",),
         note=("P07846 is the accession the uniprotkb probe already has a pass "
@@ -645,7 +677,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "accession, not one the search confirmed"),
             recorded_at="2026-10-25",
             query="InterPro API documentation ebi.ac.uk/interpro/api entry pfam JSON",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://interpro-documentation.readthedocs.io/en/latest/api.html",
         documentation_markers=("/interpro/api/", "entry/pfam"),
         note=("PF00106 is the short-chain dehydrogenase/reductase family this "
@@ -668,7 +700,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "IPR002347 is the author's own choice of accession"),
             recorded_at="2026-10-25",
             query="InterPro API documentation ebi.ac.uk/interpro/api entry pfam JSON",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://interpro-documentation.readthedocs.io/en/latest/api.html",
         documentation_markers=("/interpro/api/", "entry/interpro"),
         note=("IPR002347 is meant to be the SDR family entry. If it is the "
@@ -694,7 +726,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             recorded_at="2026-10-25",
             query=("M-CSA Mechanism Catalytic Site Atlas API documentation "
                    "ebi.ac.uk thornton-srv m-csa"),
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://www.ebi.ac.uk/thornton-srv/m-csa/download/",
         documentation_markers=("/api/entries/",),
         note=("EC 1.1.1.1 is alcohol dehydrogenase, this project's "
@@ -723,7 +755,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             recorded_at="2026-10-25",
             query=("Europe PMC RESTful web service base URL documentation "
                    "search endpoint"),
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation=("https://www.ebi.ac.uk/europepmc/webservices/rest/"
                        "v3/api-docs"),
         documentation_markers=("webservices/rest/search",),
@@ -753,7 +785,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "documentation URL below is a guess at where it lives"),
             recorded_at="2026-10-25",
             query="alphafold.ebi.ac.uk api-docs official AlphaFold DB API documentation page",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://alphafold.ebi.ac.uk/api/openapi.json",
         documentation_markers=("/prediction/{qualifier}",),
         note=("P07846 again, so the id is not what fails. The documentation "
@@ -779,7 +811,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "probe's expected value is documented rather than assumed"),
             recorded_at="2026-10-25",
             query="PubChem PUG REST documentation base URL compound property request",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
         documentation_markers=_STATUS_ALONE,
         note=("CID 2244 is aspirin, not a cofactor this project reads. It is "
@@ -803,7 +835,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "retmode=json spelling is the author's"),
             recorded_at="2026-10-25",
             query="NCBI E-utilities efetch protein documentation eutils base URL esearch",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://www.ncbi.nlm.nih.gov/books/NBK25501/",
         documentation_markers=_STATUS_ALONE,
         note=("no api_key, so NCBI's unauthenticated rate limit applies: "
@@ -827,7 +859,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "lists protein among EFetch's databases"),
             recorded_at="2026-10-25",
             query="NCBI E-utilities efetch protein documentation eutils base URL esearch",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://www.ncbi.nlm.nih.gov/books/NBK25501/",
         documentation_markers=_STATUS_ALONE,
         note=("P07846 is a UniProtKB accession; NCBI indexes the same entry, "
@@ -859,7 +891,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "to one entry"),
             recorded_at="2026-10-25",
             query="SABIO-RK REST API documentation base URL webServices",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://sabiork.h-its.org/openapi/export-api.json",
         documentation_markers=("/export-api/sabio/kinlaw-entry/sbml",),
         note=("this host is the reason markers exist in this module: its "
@@ -888,7 +920,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                     "anything else"),
             recorded_at="2026-10-25",
             query="KEGG REST API documentation rest.kegg.jp get entry operation",
-        ),
+        ).reached(_OPEN_NETWORK_SWEEP),
         documentation="https://www.kegg.jp/kegg/rest/keggapi.html",
         documentation_markers=("rest.kegg.jp/get",),
         note=("reachability is not permission here more than anywhere: KEGG's "

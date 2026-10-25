@@ -22,6 +22,7 @@ from eagent.connectors.chemistry import (
     UNVERIFIED_CAPABILITY,
     EndpointNotEstablishedError,
     LayerSemanticsError,
+    RequestShapeNotVerifiedError,
     datasource_registry,
 )
 from eagent.connectors.structure import (
@@ -110,21 +111,31 @@ class TestOfflineAndRefusals(StructureTestCase):
                 self.assertTrue(source.verified_capabilities, source_id)
 
     def test_the_rest_still_have_no_route_at_all(self) -> None:
-        for source_id in ("alphafold_db", "sifts", "wwpdb_ccd", "mcsa",
-                          "alphafill"):
+        for source_id in ("sifts", "wwpdb_ccd", "alphafill"):
             with self.subTest(source=source_id):
                 self.assertIsNone(self.registry.get(source_id).endpoint)
 
     def test_require_endpoint_is_a_typed_refusal_naming_the_curation_note(self) -> None:
-        for connector in (AlphaFoldDBConnector(cache=self.cache),
-                          SIFTSConnector(cache=self.cache),
-                          MCSAConnector(cache=self.cache),
+        for connector in (SIFTSConnector(cache=self.cache),
                           AlphaFillConnector(cache=self.cache)):
             with self.subTest(source=connector.source_id):
                 with self.assertRaises(EndpointNotEstablishedError) as ctx:
                     connector.require_endpoint()
                 self.assertEqual(ctx.exception.source_id, connector.source_id)
                 self.assertTrue(ctx.exception.curation_notes)
+
+    def test_a_verified_base_url_does_not_license_a_call(self) -> None:
+        """AlphaFold DB and M-CSA answered a sweep, so each records a base URL.
+        Neither client was checked against the probe that answered, so both
+        still refuse, on the request shape rather than on the endpoint."""
+        for connector in (AlphaFoldDBConnector(cache=self.cache),
+                          MCSAConnector(cache=self.cache)):
+            with self.subTest(source=connector.source_id):
+                self.assertTrue(connector.source.connectivity_verified)
+                self.assertIsNone(connector.verified_route_capability)
+                with self.assertRaises(RequestShapeNotVerifiedError) as ctx:
+                    connector.require_endpoint()
+                self.assertEqual(ctx.exception.source_id, connector.source_id)
 
     def test_rcsb_has_both_a_verified_route_and_a_checked_client(self) -> None:
         connector = RCSBPDBConnector(cache=self.cache)

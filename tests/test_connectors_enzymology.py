@@ -27,6 +27,7 @@ from eagent.connectors.chemistry import (
     EndpointNotEstablishedError,
     OfflineImportOnlyError,
     RegistryBackedConnector,
+    RequestShapeNotVerifiedError,
     datasource_registry,
 )
 from eagent.connectors.enzymology import (
@@ -94,7 +95,6 @@ class TestOfflineFirst(EnzymologyTestCase):
 
     def test_the_null_endpoint_is_a_typed_refusal(self) -> None:
         for connector in (BRENDAConnector(cache=self.cache),
-                          SABIORKConnector(cache=self.cache),
                           EnzEngDBConnector(cache=self.cache)):
             with self.subTest(source=connector.source_id):
                 self.assertIsNone(connector.source.endpoint)
@@ -102,6 +102,18 @@ class TestOfflineFirst(EnzymologyTestCase):
                     connector.require_endpoint()
                 self.assertEqual(ctx.exception.source_id, connector.source_id)
                 self.assertTrue(ctx.exception.curation_notes)
+
+    def test_sabio_rks_verified_base_url_does_not_license_a_call(self) -> None:
+        """SABIO-RK's Export API answered a sweep, so the source records a
+        base URL. The client was never checked against that probe, so it still
+        refuses -- on the request shape now, rather than on the endpoint."""
+        connector = SABIORKConnector(cache=self.cache)
+        self.assertEqual(connector.source.endpoint, "https://sabiork.h-its.org")
+        self.assertTrue(connector.source.connectivity_verified)
+        self.assertIsNone(connector.verified_route_capability)
+        with self.assertRaises(RequestShapeNotVerifiedError) as ctx:
+            connector.require_endpoint()
+        self.assertEqual(ctx.exception.source_id, connector.source_id)
 
 
 # ---------------------------------------------------------------------------

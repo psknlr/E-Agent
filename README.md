@@ -244,7 +244,7 @@ missing measurement becomes a fabricated one.
 | Docking | `model_complexes` | any `DockingRunner` (`UnavailableDockingRunner` is the default) |
 | Joint complex prediction | `model_complexes` | any `ComplexPredictor` (`UnavailableComplexPredictor` is the default) |
 | Inverse folding | `propose_mutations` | LigandMPNN (`MissingLigandMPNN` is the default) |
-| Every public database | `retrieve_evidence` and the data layer | cache-first; four sources (UniProtKB, RCSB PDB, Rhea, Zenodo) have been called live and have checked clients, **the other 45 have not been connectivity-tested** — 12 of those carry a candidate route to try, which is not the same as a route that works |
+| Every public database | `retrieve_evidence` and the data layer | cache-first; 16 sources have been called live (`eagent sources coverage` names them) and four of those (UniProtKB, RCSB PDB, Rhea, Zenodo) have checked clients. The other twelve answered a probe, but their connectors refuse until a client is checked against it. **The other 33 have not been connectivity-tested** |
 
 `configs/tool_registry.yaml` registers each external tool four times — code,
 model weights, input databases, outputs — because those four carry different
@@ -344,9 +344,9 @@ Run `PYTHONPATH=src python3 -m pytest tests -q` for the current test results.
 Tests using fake provider responses verify integration contracts; they do not
 establish a live model completion.
 
-What has been run against the outside world: four public databases (UniProtKB,
-RCSB PDB, Rhea, Zenodo) were called live and have clients checked against
-recorded responses, and one real dataset (the SDR substrate-class deposit) was
+What has been run against the outside world: sixteen public databases answered
+a live connectivity probe, four of them (UniProtKB, RCSB PDB, Rhea, Zenodo)
+with clients checked against recorded responses, and one real dataset (the SDR substrate-class deposit) was
 downloaded through a checksum-verified route and benchmarked, and HMMER3 has
 been run locally through the `search` extra, both as a similarity between
 sequences already in the repository and as a real profile search driving the
@@ -490,14 +490,14 @@ HMMER 上跑过，解析器第一次面对的是 HMMER 自己写出的 `--domtbl
 并有测试，但真程序缺席时步骤只会报 `tool_unavailable` 并且什么都不产出。控制器既不重试，
 也不换一个工具顶上——换模型顶替正是"缺失的测量变成捏造的测量"的那条路。
 
-同样地，`configs/datasources/` 里 49 个数据源只有 **4 个**做过连通性测试（其余 45 个没有），
+同样地，`configs/datasources/` 里 49 个数据源只有 **16 个**做过连通性测试（其余 33 个没有；16 个里只有 4 个的客户端对照探针核查过），
 `configs/tool_registry.yaml` 的 56 个许可面中 4 个读过原文、4 个是他人转述、其余 48 个记为未知，
 未知的商用许可会**阻断**商业用途的运行，而不是放行。
 
 ### 现状
 
 整个测试套件通过（写作时为 3555 个测试 + 1015 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
-**对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
+**对外部世界**：16 个公共数据库做过真实调用，其中 4 个（UniProtKB、RCSB PDB、Rhea、Zenodo）有按记录响应核对过的客户端，
 一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；HMMER3 已通过 `search` 可选依赖在
 本地真实运行过——既作为仓库内序列之间的相似度，也作为驱动随仓发布的 `hmmsearch` 适配器的真实 profile 搜索；
 另有一份 KRED 实验复合物参考集

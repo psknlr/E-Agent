@@ -53,26 +53,35 @@ bundle.
 
 **Not yet demonstrated, and the gap is specific:**
 
-- **Four data sources of 49 have been connectivity-tested.** UniProtKB,
-  RCSB PDB, Rhea and Zenodo were called from this container by
-  `eagent sources verify` and carry the record of those calls; the other 45
-  carry `connectivity_verified: false`, and all 49 still carry
-  `needs_curation: true`. SABIO-RK was tried and answered with its own 404 page
-  on every documented path; that is recorded as an observation, not a verdict.
-- **Twelve more sources have a route to try, and nobody has tried it.** The
-  probe table went from 10 probes over 4 sources to 22 over 16, but the twelve
-  new ones were assembled from documentation read through a search engine, from
-  a container whose network policy denied every host they name. Each carries a
-  `RouteProvenance` recording which page was read, what the author filled in
-  themselves, and that it has never been called, so a sweep's failures can be
-  told apart: a resource unreachable today is not a candidate route that was
-  never right. `eagent sources hosts` prints the 16 hosts a full sweep needs.
+- **Sixteen data sources of 49 have been connectivity-tested.** UniProtKB,
+  RCSB PDB, Rhea and Zenodo were called by `eagent sources verify` on
+  2026-10-08, and the other twelve on 2026-10-25, by a sweep that re-confirmed
+  the first four. Each carries the record of its calls; the other 33 carry
+  `connectivity_verified: false`, and all 49 still carry `needs_curation: true`
+  and `needs_legal_review: true`.
+- **The twelve were candidate routes, and both of their failures were the
+  route.** The probe table went from 10 probes over 4 sources to 22 over 16,
+  and the twelve new ones were assembled from documentation read through a
+  search engine, from a container whose network policy denied every host they
+  name. Each carries a `RouteProvenance` recording which page was read and what
+  the author filled in themselves, so a sweep's failures could be told apart:
+  a resource unreachable today is not a candidate route that was never right.
+  On an open network 20 of the 22 passed at once. SABIO-RK had replaced the
+  REST path its old manual described with an Export API, and Europe PMC's
+  documentation page sat behind a Cloudflare challenge; both probes were
+  corrected and the second pass was 22 of 22. Each of the twelve is now
+  `called_from_here` and keeps where its URL came from. The same sweep found
+  the documentation check passing on reCAPTCHA and app-shell pages, and it now
+  reads a marker off the page. `eagent sources hosts` prints the 16 hosts a
+  full sweep needs.
 - **Four connectors can use their route.** A verified base URL is not a
   verified request: UniProtKB, RCSB PDB, Rhea and Zenodo have clients written
   against recorded probes and live responses (which found three real defects --
   see `docs/DATASOURCES.md`), while every other connector's client is generic
   and refuses with `RequestShapeNotVerifiedError` rather than calling a URL
-  nobody checked it against.
+  nobody checked it against. That now includes the twelve sources whose probes
+  answered on 2026-10-25: the next step for each is a client checked against
+  its probe.
 - **No structure predictor, docking program or inverse-folding model is
   installed, and of the search binaries only HMMER3 is reachable.** The MMseqs2
   clustering, gnina and Boltz adapters were tested against fakes that write
@@ -348,7 +357,7 @@ that reported a provenance-less split as clean.
 | `datalayer/preconditions.py` | implemented | the five-step gate chain |
 | `datalayer/house_db.py` | implemented | sqlite3; four storage-layer refusals |
 | `datalayer/plan.py` | implemented | three rollout stages as typed, validated work packages |
-| **Source connectivity** | **4 of 49 verified, 12 more with a candidate route** | UniProtKB, RCSB PDB, Rhea and Zenodo verified by `eagent sources verify` with the calls recorded in `connectivity.observed.yaml`; all four have clients checked against their probes and recorded live responses; 12 further sources carry a probe whose route has never been called, each with its `RouteProvenance`; 10 network-declaring sources still have no route at all; SABIO-RK observed unreachable; 23 record their lineage as admittedly incomplete |
+| **Source connectivity** | **16 of 49 verified, 4 with checked clients** | 16 sources verified by `eagent sources verify` with the calls recorded in `connectivity.observed.yaml` (4 on 2026-10-08, 12 more on 2026-10-25); UniProtKB, RCSB PDB, Rhea and Zenodo have clients checked against their probes and recorded live responses, and the other twelve still refuse until theirs are; no shipped probe is a candidate; 10 network-declaring sources still have no route at all; 23 record their lineage as admittedly incomplete |
 | `connectors/base.py` | implemented | cache-first contract, disclosure guard, evidence ceilings |
 | Per-resource connectors (UniProt, PDB, Rhea, Zenodo) | implemented, **live-checked** | one each; the rest are still `OfflineConnector` |
 
@@ -397,8 +406,8 @@ that reported a provenance-less split as clean.
 | Family numbering schemes | **not started** | `science/family_numbering.py` and `science/pocket.py` ship the machinery; no sourced reference sequence is bundled, so pocket signatures fall back to composition and say so |
 | Assay templates (3 tiers) | implemented, **needs curation** | every numeric bar `null`; limits of detection must be measured on site |
 | `configs/tool_registry.yaml` | implemented, **needs legal review** | 14 tools × 4 facets = 56 entries; 4 licences read, 4 reported, 48 unknown (see Milestone 1); an unknown commercial permission blocks a commercial run |
-| `configs/datasources/*.yaml` | implemented, **4 of 49 tested** | see the data-layer table above |
-| `datalayer/probe.py` | implemented | 10 shipped probes (4 of them RCSB: three data-API shapes and the file-download shape), marker checks, the observation file |
+| `configs/datasources/*.yaml` | implemented, **16 of 49 tested** | see the data-layer table above |
+| `datalayer/probe.py` | implemented | 22 shipped probes over 16 sources, all reached by a sweep (4 of them RCSB: three data-API shapes and the file-download shape), route and documentation marker checks, the observation file |
 | De novo design | **seam only** | `tools/open_branches.py` refuses until licences, a confirmed reaction and a named approver are in place; no generator is installed |
 
 ### Known wart
@@ -593,10 +602,12 @@ sources print.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 3555 个测试 + 1015 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
-（UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；另有 12 个来源
-带上了**候选路由**——从文档里拼出来、谁都还没有拨过的 URL，每一个都记着它从哪一页读来、哪一段是作者
-自己填的、以及"从未被调用过"，所以一次失败能分辨出"今天连不上"和"这条路由本来就不对"；但**没有跑过
+框架已完成并通过测试（写作时 3555 个测试 + 1015 个子测试，已装全部可选依赖）。**已对 16 个公共数据库做过真实调用**
+（2026-10-08 的 UniProtKB、RCSB PDB、Rhea、Zenodo，以及 2026-10-25 的另外 12 个），其中前 4 个有对照探针
+核查过的客户端，其余 12 个的连接器在客户端核查之前仍拒绝调用；并通过校验和核对的路径下载了一份真实数据集。
+那 12 个原本是**候选路由**——从文档里拼出来、谁都还没有拨过的 URL，每一个都记着它从哪一页读来、哪一段是
+作者自己填的，所以一次失败能分辨出"今天连不上"和"这条路由本来就不对"：第一次巡检的两个失败（SABIO-RK、
+Europe PMC）都属于后者，修正后全部通过；但**没有跑过
 任何真实的结构预测器、对接程序、反向折叠模型或搜索二进制，也没有读过任何真实的实验板**。里程碑 1
 是"已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。
 

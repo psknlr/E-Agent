@@ -21,18 +21,28 @@ import tempfile
 import unittest
 
 from eagent.datalayer.probe import (
-    PROBES, CapabilityProbe, ProbeError, Response, load_observed, run_probe,
-    run_probes, write_checks,
+    PROBES, CapabilityProbe, ProbeError, Response, RouteProvenance,
+    load_observed, never_called_probes, probe_hosts, run_probe, run_probes,
+    write_checks,
 )
 from eagent.datalayer.registry import (
     OBSERVED_CONNECTIVITY_FILE, DataSource, SourceRegistry,
 )
 
 
+def provenance(**kw) -> RouteProvenance:
+    base = dict(grade="provider_documentation",
+                detail="read off the provider's own documentation page",
+                recorded_at="2026-10-25")
+    base.update(kw)
+    return RouteProvenance(**base)
+
+
 def probe(**kw) -> CapabilityProbe:
     base = dict(source_id="example", capability="exact_record_fetch",
                 url="https://example.org/api/P07846",
                 markers=("P07846",), description="fetch one record",
+                provenance=provenance(),
                 documentation="https://example.org/docs")
     base.update(kw)
     return CapabilityProbe(**base)

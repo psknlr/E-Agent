@@ -202,7 +202,7 @@ A value that is not known prints as `unknown`, never as `0` or an empty cell.
 | `eagent bundle <rundir> --out D` | Assemble the deliverables package, recording every one of the 18 standard items as present, partial or missing with what a curator must supply. |
 | `eagent bundle-verify <bundle>` | Re-check a package anywhere: every declared file present, every hash as recorded, every unrecorded file reported. |
 | `eagent templates list \| show <id> \| lint` | Read the template library — every threshold a run uses comes from there. `lint` reports uncalibrated windows and library integrity gaps. |
-| `eagent sources list \| show <id> \| independence \| coverage \| verify` | Read the data-source registry: what each resource may be used to claim, what it may not, and which sources re-integrate which others. `verify --allow-network --write` calls the shipped probes and records what answered. |
+| `eagent sources list \| show <id> \| independence \| coverage \| verify \| hosts` | Read the data-source registry: what each resource may be used to claim, what it may not, and which sources re-integrate which others. `verify --allow-network --write` calls the shipped probes and records what answered; 12 of the 22 probes name a route nobody has called yet, and each says so. `hosts` prints the hosts a sweep contacts — routes *and* documentation — so a network policy can be built from the probe table rather than from memory. |
 | `eagent benchmark sdr \| feedback --data D` | Retrospective benchmarks on the SDR deposit: label recovery with grouped folds and the leakage priced, and the feedback-loop simulation. Both open with the statement that the labels are annotation-derived. `sdr` takes `--alignment` and `--alignment-head` (the `search` extra), `--grouping` (`pinned`/`single_linkage`/`greedy`) and `--audit`/`--audit-screen`, which checks the folds actually hold at the identity threshold they promise and refuses a screen that would make the check tautological. |
 | `eagent reference verify \| manifest \| fetch-coordinates \| bindings \| audit \| verify-sources \| import-workbook` | The KRED calibration reference set (19 experimental entries, 28 kinetic records): verify its files, numbers and cross-references offline; fetch its coordinates through the probed route and pin them by hash; derive what is measured on each entry; audit which entries could be references for which template and run the project's calibration machinery on them *in memory*; compare its kinetic numbers with their sources. Nothing here edits a template or writes a calibration record. |
 
@@ -244,7 +244,7 @@ missing measurement becomes a fabricated one.
 | Docking | `model_complexes` | any `DockingRunner` (`UnavailableDockingRunner` is the default) |
 | Joint complex prediction | `model_complexes` | any `ComplexPredictor` (`UnavailableComplexPredictor` is the default) |
 | Inverse folding | `propose_mutations` | LigandMPNN (`MissingLigandMPNN` is the default) |
-| Every public database | `retrieve_evidence` and the data layer | cache-first; four sources (UniProtKB, RCSB PDB, Rhea, Zenodo) have been called live and have checked clients, **the other 45 have not been connectivity-tested** |
+| Every public database | `retrieve_evidence` and the data layer | cache-first; four sources (UniProtKB, RCSB PDB, Rhea, Zenodo) have been called live and have checked clients, **the other 45 have not been connectivity-tested** — 12 of those carry a candidate route to try, which is not the same as a route that works |
 
 `configs/tool_registry.yaml` registers each external tool four times — code,
 model weights, input databases, outputs — because those four carry different
@@ -496,7 +496,7 @@ HMMER 上跑过，解析器第一次面对的是 HMMER 自己写出的 `--domtbl
 
 ### 现状
 
-整个测试套件通过（写作时为 3515 个测试 + 874 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
+整个测试套件通过（写作时为 3548 个测试 + 1015 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
 **对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
 一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；HMMER3 已通过 `search` 可选依赖在
 本地真实运行过——既作为仓库内序列之间的相似度，也作为驱动随仓发布的 `hmmsearch` 适配器的真实 profile 搜索；

@@ -5,7 +5,7 @@ can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
 **Where the project is today.** The harness is complete and tested: the whole suite
-passes (3515 tests plus 874 subtests with the optional extras installed;
+passes (3548 tests plus 1015 subtests with the optional extras installed;
 without them the extra-dependent tests skip rather than fail). **Four public
 databases have been called live** (UniProtKB, RCSB PDB, Rhea, Zenodo) and one
 real dataset has been downloaded through a checksum-verified route; a first
@@ -59,6 +59,14 @@ bundle.
   carry `connectivity_verified: false`, and all 49 still carry
   `needs_curation: true`. SABIO-RK was tried and answered with its own 404 page
   on every documented path; that is recorded as an observation, not a verdict.
+- **Twelve more sources have a route to try, and nobody has tried it.** The
+  probe table went from 10 probes over 4 sources to 22 over 16, but the twelve
+  new ones were assembled from documentation read through a search engine, from
+  a container whose network policy denied every host they name. Each carries a
+  `RouteProvenance` recording which page was read, what the author filled in
+  themselves, and that it has never been called, so a sweep's failures can be
+  told apart: a resource unreachable today is not a candidate route that was
+  never right. `eagent sources hosts` prints the 18 hosts a full sweep needs.
 - **Four connectors can use their route.** A verified base URL is not a
   verified request: UniProtKB, RCSB PDB, Rhea and Zenodo have clients written
   against recorded probes and live responses (which found three real defects --
@@ -340,7 +348,7 @@ that reported a provenance-less split as clean.
 | `datalayer/preconditions.py` | implemented | the five-step gate chain |
 | `datalayer/house_db.py` | implemented | sqlite3; four storage-layer refusals |
 | `datalayer/plan.py` | implemented | three rollout stages as typed, validated work packages |
-| **Source connectivity** | **4 of 49** | UniProtKB, RCSB PDB, Rhea and Zenodo verified by `eagent sources verify` with the calls recorded in `connectivity.observed.yaml`; all four have clients checked against their probes and recorded live responses; SABIO-RK observed unreachable; 23 record their lineage as admittedly incomplete |
+| **Source connectivity** | **4 of 49 verified, 12 more with a candidate route** | UniProtKB, RCSB PDB, Rhea and Zenodo verified by `eagent sources verify` with the calls recorded in `connectivity.observed.yaml`; all four have clients checked against their probes and recorded live responses; 12 further sources carry a probe whose route has never been called, each with its `RouteProvenance`; 10 network-declaring sources still have no route at all; SABIO-RK observed unreachable; 23 record their lineage as admittedly incomplete |
 | `connectors/base.py` | implemented | cache-first contract, disclosure guard, evidence ceilings |
 | Per-resource connectors (UniProt, PDB, Rhea, Zenodo) | implemented, **live-checked** | one each; the rest are still `OfflineConnector` |
 
@@ -585,8 +593,10 @@ sources print.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 3515 个测试 + 874 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
-（UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；但**没有跑过
+框架已完成并通过测试（写作时 3548 个测试 + 1015 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
+（UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；另有 12 个来源
+带上了**候选路由**——从文档里拼出来、谁都还没有拨过的 URL，每一个都记着它从哪一页读来、哪一段是作者
+自己填的、以及"从未被调用过"，所以一次失败能分辨出"今天连不上"和"这条路由本来就不对"；但**没有跑过
 任何真实的结构预测器、对接程序、反向折叠模型或搜索二进制，也没有读过任何真实的实验板**。里程碑 1
 是"已建成但未演示"；里程碑 2 和 3 尚未开始，因为它们需要的是实验室，不是更多代码。
 

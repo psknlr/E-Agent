@@ -123,7 +123,7 @@ curation note demanding the terms be established before use.
 | Shipped probes | 22, over 16 of the 49 sources |
 | Probes whose route a sweep here has reached | **10** (the four verified sources) |
 | Candidate probes, never called | **12**, each carrying where its URL came from |
-| Hosts a full sweep would contact | 18, routes *and* documentation (`eagent sources hosts`) |
+| Hosts a full sweep would contact | 16, routes *and* documentation (`eagent sources hosts`) |
 | Documented as programmatically reachable, with no recorded endpoint | 27 (with no endpoint they behave as cache-only) |
 | Entries with a recorded licence | 1 (`brenda`, unverified) |
 | Entries with `needs_legal_review: true` | 49 |
@@ -211,15 +211,21 @@ Four things follow, and each is a rule rather than a hope.
   `CapabilityProbe.documentation_markers` now applies the route's own rule to
   the documentation, and `ConnectivityCheck` records which markers were
   required — an empty list means *status alone*, and is part of the record
-  rather than an absent detail. Every shipped probe leaves it empty on purpose:
-  choosing a marker means knowing what the real page says, and the container
-  these probes were written in cannot fetch any of them. A guessed marker would
-  fail a route that works, which is worse than the gap it closes.
+  rather than an absent detail. Choosing a marker means knowing what the real
+  page says, so the shipped markers were read off the pages that answered a
+  sweep on 2026-10-25 from a container that could reach them; each names the
+  route or operation its page documents. Where the page a person reads builds
+  its text in the browser — UniProt's help, AlphaFold DB's `api-docs` — the
+  documentation is now the provider's OpenAPI document for the same API, which
+  is served whole. `pubchem`, `pubmed` and `ncbi_protein` stay *status alone*
+  by necessity: their pages answered with the reCAPTCHA, so there was nothing
+  to read a marker from, and a guessed one would fail wherever the page is
+  served properly.
 - **Reachability is still not permission.** Nothing a sweep writes touches a
   licence, a legal-review flag or an evidence ceiling. All 49 entries keep
   `needs_legal_review: true`.
 
-`eagent sources hosts` prints the 18 hosts a full sweep contacts and what needs
+`eagent sources hosts` prints the 16 hosts a full sweep contacts and what needs
 each one, derived from the probe table rather than written down beside it.
 Documentation hosts are in that list and are not optional: an allow-list built
 from route URLs alone makes every probe fail on its documentation, which reads

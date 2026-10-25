@@ -66,7 +66,7 @@ bundle.
   `RouteProvenance` recording which page was read, what the author filled in
   themselves, and that it has never been called, so a sweep's failures can be
   told apart: a resource unreachable today is not a candidate route that was
-  never right. `eagent sources hosts` prints the 18 hosts a full sweep needs.
+  never right. `eagent sources hosts` prints the 16 hosts a full sweep needs.
 - **Four connectors can use their route.** A verified base URL is not a
   verified request: UniProtKB, RCSB PDB, Rhea and Zenodo have clients written
   against recorded probes and live responses (which found three real defects --

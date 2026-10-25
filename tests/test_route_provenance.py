@@ -174,9 +174,11 @@ class TheHostsASweepNeeds(unittest.TestCase):
         allow-list built from route URLs alone makes every probe fail on its
         documentation -- which reads like the resources being down."""
         hosts = probe_hosts()
-        self.assertIn("www.uniprot.org", hosts)          # docs only
-        self.assertIn("rest.uniprot.org", hosts)         # route only
-        self.assertIn("docs: uniprotkb", hosts["www.uniprot.org"])
+        self.assertIn("www.rcsb.org", hosts)             # docs only
+        self.assertIn("data.rcsb.org", hosts)            # route only
+        self.assertIn("docs: rcsb_pdb", hosts["www.rcsb.org"])
+        self.assertNotIn("route: rcsb_pdb/exact_record_fetch",
+                         hosts["www.rcsb.org"])
 
     def test_every_probe_url_and_documentation_url_is_covered(self) -> None:
         hosts = set(probe_hosts())

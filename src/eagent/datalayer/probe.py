@@ -242,6 +242,15 @@ _CALLED = RouteProvenance(
     recorded_at="2026-10-08",
 )
 
+#: Documentation markers for a page whose real text could not be read from
+#: here. On 2026-10-25 NCBI Bookshelf NBK25501 and PubChem's docs/pug-rest
+#: answered a container in this project with a "Checking your browser"
+#: reCAPTCHA page, so there was nothing to choose a marker from, and a guessed
+#: one would fail wherever the page is served properly. Status alone, by
+#: necessity rather than choice -- and recorded as such, because a check
+#: carrying an empty list says its documentation was taken on status.
+_STATUS_ALONE: tuple[str, ...] = ()
+
 
 @dataclass(frozen=True)
 class CapabilityProbe:
@@ -282,11 +291,15 @@ class CapabilityProbe:
     #: That is the same mistake one level up from the one this module refuses a
     #: markerless probe for: a 200 is not a page, any more than it is a record.
     #:
-    #: Left empty on every shipped probe on purpose. Choosing a marker means
-    #: knowing what the real page contains, and the container these were
-    #: written in cannot fetch any of them -- a guessed marker would fail a
-    #: route that works, which is worse than the gap it closes. They belong
-    #: with whoever runs the sweep and can read the page that answers.
+    #: Choosing a marker means knowing what the real page contains, so the
+    #: shipped ones were read off the pages that answered a sweep on
+    #: 2026-10-25, from a container that could reach them: each names the
+    #: route or operation its page documents, which no challenge page, app
+    #: shell or 404 page carries. Three probes stay empty, as
+    #: :data:`_STATUS_ALONE` explains, because their page could not be read.
+    #: Where the page a person reads builds its text in the browser, the
+    #: documentation is the provider's OpenAPI document for the same API,
+    #: which is served whole.
     documentation_markers: tuple[str, ...] = ()
     note: str = ""
 
@@ -415,7 +428,11 @@ PROBES: tuple[CapabilityProbe, ...] = (
                      "the list is the parser, so a probe that asked for fewer "
                      "fields would verify a request nobody makes"),
         provenance=_CALLED,
-        documentation="https://www.uniprot.org/help/api",
+        # The service's OpenAPI document, not www.uniprot.org/help/api:
+        # that page is a single-page-app shell, byte-identical to the one
+        # served for a help page that does not exist.
+        documentation="https://rest.uniprot.org/uniprotkb/api/docs",
+        documentation_markers=("/uniprotkb/{accession}",),
         note=("P07846 is an alcohol dehydrogenase, chosen because it is a "
               "reviewed entry in the mechanistic neighbourhood of this "
               "project's pilot task"),
@@ -428,7 +445,8 @@ PROBES: tuple[CapabilityProbe, ...] = (
         description=("a search response, from which the release can be read "
                      "out of the response headers the API documents"),
         provenance=_CALLED,
-        documentation="https://www.uniprot.org/help/api",
+        documentation="https://rest.uniprot.org/uniprotkb/api/docs",
+        documentation_markers=("/uniprotkb/search",),
     ),
     CapabilityProbe(
         source_id="rcsb_pdb",
@@ -438,6 +456,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
         description="fetch one PDB entry's core metadata by its four-character id",
         provenance=_CALLED,
         documentation="https://www.rcsb.org/docs/programmatic-access/web-apis-overview",
+        documentation_markers=("Data API", "data.rcsb.org/redoc"),
         note=("1CDO is a horse liver alcohol dehydrogenase structure: an "
               "NAD-dependent oxidoreductase, so the record exercises the "
               "fields this project reads"),
@@ -451,6 +470,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                      "the chains it occupies"),
         provenance=_CALLED,
         documentation="https://www.rcsb.org/docs/programmatic-access/web-apis-overview",
+        documentation_markers=("Data API", "data.rcsb.org/redoc"),
         note=("a client that makes this request is verified only if this "
               "request itself was probed, not merely the entry one"),
     ),
@@ -463,6 +483,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                      "cofactor component and the chains it sits on"),
         provenance=_CALLED,
         documentation="https://www.rcsb.org/docs/programmatic-access/web-apis-overview",
+        documentation_markers=("Data API", "data.rcsb.org/redoc"),
         note="1CDO entity 3 is NAD, the cofactor of this alcohol dehydrogenase",
     ),
     CapabilityProbe(
@@ -481,6 +502,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
         provenance=_CALLED,
         documentation=("https://www.rcsb.org/docs/programmatic-access/"
                        "file-download-services"),
+        documentation_markers=("files.rcsb.org/download",),
         note=("1IPF is tropinone reductase II with NADPH and tropinone, the "
               "one pre-reaction ternary SDR complex in the KRED calibration "
               "reference set; a 450 KB file, so the probe is cheap"),
@@ -494,6 +516,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                      "with the checksum Zenodo records for it"),
         provenance=_CALLED,
         documentation="https://developers.zenodo.org/",
+        documentation_markers=("/api/records",),
         note=("record 7141435 is the SDR substrate-classification dataset "
               "(Jinich and Rappoport, 2022), the first dataset this project "
               "ingests; chosen because it is small, openly licensed and "
@@ -508,6 +531,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                      "connector's download_file uses"),
         provenance=_CALLED,
         documentation="https://developers.zenodo.org/",
+        documentation_markers=("/api/records",),
         note="a 4 KB README, so the probe itself costs nothing to run",
     ),
     CapabilityProbe(
@@ -522,6 +546,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                      "the parser"),
         provenance=_CALLED,
         documentation="https://www.rhea-db.org/help/rest-api",
+        documentation_markers=("format=tsv", "columns="),
         note=("EC 1.1.1.1 is alcohol dehydrogenase, the mechanistic "
               "neighbourhood of this project's pilot task"),
     ),
@@ -534,6 +559,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
         description="one reaction by identifier, through the same query route",
         provenance=_CALLED,
         documentation="https://www.rhea-db.org/help/rest-api",
+        documentation_markers=("format=tsv", "columns="),
         note=("a secondary alcohol to a ketone with NAD(+): the reaction "
               "class of the pilot task, read in the oxidation direction"),
     ),
@@ -571,7 +597,8 @@ PROBES: tuple[CapabilityProbe, ...] = (
             recorded_at="2026-10-25",
             query="UniProt REST API uniparc uniref endpoint documentation",
         ),
-        documentation="https://www.uniprot.org/help/api",
+        documentation="https://rest.uniprot.org/uniref/api/docs",
+        documentation_markers=("/uniref/{id}",),
         note=("the provider's own example id rather than one from this "
               "project's enzyme neighbourhood. A UniRef id has the "
               "representative's accession in it, so UniRef100_P07846 is a "
@@ -596,7 +623,8 @@ PROBES: tuple[CapabilityProbe, ...] = (
             recorded_at="2026-10-25",
             query="UniProt REST API uniparc uniref endpoint documentation",
         ),
-        documentation="https://www.uniprot.org/help/api",
+        documentation="https://rest.uniprot.org/uniparc/api/docs",
+        documentation_markers=("/uniparc/search",),
         note=("P07846 is the accession the uniprotkb probe already has a pass "
               "on, so a failure here is about UniParc and not about the id"),
     ),
@@ -619,6 +647,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             query="InterPro API documentation ebi.ac.uk/interpro/api entry pfam JSON",
         ),
         documentation="https://interpro-documentation.readthedocs.io/en/latest/api.html",
+        documentation_markers=("/interpro/api/", "entry/pfam"),
         note=("PF00106 is the short-chain dehydrogenase/reductase family this "
               "project's pilot task is about, so a pass exercises the record "
               "the agent would actually read. Pfam is served by InterPro: "
@@ -641,6 +670,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             query="InterPro API documentation ebi.ac.uk/interpro/api entry pfam JSON",
         ),
         documentation="https://interpro-documentation.readthedocs.io/en/latest/api.html",
+        documentation_markers=("/interpro/api/", "entry/interpro"),
         note=("IPR002347 is meant to be the SDR family entry. If it is the "
               "wrong accession the probe 404s, and that is the informative "
               "failure: the route is fine and this file is wrong"),
@@ -666,6 +696,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
                    "ebi.ac.uk thornton-srv m-csa"),
         ),
         documentation="https://www.ebi.ac.uk/thornton-srv/m-csa/download/",
+        documentation_markers=("/api/entries/",),
         note=("EC 1.1.1.1 is alcohol dehydrogenase, this project's "
               "neighbourhood. A third-party wrapper reports that the list "
               "endpoint ignores server-side filters and returns large "
@@ -695,6 +726,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
         ),
         documentation=("https://www.ebi.ac.uk/europepmc/webservices/rest/"
                        "v3/api-docs"),
+        documentation_markers=("webservices/rest/search",),
         note=("this entry is one of the five whose remembered endpoint was "
               "nulled; the hint in its curation notes is where this URL "
               "came from. The documentation is the service's OpenAPI "
@@ -722,12 +754,13 @@ PROBES: tuple[CapabilityProbe, ...] = (
             recorded_at="2026-10-25",
             query="alphafold.ebi.ac.uk api-docs official AlphaFold DB API documentation page",
         ),
-        documentation="https://alphafold.ebi.ac.uk/api-docs",
-        note=("P07846 again, so the id is not what fails. If the route "
-              "answers and the documentation URL does not, run_probe says so "
-              "in those words and records nothing -- which is the correct "
-              "outcome, because the registry will not hold an endpoint that "
-              "cannot be traced to a readable page"),
+        documentation="https://alphafold.ebi.ac.uk/api/openapi.json",
+        documentation_markers=("/prediction/{qualifier}",),
+        note=("P07846 again, so the id is not what fails. The documentation "
+              "is the OpenAPI document rather than alphafold.ebi.ac.uk/"
+              "api-docs, the interactive page that renders it: that page "
+              "builds its text in the browser, so the HTML it serves names no "
+              "route at all"),
     ),
     CapabilityProbe(
         source_id="pubchem",
@@ -748,6 +781,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             query="PubChem PUG REST documentation base URL compound property request",
         ),
         documentation="https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
+        documentation_markers=_STATUS_ALONE,
         note=("CID 2244 is aspirin, not a cofactor this project reads. It is "
               "used anyway because it is the one example whose answer the "
               "documentation writes down, and a probe whose expected response "
@@ -771,6 +805,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             query="NCBI E-utilities efetch protein documentation eutils base URL esearch",
         ),
         documentation="https://www.ncbi.nlm.nih.gov/books/NBK25501/",
+        documentation_markers=_STATUS_ALONE,
         note=("no api_key, so NCBI's unauthenticated rate limit applies: "
               "three requests a second across this host, which the two NCBI "
               "probes here stay inside only because the sweep is serial"),
@@ -794,6 +829,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             query="NCBI E-utilities efetch protein documentation eutils base URL esearch",
         ),
         documentation="https://www.ncbi.nlm.nih.gov/books/NBK25501/",
+        documentation_markers=_STATUS_ALONE,
         note=("P07846 is a UniProtKB accession; NCBI indexes the same entry, "
               "so if the route works and the id does not resolve the failure "
               "will name the id. LOCUS is the first line of a GenPept file "
@@ -825,6 +861,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             query="SABIO-RK REST API documentation base URL webServices",
         ),
         documentation="https://sabiork.h-its.org/openapi/export-api.json",
+        documentation_markers=("/export-api/sabio/kinlaw-entry/sbml",),
         note=("this host is the reason markers exist in this module: its "
               "legacy REST path answered 302 and then 200, on the provider's "
               "own 404 page. The documentation is the OpenAPI document "
@@ -853,6 +890,7 @@ PROBES: tuple[CapabilityProbe, ...] = (
             query="KEGG REST API documentation rest.kegg.jp get entry operation",
         ),
         documentation="https://www.kegg.jp/kegg/rest/keggapi.html",
+        documentation_markers=("rest.kegg.jp/get",),
         note=("reachability is not permission here more than anywhere: KEGG's "
               "terms restrict bulk and commercial use, and the registry's "
               "needs_legal_review for this entry stays true whatever this "
@@ -890,8 +928,8 @@ def probe_hosts(
     registry refuses an endpoint that cannot be traced to a page a person can
     read -- so an allow-list built from routes alone makes every probe fail on
     its documentation, which reads like the resources being down. And the
-    documentation often lives on a different host from the API: UniProt's API
-    is ``rest.uniprot.org`` and its help is ``www.uniprot.org``.
+    documentation often lives on a different host from the API: RCSB's data
+    API is ``data.rcsb.org`` and its documentation is ``www.rcsb.org``.
     """
     out: dict[str, set[str]] = {}
     for probe in (PROBES if probes is None else probes):

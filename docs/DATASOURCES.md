@@ -200,6 +200,21 @@ Four things follow, and each is a rule rather than a hope.
   the same sweep and refuses to record a route whose documentation did not
   answer, so several of these will fail on the documentation first, and the
   failure text says so in those words.
+- **And a 200 from a documentation URL is not a documentation page.** The
+  documentation fetch was status-only, which is the same mistake one level up
+  from the one this module refuses a markerless probe for. A sweep on an open
+  network on 2026-10-25 found it passing on three pages that are not
+  documentation: NCBI Bookshelf `NBK25501` and PubChem's `docs/pug-rest` each
+  answered 200 with a "Checking your browser" reCAPTCHA interstitial, and
+  `www.uniprot.org/help/api` answered 200 with a single-page-app shell
+  byte-identical to the shell served for a help page that does not exist.
+  `CapabilityProbe.documentation_markers` now applies the route's own rule to
+  the documentation, and `ConnectivityCheck` records which markers were
+  required — an empty list means *status alone*, and is part of the record
+  rather than an absent detail. Every shipped probe leaves it empty on purpose:
+  choosing a marker means knowing what the real page says, and the container
+  these probes were written in cannot fetch any of them. A guessed marker would
+  fail a route that works, which is worse than the gap it closes.
 - **Reachability is still not permission.** Nothing a sweep writes touches a
   licence, a legal-review flag or an evidence ceiling. All 49 entries keep
   `needs_legal_review: true`.

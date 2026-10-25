@@ -496,7 +496,7 @@ HMMER 上跑过，解析器第一次面对的是 HMMER 自己写出的 `--domtbl
 
 ### 现状
 
-整个测试套件通过（写作时为 3548 个测试 + 1015 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
+整个测试套件通过（写作时为 3555 个测试 + 1015 个子测试，已装全部可选依赖；代码树仍在增长，当前数字请跑 `PYTHONPATH=src python3 -m pytest tests -q`）。
 **对外部世界**：4 个公共数据库（UniProtKB、RCSB PDB、Rhea、Zenodo）做过真实调用并有按记录响应核对过的客户端，
 一份真实数据集（SDR 底物类别）经校验和核对的路径下载并做过基准测试；HMMER3 已通过 `search` 可选依赖在
 本地真实运行过——既作为仓库内序列之间的相似度，也作为驱动随仓发布的 `hmmsearch` 适配器的真实 profile 搜索；

@@ -232,6 +232,82 @@ class WhatACandidateFailureDoesNotDo(unittest.TestCase):
         self.assertFalse(results["b"][0].ok)
 
 
+class TheDocumentationCheck(unittest.TestCase):
+    """A 200 is not a page, any more than it is a record.
+
+    The module refuses a markerless probe because a redirect to a 404 page and
+    a login wall both answer 200. The documentation fetch was making the same
+    mistake one level up: it was status-only. A sweep on an open network found
+    it passing on NCBI Bookshelf NBK25501 and PubChem's ``docs/pug-rest``,
+    which answer 200 with a "Checking your browser" reCAPTCHA page, and on
+    ``www.uniprot.org/help/api``, whose single-page-app shell is byte-identical
+    to the shell served for a help page that does not exist.
+
+    These tests use synthetic probes. Nothing here pins a shipped probe's
+    markers: filling those in needs a network that can read the page, and a
+    test that pinned them empty would break the moment somebody did.
+    """
+
+    def docs_body(self, body: str, status: int = 200):
+        def fetch(url: str, timeout: float) -> Response:
+            if url.endswith("/docs"):
+                return Response(status=status, body=body, elapsed_ms=1)
+            return Response(status=200, body="P07846", elapsed_ms=2)
+        return fetch
+
+    def test_without_markers_the_check_stays_status_only(self) -> None:
+        """The older behaviour is the default, so adding the field changes no
+        existing probe's verdict."""
+        check = run_probe(probe(), fetcher=self.docs_body("anything at all"))
+        self.assertTrue(check.ok, check.failure)
+        self.assertEqual(check.documentation_markers, [])
+
+    def test_markers_that_are_present_pass(self) -> None:
+        check = run_probe(probe(documentation_markers=("GET /api/{id}",)),
+                          fetcher=self.docs_body("the route is GET /api/{id}"))
+        self.assertTrue(check.ok, check.failure)
+
+    def test_a_recaptcha_interstitial_no_longer_passes(self) -> None:
+        check = run_probe(probe(documentation_markers=("PUG-REST",)),
+                          fetcher=self.docs_body(
+                              "Checking your browser - reCAPTCHA"))
+        self.assertFalse(check.ok)
+        self.assertIn("'PUG-REST'", check.failure)
+        self.assertIn("it is not the documentation", check.failure)
+
+    def test_an_app_shell_no_longer_passes(self) -> None:
+        shell = "<div id=root></div>"      # the same for a page that exists
+        check = run_probe(probe(documentation_markers=("UniProt REST",)),
+                          fetcher=self.docs_body(shell))
+        self.assertFalse(check.ok)
+        self.assertIn("single-page-app shell", check.failure)
+
+    def test_the_failure_names_every_missing_marker(self) -> None:
+        check = run_probe(probe(documentation_markers=("one", "two", "three")),
+                          fetcher=self.docs_body("two"))
+        self.assertIn("'one'", check.failure)
+        self.assertIn("'three'", check.failure)
+        self.assertNotIn("'two'", check.failure)
+
+    def test_a_route_failure_is_still_reported_as_the_route(self) -> None:
+        """Order matters: a dead route with good documentation must not read as
+        a documentation problem."""
+        check = run_probe(probe(documentation_markers=("absent",)),
+                          fetcher=answering("not found", status=404))
+        self.assertFalse(check.ok)
+        self.assertIn("HTTP 404", check.failure)
+        self.assertNotIn("not the documentation", check.failure)
+
+    def test_the_record_says_which_kind_of_check_it_was(self) -> None:
+        """An empty list is part of the record, not an absent detail: it says
+        the documentation was taken on its status alone."""
+        status_only = run_probe(probe(), fetcher=self.docs_body("x"))
+        with_markers = run_probe(probe(documentation_markers=("x",)),
+                                 fetcher=self.docs_body("x"))
+        self.assertEqual(status_only.documentation_markers, [])
+        self.assertEqual(with_markers.documentation_markers, ["x"])
+
+
 class TheCommands(unittest.TestCase):
     def setUp(self) -> None:
         self.runner = CliRunner()

@@ -5,7 +5,7 @@ can fail, because a milestone nobody can fail is a description rather than a
 plan.
 
 **Where the project is today.** The harness is complete and tested: the whole suite
-passes (3548 tests plus 1015 subtests with the optional extras installed;
+passes (3555 tests plus 1015 subtests with the optional extras installed;
 without them the extra-dependent tests skip rather than fail). **Four public
 databases have been called live** (UniProtKB, RCSB PDB, Rhea, Zenodo) and one
 real dataset has been downloaded through a checksum-verified route; a first
@@ -593,7 +593,7 @@ sources print.
 
 ### 现状一句话
 
-框架已完成并通过测试（写作时 3548 个测试 + 1015 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
+框架已完成并通过测试（写作时 3555 个测试 + 1015 个子测试，已装全部可选依赖）。**已对 4 个公共数据库做过真实调用**
 （UniProtKB、RCSB PDB、Rhea、Zenodo），并通过校验和核对的路径下载了一份真实数据集；另有 12 个来源
 带上了**候选路由**——从文档里拼出来、谁都还没有拨过的 URL，每一个都记着它从哪一页读来、哪一段是作者
 自己填的、以及"从未被调用过"，所以一次失败能分辨出"今天连不上"和"这条路由本来就不对"；但**没有跑过

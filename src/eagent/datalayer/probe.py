@@ -269,6 +269,25 @@ class CapabilityProbe:
     #: can read. A probe that could set an endpoint without one would route
     #: around that rule.
     documentation: str = ""
+    #: Strings that must appear in the documentation page's body, applying to
+    #: the documentation fetch the rule this module already applies to the
+    #: route. Empty keeps the older, status-only behaviour.
+    #:
+    #: It exists because the status-only check was found passing on pages that
+    #: are not documentation, by a sweep run on an open network on 2026-10-25:
+    #: NCBI Bookshelf NBK25501 and PubChem's ``docs/pug-rest`` both answered
+    #: 200 with a "Checking your browser" reCAPTCHA page, and
+    #: ``www.uniprot.org/help/api`` answered 200 with a single-page-app shell
+    #: byte-identical to the shell served for a help page that does not exist.
+    #: That is the same mistake one level up from the one this module refuses a
+    #: markerless probe for: a 200 is not a page, any more than it is a record.
+    #:
+    #: Left empty on every shipped probe on purpose. Choosing a marker means
+    #: knowing what the real page contains, and the container these were
+    #: written in cannot fetch any of them -- a guessed marker would fail a
+    #: route that works, which is worse than the gap it closes. They belong
+    #: with whoever runs the sweep and can read the page that answers.
+    documentation_markers: tuple[str, ...] = ()
     note: str = ""
 
     def __post_init__(self) -> None:
@@ -333,6 +352,15 @@ def run_probe(probe: CapabilityProbe, *, fetcher: Fetcher | None = None,
             f"{probe.documentation} did not (HTTP {docs.status or 'no reply'}). "
             f"An endpoint the code will call has to be traceable to a page a "
             f"person can read, so this is not recorded as verified")
+    elif missing_docs := [m for m in probe.documentation_markers
+                          if m not in docs.body]:
+        failure = (
+            f"the route answered, and its documentation at "
+            f"{probe.documentation} answered HTTP {docs.status}, but that "
+            f"response does not contain "
+            f"{', '.join(repr(m) for m in missing_docs)}. Something is served "
+            f"there; it is not the documentation. A reCAPTCHA interstitial and "
+            f"a single-page-app shell both answer 200")
     else:
         failure = ""
     return ConnectivityCheck(
@@ -343,6 +371,7 @@ def run_probe(probe: CapabilityProbe, *, fetcher: Fetcher | None = None,
         elapsed_ms=response.elapsed_ms,
         documentation_url=probe.documentation,
         documentation_status=docs.status or None,
+        documentation_markers=list(probe.documentation_markers),
         failure=failure, note=probe.note)
 
 
